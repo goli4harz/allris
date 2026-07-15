@@ -1,0 +1,6 @@
+# Data Table CSV exports - generated snapshots, not source
+*.csv
+
+# OS/editor cruft
+Thumbs.db
+.DS_Store

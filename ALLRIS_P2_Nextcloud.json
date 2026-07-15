@@ -1,0 +1,2292 @@
+{
+  "name": "ALLRIS_P2_Nextcloud",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 5,
+              "triggerAtMinute": 15
+            }
+          ]
+        }
+      },
+      "id": "d9dc158d-345a-41c6-860b-8fd6c028369e",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -592,
+        -304
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://www.goslar.de/stadt/politik/allris/vo040_r.asp",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36"
+            },
+            {
+              "name": "Accept",
+              "value": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+            },
+            {
+              "name": "Accept-Language",
+              "value": "de-DE,de;q=0.9,en;q=0.8"
+            },
+            {
+              "name": "Referer",
+              "value": "https://www.goslar.de/stadt-und-verwaltung/rat-der-stadt"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          },
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 90000
+        }
+      },
+      "id": "0de85397-d7bd-4e08-8c38-adf4342f5dd3",
+      "name": "HTTP ALLRIS Übersicht",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -384,
+        -304
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "76c0d2a8-e316-433d-b66b-20d63d76c727",
+      "name": "Loop neue Vorgänge",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1104,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputItems = $input.all();\nconst out = [];\n\nconst ALLOWED_EXTENSIONS = [\n  'pdf',\n  'jpg',\n  'jpeg',\n  'png',\n  'gif',\n  'tif',\n  'tiff',\n  'doc',\n  'docx',\n  'xls',\n  'xlsx',\n  'ppt',\n  'pptx',\n  'odt',\n  'ods',\n  'zip'\n];\n\nfunction sanitizeFilePart(str, maxLen = 90) {\n  return String(str || '')\n    .replace(/[\\/\\\\:*?\"<>|\\r\\n]/g, '_')\n    .replace(/\\s+/g, '_')\n    .replace(/_+/g, '_')\n    .replace(/^_+|_+$/g, '')\n    .substring(0, maxLen);\n}\n\nfunction getExtensionFromText(str) {\n  const clean = String(str || '').split('?')[0].split('#')[0];\n  const m = clean.match(/\\.([a-zA-Z0-9]{2,6})$/);\n  if (!m) return '';\n\n  const ext = m[1].toLowerCase();\n  return ALLOWED_EXTENSIONS.includes(ext) ? ext : '';\n}\n\nfunction getExtension(doc) {\n  const candidates = [\n    doc.url || '',\n    doc.label || '',\n    doc.docKey || ''\n  ];\n\n  for (const c of candidates) {\n    const ext = getExtensionFromText(c);\n    if (ext) return ext;\n  }\n\n  const url = String(doc.url || '').toLowerCase();\n\n  if (url.includes('do027.asp') || url.includes('dolfdnr=')) {\n    return 'pdf';\n  }\n\n  return 'bin';\n}\n\nfunction isUploadCandidate(doc) {\n  const url = String(doc.url || '').toLowerCase();\n\n  if (!url) return false;\n\n  if (url.includes('/stadt/politik/allris/do027.asp')) return true;\n  if (url.includes('dolfdnr=')) return true;\n\n  if (url.includes('/stadt/politik/allris/___tmp/tmp/')) return true;\n  if (url.includes('/allris/___tmp/tmp/')) return true;\n\n  const ext = getExtension(doc);\n  if (ext && ext !== 'bin') return true;\n\n  return false;\n}\n\nfor (const item of inputItems) {\n  const j = item.json || {};\n\n  let docs = [];\n  try {\n    docs = JSON.parse(j.documentsJson || '[]');\n    if (!Array.isArray(docs)) docs = [];\n  } catch (e) {\n    console.warn(`[Expand] documentsJson konnte nicht gelesen werden für ${j.vorgangKey}: ${e.message}`);\n    docs = [];\n  }\n\n  const uploadDocs = [];\n  const skippedDocs = [];\n\n  for (let i = 0; i < docs.length; i++) {\n    const doc = docs[i] || {};\n\n    if (isUploadCandidate(doc)) {\n      uploadDocs.push({\n        ...doc,\n        _sourceDocIndex: i + 1\n      });\n    } else {\n      skippedDocs.push({\n        url: doc.url || '',\n        type: doc.type || '',\n        label: doc.label || '',\n        docKey: doc.docKey || '',\n        reason: 'kein echter Datei-/ALLRIS-Downloadlink'\n      });\n    }\n  }\n\n  console.log(\n    `[Expand] ${j.vorgangKey}: ${docs.length} Links gesamt, ` +\n    `${uploadDocs.length} Upload-Kandidaten, ${skippedDocs.length} übersprungen.`\n  );\n\n  let uploadIndex = 0;\n\n  for (const doc of uploadDocs) {\n    uploadIndex++;\n\n    const url = doc.url || '';\n    const dolfdnr = url.match(/DOLFDNR=(\\d+)/i)?.[1];\n\n    const ext = getExtension(doc);\n    const paddedIdx = String(uploadIndex).padStart(2, '0');\n\n    const docType = doc.type || 'document';\n    let suffix = 'dokument';\n\n    if (docType === 'original') suffix = 'original';\n    if (docType === 'anlage') suffix = 'anlage';\n\n    let cleanDocKey = sanitizeFilePart(doc.docKey || '', 100)\n      .replace(/^anlage_/, '')\n      .replace(/^original_/, '')\n      .replace(/^document_/, '')\n      .replace(/\\.[a-zA-Z0-9]{2,6}$/, '');\n\n    let nc_fileName;\n\n    if (dolfdnr) {\n      nc_fileName = `dol_${dolfdnr}.pdf`;\n    } else if (cleanDocKey) {\n      nc_fileName = `${paddedIdx}_${suffix}_${cleanDocKey}.${ext}`;\n    } else {\n      nc_fileName = `${paddedIdx}_${suffix}.${ext}`;\n    }\n\n    out.push({\n      json: {\n        ...j,\n\n        // Wichtig: für die spätere Aggregation nur echte Uploads zählen\n        documentCount: uploadDocs.length,\n\n        _sourceDocumentCount: docs.length,\n        _skippedDocumentCount: skippedDocs.length,\n        _skippedDocumentsJson: JSON.stringify(skippedDocs),\n\n        url,\n        type: docType,\n        label: doc.label || '',\n        docKey: doc.docKey || '',\n        _sourceDocIndex: doc._sourceDocIndex || uploadIndex,\n\n        referer:\n          j.allrisUrl ||\n          j.sourceUrl ||\n          'https://www.goslar.de/stadt/politik/allris/vo040_r.asp',\n\n        nc_fileName,\n        nc_docIndex: uploadIndex,\n        docRunKey: `${j.vorgangKey}::${uploadIndex}::${url}`,\n\n        _forceRefreshDocuments: j._forceRefreshDocuments === true,\n        _forceRefreshOnlyVorgangKey: j._forceRefreshOnlyVorgangKey || '',\n        _deleteExistingBeforeUpload: j._deleteExistingBeforeUpload === true,\n        _existingNextcloudFolder: j._existingNextcloudFolder || ''\n      }\n    });\n  }\n}\n\nreturn out;\n"
+      },
+      "id": "796356ba-30df-4fdb-bbd4-f7c821c4292b",
+      "name": "Expand Documents",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        64,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$json.url}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Referer",
+              "value": "={{ $json.referer }}"
+            },
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36"
+            },
+            {
+              "name": "Accept",
+              "value": "application/pdf,application/octet-stream,*/*"
+            },
+            {
+              "name": "Accept-Language",
+              "value": "de-DE,de;q=0.9,en;q=0.8"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 3000
+            }
+          },
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 5
+            }
+          },
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "file"
+            }
+          },
+          "timeout": 90000
+        }
+      },
+      "id": "0cdcff7d-da9a-47fe-ad34-fc36df13d8b3",
+      "name": "HTTP Dokument laden",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        288,
+        304
+      ],
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "maxTries": 3,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Bereinigt einen Ordnerpfad-Wert aus der DataTable.\n// Erkennt String-\"null\", \"undefined\", \"-\" als leere Werte.\nfunction sanitizeFolder(raw) {\n  const s = (raw || '').trim();\n  if (s.toLowerCase() === 'null' ||\n      s.toLowerCase() === 'undefined' ||\n      s === '-') {\n    return '';\n  }\n  return s;\n}\n\n// Baut den Nextcloud-Ordnerpfad aus Vorgangsnummer + Titel.\n// Bei Force-Refresh wird der bestehende Ordner wiederverwendet,\n// damit kein neuer Ordner bei geänderten Titeln entsteht.\n// existingFolder wird robust bereinigt – \"null\"-Strings führen nicht zu falschen Pfaden.\n\nconst j = $input.item.json;\n\nfunction sanitize(str, maxLen) {\n  return (str || '')\n    .replace(/[\\/\\\\:*?\"<>|\\r\\n]/g, '_')\n    .replace(/\\s+/g, '_')\n    .replace(/_+/g, '_')\n    .replace(/^_+|_+$/g, '')\n    .substring(0, maxLen || 50);\n}\n\n// ── Force-Refresh: bestehenden Ordner weiterverwenden ─────────────────────\nconst forceRefresh   = j._forceRefreshDocuments === true;\n// Robust bereinigen: \"null\", \"undefined\", \"-\" → leerer String\nconst existingFolder = sanitizeFolder(j._existingNextcloudFolder);\n\nlet nc_pathYear, nc_pathVorg, nc_pathOrig, nc_folder, nc_year;\n\nif (forceRefresh && existingFolder) {\n  // Bestehenden Pfad übernehmen\n  nc_pathVorg = existingFolder;\n  nc_pathOrig = existingFolder + '/01_originale';\n\n  // nc_pathYear aus existingFolder ableiten\n  // Schema: /DiePARTEI/Allris/<Jahr>/<Ordner> → Segmente nach split('/')\n  const parts = existingFolder.split('/').filter(Boolean);\n  if (parts.length >= 3) {\n    nc_year     = parts[2] || new Date().getFullYear().toString();\n    nc_pathYear = '/' + parts.slice(0, 3).join('/');\n    nc_folder   = parts.slice(3).join('/') || sanitize(`${(j.vorgangKey||'').replace(/\\//g,'_')}_${j.title||''}`, 120);\n  } else {\n    nc_year     = new Date().getFullYear().toString();\n    nc_pathYear = `/DiePARTEI/Allris/${nc_year}`;\n    nc_folder   = sanitize(`${(j.vorgangKey||'').replace(/\\//g,'_')}_${j.title||''}`, 120);\n    console.warn(`[BuildPath] Force-Refresh: Pfad-Schema unklar für \"${existingFolder}\", nutze Fallback.`);\n  }\n  console.log(`[BuildPath] Force-Refresh: verwende bestehenden Ordner \"${nc_pathVorg}\"`);\n} else {\n  // Normalbetrieb (oder Force-Refresh ohne gültigen bestehenden Ordner):\n  // neuen Pfad bauen\n  if (forceRefresh && !existingFolder) {\n    console.log('[BuildPath] Force-Refresh: kein gültiger existingFolder, baue neuen Pfad.');\n  }\n  nc_year     = new Date().getFullYear().toString();\n  const vgnr  = (j.vorgangKey || 'unbekannt').replace(/\\//g, '_');\n  const title = sanitize(j.title || '', 80);\n  nc_folder   = sanitize(`${vgnr}_${title}`, 120);\n  nc_pathYear = `/DiePARTEI/Allris/${nc_year}`;\n  nc_pathVorg = `/DiePARTEI/Allris/${nc_year}/${nc_folder}`;\n  nc_pathOrig = `/DiePARTEI/Allris/${nc_year}/${nc_folder}/01_originale`;\n}\n\n// Sicherheitscheck: nc_pathVorg darf niemals \"null\" oder leer sein\nif (!nc_pathVorg || nc_pathVorg === 'null' || nc_pathVorg.startsWith('null')) {\n  throw new Error(\n    `[BuildPath] KRITISCH: nc_pathVorg ist ungültig (\"${nc_pathVorg}\") ` +\n    `für Vorgang ${j.vorgangKey||'?'}. existingFolder war: \"${j._existingNextcloudFolder}\"`\n  );\n}\n\nreturn [{\n  json: {\n    ...j,\n    nc_year,\n    nc_folder,\n    nc_pathYear,\n    nc_pathVorg,\n    nc_pathOrig\n  }\n}];\n"
+      },
+      "id": "b8476376-1504-45db-acb0-5ed2a289bc20",
+      "name": "Build Nextcloud Path",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1312,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "path": "={{ $json.nc_pathYear }}"
+      },
+      "id": "e4d7b50c-be51-4f59-9f95-93d5be9ba6e8",
+      "name": "Create Year Folder",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [
+        1472,
+        96
+      ],
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "path": "={{ $json.nc_pathVorg }}"
+      },
+      "id": "588c8bfc-a146-4a2c-81f5-763d57dc0e33",
+      "name": "Create Vorgang Folder",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [
+        1664,
+        96
+      ],
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "path": "={{ $json.nc_pathOrig }}"
+      },
+      "id": "a8902322-401d-4adb-a706-8f383f6c92e8",
+      "name": "Create Originale Folder",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [
+        1872,
+        96
+      ],
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "path": "={{ $json.nc_pathOrig }}/{{ $json.nc_fileName }}",
+        "binaryDataUpload": true
+      },
+      "id": "17946975-9956-4e60-8b35-2aacca22ec6f",
+      "name": "Upload Original to Nextcloud",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [
+        720,
+        544
+      ],
+      "retryOnFail": false,
+      "alwaysOutputData": true,
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "nextcloudFolder": "={{ $json.nextcloudFolder }}",
+            "status": "=needs_summary",
+            "lastseen": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "nextcloudFolder",
+              "displayName": "nextcloudFolder",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "lastseen",
+              "displayName": "lastseen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "338b0b83-3fbf-4cd0-8e16-6e4856db34d5",
+      "name": "Update Nextcloud Archive Status",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1808,
+        544
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "83dbb1e8-0fb3-4dc0-93f6-ba1ef6617249",
+      "name": "Loop weiter",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2032,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "returnAll": true
+      },
+      "id": "2c821cef-5580-449f-b905-b0143ce0ddb0",
+      "name": "Lese Vorgaenge aus DataTable",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        656,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Bereinigt einen Ordnerpfad-Wert aus der DataTable.\n// Erkennt String-\"null\", \"undefined\", \"-\" als leere Werte.\nfunction sanitizeFolder(raw) {\n  const s = (raw || '').trim();\n  if (s.toLowerCase() === 'null' ||\n      s.toLowerCase() === 'undefined' ||\n      s === '-') {\n    return '';\n  }\n  return s;\n}\n\n// Filtert DataTable-Zeilen und wertet Force-Refresh-Konfiguration aus.\n\n// ── Konfiguration lesen ───────────────────────────────────────────────────\nconst cfg = $('Archiv Konfiguration').first()?.json || {};\nconst forceRefreshDocuments      = cfg.forceRefreshDocuments      === true;\nconst forceRefreshOnlyVorgangKey = (cfg.forceRefreshOnlyVorgangKey || '').trim();\nconst forceRefreshAllConfirmed   = cfg.forceRefreshAllConfirmed   === true;\nconst deleteExistingBeforeUpload = cfg.deleteExistingBeforeUpload === true;\n\n// ── Sicherheitsbremse ─────────────────────────────────────────────────────\nif (forceRefreshDocuments && !forceRefreshOnlyVorgangKey && !forceRefreshAllConfirmed) {\n  throw new Error(\n    '[Filter] ABBRUCH: forceRefreshDocuments ist true, aber weder ' +\n    'forceRefreshOnlyVorgangKey noch forceRefreshAllConfirmed ist gesetzt. ' +\n    'Bitte in \"Archiv Konfiguration\" einen dieser Schalter setzen.'\n  );\n}\n\nif (forceRefreshDocuments) {\n  console.log(\n    forceRefreshOnlyVorgangKey\n      ? `[Filter] Force-Refresh-Modus: nur Vorgang \"${forceRefreshOnlyVorgangKey}\"`\n      : `[Filter] Force-Refresh-Modus: ALLE Vorgänge (forceRefreshAllConfirmed=true)`\n  );\n}\n\n// ── Filterlogik ───────────────────────────────────────────────────────────\nconst out = [];\n\nfor (const item of items) {\n  const j = item.json;\n\n  // Filter 1: documentCount muss > 0 sein\n  const docCount = parseInt(j.documentCount || '0', 10);\n  if (docCount === 0) continue;\n\n  // Filter 2: documentsJson muss gültiges nicht-leeres Array sein\n  let docs = [];\n  try {\n    docs = JSON.parse(j.documentsJson || '[]');\n  } catch (e) {\n    docs = [];\n  }\n  if (!Array.isArray(docs) || docs.length === 0) continue;\n\n  // Filter 3: nextcloudFolder robust bereinigen (String-\"null\" etc. als leer werten)\n  const folder = sanitizeFolder(j.nextcloudFolder);\n\n  if (!forceRefreshDocuments) {\n    // Normalbetrieb: nur Vorgänge ohne nextcloudFolder\n    if (folder.length > 0) continue;\n    // Nach 3 gescheiterten Versuchen endgültig aufgeben - kein weiterer Retry mehr,\n    // außer über den Force-Refresh-Schalter.\n    if (j.status === 'nextcloud_failed_final') continue;\n  } else {\n    // Force-Modus: nur den angegebenen Vorgang wenn forceRefreshOnlyVorgangKey gesetzt\n    if (forceRefreshOnlyVorgangKey) {\n      if (j.vorgangKey !== forceRefreshOnlyVorgangKey) continue;\n    }\n    // sonst: alle Vorgänge durchlassen (forceRefreshAllConfirmed = true)\n  }\n\n  out.push({\n    json: {\n      ...j,\n      _forceRefreshDocuments:      forceRefreshDocuments,\n      _forceRefreshOnlyVorgangKey: forceRefreshOnlyVorgangKey,\n      _deleteExistingBeforeUpload: deleteExistingBeforeUpload,\n      _existingNextcloudFolder:    folder   // bereinigter Wert, niemals \"null\"\n    }\n  });\n}\n\n// Vorgänge von alt nach neu sortieren\nout.sort((a, b) => {\n  const aDate = Date.parse(a.json.firstseen || a.json.createdAt || '') || 0;\n  const bDate = Date.parse(b.json.firstseen || b.json.createdAt || '') || 0;\n\n  if (aDate !== bDate) {\n    return aDate - bDate; // alt → neu\n  }\n\n  const aVol = parseInt(a.json.volfdnr || '0', 10);\n  const bVol = parseInt(b.json.volfdnr || '0', 10);\n\n  return aVol - bVol;\n});\n\nconsole.log(`[Filter] ${out.length} Vorgänge zum Verarbeiten (aus ${items.length} DataTable-Zeilen).`);\nreturn out;\n"
+      },
+      "id": "9b31125c-a54b-4d59-aea7-9da4ac5fdd2e",
+      "name": "Filtere und merge Cookie",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\n// Stellt JSON-Metadaten nach dem HTTP-Download wieder her.\n// Läuft im Modus \"Run Once for Each Item\" – verarbeitet ein Item pro Aufruf.\n// Primär: item.json (HTTP-Node gibt bei responseFormat=file das JSON durch).\n// Sekundär: Suche in Expand Documents anhand des docRunKey.\n\nconst item = $input.item;\nconst j    = item.json;\n\nconst docRunKey    = j.docRunKey || '';\nconst hasFullMeta  = !!(j.vorgangKey && j.nc_fileName && j.nc_pathOrig);\n\nlet meta = {};\nif (!hasFullMeta && docRunKey) {\n  const src   = $('Expand Documents').all();\n  const found = src.find(i => i.json.docRunKey === docRunKey);\n  if (found) {\n    meta = found.json;\n    console.log(`[RestoreMeta] Metadaten via docRunKey: ${docRunKey}`);\n  } else {\n    console.warn(`[RestoreMeta] WARNUNG: docRunKey '${docRunKey}' nicht in Expand Documents!`);\n  }\n} else if (!hasFullMeta) {\n  console.warn('[RestoreMeta] WARNUNG: Keine Metadaten und kein docRunKey.');\n}\n\nconst httpStatus = j.statusCode || j._httpStatus || '';\n\nreturn {\n  json: {\n    vorgangKey:     j.vorgangKey     || meta.vorgangKey     || '',\n    volfdnr:        j.volfdnr        || meta.volfdnr        || '',\n    title:          j.title          || meta.title          || '',\n    vorgangsnummer: j.vorgangsnummer || meta.vorgangsnummer || '',\n    allrisUrl:      j.allrisUrl      || meta.allrisUrl      || '',\n    sourceUrl:      j.sourceUrl      || meta.sourceUrl      || '',\n    documentCount:  j.documentCount  || meta.documentCount  || 0,\n    documentsJson:  j.documentsJson  || meta.documentsJson  || '[]',\n    referer:        j.referer        || meta.referer        || '',\n    url:            j.url            || meta.url            || '',\n    type:           j.type           || meta.type           || '',\n    nc_pathYear:    j.nc_pathYear    || meta.nc_pathYear    || '',\n    nc_pathVorg:    j.nc_pathVorg    || meta.nc_pathVorg    || '',\n    nc_pathOrig:    j.nc_pathOrig    || meta.nc_pathOrig    || '',\n    nc_folder:      j.nc_folder      || meta.nc_folder      || '',\n    nc_fileName:    j.nc_fileName    || meta.nc_fileName    || '',\n    nc_docIndex:    j.nc_docIndex    ?? meta.nc_docIndex    ?? 0,\n    docRunKey:      j.docRunKey      || meta.docRunKey      || '',\n    // Force-Refresh-Felder erhalten (aus item.json oder meta)\n    _forceRefreshDocuments:      j._forceRefreshDocuments      ?? meta._forceRefreshDocuments      ?? false,\n    _forceRefreshOnlyVorgangKey: j._forceRefreshOnlyVorgangKey || meta._forceRefreshOnlyVorgangKey || '',\n    _deleteExistingBeforeUpload: j._deleteExistingBeforeUpload ?? meta._deleteExistingBeforeUpload ?? false,\n    _existingNextcloudFolder:    j._existingNextcloudFolder    || meta._existingNextcloudFolder    || '',\n    _httpStatus:    httpStatus,\n    _downloadOk:    !j.error && !!(item.binary?.data)\n  },\n  binary: item.binary || {}\n};\n"
+      },
+      "id": "4519b5e5-00dd-457c-956f-123e0c324ab9",
+      "name": "Restore Metadaten",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        496,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Aggregiert Upload-Ergebnisse je Vorgang.\n// Input kommt aus dem nativen Merge-Node (mode: append).\n//\n// n8n Merge-Node (append): Feuert sobald EINER der Inputs Daten liefert\n// und der andere Input ebenfalls gefeuert hat oder leer ist.\n// Bei batchSize:1 pro Vorgang und Dokument-Loop:\n//   - Alle erfolgreichen Uploads kommen über Markiere Upload Erfolg → Merge input0\n//   - Alle Fehler kommen über Markiere Upload Fehler → Merge input1\n//   - Wenn ALLE Dokumente erfolgreich: input1 empfängt keine Items → Merge\n//     gibt trotzdem alle input0-Items weiter (append-Modus)\n//   - Wenn KEIN Dokument erfolgreich: input0 empfängt keine Items → Merge\n//     gibt trotzdem alle input1-Items weiter\n// → Alle 4 Fälle werden korrekt behandelt:\n//   (a) alle OK          → nur input0-Items\n//   (b) ein Downloadfehler → input0 (Erfolge) + input1 (der Fehler)\n//   (c) ein Uploadfehler   → input0 (Erfolge) + input1 (der Fehler)\n//   (d) nur Fehler          → nur input1-Items\n\nconst allItems = $input.all();\nconst groups   = {};\n\nif (allItems.length === 0) {\n  console.warn('[Aggregation] WARNUNG: Keine Items empfangen – Merge-Node hat nichts geliefert.');\n  return [];\n}\n\nfor (const item of allItems) {\n  const j   = item.json;\n  const key = j.vorgangKey || '_unbekannt_';\n\n  if (!groups[key]) {\n    groups[key] = {\n      vorgangKey:    j.vorgangKey,\n      title:         j.title          || '',\n      nc_pathVorg:   j.nc_pathVorg    || '',\n      nc_pathOrig:   j.nc_pathOrig    || '',\n      nc_pathYear:   j.nc_pathYear    || '',\n      documentCount: parseInt(j.documentCount || '0', 10),\n      allrisUrl:     j.allrisUrl      || '',\n      sourceUrl:     j.sourceUrl      || '',\n      documentsJson: j.documentsJson  || '[]',\n      firstseen:     j.firstseen      || '',\n      nextcloudRetryCount: parseInt(j.nextcloudRetryCount || '0', 10),\n      uploaded:      0,\n      failed:        0,\n      errors:        []\n    };\n  }\n\n  if (j._uploadOk === true) {\n    groups[key].uploaded++;\n  } else {\n    groups[key].failed++;\n    const errMsg = j._uploadError\n      || `Dokument ${j.nc_docIndex ?? '?'} (${j.nc_fileName || '?'}) fehlgeschlagen`;\n    groups[key].errors.push(errMsg);\n  }\n}\n\nreturn Object.values(groups).map(g => {\n  const expected = g.documentCount;\n  // Streng: alle erwarteten Dokumente müssen erfolgreich hochgeladen sein\n  const allOk    = g.failed === 0 && g.uploaded === expected && expected > 0;\n\n  if (allOk) {\n    console.log(`[Aggregation] ✓ Vorgang ${g.vorgangKey}: alle ${expected} Dokumente hochgeladen`);\n  } else {\n    console.warn(\n      `[Aggregation] ✗ Vorgang ${g.vorgangKey}: ` +\n      `erwartet=${expected}, hochgeladen=${g.uploaded}, fehlgeschlagen=${g.failed}`\n    );\n  }\n\n  const maxRetries    = 3;\n  const newRetryCount = allOk ? g.nextcloudRetryCount : g.nextcloudRetryCount + 1;\n  const giveUp        = !allOk && newRetryCount >= maxRetries;\n\n  if (giveUp) {\n    console.warn(`[Aggregation] ⛔ Vorgang ${g.vorgangKey}: endgültig aufgegeben nach ${newRetryCount} Versuchen.`);\n  }\n\n  return {\n    json: {\n      vorgangKey:      g.vorgangKey,\n      title:           g.title,\n      allrisUrl:       g.allrisUrl,\n      sourceUrl:       g.sourceUrl,\n      documentsJson:   g.documentsJson,\n      nc_pathVorg:     g.nc_pathVorg,\n      nc_pathOrig:     g.nc_pathOrig,\n      nc_pathYear:     g.nc_pathYear,\n      documentCount:   g.documentCount,\n      firstseen:       g.firstseen,\n      _expectedCount:  expected,\n      _uploadedCount:  g.uploaded,\n      _failedCount:    g.failed,\n      _uploadErrors:   g.errors,\n      _allUploadsOk:   allOk,\n      nextcloudFolder: allOk ? g.nc_pathVorg : '',\n      nextcloudRetryCount: newRetryCount,\n      status:          allOk ? 'nextcloud_archived' : (giveUp ? 'nextcloud_failed_final' : 'nextcloud_failed')\n    }\n  };\n});\n"
+      },
+      "id": "2a075e82-7b30-4132-a027-33018a375db8",
+      "name": "Aggregiere Upload Ergebnisse",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1376,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "if-uploads-ok-001",
+              "leftValue": "={{ $json._allUploadsOk }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "187cbe73-4e1e-4052-811b-9635fb5abbe9",
+      "name": "IF alle Uploads OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "={{ $json.status }}",
+            "nextcloudRetryCount": "={{ $json.nextcloudRetryCount }}"
+          },
+          "schema": [
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "nextcloudRetryCount",
+              "displayName": "nextcloudRetryCount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a5777b80-c8c8-4d30-96b4-77306ce89ce1",
+      "name": "Markiere Fehler in DataTable",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        1824,
+        752
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.allrisUrl || $json.sourceUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36"
+            },
+            {
+              "name": "Accept",
+              "value": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+            },
+            {
+              "name": "Accept-Language",
+              "value": "de-DE,de;q=0.9,en;q=0.8"
+            },
+            {
+              "name": "Referer",
+              "value": "https://www.goslar.de/stadt/politik/allris/vo040_r.asp"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 3000
+            }
+          },
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 5
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 90000
+        }
+      },
+      "id": "c50f1cba-f886-4206-b5c4-d35d3eeb998f",
+      "name": "HTTP Vorgangsseite Warmup",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        -432,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Stellt die Vorgang-Metadaten nach dem Warmup-Request wieder her.\n// Metadaten kommen aus 'Restore nach Ordneranlage'.\n// Bei batchSize:1 ist idx immer 0; ?? 0 als sicherer Fallback.\n\nconst item   = $input.item;\nconst warmup = item.json;\n\nconst idx   = $input.itemIndex ?? 0;\nconst prev  = $('Restore nach Ordneranlage').all();\nconst found = prev[idx];\n\nif (!found) {\n  throw new Error(\n    `[MergeWarmup] Kein Item bei Index ${idx} in 'Restore nach Ordneranlage' ` +\n    `(${prev.length} Items). batchSize korrekt?`\n  );\n}\nconst meta = found.json;\n\nif (!meta.vorgangKey) {\n  console.warn('[MergeWarmup] WARNUNG: meta.vorgangKey fehlt.');\n}\n\n// Alle Felder aus meta weitergeben (inkl. Force-Refresh-Felder via ...meta)\nreturn [{\n  json: {\n    ...meta,\n    _warmupStatus: warmup.statusCode || '',\n    _warmupUrl:    meta.allrisUrl    || meta.sourceUrl || ''\n  }\n}];\n"
+      },
+      "id": "894bca20-ccf3-4aaa-8050-deb4baab385f",
+      "name": "Merge Warmup Cookie",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -288,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Stellt alle Vorgang-Metadaten nach den Nextcloud-Folder-Nodes wieder her.\n// Bei batchSize:1 gibt es pro Ausführung genau ein Item aus Build Nextcloud Path.\n// $input.itemIndex ?? 0 als sicherer Fallback falls der Wert undefined ist.\n\nconst idx = $input.itemIndex ?? 0;\nconst src = $('Build Nextcloud Path').all();\n\nconst found = src[idx];\nif (!found) {\n  throw new Error(\n    `[RestoreOrdner] Kein Item bei Index ${idx} in 'Build Nextcloud Path' ` +\n    `(${src.length} Items vorhanden). batchSize korrekt auf 1 gesetzt?`\n  );\n}\nconst meta = found.json;\n\nif (!meta.vorgangKey) {\n  console.warn(`[RestoreOrdner] WARNUNG: kein vorgangKey bei Index ${idx}`);\n}\n\n// Alle Felder aus meta weitergeben (inkl. Force-Refresh-Felder)\nreturn [{\n  json: {\n    ...meta,\n    // Sicherstellen dass Pflichtfelder vorhanden\n    vorgangKey:    meta.vorgangKey    || '',\n    nc_pathYear:   meta.nc_pathYear   || '',\n    nc_pathVorg:   meta.nc_pathVorg   || '',\n    nc_pathOrig:   meta.nc_pathOrig   || ''\n  }\n}];\n"
+      },
+      "id": "cbafc68e-ea48-418b-a59f-a4dcdee783a9",
+      "name": "Restore nach Ordneranlage",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -592,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Prüft den Download. Akzeptiert jetzt PDF, JPG, JPEG, PNG und andere echte Binary-Dateien.\n// Läuft im Modus: Run Once for Each Item\n// V2: Verifiziert PDF-Dateien zusätzlich per Magic-Byte-Prüfung (%PDF-) und lässt\n// unbekannte Dateigrößen nicht mehr automatisch durch, um leere/kaputte Downloads\n// zu erkennen, bevor sie als erfolgreich nach Nextcloud hochgeladen werden.\n\nconst item = $input.item;\nconst j = item.json || {};\nconst binary = item.binary || {};\nconst bin = binary.data || {};\n\nfunction parseSize(value) {\n  if (typeof value === 'number') return value;\n\n  const s = String(value || '').trim().toLowerCase().replace(',', '.');\n  const n = parseFloat(s);\n\n  if (!Number.isFinite(n)) return 0;\n\n  if (s.includes('mb')) return Math.round(n * 1024 * 1024);\n  if (s.includes('kb')) return Math.round(n * 1024);\n\n  return Math.round(n);\n}\n\nconst hasBinary = !!binary.data;\n\n// Tatsächliche Bytes laden, wenn möglich – zuverlässiger als gemeldete Metadaten.\nlet realBuffer = null;\nif (hasBinary) {\n  try {\n    realBuffer = await this.helpers.getBinaryDataBuffer(0, 'data');\n  } catch (e) {\n    console.warn(`[Prüfe Download] Konnte Binärdaten nicht laden (${j.vorgangKey || '?'} / ${j.nc_fileName || '?'}): ${e.message}`);\n  }\n}\n\nconst mimeType = String(\n  bin.mimeType ||\n  bin.mime ||\n  j.mimeType ||\n  ''\n).toLowerCase();\n\nconst fileName = String(\n  j.nc_fileName ||\n  bin.fileName ||\n  ''\n).toLowerCase();\n\nconst fileExtension = String(\n  bin.fileExtension ||\n  fileName.split('.').pop() ||\n  ''\n).toLowerCase();\n\nconst reportedFileSize = parseSize(\n  bin.fileSize ||\n  bin.fileSizeBytes ||\n  j.fileSize ||\n  0\n);\nconst fileSize = realBuffer ? realBuffer.length : reportedFileSize;\n\nconst isPdf =\n  mimeType.includes('pdf') ||\n  fileName.endsWith('.pdf') ||\n  fileExtension === 'pdf';\n\nconst isImage =\n  mimeType.includes('image/jpeg') ||\n  mimeType.includes('image/jpg') ||\n  mimeType.includes('image/png') ||\n  mimeType.includes('image/gif') ||\n  fileName.endsWith('.jpg') ||\n  fileName.endsWith('.jpeg') ||\n  fileName.endsWith('.png') ||\n  fileName.endsWith('.gif') ||\n  ['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension);\n\nconst isOfficeOrOtherAllowed =\n  fileName.endsWith('.doc') ||\n  fileName.endsWith('.docx') ||\n  fileName.endsWith('.xls') ||\n  fileName.endsWith('.xlsx') ||\n  fileName.endsWith('.ppt') ||\n  fileName.endsWith('.pptx') ||\n  fileName.endsWith('.odt') ||\n  fileName.endsWith('.ods') ||\n  fileName.endsWith('.zip') ||\n  ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods', 'zip'].includes(fileExtension);\n\nconst isHtml =\n  mimeType.includes('text/html') ||\n  mimeType.includes('html') ||\n  fileName.endsWith('.html') ||\n  fileName.endsWith('.htm');\n\n// Magic-Byte-Prüfung: eine als PDF erkannte Datei muss tatsächlich mit %PDF- beginnen.\n// Fängt mislabelte oder kaputte Downloads ab, die Metadaten/Endung nicht verraten.\nlet magicBytesOk = true;\nif (isPdf && realBuffer) {\n  const header = realBuffer.subarray(0, 5).toString('latin1');\n  magicBytesOk = header === '%PDF-';\n  if (!magicBytesOk) {\n    console.warn(`[Prüfe Download] Magic-Byte-Check fehlgeschlagen (${j.vorgangKey || '?'} / ${j.nc_fileName || '?'}): erwartet %PDF-, erhalten ${header}`);\n  }\n}\n\n// Keine Freikarte mehr für unbekannte Größe: eine Datei mit fileSize=0 ist verdächtig,\n// nicht automatisch gültig. Für PDFs gilt eine höhere Mindestgröße, weil selbst ein\n// einzelnes Deckblatt praktisch nie kleiner als ein paar hundert Byte ist.\nconst minSize = isPdf ? 800 : 300;\nconst sizeOk = fileSize > minSize;\n\nconst downloadOk =\n  hasBinary &&\n  sizeOk &&\n  !isHtml &&\n  magicBytesOk &&\n  (\n    isPdf ||\n    isImage ||\n    isOfficeOrOtherAllowed ||\n    fileSize > 2000\n  );\n\nif (!downloadOk) {\n  console.warn(\n    `[Prüfe Download] FEHLER: ${j.vorgangKey || '?'} / ${j.nc_fileName || '?'} ` +\n    `mime=${mimeType}, ext=${fileExtension}, size=${fileSize}, hasBinary=${hasBinary}, magicBytesOk=${magicBytesOk}`\n  );\n}\n\nreturn {\n  json: {\n    ...j,\n    downloadOk,\n    _downloadOk: downloadOk,\n    _downloadMimeType: mimeType,\n    _downloadFileName: fileName,\n    _downloadFileExtension: fileExtension,\n    _downloadFileSize: fileSize,\n    _downloadHasBinary: hasBinary,\n    _downloadMagicBytesOk: magicBytesOk,\n    _downloadRejectedReason: downloadOk\n      ? ''\n      : `Nicht akzeptiert: mime=${mimeType}, ext=${fileExtension}, size=${fileSize}, hasBinary=${hasBinary}, magicBytesOk=${magicBytesOk}`\n  },\n  binary\n};\n"
+      },
+      "id": "6ba5586b-1dd6-4c94-a0c8-a8577a59a711",
+      "name": "Prüfe Download",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "if-dl-ok-001",
+              "leftValue": "={{ $json._downloadOk }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "1c979e57-0126-40bc-8c69-fb8884beacd9",
+      "name": "IF Download OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        944,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\n// ── pairedItem-Index sicher extrahieren ──────────────────────────────────────\n// n8n liefert pairedItem in verschiedenen Formen je nach Version:\n//   - Zahl:               pairedItem = 0\n//   - Objekt mit .item:   pairedItem = { item: 0 }\n//   - Array:              pairedItem = [{ item: 0 }]\n//   - undefined:          nicht gesetzt (ältere n8n-Versionen)\nfunction getPairedIndex(pairedItem) {\n  if (pairedItem === undefined || pairedItem === null) return null;\n  if (typeof pairedItem === 'number')                  return pairedItem;\n  if (Array.isArray(pairedItem) && pairedItem.length)  return pairedItem[0]?.item ?? pairedItem[0] ?? null;\n  if (typeof pairedItem === 'object')                  return pairedItem.item ?? null;\n  return null;\n}\n\n// ── Markiere Upload Erfolg ───────────────────────────────────────────────────\n// Kommt vom SUCCESS-Ausgang (out0) des Nextcloud-Upload-Nodes.\n//\n// Metadaten-Strategie (in Priorität):\n//   1. item.json vollständig → direkt nutzen\n//   2. pairedItem → Index in $('Upload Kontext sichern').all()\n//      pairedItem zeigt auf das Item das in den NC-Upload hineinging,\n//      also den Output von 'Upload Kontext sichern' – kein Index-Drift\n//   3. docRunKey-Suche in $('Upload Kontext sichern').all() (falls j.docRunKey vorhanden)\n//   4. Kein src[0]-Fallback – stattdessen Fehler mit _uploadOk: false\n\nconst item = $input.item;\nconst j    = item.json;\n\nconst REQUIRED = ['vorgangKey','documentCount','nc_pathVorg','nc_pathOrig',\n                  'nc_fileName','nc_docIndex','docRunKey'];\nconst hasFullMeta = REQUIRED.every(f => j[f] !== undefined && j[f] !== '' && j[f] !== null);\n\nlet meta   = null;\nlet source = '';\n\n// ── Priorität 1: item.json vollständig ───────────────────────────────────────\nif (hasFullMeta) {\n  meta   = j;\n  source = 'item.json direkt';\n  console.log(`[UploadErfolg] P1 – Metadaten direkt: ${j.docRunKey}`);\n}\n\n// ── Priorität 2: pairedItem → Upload Kontext sichern ─────────────────────────\nif (!meta) {\n  const pIdx = getPairedIndex(item.pairedItem);\n  if (pIdx !== null) {\n    const ctxItems = $('Upload Kontext sichern').all();\n    const ctx      = ctxItems[pIdx];\n    if (ctx?.json?.vorgangKey) {\n      meta   = ctx.json;\n      source = `pairedItem[${pIdx}] → Upload Kontext`;\n      console.log(`[UploadErfolg] P2 – Metadaten via ${source}: ${meta.docRunKey}`);\n    } else {\n      console.warn(`[UploadErfolg] P2 – pairedItem[${pIdx}] in Upload Kontext sichern leer/ungültig.`);\n    }\n  } else {\n    console.warn('[UploadErfolg] P2 – kein pairedItem verfügbar.');\n  }\n}\n\n// ── Priorität 3: docRunKey-Suche ─────────────────────────────────────────────\nif (!meta) {\n  const key = j.docRunKey || '';\n  if (key) {\n    const ctxItems = $('Upload Kontext sichern').all();\n    const found    = ctxItems.find(i => i.json.docRunKey === key);\n    if (found?.json?.vorgangKey) {\n      meta   = found.json;\n      source = `docRunKey=\"${key}\" → Upload Kontext`;\n      console.log(`[UploadErfolg] P3 – Metadaten via ${source}`);\n    } else {\n      console.warn(`[UploadErfolg] P3 – docRunKey \"${key}\" nicht in Upload Kontext sichern gefunden.`);\n    }\n  } else {\n    console.warn('[UploadErfolg] P3 – kein docRunKey in item.json vorhanden.');\n  }\n}\n\n// ── Keine Zuordnung möglich → als Fehler markieren, nie als Erfolg ────────────\nif (!meta || !meta.vorgangKey) {\n  const errMsg = `Metadaten nach Upload nicht rekonstruierbar (pairedItem=${JSON.stringify(item.pairedItem)}, docRunKey=\"${j.docRunKey||'?'}\")`;\n  console.error(`[UploadErfolg] KRITISCH: ${errMsg}`);\n  return [{\n    json: {\n      vorgangKey:    j.vorgangKey    || '_unbekannt_',\n      documentCount: j.documentCount || 0,\n      nc_pathVorg:   j.nc_pathVorg   || '',\n      nc_pathOrig:   j.nc_pathOrig   || '',\n      nc_fileName:   j.nc_fileName   || '',\n      nc_docIndex:   j.nc_docIndex   ?? -1,\n      docRunKey:     j.docRunKey     || '',\n      _uploadOk:     false,\n      _uploadError:  errMsg\n    }\n  }];\n}\n\nconsole.log(`[UploadErfolg] ✓ ${meta.nc_fileName} – ${meta.vorgangKey} [via ${source}]`);\n\nreturn {\n  json: {\n    vorgangKey:     meta.vorgangKey,\n    volfdnr:        meta.volfdnr        || '',\n    title:          meta.title          || '',\n    vorgangsnummer: meta.vorgangsnummer || '',\n    allrisUrl:      meta.allrisUrl      || '',\n    sourceUrl:      meta.sourceUrl      || '',\n    documentCount:  meta.documentCount  || 0,\n    documentsJson:  meta.documentsJson  || '[]',\n    nc_pathYear:    meta.nc_pathYear    || '',\n    nc_pathVorg:    meta.nc_pathVorg    || '',\n    nc_pathOrig:    meta.nc_pathOrig    || '',\n    nc_folder:      meta.nc_folder      || '',\n    nc_fileName:    meta.nc_fileName    || '',\n    nc_docIndex:    meta.nc_docIndex    ?? 0,\n    docRunKey:      meta.docRunKey      || '',\n    firstseen:      meta.firstseen      || '',\n    _uploadOk:      true,\n    _uploadError:   null,\n    _binarySize:    meta._binarySize    || 0\n  }\n};\n"
+      },
+      "id": "3adf9a0a-bcf8-4c2b-83ec-d89df4063de4",
+      "name": "Markiere Upload Erfolg",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        928,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\n// ── pairedItem-Index sicher extrahieren ──────────────────────────────────────\n// n8n liefert pairedItem in verschiedenen Formen je nach Version:\n//   - Zahl:               pairedItem = 0\n//   - Objekt mit .item:   pairedItem = { item: 0 }\n//   - Array:              pairedItem = [{ item: 0 }]\n//   - undefined:          nicht gesetzt (ältere n8n-Versionen)\nfunction getPairedIndex(pairedItem) {\n  if (pairedItem === undefined || pairedItem === null) return null;\n  if (typeof pairedItem === 'number')                  return pairedItem;\n  if (Array.isArray(pairedItem) && pairedItem.length)  return pairedItem[0]?.item ?? pairedItem[0] ?? null;\n  if (typeof pairedItem === 'object')                  return pairedItem.item ?? null;\n  return null;\n}\n\n// ── Markiere Upload Fehler ───────────────────────────────────────────────────\n// Kommt vom:\n//   a) false-Ausgang von 'IF Download OK?'\n//      → item.json ist vollständig (direkt aus Prüfe Download, kein NC-Upload)\n//   b) ERROR-Ausgang (out1) von 'Upload Original to Nextcloud'\n//      → NC-Node kann JSON ersetzen → pairedItem nötig\n//\n// Metadaten-Strategie:\n//   1. item.json vollständig → direkt nutzen\n//   2. pairedItem → Index in $('Upload Kontext sichern').all()\n//   3. docRunKey-Suche in $('Upload Kontext sichern').all()\n//   4. Kein src[0]-Fallback – expliziter Fehler\n\nconst item = $input.item;\nconst j    = item.json;\n\nconst REQUIRED = ['vorgangKey','documentCount','nc_pathVorg','nc_pathOrig',\n                  'nc_fileName','nc_docIndex','docRunKey'];\nconst hasFullMeta = REQUIRED.every(f => j[f] !== undefined && j[f] !== '' && j[f] !== null);\n\nlet meta   = null;\nlet source = '';\n\n// ── Priorität 1: item.json vollständig ───────────────────────────────────────\n// Gilt immer für Fall a (Download-Fehler-Branch – NC-Node nie durchlaufen)\nif (hasFullMeta) {\n  meta   = j;\n  source = 'item.json direkt';\n  console.log(`[UploadFehler] P1 – Metadaten direkt: ${j.docRunKey}`);\n}\n\n// ── Priorität 2: pairedItem → Upload Kontext sichern ─────────────────────────\n// Gilt für Fall b (NC-Upload-Fehler – NC-Node kann JSON ersetzen)\nif (!meta) {\n  const pIdx = getPairedIndex(item.pairedItem);\n  if (pIdx !== null) {\n    const ctxItems = $('Upload Kontext sichern').all();\n    const ctx      = ctxItems[pIdx];\n    if (ctx?.json?.vorgangKey) {\n      meta   = ctx.json;\n      source = `pairedItem[${pIdx}] → Upload Kontext`;\n      console.log(`[UploadFehler] P2 – Metadaten via ${source}: ${meta.docRunKey}`);\n    } else {\n      console.warn(`[UploadFehler] P2 – pairedItem[${pIdx}] in Upload Kontext sichern leer/ungültig.`);\n    }\n  } else {\n    console.warn('[UploadFehler] P2 – kein pairedItem verfügbar.');\n  }\n}\n\n// ── Priorität 3: docRunKey-Suche ─────────────────────────────────────────────\nif (!meta) {\n  const key = j.docRunKey || '';\n  if (key) {\n    const ctxItems = $('Upload Kontext sichern').all();\n    const found    = ctxItems.find(i => i.json.docRunKey === key);\n    if (found?.json?.vorgangKey) {\n      meta   = found.json;\n      source = `docRunKey=\"${key}\" → Upload Kontext`;\n      console.log(`[UploadFehler] P3 – Metadaten via ${source}`);\n    } else {\n      console.warn(`[UploadFehler] P3 – docRunKey \"${key}\" nicht in Upload Kontext sichern.`);\n    }\n  } else {\n    console.warn('[UploadFehler] P3 – kein docRunKey in item.json.');\n  }\n}\n\n// ── Keine Zuordnung → expliziter Fehler ──────────────────────────────────────\nif (!meta || !meta.vorgangKey) {\n  const errMsg = `Metadaten nach Fehler nicht rekonstruierbar (pairedItem=${JSON.stringify(item.pairedItem)}, docRunKey=\"${j.docRunKey||'?'}\")`;\n  console.error(`[UploadFehler] KRITISCH: ${errMsg}`);\n  return [{\n    json: {\n      vorgangKey:    j.vorgangKey    || '_unbekannt_',\n      documentCount: j.documentCount || 0,\n      nc_pathVorg:   j.nc_pathVorg   || '',\n      nc_pathOrig:   j.nc_pathOrig   || '',\n      nc_fileName:   j.nc_fileName   || '',\n      nc_docIndex:   j.nc_docIndex   ?? -1,\n      docRunKey:     j.docRunKey     || '',\n      _uploadOk:     false,\n      _uploadError:  errMsg\n    }\n  }];\n}\n\n// ── Fehlerursache bestimmen ───────────────────────────────────────────────────\n// Fall a: _downloadOk ist false (aus Prüfe Download)\n// Fall b: _downloadOk ist true, aber NC-Upload fehlgeschlagen\nconst downloadFailed = meta._downloadOk === false || j._downloadOk === false;\nconst uploadErrMsg   =\n  item.error?.message ||\n  j.error?.message    ||\n  j.message           || '';\n\nconst uploadError = downloadFailed\n  ? `Download fehlgeschlagen: ${meta._downloadError || j._downloadError || 'unbekannt'}`\n  : `Upload fehlgeschlagen: ${uploadErrMsg || 'Nextcloud-Fehler (kein Detail)'}`;\n\nconsole.warn(`[UploadFehler] ✗ ${meta.nc_fileName} – ${meta.vorgangKey}: ${uploadError} [via ${source}]`);\n\nreturn {\n  json: {\n    vorgangKey:     meta.vorgangKey,\n    volfdnr:        meta.volfdnr        || '',\n    title:          meta.title          || '',\n    vorgangsnummer: meta.vorgangsnummer || '',\n    allrisUrl:      meta.allrisUrl      || '',\n    sourceUrl:      meta.sourceUrl      || '',\n    documentCount:  meta.documentCount  || 0,\n    documentsJson:  meta.documentsJson  || '[]',\n    nc_pathYear:    meta.nc_pathYear    || '',\n    nc_pathVorg:    meta.nc_pathVorg    || '',\n    nc_pathOrig:    meta.nc_pathOrig    || '',\n    nc_folder:      meta.nc_folder      || '',\n    nc_fileName:    meta.nc_fileName    || '',\n    nc_docIndex:    meta.nc_docIndex    ?? 0,\n    docRunKey:      meta.docRunKey      || '',\n    firstseen:      meta.firstseen      || '',\n    _uploadOk:      false,\n    _uploadError:   uploadError\n  }\n};\n"
+      },
+      "id": "7989a6d5-8505-4287-b235-df4f77ade3a0",
+      "name": "Markiere Upload Fehler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        928,
+        752
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "21c34016-52ab-43d9-a297-805575edbd11",
+      "name": "Merge Ergebnisse",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        1152,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\n// Sichert alle Metadaten unmittelbar vor dem Nextcloud-Upload.\n// Läuft im Modus \"Run Once for Each Item\" – je Dokument-Item einmal.\n// Ist der zuverlässige Anker für Markiere Upload Erfolg/Fehler.\n\nconst item = $input.item;\nconst j    = item.json;\n\nconst REQUIRED = ['vorgangKey','documentCount','nc_pathVorg','nc_pathOrig',\n                  'nc_fileName','nc_docIndex','docRunKey'];\nconst missing = REQUIRED.filter(f => !j[f] && j[f] !== 0);\nif (missing.length > 0) {\n  console.warn(`[UploadKontext] WARNUNG: fehlende Pflichtfelder: ${missing.join(', ')}`);\n}\n\nreturn {\n  json: {\n    vorgangKey:                  j.vorgangKey                  || '',\n    volfdnr:                     j.volfdnr                     || '',\n    title:                       j.title                       || '',\n    vorgangsnummer:              j.vorgangsnummer              || '',\n    allrisUrl:                   j.allrisUrl                   || '',\n    sourceUrl:                   j.sourceUrl                   || '',\n    documentCount:               j.documentCount               || 0,\n    documentsJson:               j.documentsJson               || '[]',\n    nc_pathYear:                 j.nc_pathYear                 || '',\n    nc_pathVorg:                 j.nc_pathVorg                 || '',\n    nc_pathOrig:                 j.nc_pathOrig                 || '',\n    nc_folder:                   j.nc_folder                   || '',\n    nc_fileName:                 j.nc_fileName                 || '',\n    nc_docIndex:                 j.nc_docIndex                 ?? 0,\n    docRunKey:                   j.docRunKey                   || '',\n    firstseen:                   j.firstseen                   || '',\n    referer:                     j.referer                     || '',\n    url:                         j.url                         || '',\n    type:                        j.type                        || '',\n    _downloadOk:                 j._downloadOk                 ?? true,\n    _binarySize:                 j._binarySize                 || 0,\n    _mimeType:                   j._mimeType                   || '',\n    // Force-Refresh-Felder sichern\n    _forceRefreshDocuments:      j._forceRefreshDocuments      === true,\n    _forceRefreshOnlyVorgangKey: j._forceRefreshOnlyVorgangKey || '',\n    _deleteExistingBeforeUpload: j._deleteExistingBeforeUpload === true,\n    _existingNextcloudFolder:    j._existingNextcloudFolder    || ''\n  },\n  binary: item.binary || {}\n};\n"
+      },
+      "id": "10cdd832-fe56-4e4b-9c11-1e86d01be9c6",
+      "name": "Upload Kontext sichern",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1168,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// ═══════════════════════════════════════════════════════════════════\n// ARCHIV KONFIGURATION – hier Schalter für Force-Refresh setzen\n// ═══════════════════════════════════════════════════════════════════\n//\n// forceRefreshDocuments:\n//   false (Standard) → Normalbetrieb: nur Vorgänge ohne nextcloudFolder\n//   true             → Erzwingt erneute Verarbeitung bereits archivierter Vorgänge\n//\n// forceRefreshOnlyVorgangKey:\n//   \"\"               → Alle passenden Vorgänge (nur wenn forceRefreshAllConfirmed: true)\n//   \"2026_193\"       → Nur diesen einen Vorgang erneuern\n//\n// forceRefreshAllConfirmed:\n//   false (Standard) → Sicherheitsbremse: verhindert versehentliches Neuarchivieren aller Vorgänge\n//   true             → Alle archivierten Vorgänge erneut verarbeiten (nur mit forceRefreshDocuments: true)\n//\n// deleteExistingBeforeUpload:\n//   true             → Versucht bestehende Datei in Nextcloud vor Upload zu löschen\n//   false            → Überschreibt direkt (falls Nextcloud-Node das unterstützt)\n\nreturn [{\n  json: {\n    forceRefreshDocuments:       false,\n    forceRefreshOnlyVorgangKey:  \"\",\n    forceRefreshAllConfirmed:    false,\n    deleteExistingBeforeUpload:  false\n  }\n}];\n"
+      },
+      "id": "f0d02a21-76a7-4e51-b2a0-b547a3efe429",
+      "name": "Archiv Konfiguration",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -176,
+        -304
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "path": "={{ $json.nc_pathOrig }}/{{ $json.nc_fileName }}"
+      },
+      "id": "294bfb61-f52c-4a66-b67f-c7f47a597b22",
+      "name": "Lösche existierende Datei",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [
+        288,
+        544
+      ],
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Stellt nach dem Nextcloud-Lösch-Node die ursprünglichen Upload-Metadaten\n// und das Binary aus \"Upload Kontext sichern\" wieder her.\n// Wichtig: Der Lösch-Node gibt oft keine brauchbaren JSON-Daten/Binary weiter.\n\nconst inputItems = $input.all();\nconst ctxItems = $('Upload Kontext sichern').all();\n\nif (!ctxItems || ctxItems.length === 0) {\n  throw new Error('[Restore nach Löschung] Keine Items aus \"Upload Kontext sichern\" gefunden.');\n}\n\nconst out = [];\n\nfor (let i = 0; i < inputItems.length; i++) {\n  const incoming = inputItems[i] || {};\n  const incomingJson = incoming.json || {};\n\n  // 1. bevorzugt gleicher Index\n  let ctx = ctxItems[i];\n\n  // 2. fallback per docRunKey, falls vorhanden\n  const key =\n    incomingJson.docRunKey ||\n    incomingJson._uploadContextDocRunKey ||\n    '';\n\n  if ((!ctx || !ctx.json?.vorgangKey) && key) {\n    ctx = ctxItems.find(x => x.json?.docRunKey === key);\n  }\n\n  // 3. letzter Fallback bei batchSize/Branch-Problemen\n  if (!ctx || !ctx.json?.vorgangKey) {\n    ctx = ctxItems[0];\n  }\n\n  if (!ctx || !ctx.json || !ctx.json.vorgangKey) {\n    throw new Error(\n      `[Restore nach Löschung] Upload-Kontext nicht rekonstruierbar. index=${i}, ctxItems=${ctxItems.length}`\n    );\n  }\n\n  if (!ctx.binary || !ctx.binary.data) {\n    throw new Error(\n      `[Restore nach Löschung] Binary \"data\" fehlt im Upload-Kontext für ${ctx.json.vorgangKey} / ${ctx.json.nc_fileName || '?'}`\n    );\n  }\n\n  out.push({\n    json: {\n      ...ctx.json,\n\n      // Diagnosefelder\n      _deleteNodeHadError: !!incomingJson.error,\n      _deleteNodeError: incomingJson.error || '',\n      _restoreNachLoeschungOk: true,\n      _restoreNachLoeschungSource: ctxItems[i] ? `Upload Kontext sichern[${i}]` : 'Upload Kontext sichern[0]'\n    },\n    binary: ctx.binary\n  });\n}\n\nreturn out;\n"
+      },
+      "id": "b626dfc2-4551-4641-a27a-79ebfdfe5261",
+      "name": "Restore nach Löschung",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        496,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "if-delete-001",
+              "leftValue": "={{ $json._forceRefreshDocuments === true && $json._deleteExistingBeforeUpload === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "3816f3c4-f09c-46aa-80f9-6e35405380a3",
+      "name": "IF Datei vorher löschen?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1376,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\n// Baut einen deterministischen, eindeutigen Titel als Paperless-Dubletten-Schlüssel\n// und löst Tag/Correspondent/DocumentType-IDs auf (angelegt durch die Paperless-\n// Taxonomie-Kette am Workflow-Anfang, siehe 'Paperless Normalize ...'-Nodes).\n// Schema: <vorgangKey>_<nc_fileName>, bereinigt (kein '/', keine Mehrfach-Unterstriche).\n\nconst j = $input.item.json;\n\nfunction sanitize(str, maxLen) {\n  return String(str || '')\n    .replace(/[\\/\\\\:*?\"<>|\\r\\n]/g, '_')\n    .replace(/\\s+/g, '_')\n    .replace(/_+/g, '_')\n    .replace(/^_+|_+$/g, '')\n    .substring(0, maxLen || 150);\n}\n\nconst paperlessTitle = sanitize(`${j.vorgangKey || 'unbekannt'}_${j.nc_fileName || ''}`, 150);\n\nconst tagId = $('Paperless Normalize Tag ALLRIS').first()?.json?.id || null;\nconst correspondentId = $('Paperless Normalize Correspondent Stadt Goslar').first()?.json?.id || null;\n\nconst docType = j.type || 'document';\nlet documentTypeId = null;\nif (docType === 'original') {\n  documentTypeId = $('Paperless Normalize DocType Original').first()?.json?.id || null;\n} else if (docType === 'anlage') {\n  documentTypeId = $('Paperless Normalize DocType Anlage').first()?.json?.id || null;\n} else {\n  documentTypeId = $('Paperless Normalize DocType Dokument').first()?.json?.id || null;\n}\n\nconst paperlessMetaOk = !!(tagId && correspondentId && documentTypeId);\nif (!paperlessMetaOk) {\n  console.warn(`[Paperless] Metadaten (Tag/Correspondent/DocType) unvollständig für ${paperlessTitle} - Upload läuft nur mit Titel.`);\n}\n\nreturn {\n  json: {\n    ...j,\n    paperlessTitle,\n    paperlessTagId: tagId,\n    paperlessCorrespondentId: correspondentId,\n    paperlessDocumentTypeId: documentTypeId,\n    paperlessMetaOk\n  },\n  binary: $input.item.binary || {}\n};\n"
+      },
+      "id": "12f34412-1478-4b80-904c-d0160eef0539",
+      "name": "Paperless Titel bauen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://dm.diepartei-goslar.de/api/documents/",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "title__iexact",
+              "value": "={{ $json.paperlessTitle }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "70d100fb-717a-42f1-8772-63a130923c3c",
+      "name": "Paperless Prüfe Dokument",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1776,
+        304
+      ],
+      "retryOnFail": false,
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "if-paperless-exists-001",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e293f768-3f7b-499f-a7d9-bf86b2fdafc8",
+      "name": "IF Paperless existiert bereits?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1984,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\n// Der HTTP-GET-Node 'Paperless Prüfe Dokument' liefert nur JSON (count/results)\n// zurück und verwirft dabei die Binärdaten der Datei. Hier werden sie aus\n// 'Paperless Titel bauen' wiederhergestellt, bevor der Upload-Node sie braucht.\n\nconst j = $input.item.json;\nconst original = $('Paperless Titel bauen').item;\n\nreturn {\n  json: j,\n  binary: original.binary || {}\n};\n"
+      },
+      "id": "bf-c00000-0000-4000-8000-000000000001",
+      "name": "Restore Binary vor Upload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2100, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "if-paperless-meta-ok-001",
+              "leftValue": "={{ $json.paperlessMetaOk }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c5de5556-2e36-411a-ba79-b9bee5b15c6b",
+      "name": "IF Paperless Metadaten vollständig?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -576,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dm.diepartei-goslar.de/api/documents/post_document/",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "document",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "title",
+              "value": "={{ $('Paperless Titel bauen').item.json.paperlessTitle }}"
+            },
+            {
+              "name": "tags",
+              "value": "={{ $('Paperless Titel bauen').item.json.paperlessTagId }}"
+            },
+            {
+              "name": "correspondent",
+              "value": "={{ $('Paperless Titel bauen').item.json.paperlessCorrespondentId }}"
+            },
+            {
+              "name": "document_type",
+              "value": "={{ $('Paperless Titel bauen').item.json.paperlessDocumentTypeId }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 90000
+        }
+      },
+      "id": "a66ea9ef-ab39-483c-ab1d-6a467d85b7f1",
+      "name": "Paperless Upload Dokument (mit Metadaten)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        64,
+        544
+      ],
+      "retryOnFail": false,
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dm.diepartei-goslar.de/api/documents/post_document/",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "document",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "title",
+              "value": "={{ $('Paperless Titel bauen').item.json.paperlessTitle }}"
+            },
+            {
+              "name": "tags",
+              "value": "={{ $('Paperless Titel bauen').item.json.paperlessTagId }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 90000
+        }
+      },
+      "id": "3988e93c-cbca-42dd-8314-17e5740488ef",
+      "name": "Paperless Upload Dokument (nur Titel)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -96,
+        528
+      ],
+      "retryOnFail": false,
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\n// Loggt das Ergebnis des Paperless-Zusatzarchivs (Skip / Upload-OK / Fehler).\n// Rein informativ - schreibt bewusst nichts in die Data Table und blockiert\n// niemals den Nextcloud-Hauptpfad (dieser Zweig ist von 'Merge Ergebnisse' entkoppelt).\n\nconst j = $input.item.json;\n\nif (j._paperlessSkippedExisting) {\n  console.log(`[Paperless] Übersprungen (existiert bereits): ${j.paperlessTitle}`);\n} else if (j.error) {\n  console.warn(`[Paperless] Fehler bei \"${j.paperlessTitle}\": ${j.error.message || j.error}`);\n} else {\n  console.log(`[Paperless] Hochgeladen: ${j.paperlessTitle}`);\n}\n\nreturn { json: { paperlessTitle: j.paperlessTitle } };\n"
+      },
+      "id": "bfbe8fba-8579-4f82-840e-6db4c06d36ba",
+      "name": "Paperless Log Ergebnis",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -256,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return { json: { ...$input.item.json, _paperlessSkippedExisting: true } };"
+      },
+      "id": "201ef20a-e562-4060-9555-574c9de8c12d",
+      "name": "Paperless Markiere Skip",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -416,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://dm.diepartei-goslar.de/api/tags/",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "name__iexact",
+              "value": "ALLRIS"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "97d23599-fc89-499a-a488-2ae5cfc83975",
+      "name": "Paperless GET Tag ALLRIS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -592,
+        -112
+      ],
+      "retryOnFail": false,
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "if-tag-allris-exists-001",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "036c5f1b-a970-4100-a053-a4b90d095e63",
+      "name": "IF Tag ALLRIS existiert?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -384,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dm.diepartei-goslar.de/api/tags/",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"name\": \"ALLRIS\"}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "4dc8c8bf-93d9-4aa5-a42b-d9b6375dc7dc",
+      "name": "Paperless POST Tag ALLRIS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -176,
+        -112
+      ],
+      "retryOnFail": false,
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const j = $input.item.json;\nlet id = null;\nif (Array.isArray(j.results)) {\n  id = j.results[0]?.id ?? null;\n} else if (j.id !== undefined) {\n  id = j.id;\n}\nif (!id) {\n  console.warn('[Paperless] Tag \"ALLRIS\": konnte keine ID ermitteln (weder gefunden noch angelegt) - Upload läuft ohne diesen Tag weiter.');\n}\nreturn { json: { id, name: 'ALLRIS' } };"
+      },
+      "id": "0f5a34ed-bcb3-4463-89e0-3613d758e5d3",
+      "name": "Paperless Normalize Tag ALLRIS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        32,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://dm.diepartei-goslar.de/api/correspondents/",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "name__iexact",
+              "value": "Stadt Goslar"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "cde835bc-71b8-435d-817f-b66ed7fb6b68",
+      "name": "Paperless GET Correspondent Stadt Goslar",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        -112
+      ],
+      "retryOnFail": false,
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "if-corr-goslar-exists-001",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "3cf6ec93-2d2f-473d-a30e-ddccf5b5a605",
+      "name": "IF Correspondent Stadt Goslar existiert?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        448,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dm.diepartei-goslar.de/api/correspondents/",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"name\": \"Stadt Goslar\"}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "4bc25fae-3660-4fb3-b442-2369798098a1",
+      "name": "Paperless POST Correspondent Stadt Goslar",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        656,
+        -112
+      ],
+      "retryOnFail": false,
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const j = $input.item.json;\nlet id = null;\nif (Array.isArray(j.results)) {\n  id = j.results[0]?.id ?? null;\n} else if (j.id !== undefined) {\n  id = j.id;\n}\nif (!id) {\n  console.warn('[Paperless] Correspondent \"Stadt Goslar\": konnte keine ID ermitteln (weder gefunden noch angelegt) - Upload läuft ohne Correspondent weiter.');\n}\nreturn { json: { id, name: 'Stadt Goslar' } };"
+      },
+      "id": "5cda60cf-1762-49a1-8bf3-2e9b0bf728ff",
+      "name": "Paperless Normalize Correspondent Stadt Goslar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        864,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://dm.diepartei-goslar.de/api/document_types/",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "name__iexact",
+              "value": "Original"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "4081f449-0180-424d-85aa-95b99beb2db5",
+      "name": "Paperless GET DocType Original",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1072,
+        -112
+      ],
+      "retryOnFail": false,
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "if-doctype-original-exists-001",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "cd4c4599-a24d-473d-b9e9-5e6d0d3a75a5",
+      "name": "IF DocType Original existiert?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dm.diepartei-goslar.de/api/document_types/",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"name\": \"Original\"}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "77b72706-fbfd-4983-9b21-a32b29f330d6",
+      "name": "Paperless POST DocType Original",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1472,
+        -112
+      ],
+      "retryOnFail": false,
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const j = $input.item.json;\nlet id = null;\nif (Array.isArray(j.results)) {\n  id = j.results[0]?.id ?? null;\n} else if (j.id !== undefined) {\n  id = j.id;\n}\nif (!id) {\n  console.warn('[Paperless] DocumentType \"Original\": konnte keine ID ermitteln (weder gefunden noch angelegt).');\n}\nreturn { json: { id, name: 'Original' } };"
+      },
+      "id": "69ec648d-89c3-48fd-8474-7f5ffadb248f",
+      "name": "Paperless Normalize DocType Original",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1664,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://dm.diepartei-goslar.de/api/document_types/",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "name__iexact",
+              "value": "Anlage"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "cc45c397-61aa-4190-aba0-64caf2115a95",
+      "name": "Paperless GET DocType Anlage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1872,
+        -112
+      ],
+      "retryOnFail": false,
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "if-doctype-anlage-exists-001",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "22dc3409-8522-48e1-a9a2-5ec130698364",
+      "name": "IF DocType Anlage existiert?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2080,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dm.diepartei-goslar.de/api/document_types/",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"name\": \"Anlage\"}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "e7c41e17-15a7-465c-946f-3ce687c6e820",
+      "name": "Paperless POST DocType Anlage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -592,
+        96
+      ],
+      "retryOnFail": false,
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const j = $input.item.json;\nlet id = null;\nif (Array.isArray(j.results)) {\n  id = j.results[0]?.id ?? null;\n} else if (j.id !== undefined) {\n  id = j.id;\n}\nif (!id) {\n  console.warn('[Paperless] DocumentType \"Anlage\": konnte keine ID ermitteln (weder gefunden noch angelegt).');\n}\nreturn { json: { id, name: 'Anlage' } };"
+      },
+      "id": "1e887f6d-e89f-4fd1-a466-3fe2fda55516",
+      "name": "Paperless Normalize DocType Anlage",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -384,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://dm.diepartei-goslar.de/api/document_types/",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "name__iexact",
+              "value": "Dokument"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "3f0b60aa-5b82-4fec-b6ea-edf251916416",
+      "name": "Paperless GET DocType Dokument",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -176,
+        96
+      ],
+      "retryOnFail": false,
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "if-doctype-dokument-exists-001",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ead8c1b5-488a-4e63-b633-0773cdba0319",
+      "name": "IF DocType Dokument existiert?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        32,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dm.diepartei-goslar.de/api/document_types/",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"name\": \"Dokument\"}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "b34ff86a-e0fd-451a-b290-573deaa02649",
+      "name": "Paperless POST DocType Dokument",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        112
+      ],
+      "retryOnFail": false,
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const j = $input.item.json;\nlet id = null;\nif (Array.isArray(j.results)) {\n  id = j.results[0]?.id ?? null;\n} else if (j.id !== undefined) {\n  id = j.id;\n}\nif (!id) {\n  console.warn('[Paperless] DocumentType \"Dokument\": konnte keine ID ermitteln (weder gefunden noch angelegt).');\n}\nreturn { json: { id, name: 'Dokument' } };"
+      },
+      "id": "0503323d-2619-495e-a8f1-423bd9334604",
+      "name": "Paperless Normalize DocType Dokument",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputItems = $input.all();\nconst warmupItems = $('HTTP Vorgangsseite Warmup').all();\n\nconst out = [];\n\nconst ALLOWED_FILE_EXTENSIONS = [\n  'pdf',\n  'jpg',\n  'jpeg',\n  'png',\n  'gif',\n  'tif',\n  'tiff',\n  'doc',\n  'docx',\n  'xls',\n  'xlsx',\n  'ppt',\n  'pptx',\n  'odt',\n  'ods',\n  'zip'\n];\n\nfunction cleanText(html) {\n  return String(html || '')\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/&nbsp;/g, ' ')\n    .replace(/&amp;/g, '&')\n    .replace(/&quot;/g, '\"')\n    .replace(/&#39;/g, \"'\")\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nfunction getExtension(url) {\n  const clean = String(url || '').split('?')[0].split('#')[0];\n  const m = clean.match(/\\.([a-zA-Z0-9]{2,6})$/);\n  if (!m) return '';\n  const ext = m[1].toLowerCase();\n  return ALLOWED_FILE_EXTENSIONS.includes(ext) ? ext : '';\n}\n\nfunction resolveUrl(rawHref, baseUrl) {\n  const href = String(rawHref || '').replace(/&amp;/g, '&').trim();\n\n  try {\n    return href.startsWith('http')\n      ? href\n      : new URL(href, baseUrl).href;\n  } catch (e) {\n    if (href.startsWith('/')) {\n      return 'https://www.goslar.de' + href;\n    }\n    return 'https://www.goslar.de/stadt/politik/allris/' + href;\n  }\n}\n\nfunction isRealDocumentLink(url) {\n  const u = String(url || '').toLowerCase();\n  const ext = getExtension(u);\n\n  if (!u) return false;\n\n  if (u.includes('/stadt/politik/allris/do027.asp')) return true;\n  if (u.includes('dolfdnr=')) return true;\n\n  if (u.includes('/stadt/politik/allris/___tmp/tmp/')) return true;\n  if (u.includes('/allris/___tmp/tmp/')) return true;\n\n  if (ext) return true;\n\n  return false;\n}\n\nfunction classifyDocument(url, label, surroundingHtml) {\n  const u = String(url || '').toLowerCase();\n  const l = String(label || '').toLowerCase();\n  const ctx = cleanText(surroundingHtml || '').toLowerCase();\n\n  const isAnlage =\n    ctx.includes('anlagen') ||\n    ctx.includes('anlage') ||\n    l.includes('anlage') ||\n    l.includes('anlagen') ||\n    u.includes('/anlagen/') ||\n    u.includes('-anlagen/');\n\n  const isVorlage =\n    ctx.includes('dokumente') ||\n    ctx.includes('vorlage') ||\n    l.includes('vorlage') ||\n    u.includes('vorlage');\n\n  if (isAnlage) return 'anlage';\n  if (isVorlage) return 'original';\n  return 'document';\n}\n\nfunction buildDocKey(url, type, label) {\n  const dol = String(url || '').match(/DOLFDNR=(\\d+)/i)?.[1];\n  if (dol) return `dol_${dol}`;\n\n  let fileName = '';\n  try {\n    const parsed = new URL(url);\n    fileName = decodeURIComponent(parsed.pathname.split('/').pop() || '');\n  } catch (e) {\n    fileName = String(url || '').split('/').pop() || '';\n  }\n\n  fileName = fileName\n    .split('?')[0]\n    .split('#')[0]\n    .replace(/[^a-zA-Z0-9._-]/g, '_')\n    .replace(/_+/g, '_')\n    .replace(/^_+|_+$/g, '')\n    .substring(0, 120);\n\n  if (fileName) return `${type}_${fileName}`;\n\n  const fallback = cleanText(label || '')\n    .replace(/[^a-zA-Z0-9._-]/g, '_')\n    .replace(/_+/g, '_')\n    .replace(/^_+|_+$/g, '')\n    .substring(0, 80);\n\n  return fallback ? `${type}_${fallback}` : `${type}_unknown`;\n}\n\nfor (let i = 0; i < inputItems.length; i++) {\n  const meta = inputItems[i].json || {};\n  const warmup = warmupItems[i]?.json || warmupItems[0]?.json || {};\n\n  const html =\n    warmup.html ||\n    warmup.data ||\n    warmup.body ||\n    meta.html ||\n    '';\n\n  const baseUrl =\n    meta.allrisUrl ||\n    meta.sourceUrl ||\n    'https://www.goslar.de/stadt/politik/allris/vo040_r.asp';\n\n  const matches = [...String(html || '').matchAll(/<a\\b[^>]*href=[\"']([^\"']+)[\"'][^>]*>([\\s\\S]*?)<\\/a>/gi)];\n\n  const found = [];\n  const seen = new Set();\n\n  for (const match of matches) {\n    const rawHref = match[1] || '';\n    const rawLabel = match[2] || '';\n    const label = cleanText(rawLabel);\n\n    if (!rawHref) continue;\n\n    const hrefLower = rawHref.toLowerCase();\n\n    if (\n      hrefLower.startsWith('#') ||\n      hrefLower.startsWith('javascript:') ||\n      hrefLower.startsWith('mailto:') ||\n      hrefLower.startsWith('tel:')\n    ) {\n      continue;\n    }\n\n    const link = resolveUrl(rawHref, baseUrl);\n    const urlLower = link.toLowerCase();\n\n    if (urlLower.includes('vo020_r.asp?volfdnr=')) continue;\n    if (urlLower.includes('vo040_r.asp')) continue;\n\n    if (!isRealDocumentLink(link)) continue;\n    if (seen.has(link)) continue;\n    seen.add(link);\n\n    const start = Math.max(0, match.index - 500);\n    const end = Math.min(String(html).length, match.index + match[0].length + 500);\n    const surroundingHtml = String(html).slice(start, end);\n\n    const type = classifyDocument(link, label, surroundingHtml);\n    const docKey = buildDocKey(link, type, label);\n\n    found.push({\n      url: link,\n      type,\n      label,\n      docKey\n    });\n  }\n\n  if (found.length > 0) {\n    console.log(\n      `[Aktualisiere Dokumentlinks] ${meta.vorgangKey}: ` +\n      `${found.length} frische Dokumentlinks aus Warmup-Seite gefunden.`\n    );\n\n    out.push({\n      json: {\n        ...meta,\n        documentsJson: JSON.stringify(found),\n        documentCount: found.length,\n        _documentsRefreshedFromWarmup: true,\n        _documentsRefreshCount: found.length\n      }\n    });\n  } else {\n    console.warn(\n      `[Aktualisiere Dokumentlinks] ${meta.vorgangKey}: Keine frischen Dokumentlinks gefunden. Verwende alte documentsJson.`\n    );\n\n    out.push({\n      json: {\n        ...meta,\n        _documentsRefreshedFromWarmup: false,\n        _documentsRefreshCount: 0\n      }\n    });\n  }\n}\n\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -112,
+        304
+      ],
+      "id": "ed29a372-e65a-4124-9c1c-4623caa2f536",
+      "name": "Aktualisiere Dokumentlinks aus Warmup"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP ALLRIS Übersicht",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP ALLRIS Übersicht": {
+      "main": [
+        [
+          {
+            "node": "Archiv Konfiguration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lese Vorgaenge aus DataTable": {
+      "main": [
+        [
+          {
+            "node": "Filtere und merge Cookie",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtere und merge Cookie": {
+      "main": [
+        [
+          {
+            "node": "Loop neue Vorgänge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop neue Vorgänge": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Build Nextcloud Path",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Nextcloud Path": {
+      "main": [
+        [
+          {
+            "node": "Create Year Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Year Folder": {
+      "main": [
+        [
+          {
+            "node": "Create Vorgang Folder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Vorgang Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Vorgang Folder": {
+      "main": [
+        [
+          {
+            "node": "Create Originale Folder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Originale Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Originale Folder": {
+      "main": [
+        [
+          {
+            "node": "Restore nach Ordneranlage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Restore nach Ordneranlage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restore nach Ordneranlage": {
+      "main": [
+        [
+          {
+            "node": "HTTP Vorgangsseite Warmup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Vorgangsseite Warmup": {
+      "main": [
+        [
+          {
+            "node": "Merge Warmup Cookie",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Warmup Cookie": {
+      "main": [
+        [
+          {
+            "node": "Aktualisiere Dokumentlinks aus Warmup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Expand Documents": {
+      "main": [
+        [
+          {
+            "node": "HTTP Dokument laden",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Dokument laden": {
+      "main": [
+        [
+          {
+            "node": "Restore Metadaten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restore Metadaten": {
+      "main": [
+        [
+          {
+            "node": "Prüfe Download",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prüfe Download": {
+      "main": [
+        [
+          {
+            "node": "IF Download OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Download OK?": {
+      "main": [
+        [
+          {
+            "node": "Upload Kontext sichern",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Markiere Upload Fehler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Original to Nextcloud": {
+      "main": [
+        [
+          {
+            "node": "Markiere Upload Erfolg",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Markiere Upload Erfolg": {
+      "main": [
+        [
+          {
+            "node": "Merge Ergebnisse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Markiere Upload Fehler": {
+      "main": [
+        [
+          {
+            "node": "Merge Ergebnisse",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Ergebnisse": {
+      "main": [
+        [
+          {
+            "node": "Aggregiere Upload Ergebnisse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregiere Upload Ergebnisse": {
+      "main": [
+        [
+          {
+            "node": "IF alle Uploads OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF alle Uploads OK?": {
+      "main": [
+        [
+          {
+            "node": "Update Nextcloud Archive Status",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Markiere Fehler in DataTable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Nextcloud Archive Status": {
+      "main": [
+        [
+          {
+            "node": "Loop weiter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Markiere Fehler in DataTable": {
+      "main": [
+        [
+          {
+            "node": "Loop weiter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop weiter": {
+      "main": [
+        [
+          {
+            "node": "Loop neue Vorgänge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Kontext sichern": {
+      "main": [
+        [
+          {
+            "node": "IF Datei vorher löschen?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless Titel bauen": {
+      "main": [
+        [
+          {
+            "node": "Paperless Prüfe Dokument",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless Prüfe Dokument": {
+      "main": [
+        [
+          {
+            "node": "IF Paperless existiert bereits?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Paperless existiert bereits?": {
+      "main": [
+        [
+          {
+            "node": "Paperless Markiere Skip",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Restore Binary vor Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restore Binary vor Upload": {
+      "main": [
+        [
+          {
+            "node": "IF Paperless Metadaten vollständig?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless Markiere Skip": {
+      "main": [
+        [
+          {
+            "node": "Paperless Log Ergebnis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Paperless Metadaten vollständig?": {
+      "main": [
+        [
+          {
+            "node": "Paperless Upload Dokument (mit Metadaten)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Paperless Upload Dokument (nur Titel)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless Upload Dokument (mit Metadaten)": {
+      "main": [
+        [
+          {
+            "node": "Paperless Log Ergebnis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless Upload Dokument (nur Titel)": {
+      "main": [
+        [
+          {
+            "node": "Paperless Log Ergebnis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Archiv Konfiguration": {
+      "main": [
+        [
+          {
+            "node": "Lese Vorgaenge aus DataTable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless GET Tag ALLRIS": {
+      "main": [
+        [
+          {
+            "node": "IF Tag ALLRIS existiert?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Tag ALLRIS existiert?": {
+      "main": [
+        [
+          {
+            "node": "Paperless Normalize Tag ALLRIS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Paperless POST Tag ALLRIS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless POST Tag ALLRIS": {
+      "main": [
+        [
+          {
+            "node": "Paperless Normalize Tag ALLRIS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless Normalize Tag ALLRIS": {
+      "main": [
+        [
+          {
+            "node": "Paperless GET Correspondent Stadt Goslar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless GET Correspondent Stadt Goslar": {
+      "main": [
+        [
+          {
+            "node": "IF Correspondent Stadt Goslar existiert?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Correspondent Stadt Goslar existiert?": {
+      "main": [
+        [
+          {
+            "node": "Paperless Normalize Correspondent Stadt Goslar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Paperless POST Correspondent Stadt Goslar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless POST Correspondent Stadt Goslar": {
+      "main": [
+        [
+          {
+            "node": "Paperless Normalize Correspondent Stadt Goslar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless Normalize Correspondent Stadt Goslar": {
+      "main": [
+        [
+          {
+            "node": "Paperless GET DocType Original",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless GET DocType Original": {
+      "main": [
+        [
+          {
+            "node": "IF DocType Original existiert?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF DocType Original existiert?": {
+      "main": [
+        [
+          {
+            "node": "Paperless Normalize DocType Original",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Paperless POST DocType Original",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless POST DocType Original": {
+      "main": [
+        [
+          {
+            "node": "Paperless Normalize DocType Original",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless Normalize DocType Original": {
+      "main": [
+        [
+          {
+            "node": "Paperless GET DocType Anlage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless GET DocType Anlage": {
+      "main": [
+        [
+          {
+            "node": "IF DocType Anlage existiert?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF DocType Anlage existiert?": {
+      "main": [
+        [
+          {
+            "node": "Paperless Normalize DocType Anlage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Paperless POST DocType Anlage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless POST DocType Anlage": {
+      "main": [
+        [
+          {
+            "node": "Paperless Normalize DocType Anlage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless Normalize DocType Anlage": {
+      "main": [
+        [
+          {
+            "node": "Paperless GET DocType Dokument",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless GET DocType Dokument": {
+      "main": [
+        [
+          {
+            "node": "IF DocType Dokument existiert?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF DocType Dokument existiert?": {
+      "main": [
+        [
+          {
+            "node": "Paperless Normalize DocType Dokument",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Paperless POST DocType Dokument",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless POST DocType Dokument": {
+      "main": [
+        [
+          {
+            "node": "Paperless Normalize DocType Dokument",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless Normalize DocType Dokument": {
+      "main": [
+        [
+          {
+            "node": "Lese Vorgaenge aus DataTable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lösche existierende Datei": {
+      "main": [
+        [
+          {
+            "node": "Restore nach Löschung",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restore nach Löschung": {
+      "main": [
+        [
+          {
+            "node": "Upload Original to Nextcloud",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Datei vorher löschen?": {
+      "main": [
+        [
+          {
+            "node": "Lösche existierende Datei",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Upload Original to Nextcloud",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aktualisiere Dokumentlinks aus Warmup": {
+      "main": [
+        [
+          {
+            "node": "Expand Documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "ce85d9e2-3494-47f0-9825-6c910d93ba1b",
+  "meta": {
+    "instanceId": "3918cd7b1079333be95f7df5d1ce0c807af27c5d6c51c5bb061c962138165169"
+  },
+  "id": "FilchVg0YzcmrwzJ",
+  "tags": []
+}

@@ -1,0 +1,289 @@
+{
+    "name":  "ALLRIS_Lern_Agent",
+    "nodes":  [
+                  {
+                      "parameters":  {
+                                         "inputSource":  "passthrough"
+                                     },
+                      "id":  "7471fdc9-1777-4bd3-9e5c-10df0bdfc9d6",
+                      "name":  "Execute Workflow Trigger",
+                      "type":  "n8n-nodes-base.executeWorkflowTrigger",
+                      "typeVersion":  1.1,
+                      "position":  [
+                                       0,
+                                       0
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "conditions":  {
+                                                            "options":  {
+                                                                            "caseSensitive":  true,
+                                                                            "leftValue":  "",
+                                                                            "typeValidation":  "loose",
+                                                                            "version":  1
+                                                                        },
+                                                            "conditions":  [
+                                                                               {
+                                                                                   "id":  "9a4342b2-3d35-41a6-af82-5c0ed28f0375",
+                                                                                   "leftValue":  "={{ $json.lernAction }}",
+                                                                                   "rightValue":  "retrieve",
+                                                                                   "operator":  {
+                                                                                                    "type":  "string",
+                                                                                                    "operation":  "equals"
+                                                                                                }
+                                                                               }
+                                                                           ],
+                                                            "combinator":  "and"
+                                                        },
+                                         "options":  {
+                                                         "looseTypeValidation":  true
+                                                     }
+                                     },
+                      "id":  "906bfc9b-4775-4e4a-a50d-83c3f232d02d",
+                      "name":  "Ist Retrieve?",
+                      "type":  "n8n-nodes-base.if",
+                      "typeVersion":  2,
+                      "position":  [
+                                       224,
+                                       0
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "operation":  "get",
+                                         "dataTableId":  {
+                                                             "__rl":  true,
+                                                             "value":  "REPLACE_AFTER_CREATE_LERNBEISPIELE_TABLE_ID",
+                                                             "mode":  "list",
+                                                             "cachedResultName":  "allris_lernbeispiele"
+                                                         },
+                                         "filters":  {
+                                                         "conditions":  [
+                                                                            {
+                                                                                "keyName":  "qaStage",
+                                                                                "keyValue":  "={{ $json.qaStage }}"
+                                                                            }
+                                                                        ]
+                                                     },
+                                         "returnAll":  true
+                                     },
+                      "id":  "6dfaa415-bc83-4b9c-bc7c-f652f9f3ac72",
+                      "name":  "Hole Lernbeispiele",
+                      "type":  "n8n-nodes-base.dataTable",
+                      "typeVersion":  1.1,
+                      "position":  [
+                                       448,
+                                       -160
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "jsCode":  "function safeStr(v) { return v === null || v === undefined ? \u0027\u0027 : String(v).trim(); }\n\nconst original = $(\u0027Execute Workflow Trigger\u0027).first().json || {};\nconst limit = Number(original.limit) \u003e 0 ? Number(original.limit) : 5;\n\nconst rows = items.map(i =\u003e i.json).filter(r =\u003e r \u0026\u0026 r.createdAt);\nrows.sort((a, b) =\u003e new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());\nconst top = rows.slice(0, limit);\n\nconst examples = top.map(r =\u003e ({\n  outcome: safeStr(r.outcome),\n  exampleSummary: safeStr(r.exampleSummary),\n  detailsJson: safeStr(r.detailsJson),\n  createdAt: safeStr(r.createdAt)\n}));\n\nconst examplesText = examples.length\n  ? examples.map((e, idx) =\u003e (idx + 1) + \u0027. [\u0027 + e.outcome + \u0027] \u0027 + e.exampleSummary).join(\u0027\\n\u0027)\n  : \u0027(keine bisherigen Beispiele fuer diese Stufe)\u0027;\n\nreturn [{\n  json: {\n    qaStage: safeStr(original.qaStage),\n    count: examples.length,\n    examples,\n    examplesText\n  }\n}];"
+                                     },
+                      "id":  "33669ec5-b8e0-4335-8e7f-37ce5de0d1d8",
+                      "name":  "Waehle Top-Beispiele",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       672,
+                                       -160
+                                   ],
+                      "alwaysOutputData":  true
+                  },
+                  {
+                      "parameters":  {
+                                         "mode":  "runOnceForEachItem",
+                                         "jsCode":  "function safeStr(v) { return v === null || v === undefined ? \u0027\u0027 : String(v).trim(); }\n\nconst row = $json;\n\nreturn {\n  json: {\n    vorgangKey: safeStr(row.vorgangKey),\n    vorgangsnummer: safeStr(row.vorgangsnummer),\n    qaStage: safeStr(row.qaStage),\n    source: safeStr(row.source),\n    outcome: safeStr(row.outcome),\n    exampleSummary: safeStr(row.exampleSummary),\n    detailsJson: safeStr(row.detailsJson) || \u0027{}\u0027\n  }\n};"
+                                     },
+                      "id":  "a0d248a5-16bc-4fa1-821d-7d196dfebe12",
+                      "name":  "Baue Lernbeispiel-Zeile",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       448,
+                                       160
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "dataTableId":  {
+                                                             "__rl":  true,
+                                                             "value":  "REPLACE_AFTER_CREATE_LERNBEISPIELE_TABLE_ID",
+                                                             "mode":  "list",
+                                                             "cachedResultName":  "allris_lernbeispiele"
+                                                         },
+                                         "columns":  {
+                                                         "mappingMode":  "defineBelow",
+                                                         "value":  {
+                                                                       "vorgangKey":  "={{ $json.vorgangKey }}",
+                                                                       "vorgangsnummer":  "={{ $json.vorgangsnummer }}",
+                                                                       "qaStage":  "={{ $json.qaStage }}",
+                                                                       "source":  "={{ $json.source }}",
+                                                                       "outcome":  "={{ $json.outcome }}",
+                                                                       "exampleSummary":  "={{ $json.exampleSummary }}",
+                                                                       "detailsJson":  "={{ $json.detailsJson }}"
+                                                                   },
+                                                         "matchingColumns":  [
+
+                                                                             ],
+                                                         "schema":  [
+                                                                        {
+                                                                            "id":  "vorgangKey",
+                                                                            "displayName":  "vorgangKey",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "readOnly":  false,
+                                                                            "removed":  false
+                                                                        },
+                                                                        {
+                                                                            "id":  "vorgangsnummer",
+                                                                            "displayName":  "vorgangsnummer",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "readOnly":  false,
+                                                                            "removed":  false
+                                                                        },
+                                                                        {
+                                                                            "id":  "qaStage",
+                                                                            "displayName":  "qaStage",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "readOnly":  false,
+                                                                            "removed":  false
+                                                                        },
+                                                                        {
+                                                                            "id":  "source",
+                                                                            "displayName":  "source",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "readOnly":  false,
+                                                                            "removed":  false
+                                                                        },
+                                                                        {
+                                                                            "id":  "outcome",
+                                                                            "displayName":  "outcome",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "readOnly":  false,
+                                                                            "removed":  false
+                                                                        },
+                                                                        {
+                                                                            "id":  "exampleSummary",
+                                                                            "displayName":  "exampleSummary",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "readOnly":  false,
+                                                                            "removed":  false
+                                                                        },
+                                                                        {
+                                                                            "id":  "detailsJson",
+                                                                            "displayName":  "detailsJson",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "readOnly":  false,
+                                                                            "removed":  false
+                                                                        }
+                                                                    ],
+                                                         "attemptToConvertTypes":  false,
+                                                         "convertFieldsToString":  false
+                                                     },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "52ed0c3c-1ef0-404f-926a-32aa0f3f6ac7",
+                      "name":  "Speichere Lernbeispiel",
+                      "type":  "n8n-nodes-base.dataTable",
+                      "typeVersion":  1.1,
+                      "position":  [
+                                       672,
+                                       160
+                                   ],
+                      "alwaysOutputData":  true
+                  }
+              ],
+    "pinData":  {
+
+                },
+    "connections":  {
+                        "Execute Workflow Trigger":  {
+                                                         "main":  [
+                                                                      [
+                                                                          {
+                                                                              "node":  "Ist Retrieve?",
+                                                                              "type":  "main",
+                                                                              "index":  0
+                                                                          }
+                                                                      ]
+                                                                  ]
+                                                     },
+                        "Ist Retrieve?":  {
+                                              "main":  [
+                                                           [
+                                                               {
+                                                                   "node":  "Hole Lernbeispiele",
+                                                                   "type":  "main",
+                                                                   "index":  0
+                                                               }
+                                                           ],
+                                                           [
+                                                               {
+                                                                   "node":  "Baue Lernbeispiel-Zeile",
+                                                                   "type":  "main",
+                                                                   "index":  0
+                                                               }
+                                                           ]
+                                                       ]
+                                          },
+                        "Hole Lernbeispiele":  {
+                                                   "main":  [
+                                                                [
+                                                                    {
+                                                                        "node":  "Waehle Top-Beispiele",
+                                                                        "type":  "main",
+                                                                        "index":  0
+                                                                    }
+                                                                ]
+                                                            ]
+                                               },
+                        "Baue Lernbeispiel-Zeile":  {
+                                                        "main":  [
+                                                                     [
+                                                                         {
+                                                                             "node":  "Speichere Lernbeispiel",
+                                                                             "type":  "main",
+                                                                             "index":  0
+                                                                         }
+                                                                     ]
+                                                                 ]
+                                                    }
+                    },
+    "active":  false,
+    "settings":  {
+                     "executionOrder":  "v1",
+                     "binaryMode":  "separate"
+                 },
+    "versionId":  "00000000-0000-4000-8000-0000000000d1",
+    "meta":  {
+                 "instanceId":  "3918cd7b1079333be95f7df5d1ce0c807af27c5d6c51c5bb061c962138165169"
+             },
+    "id":  "ALLRISLernAgentV1",
+    "tags":  [
+
+             ]
+}

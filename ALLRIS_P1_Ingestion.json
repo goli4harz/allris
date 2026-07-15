@@ -1,0 +1,2740 @@
+{
+  "name": "ALLRIS_P1_Ingestion",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 5,
+              "triggerAtMinute": 5
+            }
+          ]
+        }
+      },
+      "id": "77d22a65-f5a4-40a4-a203-0814d0c38879",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        80,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://www.goslar.de/stadt/politik/allris/vo040_r.asp",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36"
+            },
+            {
+              "name": "Accept",
+              "value": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+            },
+            {
+              "name": "Accept-Language",
+              "value": "de-DE,de;q=0.9,en;q=0.8"
+            },
+            {
+              "name": "Referer",
+              "value": "https://www.goslar.de/stadt-und-verwaltung/rat-der-stadt"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          },
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "file"
+            }
+          },
+          "timeout": 30000,
+          "proxy": "172.16.1.5:3128"
+        }
+      },
+      "id": "4ddbfc76-f66e-4eea-a88d-cdeb93973849",
+      "name": "HTTP ALLRIS Übersicht",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        320,
+        40
+      ],
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "const html = $json.data || $json.body || '';\n\n// Basis-URL für relative Link-Auflösung\nconst PAGE_BASE = 'https://www.goslar.de/stadt/politik/allris/vo040_r.asp';\n\nconst matches = [...html.matchAll(/href=[\"']([^\"']*vo020_r\\.asp\\?VOLFDNR=\\d+)[^\"']*[\"']/gi)];\n\n// Deduplizierung primär nach volfdnr (Haupt-Schlüssel),\n// Fallback für Links ohne volfdnr nach URL.\nconst seenVolfdnr     = new Set();\nconst seenFallbackUrls = new Set();\n\nconst links = [];\n\nfor (const m of matches) {\n  const rawHref = m[1].replace(/&amp;/g, '&');\n\n  let resolvedUrl;\n  try {\n    resolvedUrl = rawHref.startsWith('http')\n      ? rawHref\n      : new URL(rawHref, PAGE_BASE).href;\n  } catch(e) {\n    resolvedUrl = rawHref;\n  }\n\n  const volfdnr = String(resolvedUrl || '').match(/VOLFDNR=(\\d+)/i)?.[1] || '';\n\n  if (volfdnr) {\n    if (seenVolfdnr.has(volfdnr)) {\n      console.warn(`[Extrahiere Vorgangslinks] Doppelte VOLFDNR übersprungen: ${volfdnr}`);\n      continue;\n    }\n    seenVolfdnr.add(volfdnr);\n  } else {\n    if (seenFallbackUrls.has(resolvedUrl)) {\n      continue;\n    }\n    seenFallbackUrls.add(resolvedUrl);\n  }\n\n  // Kanonische URL: immer sauber ohne Zusatzparameter\n  const canonicalUrl = volfdnr\n    ? `https://www.goslar.de/stadt/politik/allris/vo020_r.asp?VOLFDNR=${volfdnr}`\n    : resolvedUrl;\n\n  links.push({\n    json: {\n      source:    'ALLRIS Goslar',\n      url:        canonicalUrl,\n      sourceUrl:  canonicalUrl,\n      allrisUrl:  canonicalUrl,\n      docId:      volfdnr,\n      volfdnr,\n      type:       'vorgang'\n    }\n  });\n}\n\nconst total = links.length;\n\nlinks.forEach(item => {\n  item.json.debug_totalVorgangslinks = total;\n  item.json.debug_currentVolfdnr     = item.json.volfdnr || '';\n  item.json.debug_sourceUrlPresent   = !!item.json.sourceUrl;\n  item.json.debug_allrisUrlPresent   = !!item.json.allrisUrl;\n  item.json.debug_loopPhase          = 'vorgangslinks_extracted';\n});\n\nconsole.log(`[Extrahiere Vorgangslinks] Gefunden: ${total} eindeutige Links`);\n\nreturn links;\n"
+      },
+      "id": "25aa0a70-f956-401e-ad49-47616ae0a95a",
+      "name": "Extrahiere Vorgangslinks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.requestUrl || $json.url || $json.allrisUrl || $json.sourceUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36"
+            },
+            {
+              "name": "Referer",
+              "value": "https://www.goslar.de/stadt/politik/allris/vo040_r.asp"
+            },
+            {
+              "name": "Accept",
+              "value": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+            },
+            {
+              "name": "Accept-Language",
+              "value": "de-DE,de;q=0.9,en;q=0.8"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 15000
+            }
+          },
+          "redirect": {
+            "redirect": {}
+          },
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "file"
+            }
+          },
+          "timeout": 90000,
+          "proxy": "172.16.1.5:3128"
+        }
+      },
+      "id": "afc95caa-3484-4237-a79f-3703f72d00e2",
+      "name": "HTTP Vorgangsseiten",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2000,
+        40
+      ],
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "maxTries": 3,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const out = [];\n\nconst ALLOWED_FILE_EXTENSIONS = [\n  'pdf',\n  'jpg',\n  'jpeg',\n  'png',\n  'gif',\n  'tif',\n  'tiff',\n  'doc',\n  'docx',\n  'xls',\n  'xlsx',\n  'ppt',\n  'pptx',\n  'odt',\n  'ods',\n  'zip'\n];\n\nfunction cleanText(html) {\n  return String(html || '')\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/&nbsp;/g, ' ')\n    .replace(/&amp;/g, '&')\n    .replace(/&quot;/g, '\"')\n    .replace(/&#39;/g, \"'\")\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nfunction resolveUrl(rawHref, baseUrl) {\n  const href = String(rawHref || '').replace(/&amp;/g, '&').trim();\n\n  try {\n    return href.startsWith('http')\n      ? href\n      : new URL(href, baseUrl).href;\n  } catch (e) {\n    if (href.startsWith('/')) {\n      return 'https://www.goslar.de' + href;\n    }\n    return 'https://www.goslar.de/stadt/politik/allris/' + href;\n  }\n}\n\nfunction getExtensionFromUrl(url) {\n  const clean = String(url || '').split('?')[0].split('#')[0];\n  const m = clean.match(/\\.([a-zA-Z0-9]{2,6})$/);\n  return m ? m[1].toLowerCase() : '';\n}\n\nfunction isRealDocumentCandidate(url) {\n  const u = String(url || '').toLowerCase();\n  const ext = getExtensionFromUrl(u);\n\n  if (!u) return false;\n\n  // ALLRIS-Dokument-Download\n  if (u.includes('/stadt/politik/allris/do027.asp')) return true;\n  if (u.includes('dolfdnr=')) return true;\n\n  // Temporäre ALLRIS-Dateipfade\n  // Wichtig: auch wenn ALLRIS nicht sauber \"PDF\" ausweist.\n  if (u.includes('/stadt/politik/allris/___tmp/tmp/')) return true;\n  if (u.includes('/allris/___tmp/tmp/')) return true;\n\n  // Direkte Datei-Links\n  if (ext && ALLOWED_FILE_EXTENSIONS.includes(ext)) return true;\n\n  return false;\n}\n\nfunction classifyDocument(url, label, surroundingHtml) {\n  const u = String(url || '').toLowerCase();\n  const l = String(label || '').toLowerCase();\n  const ctx = cleanText(surroundingHtml || '').toLowerCase();\n\n  const isAnlage =\n    ctx.includes('anlagen') ||\n    ctx.includes('anlage') ||\n    l.includes('anlage') ||\n    l.includes('anlagen') ||\n    u.includes('/anlagen/') ||\n    u.includes('-anlagen/');\n\n  const isVorlage =\n    ctx.includes('dokumente') ||\n    ctx.includes('vorlage') ||\n    l.includes('vorlage') ||\n    u.includes('vorlage');\n\n  if (isAnlage) return 'anlage';\n  if (isVorlage) return 'original';\n  return 'document';\n}\n\nfunction buildDocKey(url, type, label) {\n  const u = String(url || '');\n  const dol = u.match(/DOLFDNR=(\\d+)/i)?.[1];\n\n  if (dol) return `dol_${dol}`;\n\n  let fileName = '';\n  try {\n    const parsed = new URL(u);\n    fileName = decodeURIComponent(parsed.pathname.split('/').pop() || '');\n  } catch (e) {\n    fileName = u.split('/').pop() || '';\n  }\n\n  fileName = fileName\n    .split('?')[0]\n    .split('#')[0]\n    .replace(/[^a-zA-Z0-9._-]/g, '_')\n    .replace(/_+/g, '_')\n    .replace(/^_+|_+$/g, '')\n    .substring(0, 120);\n\n  if (fileName) {\n    return `${type}_${fileName}`;\n  }\n\n  const fallback = cleanText(label || '')\n    .replace(/[^a-zA-Z0-9._-]/g, '_')\n    .replace(/_+/g, '_')\n    .replace(/^_+|_+$/g, '')\n    .substring(0, 80);\n\n  return fallback ? `${type}_${fallback}` : `${type}_unknown`;\n}\n\nfor (const item of items) {\n  const html = item.json.html || item.json.data || '';\n\n  const baseUrl =\n    item.json.allrisUrl ||\n    item.json.sourceUrl ||\n    'https://www.goslar.de/stadt/politik/allris/vo040_r.asp';\n\n  const matches = [...html.matchAll(/<a\\b[^>]*href=[\"']([^\"']+)[\"'][^>]*>([\\s\\S]*?)<\\/a>/gi)];\n\n  const found = [];\n  const skipped = [];\n  const seen = new Set();\n\n  for (const match of matches) {\n    const rawHref = match[1] || '';\n    const rawLabel = match[2] || '';\n    const label = cleanText(rawLabel);\n\n    if (!rawHref) continue;\n\n    const hrefLower = rawHref.toLowerCase();\n\n    if (\n      hrefLower.startsWith('#') ||\n      hrefLower.startsWith('javascript:') ||\n      hrefLower.startsWith('mailto:') ||\n      hrefLower.startsWith('tel:')\n    ) {\n      continue;\n    }\n\n    const link = resolveUrl(rawHref, baseUrl);\n    const urlLower = link.toLowerCase();\n\n    // Vorgangs-/Übersichtsseiten nie als Dokument aufnehmen\n    if (urlLower.includes('vo020_r.asp?volfdnr=')) continue;\n    if (urlLower.includes('vo040_r.asp')) continue;\n\n    const start = Math.max(0, match.index - 500);\n    const end = Math.min(html.length, match.index + match[0].length + 500);\n    const surroundingHtml = html.slice(start, end);\n\n    // Entscheidender Punkt:\n    // Der Kontext \"Anlagen\" darf NICHT reichen.\n    // Nur der Link selbst muss wie Datei/ALLRIS-Download aussehen.\n    if (!isRealDocumentCandidate(link)) {\n      skipped.push(link);\n      continue;\n    }\n\n    if (seen.has(link)) continue;\n    seen.add(link);\n\n    const type = classifyDocument(link, label, surroundingHtml);\n    const docKey = buildDocKey(link, type, label);\n\n    found.push({\n      url: link,\n      type,\n      label,\n      docKey\n    });\n  }\n\n  console.log(\n    `[Extrahiere Dokumentlinks] volfdnr=${item.json.volfdnr || '?'}: ` +\n    `${found.length} echte Dokumentlinks, ${skipped.length} normale/irrelevante Links übersprungen.`\n  );\n\n  if (found.length > 0) {\n    console.log(found.map(d => `${d.type}: ${d.url}`).join('\\n'));\n  }\n\n  if (found.length === 0) {\n    out.push({\n      json: {\n        title: item.json.title || '',\n        sourceUrl: item.json.sourceUrl || item.json.allrisUrl || '',\n        allrisUrl: item.json.allrisUrl || item.json.sourceUrl || '',\n        volfdnr: item.json.volfdnr || '',\n        documentUrl: '',\n        type: 'none',\n        label: '',\n        docKey: '',\n        debug_documentLinkCount: 0,\n        debug_skippedLinkCount: skipped.length\n      }\n    });\n    continue;\n  }\n\n  for (const doc of found) {\n    out.push({\n      json: {\n        title: item.json.title || '',\n        sourceUrl: item.json.sourceUrl || item.json.allrisUrl || '',\n        allrisUrl: item.json.allrisUrl || item.json.sourceUrl || '',\n        volfdnr: item.json.volfdnr || '',\n        documentUrl: doc.url,\n        type: doc.type,\n        label: doc.label || '',\n        docKey: doc.docKey || '',\n        debug_documentLinkCount: found.length,\n        debug_skippedLinkCount: skipped.length\n      }\n    });\n  }\n}\n\nreturn out;"
+      },
+      "id": "4acd6992-66ef-431e-a9b5-ec5e4f37989f",
+      "name": "Extrahiere Dokumentlinks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2960,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const out = [];\nconst seen = new Set();\n\nfor (const item of items) {\n  const url       = item.json.documentUrl || '';\n  const vorgangId = item.json.volfdnr || item.json.allrisUrl || item.json.title || 'unknown';\n\n  const dedupKey = url\n    ? `${vorgangId}::${url}`\n    : `no_doc_${vorgangId}`;\n\n  if (seen.has(dedupKey)) continue;\n  seen.add(dedupKey);\n\n  out.push({\n    json: {\n      title:         item.json.title        || '',\n      sourceUrl:     item.json.sourceUrl    || '',\n      allrisUrl:     item.json.allrisUrl    || item.json.sourceUrl || '',\n      volfdnr:       item.json.volfdnr      || '',\n      documentUrl:   url,\n      type:          item.json.type         || (url\n        ? (url.toLowerCase().endsWith('.pdf') ? 'pdf' : 'html')\n        : 'none'),\n      label:         item.json.label        || '',\n      docKey:        item.json.docKey       || ''\n    }\n  });\n}\n\nreturn out;\n"
+      },
+      "id": "04c56057-0ce9-4c09-b1a8-503d84de09f5",
+      "name": "Dedup Dokumentlinks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3200,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const themen = {\n  prioritaeten:             ['haushalt','finanzen','kosten','mittelbereitstellung','haushaltssatzung','spenden','eigenbetrieb','stadtwerke','sanierung','investition','förderung','zuschuss'],\n  altstadt_unesco_wohnen:   ['altstadt','unesco','denkmalschutz','denkmal','wohnen','wohnraum','bebauungsplan','stadtentwicklung','gestaltungsfibel','sanierungsgebiet'],\n  gesundheit_hausaerzte:    ['arzt','ärzte','hausarzt','gesundheit','medizin','krankenhaus','versorgung','defibrillator'],\n  tierschutz:               ['tierschutz','tierheim','hund','katze','wildtier','tiere'],\n  energie:                  ['energie','strom','wärme','windenergie','solar','photovoltaik','klima','schwammstadt'],\n  inklusion_barrierefreiheit:['barrierefrei','barrierefreiheit','inklusion','behindert','rollstuhl','teilhabe','haltestelle'],\n  transparenz_buerger:      ['anfrage','beantwortung','bürger','transparenz','verwaltung','software','app','digitalisierung'],\n  verkehr:                  ['verkehr','straße','radweg','parkplatz','brücke','haltestelle','bus','parkflächen'],\n  schulen_kitas:            ['schule','grundschule','kita','kindergarten','kindertagesstätte','sporthalle']\n};\nreturn items.map(item => {\n  const text = ((item.json.title || '') + ' ' + (item.json.documentUrl || '')).toLowerCase();\n  const treffer = [];\n  for (const [thema, keywords] of Object.entries(themen)) {\n    const hits = keywords.filter(k => text.includes(k));\n    if (hits.length > 0) treffer.push({ thema, keywords: hits });\n  }\n  return { json: { ...item.json, vorfilterRelevant: treffer.length > 0,\n    vorfilterThemen: treffer.map(t => t.thema), vorfilterKeywords: treffer.flatMap(t => t.keywords),\n    vorfilterScore: Math.min(100, treffer.length * 20) } };\n});\n"
+      },
+      "id": "f14c0da2-f57a-46c2-9446-9a9af92c62c0",
+      "name": "Vorfilter annotieren",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3440,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const url = item.json.documentUrl || '';\n\n  const dol = url.match(/DOLFDNR=(\\d+)/i)?.[1];\n\n  let file = '';\n  try {\n    const u = new URL(url);\n    file = decodeURIComponent(u.pathname.split('/').pop() || '');\n  } catch (e) {\n    file = url.split('/').pop() || '';\n  }\n\n  file = file\n    .split('?')[0]\n    .replace(/[^a-zA-Z0-9._-]/g, '_')\n    .substring(0, 120);\n\n  const type = item.json.type || 'document_candidate';\n\n  let docKey;\n  if (dol) {\n    docKey = `dol_${dol}`;\n  } else if (file) {\n    docKey = `${type}_${file}`;\n  } else {\n    docKey = `${type}_${Buffer.from(url).toString('base64').substring(0, 24)}`;\n  }\n\n  return {\n    json: {\n      ...item.json,\n      docKey,\n      firstseen: new Date().toISOString(),\n      lastseen: new Date().toISOString()\n    }\n  };\n});"
+      },
+      "id": "22357259-d8e4-4996-a96d-461a567901ac",
+      "name": "docKey",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3680,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nfunction extractVorgangsnummer(text) {\n  if (!text) return '';\n  const m = String(text).match(/\\b(\\d{4})\\s*\\/\\s*(\\d+)(?:-(\\d+))?\\b/);\n  if (!m) return '';\n  return m[1] + '/' + m[2] + (m[3] ? '-' + m[3] : '');\n}\n\nconst HTTP_ERROR_TITLE_RE = /^\\s*(?:400[\\s:-]+bad\\s+request|401[\\s:-]+unauthorized|403[\\s:-]+forbidden|404[\\s:-]+not\\s+found|408[\\s:-]+request\\s+time[- ]?out|429[\\s:-]+too\\s+many\\s+requests|500[\\s:-]+internal\\s+server\\s+error|501[\\s:-]+not\\s+implemented|502[\\s:-]+bad\\s+gateway|503[\\s:-]+service\\s+unavailable|504[\\s:-]+gateway\\s*time[- ]?out)\\s*$/i;\n\nconst TECH_ERROR_PHRASE_RE = /gateway\\s*time[- ]?out|bad\\s+gateway|service\\s+unavailable|internal\\s+server\\s+error|request\\s+time[- ]?out|upstream\\s+timed\\s+out|proxy\\s+error|temporarily\\s+unavailable|too\\s+many\\s+requests|serverfehler|nginx\\s+error|cloudflare\\s+error/i;\n\nfunction isTechnicalTitle(value) {\n  const text = String(value || '').trim();\n  return HTTP_ERROR_TITLE_RE.test(text) || TECH_ERROR_PHRASE_RE.test(text);\n}\n\nfunction containsTechnicalErrorPhrase(value) {\n  return TECH_ERROR_PHRASE_RE.test(String(value || ''));\n}\n\nfunction isValidVorgangsnummer(v) {\n  return /^\\d{4}\\/\\d+(?:-\\d+)?$/.test(String(v || '').trim());\n}\n\n// Gruppierung nach Vorgang – V29.1\nconst groups = {};\n\nfunction parseVorgangsbeziehung(vorgangsnummer) {\n  const value = String(vorgangsnummer || '').trim();\n  const match = value.match(/^(\\d{4})\\s*\\/\\s*(\\d+)(?:-(\\d+))?$/);\n  if (!match) {\n    return { stammVorgangsnummer: value, folgeNummer: '', istFolgevorgang: false };\n  }\n  const jahr   = match[1];\n  const nummer = match[2];\n  const suffix = match[3] || '';\n  return {\n    stammVorgangsnummer: `${jahr}/${nummer}`,\n    folgeNummer:         suffix,\n    istFolgevorgang:     suffix !== ''\n  };\n}\n\nfor (const item of items) {\n  const title = item.json.title || '';\n\n  const volfdnr =\n    item.json.volfdnr ||\n    (item.json.sourceUrl || '').match(/VOLFDNR=(\\d+)/i)?.[1] ||\n    (item.json.allrisUrl || '').match(/VOLFDNR=(\\d+)/i)?.[1] ||\n    '';\n\n  // Vorgangsnummer: bevorzugt aus item.json, dann aus title/html\n  const vorgangsnummer =\n    extractVorgangsnummer(item.json.vorgangsnummer || '') ||\n    extractVorgangsnummer(title) ||\n    extractVorgangsnummer(item.json.html || '');\n\n  // vorgangKey immer vol_<VOLFDNR>\n  const rawKey     = volfdnr ? `vol_${volfdnr}` : (vorgangsnummer || title);\n  const vorgangKey = rawKey.replace(/[\\/\\-\\s]/g, '_');\n\n  const sourceUrl = volfdnr\n    ? `https://www.goslar.de/stadt/politik/allris/vo020_r.asp?VOLFDNR=${volfdnr}`\n    : (item.json.sourceUrl || item.json.allrisUrl || '');\n\n  if (!groups[vorgangKey]) {\n    groups[vorgangKey] = {\n      vorgangKey,\n      title,\n      vorgangsnummer,\n      volfdnr,\n      sourceUrl,\n      allrisUrl: sourceUrl,\n      vorfilterThemen:   [],\n      vorfilterKeywords: [],\n      vorfilterScore:    0,\n      documents:         [],\n      ...parseVorgangsbeziehung(vorgangsnummer)\n    };\n  }\n\n  for (const t of (item.json.vorfilterThemen || [])) {\n    if (!groups[vorgangKey].vorfilterThemen.includes(t))\n      groups[vorgangKey].vorfilterThemen.push(t);\n  }\n  for (const k of (item.json.vorfilterKeywords || [])) {\n    if (!groups[vorgangKey].vorfilterKeywords.includes(k))\n      groups[vorgangKey].vorfilterKeywords.push(k);\n  }\n  if ((item.json.vorfilterScore || 0) > groups[vorgangKey].vorfilterScore) {\n    groups[vorgangKey].vorfilterScore = item.json.vorfilterScore;\n  }\n  if (item.json.documentUrl) {\n    groups[vorgangKey].documents.push({\n      url:    item.json.documentUrl,\n      type:   item.json.type  || 'document_candidate',\n      label:  item.json.label || '',\n      docKey: item.json.docKey || ''\n    });\n  }\n}\n\nreturn Object.values(groups).map(v => ({\n  json: {\n    vorgangKey:          v.vorgangKey,\n    volfdnr:             v.volfdnr           || '',\n    title:               v.title,\n    vorgangsnummer:      v.vorgangsnummer,\n    sourceUrl:           v.sourceUrl         || '',\n    allrisUrl:           v.allrisUrl         || v.sourceUrl || '',\n    vorfilterThemen:     v.vorfilterThemen,\n    vorfilterKeywords:   v.vorfilterKeywords,\n    vorfilterScore:      v.vorfilterScore,\n    documentsJson:       JSON.stringify(v.documents),\n    documentCount:       v.documents.length,\n    stammVorgangsnummer: v.stammVorgangsnummer || v.vorgangsnummer || '',\n    folgeNummer:         v.folgeNummer        || '',\n    istFolgevorgang:     v.istFolgevorgang    === true,\n    debug_loopPhase:     'gruppierung_done',\n    debug_currentVolfdnr: v.volfdnr || ''\n  }\n}));\n"
+      },
+      "id": "0746787b-40d9-4e0c-9ef4-96d5225ed6b1",
+      "name": "Gruppierung nach Vorgang",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3920,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "99f06cbe-99e1-42cf-9a54-34b10eb63f39",
+      "name": "Get all Vorgaenge",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        4160,
+        40
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nfunction extractVorgangsnummer(text) {\n  if (!text) return '';\n  const m = String(text).match(/\\b(\\d{4})\\s*\\/\\s*(\\d+)(?:-(\\d+))?\\b/);\n  if (!m) return '';\n  return m[1] + '/' + m[2] + (m[3] ? '-' + m[3] : '');\n}\n\nconst HTTP_ERROR_TITLE_RE = /^\\s*(?:400[\\s:-]+bad\\s+request|401[\\s:-]+unauthorized|403[\\s:-]+forbidden|404[\\s:-]+not\\s+found|408[\\s:-]+request\\s+time[- ]?out|429[\\s:-]+too\\s+many\\s+requests|500[\\s:-]+internal\\s+server\\s+error|501[\\s:-]+not\\s+implemented|502[\\s:-]+bad\\s+gateway|503[\\s:-]+service\\s+unavailable|504[\\s:-]+gateway\\s*time[- ]?out)\\s*$/i;\n\nconst TECH_ERROR_PHRASE_RE = /gateway\\s*time[- ]?out|bad\\s+gateway|service\\s+unavailable|internal\\s+server\\s+error|request\\s+time[- ]?out|upstream\\s+timed\\s+out|proxy\\s+error|temporarily\\s+unavailable|too\\s+many\\s+requests|serverfehler|nginx\\s+error|cloudflare\\s+error/i;\n\nfunction isTechnicalTitle(value) {\n  const text = String(value || '').trim();\n  return HTTP_ERROR_TITLE_RE.test(text) || TECH_ERROR_PHRASE_RE.test(text);\n}\n\nfunction containsTechnicalErrorPhrase(value) {\n  return TECH_ERROR_PHRASE_RE.test(String(value || ''));\n}\n\nfunction isValidVorgangsnummer(v) {\n  return /^\\d{4}\\/\\d+(?:-\\d+)?$/.test(String(v || '').trim());\n}\n\n// Check if known – V29.1 mit erweitertem Metadatenvergleich\n// $runIndex-sicher\n\nfunction normalizeTitle(value) {\n  return String(value || '').replace(/\\s+/g, ' ').trim();\n}\n\nfunction normalizeVorgangsnummer(value) {\n  const match = String(value || '').match(/\\b(\\d{4})\\s*\\/\\s*(\\d+)(?:-(\\d+))?\\b/);\n  return match ? `${match[1]}/${match[2]}${match[3] ? '-' + match[3] : ''}` : '';\n}\n\nconst databaseItems = $input.all(0, $runIndex);\nconst groupedItems  = $('Gruppierung nach Vorgang').all(0, $runIndex);\n\nif (!groupedItems || groupedItems.length !== 1) {\n  throw new Error(\n    `[Check if known] Erwartet genau 1 aktuellen Vorgang, ` +\n    `erhalten: ${groupedItems?.length ?? 0}, runIndex=${$runIndex}`\n  );\n}\n\nconst current = groupedItems[0].json || {};\nconst key     = String(current.vorgangKey || '').trim();\n\nif (!key) {\n  throw new Error('[Check if known] Aktueller Vorgang besitzt keinen vorgangKey.');\n}\n\nfunction normalizeDocsJson(raw) {\n  try {\n    let documents;\n    if (Array.isArray(raw)) {\n      documents = raw;\n    } else {\n      documents = JSON.parse(String(raw || '[]'));\n    }\n    if (!Array.isArray(documents)) return '[]';\n    const urls = documents\n      .map(d => (typeof d === 'string' ? d.trim() : String(d?.docKey || d?.url || '').trim()))\n      .filter(Boolean)\n      .sort();\n    return JSON.stringify(urls);\n  } catch (e) {\n    console.warn(`[Check if known] documentsJson Lesefehler: ${e.message}`);\n    return '[]';\n  }\n}\n\n// Datenbankzeilen filtern\nconst matchingRows = databaseItems\n  .map(item => item.json || {})\n  .filter(row => String(row.vorgangKey || '').trim() === key);\n\nconst duplicateCount = matchingRows.length;\nconst isKnown        = duplicateCount > 0;\n\nif (duplicateCount > 1) {\n  console.warn(`[Check if known] Duplikate: key=${key}, count=${duplicateCount}, runIndex=${$runIndex}`);\n}\n\nlet needsRefresh         = !isKnown;\nlet documentsChanged     = false;\nlet oldDocumentsJson     = '[]';\nlet oldDocumentCount     = 0;\nlet oldStatus            = '';\nlet oldTitle             = '';\nlet oldVorgangsnummer    = '';\nlet oldMetadataInvalid   = false;\nlet metadataRepairNeeded = false;\nlet titleChanged         = false;\nlet vorgangsnummerChanged = false;\nlet normalizedOldTitle   = '';\nlet normalizedCurrentTitle = '';\nlet normalizedOldNumber  = '';\nlet normalizedCurrentNumber = '';\n\nif (isKnown) {\n  const old = matchingRows[0];\n\n  oldDocumentsJson  = old.documentsJson  || '[]';\n  oldDocumentCount  = Number.parseInt(String(old.documentCount || '0'), 10) || 0;\n  oldStatus         = String(old.status  || '').trim();\n  oldTitle          = String(old.title   || '').trim();\n  oldVorgangsnummer = String(old.vorgangsnummer || '').trim();\n\n  // Dokumentänderungen prüfen\n  const newNorm = normalizeDocsJson(current.documentsJson);\n  const oldNorm = normalizeDocsJson(oldDocumentsJson);\n  documentsChanged = newNorm !== oldNorm;\n  needsRefresh  = documentsChanged;\n\n  // Status → immer refresh\n  if (oldStatus === 'detail_failed' || oldStatus === 'metadata_error') {\n    needsRefresh = true;\n  }\n\n  // Normalisierte Vergleiche\n  normalizedOldTitle      = normalizeTitle(oldTitle);\n  normalizedCurrentTitle  = normalizeTitle(current.title || '');\n  normalizedOldNumber     = normalizeVorgangsnummer(oldVorgangsnummer);\n  normalizedCurrentNumber = normalizeVorgangsnummer(current.vorgangsnummer || '');\n\n  titleChanged =\n    !!normalizedCurrentTitle &&\n    normalizedOldTitle !== normalizedCurrentTitle;\n\n  vorgangsnummerChanged =\n    !!normalizedCurrentNumber &&\n    normalizedOldNumber !== normalizedCurrentNumber;\n\n  // Beschädigte Metadaten erkennen\n  const titleEmpty       = !oldTitle;\n  const titleTech        = isTechnicalTitle(oldTitle);\n  const titlePlaceholder = oldTitle === '(Vorgangsseite nicht geladen)';\n  const titleBad         = titleEmpty || titleTech || titlePlaceholder;\n\n  const numMissing  = !oldVorgangsnummer;\n  const numInvalid  = !isValidVorgangsnummer(oldVorgangsnummer);\n  const urlMissing  = !old.allrisUrl && !old.sourceUrl;\n\n  oldMetadataInvalid = titleBad || numMissing || numInvalid || urlMissing;\n\n  // Reparatur auslösen wenn aktuelle Daten gültig und Bestand fehlerhaft/abweichend\n  const currentHasValidTitle = !!(current.title) && !isTechnicalTitle(current.title);\n  const currentHasValidNum   = isValidVorgangsnummer(current.vorgangsnummer);\n\n  if (currentHasValidTitle && currentHasValidNum) {\n    if (oldMetadataInvalid || titleChanged || vorgangsnummerChanged ||\n        oldStatus === 'detail_failed' || oldStatus === 'metadata_error') {\n      metadataRepairNeeded = true;\n      needsRefresh         = true;\n      console.log(\n        `[Check if known] Metadaten-Reparatur: key=${key} ` +\n        `oldTitle=\"${oldTitle}\" → currentTitle=\"${current.title}\" ` +\n        `oldNum=\"${oldVorgangsnummer}\" → currentNum=\"${current.vorgangsnummer}\" ` +\n        `oldMetadataInvalid=${oldMetadataInvalid} titleChanged=${titleChanged} ` +\n        `vorgangsnummerChanged=${vorgangsnummerChanged}`\n      );\n    }\n  }\n}\n\nconsole.log(\n  `[Check if known] key=${key} isKnown=${isKnown} needsRefresh=${needsRefresh} ` +\n  `oldStatus=${oldStatus} oldMetadataInvalid=${oldMetadataInvalid} ` +\n  `metadataRepairNeeded=${metadataRepairNeeded} titleChanged=${titleChanged} ` +\n  `vorgangsnummerChanged=${vorgangsnummerChanged} duplicateCount=${duplicateCount} runIndex=${$runIndex}`\n);\n\nreturn [{\n  json: {\n    ...current,\n    isKnown,\n    needsRefresh,\n    documentsChanged,\n    oldDocumentsJson,\n    oldDocumentCount,\n    oldStatus,\n    oldTitle,\n    oldVorgangsnummer,\n    oldMetadataInvalid,\n    metadataRepairNeeded,\n    titleChanged,\n    vorgangsnummerChanged,\n    normalizedOldTitle,\n    normalizedCurrentTitle,\n    normalizedOldNumber,\n    normalizedCurrentNumber,\n    existingDuplicateCount: duplicateCount,\n    debug_runIndex:  $runIndex,\n    debug_loopPhase: isKnown\n      ? (needsRefresh ? 'known_refresh' : 'known_unchanged')\n      : 'new_vorgang'\n  }\n}];\n"
+      },
+      "id": "b7fda84c-85dc-4a92-82a3-3200bf8cdc9e",
+      "name": "Check if known",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4400,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "if-known-001",
+              "leftValue": "={{ $json.isKnown === true && $json.needsRefresh === false }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "647f9a02-11fe-48d8-af98-5432b6ce3229",
+      "name": "IF bekannt?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        4640,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "lastseen": "={{ $now.toISO() }}",
+            "stammVorgangsnummer": "={{ $json.stammVorgangsnummer || $json.vorgangsnummer || '' }}",
+            "folgeNummer": "={{ $json.folgeNummer || '' }}",
+            "istFolgevorgang": "={{ $json.istFolgevorgang === true }}"
+          },
+          "schema": [
+            {
+              "id": "lastseen",
+              "displayName": "lastseen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "stammVorgangsnummer",
+              "displayName": "stammVorgangsnummer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "folgeNummer",
+              "displayName": "folgeNummer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "istFolgevorgang",
+              "displayName": "istFolgevorgang",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e7e0d595-a4bf-4600-af06-b14b46244d60",
+      "name": "Update lastseen",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        4880,
+        40
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const out = [];\nfor (const item of items) {\n  let docs = [];\n  try {\n    docs = JSON.parse(item.json.documentsJson || '[]');\n    if (!Array.isArray(docs)) docs = [];\n  } catch(e) {\n    docs = [];\n  }\n\n  const referer = item.json.allrisUrl || 'https://www.goslar.de/stadt/politik/allris/vo040_r.asp?SORT=2vofdat';\n\n  const base = {\n    vorgangKey:        item.json.vorgangKey,\n    volfdnr:           item.json.volfdnr           || '',\n    title:             item.json.title,\n    vorgangsnummer:    item.json.vorgangsnummer,\n    sourceUrl:         item.json.sourceUrl          || '',\n    allrisUrl:         item.json.allrisUrl,\n    documentCount:     item.json.documentCount,\n    documentsJson:     item.json.documentsJson,\n    vorfilterThemen:   item.json.vorfilterThemen    || [],\n    vorfilterKeywords: item.json.vorfilterKeywords  || [],\n    vorfilterScore:    item.json.vorfilterScore     || 0,\n    isKnown:           item.json.isKnown            || false,\n    needsRefresh:      item.json.needsRefresh       !== false,\n    oldStatus:         item.json.oldStatus          || '',\n    documentsChanged:  item.json.documentsChanged   === true,\n    stammVorgangsnummer: item.json.stammVorgangsnummer || item.json.vorgangsnummer || '',\n    folgeNummer:         item.json.folgeNummer        || '',\n    istFolgevorgang:     item.json.istFolgevorgang    === true,\n    _docLoopInit:      true,\n    referer\n  };\n\n  if (docs.length === 0) {\n    // Platzhalter-Item für Vorgänge ohne Dokumente\n    const docRunKey = `${item.json.vorgangKey}::__none__`;\n    out.push({ json: {\n      ...base,\n      url:       '',\n      type:      'none',\n      docKey:    '',\n      label:     '',\n      docRunKey\n    }});\n  } else {\n    for (const doc of docs) {\n      const docRunKey = `${item.json.vorgangKey}::${doc.docKey || doc.url}`;\n      out.push({ json: {\n        ...base,\n        url:    doc.url,\n        type:   doc.type,\n        docKey: doc.docKey || '',\n        label:  doc.label  || '',\n        docRunKey\n      }});\n    }\n  }\n}\nreturn out;\n"
+      },
+      "id": "4216f325-3207-4663-86ea-22fdf3906fd0",
+      "name": "Expand Documents",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4880,
+        760
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$json.url}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Referer",
+              "value": "={{ $json.referer }}"
+            },
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0"
+            },
+            {
+              "name": "Accept",
+              "value": "application/pdf,*/*"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 2500
+            }
+          },
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "file"
+            }
+          },
+          "proxy": "172.16.1.5:3128"
+        }
+      },
+      "id": "e9d36196-901f-46cb-abdb-790dfa279658",
+      "name": "HTTP Dokument laden",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5840,
+        940
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Handle Extract – normalisiert genau ein Dokument-Ergebnis.\n// Wird einmal pro Dokument im Dokument-Loop aufgerufen.\n// Mögliche Eingangsquellen:\n//   a) Markiere kein Dokument → type='none'\n//   b) IF sendToTika? false-Zweig → sendToTika=false\n//   c) Metadaten nach Tika → tikaText vorhanden\n\nconst item = {\n  json: $json,\n  binary: $binary\n};\n\nconst base = {\n  vorgangKey:        item.json.vorgangKey        || '',\n  volfdnr:           item.json.volfdnr           || '',\n  title:             item.json.title             || '',\n  vorgangsnummer:    item.json.vorgangsnummer     || '',\n  sourceUrl:         item.json.sourceUrl          || '',\n  allrisUrl:         item.json.allrisUrl          || '',\n  documentCount:     item.json.documentCount      || 0,\n  documentsJson:     item.json.documentsJson      || '[]',\n  vorfilterThemen:   item.json.vorfilterThemen    || [],\n  vorfilterKeywords: item.json.vorfilterKeywords  || [],\n  vorfilterScore:    item.json.vorfilterScore     || 0,\n  isKnown:           item.json.isKnown            || false,\n  needsRefresh:      item.json.needsRefresh       !== false,\n  oldStatus:         item.json.oldStatus          || '',\n  documentsChanged:  item.json.documentsChanged   === true,\n  stammVorgangsnummer: item.json.stammVorgangsnummer || '',\n  folgeNummer:         item.json.folgeNummer        || '',\n  istFolgevorgang:     item.json.istFolgevorgang    === true,\n  url:               item.json.url               || '',\n  type:              item.json.type              || '',\n  docKey:            item.json.docKey            || '',\n  label:             item.json.label             || '',\n  docRunKey:         item.json.docRunKey         || ''\n};\n\n// ── Fall a) Vorgang ohne Dokument ─────────────────────────────────────────\nif (item.json.type === 'none' || item.json.textExtractionMethod === 'no_document') {\n  return {\n    json: {\n      ...base,\n      text:                   '',\n      textExtractionSuccess:  false,\n      textLength:             0,\n      textExtractionMethod:   'no_document',\n      textExtractionError:    ''\n    }\n  };\n}\n\n// ── Fall b) Binary-Fehler / ZIP (sendToTika === false) ────────────────────\nif (item.json.sendToTika === false) {\n  return {\n    json: {\n      ...base,\n      text:                   '',\n      textExtractionSuccess:  item.json.textExtractionSuccess || false,\n      textLength:             item.json.textLength            || 0,\n      textExtractionMethod:   item.json.textExtractionMethod  || 'download_failed',\n      textExtractionError:    item.json.textExtractionError   || 'Download fehlgeschlagen'\n    }\n  };\n}\n\n// ── Fall c) Tika-Ergebnis ─────────────────────────────────────────────────\nconst tikaError = item.json.tikaError || item.json.error?.message || '';\n\nlet rawText =\n  typeof item.json.tikaText  === 'string' ? item.json.tikaText  :\n  typeof item.json.data      === 'string' ? item.json.data      :\n  typeof item.json.body      === 'string' ? item.json.body      :\n  null;\n\nconst text = typeof rawText === 'string' ? rawText.trim() : '';\n\nlet textExtractionSuccess, textExtractionMethod, textExtractionError;\n\nif (text.length > 0) {\n  textExtractionSuccess = true;\n  textExtractionMethod  = 'tika';\n  textExtractionError   = '';\n} else if (tikaError) {\n  textExtractionSuccess = false;\n  textExtractionMethod  = 'tika_error';\n  textExtractionError   = tikaError;\n} else {\n  textExtractionSuccess = false;\n  textExtractionMethod  = 'tika_empty';\n  textExtractionError   = 'Tika lieferte keinen Dokumenttext';\n}\n\nreturn {\n  json: {\n    ...base,\n    text,\n    textExtractionSuccess,\n    textLength:  text.length,\n    textExtractionMethod,\n    textExtractionError\n  }\n};\n"
+      },
+      "id": "432d0c68-bad8-468f-bac0-3f60e495fdf7",
+      "name": "Handle Extract",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7040,
+        940
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Vorgangs-Metadaten robust über \"Expand Documents\" holen (1:1 pro Vorgang).\n// \"Loop Dokumente\" hat (alwaysOutputData) schon mehrfach einen Phantom-Aufruf\n// ausgelöst, bei dem der runIndex nicht zu \"Expand Documents\" passt. Ein\n// einzelner solcher Ausreißer darf NIE die gesamte Ausführung abbrechen –\n// deshalb hier überspringen (kein Ergebnis) statt werfen; der Vorgang bleibt\n// als needsRefresh stehen und wird beim nächsten geplanten Lauf erneut versucht.\nlet expandItems = [];\ntry {\n  expandItems = $('Expand Documents').all(0, $runIndex);\n} catch (e) {\n  expandItems = [];\n}\n\n// Sicherer Platzhalter, falls dieser Vorgang übersprungen werden muss:\n// vorgangKey bleibt leer, isKnown:true routet auf \"Update bekannter Vorgang\",\n// dessen Filter (keyValue={{$json.vorgangKey}}) dann keine Zeile trifft –\n// also ein No-Op-Update statt eines falschen Inserts. Wichtig ist nur, dass\n// die Kette weiterläuft und \"Loop Vorgangsseiten\" wieder getriggert wird.\nconst skipResult = [{ json: { vorgangKey: '', isKnown: true, needsRefresh: false, _skippedPhantomAggregate: true } }];\n\nif (!expandItems || expandItems.length === 0) {\n  console.warn(\n    `[Aggregate Texts] Keine Vorgangsdaten von \"Expand Documents\" bei runIndex=${$runIndex} ` +\n    `(vermutlich Phantom-Aufruf von \"Loop Dokumente\") – Vorgang wird übersprungen.`\n  );\n  return skipResult;\n}\n\nconst vorgangMeta = expandItems[0].json || {};\nconst currentVorgangKey = String(vorgangMeta.vorgangKey || '').trim();\n\nif (!currentVorgangKey) {\n  console.warn(\n    `[Aggregate Texts] \"Expand Documents\"-Item besitzt keinen vorgangKey bei runIndex=${$runIndex} – Vorgang wird übersprungen.`\n  );\n  return skipResult;\n}\n\n// $input (der \"done\"-Ausgang von \"Loop Dokumente\") liefert die Loop-Ergebnisse\n// nicht zuverlässig. Stattdessen alle bisher von \"Handle Extract\" produzierten\n// Items holen (über die gesamte Ausführung hinweg) und auf den aktuellen\n// vorgangKey filtern. Wurde \"Handle Extract\" in diesem Lauf noch gar nicht\n// ausgeführt (z.B. weil kein Dokument verarbeitet wurde), gilt das als 0 Dokumente.\nlet handleExtractItems = [];\ntry {\n  handleExtractItems = $('Handle Extract').all();\n} catch (e) {\n  handleExtractItems = [];\n}\n\nconst filteredItems = handleExtractItems.filter(item =>\n  String(item?.json?.vorgangKey || '').trim() === currentVorgangKey\n);\n\n// Innerhalb des Vorgangs Dokumente noch einmal absichern,\n// damit ein Dokument nicht doppelt aggregiert wird.\nconst uniqueItemsMap = new Map();\n\nfor (const item of filteredItems) {\n  const json = item.json || {};\n\n  const uniqueKey =\n    String(json.docRunKey || '').trim() ||\n    String(json.docKey || '').trim() ||\n    String(json.url || '').trim() ||\n    `${currentVorgangKey}::__none__`;\n\n  if (!uniqueItemsMap.has(uniqueKey)) {\n    uniqueItemsMap.set(uniqueKey, item);\n  }\n}\n\nconst allItems = [...uniqueItemsMap.values()];\n\nconsole.log(\n  `[Aggregate Texts] aktuell=${currentVorgangKey}; ` +\n  `HandleExtractGesamt=${handleExtractItems.length}; ` +\n  `gefiltert=${filteredItems.length}; ` +\n  `eindeutig=${allItems.length}; ` +\n  `runIndex=${$runIndex}`\n);\n\nconst group = {\n  vorgangKey: currentVorgangKey,\n  volfdnr: vorgangMeta.volfdnr || '',\n  title: vorgangMeta.title || '',\n  vorgangsnummer: vorgangMeta.vorgangsnummer || '',\n  sourceUrl: vorgangMeta.sourceUrl || '',\n  allrisUrl: vorgangMeta.allrisUrl || '',\n  documentCount: Number(vorgangMeta.documentCount || 0),\n  documentsJson: vorgangMeta.documentsJson || '[]',\n  vorfilterThemen: vorgangMeta.vorfilterThemen || [],\n  vorfilterKeywords: vorgangMeta.vorfilterKeywords || [],\n  vorfilterScore: vorgangMeta.vorfilterScore || 0,\n  isKnown: vorgangMeta.isKnown === true,\n  needsRefresh: vorgangMeta.needsRefresh !== false,\n  oldStatus: vorgangMeta.oldStatus || '',\n  documentsChanged: vorgangMeta.documentsChanged === true,\n  stammVorgangsnummer: vorgangMeta.stammVorgangsnummer || vorgangMeta.vorgangsnummer || '',\n  folgeNummer: String(vorgangMeta.folgeNummer || ''),\n  istFolgevorgang: vorgangMeta.istFolgevorgang === true,\n  texts: [],\n  extractedCount: 0,\n  failedCount: 0\n};\n\nfor (const item of allItems) {\n  const json = item.json || {};\n\n  const text = String(json.text || '').trim();\n  const method = String(json.textExtractionMethod || '');\n  const success = json.textExtractionSuccess === true;\n  const isPlaceholder =\n    method === 'no_document' ||\n    json.type === 'none' ||\n    !json.url;\n\n  if (isPlaceholder) {\n    continue;\n  }\n\n  if (success && text) {\n    group.extractedCount++;\n\n    const docLabel = json.label || json.docKey || `Dokument ${group.extractedCount}`;\n\n    group.texts.push(\n      `--- Dokument ${group.extractedCount}: ${docLabel} ---\\n${text}`\n    );\n  } else {\n    group.failedCount++;\n\n    const docLabel = json.label || json.docKey || 'Dokument';\n\n    console.warn(\n      `[Aggregate Texts] Extraktion fehlgeschlagen: ${currentVorgangKey}/${docLabel}; ` +\n      `method=${method}; error=\"${json.textExtractionError || ''}\"`\n    );\n  }\n}\n\nconst combinedText =\n  group.texts.length > 0\n    ? group.texts.join('\\n\\n')\n    : Number(group.documentCount || 0) > 0\n      ? '(Dokumentlinks gefunden, aber kein Dokumenttext extrahierbar)'\n      : '(Keine Dokumentlinks gefunden)';\n\nreturn [{\n  json: {\n    vorgangKey: group.vorgangKey,\n    volfdnr: group.volfdnr,\n    title: group.title,\n    vorgangsnummer: group.vorgangsnummer,\n    stammVorgangsnummer: group.stammVorgangsnummer || group.vorgangsnummer || '',\n    folgeNummer: String(group.folgeNummer || ''),\n    istFolgevorgang: group.istFolgevorgang === true,\n    sourceUrl: group.sourceUrl,\n    allrisUrl: group.allrisUrl,\n    documentCount: group.documentCount,\n    documentsJson: group.documentsJson,\n    vorfilterThemen: group.vorfilterThemen,\n    vorfilterKeywords: group.vorfilterKeywords,\n    vorfilterScore: group.vorfilterScore,\n    isKnown: group.isKnown,\n    needsRefresh: group.needsRefresh,\n    oldStatus: group.oldStatus || '',\n    documentsChanged: group.documentsChanged === true,\n    extractedDocumentCount: group.extractedCount,\n    failedDocumentCount: group.failedCount,\n    combinedTextLength: combinedText.length,\n    combinedText\n  }\n}];"
+      },
+      "id": "ef945f6c-2758-463d-9b74-b0c0a1ac9d21",
+      "name": "Aggregate Texts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5360,
+        760
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "vorgangKey": "={{ $json.vorgangKey }}",
+            "volfdnr": "={{ $json.volfdnr || '' }}",
+            "title": "={{ $json.title }}",
+            "vorgangsnummer": "={{ $json.vorgangsnummer }}",
+            "sourceUrl": "={{ $json.sourceUrl || '' }}",
+            "allrisUrl": "={{ $json.allrisUrl }}",
+            "firstseen": "={{ $now.toISO() }}",
+            "lastseen": "={{ $now.toISO() }}",
+            "status": "needs_summary",
+            "vorfilterScore": "={{ $json.vorfilterScore || 0 }}",
+            "vorfilterThemen": "={{ JSON.stringify($json.vorfilterThemen || []) }}",
+            "vorfilterKeywords": "={{ JSON.stringify($json.vorfilterKeywords || []) }}",
+            "documentsJson": "={{ $json.documentsJson || '[]' }}",
+            "documentCount": "={{ $json.documentCount || 0 }}",
+            "combinedText": "={{ $json.combinedText || '' }}",
+            "stammVorgangsnummer": "={{ $json.stammVorgangsnummer || $json.vorgangsnummer || '' }}",
+            "folgeNummer": "={{ $json.folgeNummer || '' }}",
+            "istFolgevorgang": "={{ $json.istFolgevorgang === true }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "vorgangKey",
+              "displayName": "vorgangKey",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "volfdnr",
+              "displayName": "volfdnr",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "sourceUrl",
+              "displayName": "sourceUrl",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "allrisUrl",
+              "displayName": "allrisUrl",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorgangsnummer",
+              "displayName": "vorgangsnummer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "firstseen",
+              "displayName": "firstseen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "lastseen",
+              "displayName": "lastseen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "relevantScore",
+              "displayName": "relevantScore",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "themes",
+              "displayName": "themes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorfilterThemen",
+              "displayName": "vorfilterThemen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorfilterKeywords",
+              "displayName": "vorfilterKeywords",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorfilterScore",
+              "displayName": "vorfilterScore",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "matrixPosted",
+              "displayName": "matrixPosted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "nextcloudFolder",
+              "displayName": "nextcloudFolder",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "documentsJson",
+              "displayName": "documentsJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "documentCount",
+              "displayName": "documentCount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "combinedText",
+              "displayName": "combinedText",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "summaryJson",
+              "displayName": "summaryJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "summaryText",
+              "displayName": "summaryText",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "summarySentences",
+              "displayName": "summarySentences",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "summaryCreatedAt",
+              "displayName": "summaryCreatedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "summaryPosted",
+              "displayName": "summaryPosted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "summaryRoomPostedAt",
+              "displayName": "summaryRoomPostedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "thema",
+              "displayName": "thema",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "betroffene",
+              "displayName": "betroffene",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "kostenHaushalt",
+              "displayName": "kostenHaushalt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "buergerwirkung",
+              "displayName": "buergerwirkung",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "offenePunkte",
+              "displayName": "offenePunkte",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "unsicherheitenSummary",
+              "displayName": "unsicherheitenSummary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "analysisJson",
+              "displayName": "analysisJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "contentJson",
+              "displayName": "contentJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "visualJson",
+              "displayName": "visualJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "sprengstoff",
+              "displayName": "sprengstoff",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "empfehlung",
+              "displayName": "empfehlung",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "kommunikationspotenzial",
+              "displayName": "kommunikationspotenzial",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "matrixKurzbetreff",
+              "displayName": "matrixKurzbetreff",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "ampel",
+              "displayName": "ampel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "kurzfassung",
+              "displayName": "kurzfassung",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "kritischeNachfrage",
+              "displayName": "kritischeNachfrage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "begruendungBewertung",
+              "displayName": "begruendungBewertung",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "werProfitiert",
+              "displayName": "werProfitiert",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "werZahltOderTraegtNachteile",
+              "displayName": "werZahltOderTraegtNachteile",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "warumRelevant",
+              "displayName": "warumRelevant",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "belegbareFakten",
+              "displayName": "belegbareFakten",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "unsicherheiten",
+              "displayName": "unsicherheiten",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "warnsignale",
+              "displayName": "warnsignale",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "instagramCarouselNoetig",
+              "displayName": "instagramCarouselNoetig",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "lastAnalysisAt",
+              "displayName": "lastAnalysisAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "rawAiText",
+              "displayName": "rawAiText",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "instagramCaption",
+              "displayName": "instagramCaption",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "instagramCarousel",
+              "displayName": "instagramCarousel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imageMode",
+              "displayName": "imageMode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imageHeadline",
+              "displayName": "imageHeadline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imageSubline",
+              "displayName": "imageSubline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imagePrompt",
+              "displayName": "imagePrompt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imageNegativePrompt",
+              "displayName": "imageNegativePrompt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imagePrompts",
+              "displayName": "imagePrompts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "recommendedSlides",
+              "displayName": "recommendedSlides",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "carouselJson",
+              "displayName": "carouselJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "websiteHeadline",
+              "displayName": "websiteHeadline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "websiteArticle",
+              "displayName": "websiteArticle",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "facebookPost",
+              "displayName": "facebookPost",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "pressStatement",
+              "displayName": "pressStatement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "stammVorgangsnummer",
+              "displayName": "stammVorgangsnummer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "folgeNummer",
+              "displayName": "folgeNummer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "istFolgevorgang",
+              "displayName": "istFolgevorgang",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "a0ecac8a-795e-45aa-822f-620d67f7c395",
+      "name": "Insert neuer Vorgang",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        5840,
+        760
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const out = [];\n\nfor (let i = 0; i < items.length; i++) {\n  const item = items[i];\n\n  // HTTP ALLRIS Übersicht läuft mit neverError: true – Fehlerstatus muss hier\n  // explizit geprüft werden, sonst würde eine Fehlerseite (5xx/4xx) stillschweigend\n  // als HTML verarbeitet und ergäbe 0 Vorgangslinks statt eines sichtbaren Fehlers.\n  const statusCode = Number(item.json.statusCode ?? item.json.response?.statusCode ?? 0);\n  if (statusCode >= 400) {\n    throw new Error(`[codepage] HTTP ALLRIS Übersicht fehlgeschlagen: Status ${statusCode}`);\n  }\n\n  // Binary lesen und latin1 dekodieren\n  let html = '';\n  try {\n    const buffer = await this.helpers.getBinaryDataBuffer(i, 'data');\n    html = buffer.toString('latin1')\n      .replace(/&amp;/g, '&')\n      .replace(/&quot;/g, '\"')\n      .replace(/&#39;/g, \"'\")\n      .replace(/&uuml;/g, 'ü')\n      .replace(/&Uuml;/g, 'Ü')\n      .replace(/&ouml;/g, 'ö')\n      .replace(/&Ouml;/g, 'Ö')\n      .replace(/&auml;/g, 'ä')\n      .replace(/&Auml;/g, 'Ä')\n      .replace(/&szlig;/g, 'ß');\n  } catch(e) {\n    console.warn(`[codepage] Item ${i}: Fehler beim Lesen des Binary: ${e.message}`);\n    html = '';\n  }\n\n  out.push({\n    json: {\n      ...item.json,\n      data: html,\n      html\n    }\n  });\n}\n\nreturn out;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        40
+      ],
+      "id": "7eda05d7-ccf9-4642-9d24-1d42e3601cb4",
+      "name": "codepage"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lädt zusätzliche ALLRIS-Übersichtsseiten über die Session-Cookie-basierte\n// shownext-Paginierung (vo040_r.asp?shownext=true). Extrahiert pro Seite\n// sofort nur die VOLFDNR-Link-Fragmente und verwirft den Rest der Seite\n// (Menüs, CSS/JS, Footer) - eine komplette Übersichtsseite ist mehrere\n// hundert KB groß, obwohl nur wenige KB an Links tatsächlich gebraucht\n// werden. Wichtig auf einer knapp bemessenen VM (siehe RAM-Vorfall 2026-07-02).\n//\n// Getestet: shownext=true liefert bei gleicher ASP-Session jedes Mal eine\n// neue, ältere Seite mit ca. 49-50 bisher nicht enthaltenen VOLFDNR-Links.\n// Ohne gültigen Session-Cookie liefert shownext=true wieder Seite 1.\n//\n// Anzahl zusätzlicher Seiten hier einstellen:\n//   0 = nur Seite 1 (bisheriges Verhalten)\n//   1 = Seite 1 + 1 weitere Seite, deckt die letzten ca. 95-100 Vorgänge ab\nconst ZUSAETZLICHE_SEITEN = 1;\n\nconst item = items[0] || { json: {} };\nconst j = item.json || {};\n\nlet html = String(j.data || j.html || '');\n\nif (ZUSAETZLICHE_SEITEN <= 0) {\n  return [{ json: { ...j, data: html, html, _uebersichtSeitenGeladen: 1 } }];\n}\n\nfunction extractCookieHeader(headers) {\n  const raw = (headers && (headers['set-cookie'] || headers['Set-Cookie'])) || [];\n  const list = Array.isArray(raw) ? raw : [raw];\n  return list.map(c => String(c || '').split(';')[0]).filter(Boolean).join('; ');\n}\n\nlet firstPageJson = {};\ntry {\n  firstPageJson = $('HTTP ALLRIS Übersicht').first().json || {};\n} catch (e) {\n  console.warn('[WeitereSeiten] Konnte HTTP ALLRIS Übersicht nicht referenzieren.');\n}\n\nconst cookieHeader = extractCookieHeader(firstPageJson.headers);\nif (!cookieHeader) {\n  console.warn('[WeitereSeiten] Kein Session-Cookie aus Seite 1 gefunden – weitere Seiten liefern evtl. Seite 1 erneut.');\n}\n\nlet geladeneSeiten = 1;\n\nfor (let i = 0; i < ZUSAETZLICHE_SEITEN; i++) {\n  try {\n    const response = await this.helpers.httpRequest({\n      method: 'GET',\n      url: 'https://www.goslar.de/stadt/politik/allris/vo040_r.asp?shownext=true',\n      headers: {\n        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36',\n        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',\n        'Accept-Language': 'de-DE,de;q=0.9,en;q=0.8',\n        'Referer': 'https://www.goslar.de/stadt/politik/allris/vo040_r.asp',\n        ...(cookieHeader ? { Cookie: cookieHeader } : {})\n      },\n      proxy: 'http://172.16.1.5:3128',\n      returnFullResponse: true,\n      encoding: 'arraybuffer',\n      timeout: 30000\n    });\n\n    // response.body kann je nach n8n-Version ein echter Buffer, ein\n    // serialisiertes Buffer-Objekt ({type:'Buffer',data:[...]}) oder ein\n    // bereits dekodierter String sein. Unbekannte Objektformen NICHT per\n    // String(...) in Text verwandeln - das ergibt sonst \"[object Object]\"\n    // und verunreinigt die gesammelten Vorgangslinks mit Datenmüll.\n    let pageHtml = '';\n    if (Buffer.isBuffer(response.body)) {\n      pageHtml = response.body.toString('latin1');\n    } else if (response.body && typeof response.body === 'object' && response.body.type === 'Buffer' && Array.isArray(response.body.data)) {\n      pageHtml = Buffer.from(response.body.data).toString('latin1');\n    } else if (typeof response.body === 'string') {\n      pageHtml = response.body;\n    } else {\n      console.warn(`[WeitereSeiten] Seite ${i + 2}: unerwarteter body-Typ (${typeof response.body}), Inhalt wird verworfen statt angehängt.`);\n    }\n\n    pageHtml = pageHtml\n      .replace(/&amp;/g, '&')\n      .replace(/&quot;/g, '\"')\n      .replace(/&#39;/g, \"'\")\n      .replace(/&uuml;/g, 'ü')\n      .replace(/&Uuml;/g, 'Ü')\n      .replace(/&ouml;/g, 'ö')\n      .replace(/&Ouml;/g, 'Ö')\n      .replace(/&auml;/g, 'ä')\n      .replace(/&Auml;/g, 'Ä')\n      .replace(/&szlig;/g, 'ß');\n\n    // Nur die relevanten <a href=...VOLFDNR=...>-Fragmente behalten statt der\n    // kompletten Seite - reduziert den Speicherbedarf pro Seite von mehreren\n    // hundert KB auf wenige KB. \"Extrahiere Vorgangslinks\" findet dieselben\n    // Treffer in diesem kleinen Ausschnitt genauso, da es denselben Regex nutzt.\n    const linkFragmente = pageHtml.match(/<a[^>]+href=[\"'][^\"']*vo020_r\\.asp\\?VOLFDNR=\\d+[^\"']*[\"'][^>]*>/gi) || [];\n\n    if (linkFragmente.length === 0) {\n      console.warn(`[WeitereSeiten] Seite ${i + 2}: keine VOLFDNR-Links gefunden (${pageHtml.length} Zeichen Rohseite), wird nicht angehängt.`);\n    } else {\n      html = html + ' ' + linkFragmente.join(' ');\n      geladeneSeiten++;\n      console.log(`[WeitereSeiten] Seite ${i + 2} geladen (${linkFragmente.length} Links, ${pageHtml.length} Zeichen Rohseite verworfen).`);\n    }\n  } catch (e) {\n    console.warn(`[WeitereSeiten] Seite ${i + 2} fehlgeschlagen: ${e.message}. Bisherige Seiten bleiben erhalten.`);\n    break;\n  }\n\n  await new Promise(resolve => setTimeout(resolve, 1500));\n}\n\nreturn [{\n  json: {\n    ...j,\n    data: html,\n    html,\n    _uebersichtSeitenGeladen: geladeneSeiten\n  }\n}];\n"
+      },
+      "id": "f3a5e9c2-1b7d-4e6a-9c2f-8d4b6a7e5c1a",
+      "name": "Weitere Übersichtsseiten laden",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Cookie Refresh: dekodiert HTML-Body und rettet Originalfelder aus dem Loop-Item.\n// Verwendet $runIndex-sichere Zugriffe statt .all() ohne runIndex.\n\nconst out = [];\n\n// Aktuellen Lauf: HTTP-Antworten und Normalisierte URLs mit $runIndex absichern\nconst responseItems    = $input.all(0, $runIndex);\nconst normalizedItems  = $('Normalisiere Vorgangsseiten URL').all(0, $runIndex);\n\nif (responseItems.length !== normalizedItems.length) {\n  console.warn(\n    `[Cookie Refresh] Anzahl HTTP-Antworten (${responseItems.length}) ` +\n    `stimmt nicht mit Normalisierungs-Items (${normalizedItems.length}) überein ` +\n    `– runIndex=${$runIndex}`\n  );\n}\n\nfor (let i = 0; i < responseItems.length; i++) {\n  const item     = responseItems[i];\n  const original = normalizedItems[i]?.json || {};\n\n  // VOLFDNR-Konsistenzprüfung\n  if (\n    original.volfdnr &&\n    item.json.volfdnr &&\n    String(original.volfdnr) !== String(item.json.volfdnr)\n  ) {\n    throw new Error(\n      `[Cookie Refresh] VOLFDNR-Zuordnung widersprüchlich: ` +\n      `${original.volfdnr} != ${item.json.volfdnr} runIndex=${$runIndex} i=${i}`\n    );\n  }\n\n  // HTML robust ermitteln\n  let html = item.json.html || item.json.data || item.json.body || '';\n\n  let binaryKeys = [];\n  if (!html) {\n    try {\n      binaryKeys = Object.keys(item.binary || {});\n    } catch(e) { binaryKeys = []; }\n\n    const binaryKey = binaryKeys.includes('data') ? 'data' : (binaryKeys[0] || null);\n\n    if (binaryKey) {\n      try {\n        const buffer = await this.helpers.getBinaryDataBuffer(i, binaryKey);\n        html = buffer.toString('latin1');\n        console.log(`[Cookie Refresh] Item ${i}: Binary gelesen via key=\"${binaryKey}\", Länge=${html.length}`);\n      } catch(e) {\n        console.warn(`[Cookie Refresh] Item ${i}: Binary-Lesefehler (key=${binaryKey}): ${e.message}`);\n        html = '';\n      }\n    } else {\n      console.warn(`[Cookie Refresh] Item ${i}: Kein Binary vorhanden. statusCode=${item.json.statusCode || '?'}`);\n    }\n  }\n\n  // HTML-Entities ersetzen\n  html = String(html || '')\n    .replace(/&amp;/g, '&').replace(/&quot;/g, '\"').replace(/&#39;/g, \"'\")\n    .replace(/&uuml;/g, 'ü').replace(/&Uuml;/g, 'Ü')\n    .replace(/&ouml;/g, 'ö').replace(/&Ouml;/g, 'Ö')\n    .replace(/&auml;/g, 'ä').replace(/&Auml;/g, 'Ä')\n    .replace(/&szlig;/g, 'ß');\n\n  // Originalfelder sichern\n  const rawSourceUrl =\n    original.sourceUrl  || original.url ||\n    item.json.sourceUrl || item.json.url || '';\n\n  const volfdnr =\n    original.volfdnr    || original.docId    ||\n    item.json.volfdnr   || item.json.docId   ||\n    rawSourceUrl.match(/VOLFDNR=(\\d+)/i)?.[1] ||\n    '';\n\n  const canonicalUrl = volfdnr\n    ? `https://www.goslar.de/stadt/politik/allris/vo020_r.asp?VOLFDNR=${volfdnr}`\n    : rawSourceUrl;\n\n  const debug_statusCode = item.json.statusCode ||\n    item.json.response?.statusCode || '';\n  const debug_hasError   = !!(item.json.error);\n\n  out.push({\n    json: {\n      url:           canonicalUrl,\n      requestUrl:    canonicalUrl,\n      sourceUrl:     canonicalUrl,\n      allrisUrl:     canonicalUrl,\n      volfdnr,\n      docId:         volfdnr,\n      source:        original.source || 'ALLRIS Goslar',\n      type:          original.type   || 'vorgang',\n      ...item.json,\n      url:           canonicalUrl,\n      requestUrl:    canonicalUrl,\n      sourceUrl:     canonicalUrl,\n      allrisUrl:     canonicalUrl,\n      volfdnr,\n      docId:         volfdnr,\n      data:          html,\n      html,\n      error:         item.json.error || undefined,\n      debug_currentVolfdnr:  volfdnr,\n      debug_sourceUrlPresent: canonicalUrl.length > 0,\n      debug_allrisUrlPresent: canonicalUrl.length > 0,\n      debug_binaryKeys:       binaryKeys,\n      debug_htmlLength:       html.length,\n      debug_statusCode,\n      debug_hasError,\n      debug_runIndex: $runIndex\n    }\n  });\n}\n\nreturn out;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        40
+      ],
+      "id": "1fe4bf97-6603-4f29-ab58-4bf103d3759e",
+      "name": "Cookie Refresh"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "url-check-001",
+              "leftValue": "={{ '' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "0cc7ee02-7b88-415f-84aa-f71c07bd24bc",
+      "name": "Hat Dokument URL?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "notes": "ABSICHTLICH deaktiviert (2026-07-02): Ingestion lädt Dokumente direkt von ALLRIS über kurzlebige Session-URLs und kann Nextcloud noch nicht als Quelle nutzen (läuft zeitlich vor dem Nextcloud-Workflow). Bewertung prüft combinedText und holt Dokumente zuverlässig aus der bereits verifizierten Nextcloud-Kopie nach - der Download+Tika-Versuch hier war strukturell fast immer zum Scheitern verurteilt und hat nur Ressourcen (RAM/CPU) verbraucht. leftValue ist hart auf '' gesetzt, damit IMMER der 'kein Dokument'-Zweig läuft. Zum Reaktivieren: leftValue zurück auf {{ $json.url }} setzen.",
+      "position": [
+        5600,
+        940
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Platzhalter-Item: Vorgang hat keine Dokumente.\n// Alle Vorgangsmetadaten direkt aus dem Item übernehmen.\nconst currentItems = $input.all(0, $runIndex);\n\nif (currentItems.length !== 1) {\n  throw new Error(\n    `[Markiere kein Dokument] Erwartet genau 1 Item, ` +\n    `erhalten: ${currentItems.length}, runIndex=${$runIndex}`\n  );\n}\n\nconst item = currentItems[0];\nreturn [{\n  json: {\n    vorgangKey:             item.json.vorgangKey,\n    volfdnr:                item.json.volfdnr           || '',\n    title:                  item.json.title             || '',\n    vorgangsnummer:         item.json.vorgangsnummer    || '',\n    stammVorgangsnummer:    item.json.stammVorgangsnummer || item.json.vorgangsnummer || '',\n    folgeNummer:            String(item.json.folgeNummer || ''),\n    istFolgevorgang:        item.json.istFolgevorgang === true ||\n                            String(item.json.istFolgevorgang || '').trim().toLowerCase() === 'true',\n    sourceUrl:              item.json.sourceUrl          || '',\n    allrisUrl:              item.json.allrisUrl         || '',\n    documentCount:          Number(item.json.documentCount || 0),\n    documentsJson:          item.json.documentsJson      || '[]',\n    vorfilterThemen:        item.json.vorfilterThemen   || [],\n    vorfilterKeywords:      item.json.vorfilterKeywords || [],\n    vorfilterScore:         item.json.vorfilterScore    || 0,\n    isKnown:                item.json.isKnown           || false,\n    needsRefresh:           item.json.needsRefresh      !== false,\n    oldStatus:              item.json.oldStatus         || '',\n    documentsChanged:       item.json.documentsChanged  === true,\n    url:                    '',\n    type:                   'none',\n    docKey:                 '',\n    label:                  '',\n    docRunKey:              `${item.json.vorgangKey}::__none__`,\n    text:                   '',\n    textExtractionSuccess:  false,\n    textLength:             0,\n    textExtractionMethod:   'no_document',\n    textExtractionError:    ''\n  }\n}];\n"
+      },
+      "id": "41aa404f-c248-4e65-a3e9-8b2a257b00bf",
+      "name": "Markiere kein Dokument",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5840,
+        1120
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "insert-check-001",
+              "leftValue": "={{ $json.isKnown }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "6560098a-ba2f-473a-beaa-e1457a37698c",
+      "name": "Insert oder Update?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        5600,
+        760
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "lastseen": "={{ $now.toISO() }}",
+            "volfdnr": "={{ $json.volfdnr || '' }}",
+            "title": "={{ $json.title }}",
+            "vorgangsnummer": "={{ $json.vorgangsnummer }}",
+            "sourceUrl": "={{ $json.sourceUrl || '' }}",
+            "allrisUrl": "={{ $json.allrisUrl }}",
+            "vorfilterScore": "={{ $json.vorfilterScore || 0 }}",
+            "vorfilterThemen": "={{ JSON.stringify($json.vorfilterThemen || []) }}",
+            "vorfilterKeywords": "={{ JSON.stringify($json.vorfilterKeywords || []) }}",
+            "documentsJson": "={{ $json.documentsJson || '[]' }}",
+            "documentCount": "={{ $json.documentCount || 0 }}",
+            "combinedText": "={{ $json.combinedText || '' }}",
+            "status": "={{ ($json.documentsChanged === true || ['', 'needs_summary', 'detail_failed', 'metadata_error', 'analysis_error', 'summary_input_error'].includes($json.oldStatus)) ? 'needs_summary' : $json.oldStatus }}",
+            "stammVorgangsnummer": "={{ $json.stammVorgangsnummer || $json.vorgangsnummer || '' }}",
+            "folgeNummer": "={{ $json.folgeNummer || '' }}",
+            "istFolgevorgang": "={{ $json.istFolgevorgang === true }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "lastseen",
+              "displayName": "lastseen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "volfdnr",
+              "displayName": "volfdnr",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorgangsnummer",
+              "displayName": "vorgangsnummer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "sourceUrl",
+              "displayName": "sourceUrl",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "allrisUrl",
+              "displayName": "allrisUrl",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorfilterScore",
+              "displayName": "vorfilterScore",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorfilterThemen",
+              "displayName": "vorfilterThemen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorfilterKeywords",
+              "displayName": "vorfilterKeywords",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "documentsJson",
+              "displayName": "documentsJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "documentCount",
+              "displayName": "documentCount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "combinedText",
+              "displayName": "combinedText",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "stammVorgangsnummer",
+              "displayName": "stammVorgangsnummer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "folgeNummer",
+              "displayName": "folgeNummer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "istFolgevorgang",
+              "displayName": "istFolgevorgang",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "039b6579-c589-4182-8378-fc771d478a9a",
+      "name": "Update bekannter Vorgang",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        5840,
+        1300
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "5bd552ac-42c8-4cc7-860f-202cc55dc8e8",
+      "name": "Loop Vorgangsseiten",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1280,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 12,
+        "unit": "seconds"
+      },
+      "id": "22419b1f-6199-43d4-a552-7761ac0d44f7",
+      "name": "Warte zwischen Vorgangsseiten",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        1520,
+        40
+      ],
+      "webhookId": "44123091-8d4c-4460-83c6-95cea978c95b"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nfunction extractVorgangsnummer(text) {\n  if (!text) return '';\n  const m = String(text).match(/\\b(\\d{4})\\s*\\/\\s*(\\d+)(?:-(\\d+))?\\b/);\n  if (!m) return '';\n  return m[1] + '/' + m[2] + (m[3] ? '-' + m[3] : '');\n}\n\nconst HTTP_ERROR_TITLE_RE = /^\\s*(?:400[\\s:-]+bad\\s+request|401[\\s:-]+unauthorized|403[\\s:-]+forbidden|404[\\s:-]+not\\s+found|408[\\s:-]+request\\s+time[- ]?out|429[\\s:-]+too\\s+many\\s+requests|500[\\s:-]+internal\\s+server\\s+error|501[\\s:-]+not\\s+implemented|502[\\s:-]+bad\\s+gateway|503[\\s:-]+service\\s+unavailable|504[\\s:-]+gateway\\s*time[- ]?out)\\s*$/i;\n\nconst TECH_ERROR_PHRASE_RE = /gateway\\s*time[- ]?out|bad\\s+gateway|service\\s+unavailable|internal\\s+server\\s+error|request\\s+time[- ]?out|upstream\\s+timed\\s+out|proxy\\s+error|temporarily\\s+unavailable|too\\s+many\\s+requests|serverfehler|nginx\\s+error|cloudflare\\s+error/i;\n\nfunction isTechnicalTitle(value) {\n  const text = String(value || '').trim();\n  return HTTP_ERROR_TITLE_RE.test(text) || TECH_ERROR_PHRASE_RE.test(text);\n}\n\nfunction containsTechnicalErrorPhrase(value) {\n  return TECH_ERROR_PHRASE_RE.test(String(value || ''));\n}\n\nfunction isValidVorgangsnummer(v) {\n  return /^\\d{4}\\/\\d+(?:-\\d+)?$/.test(String(v || '').trim());\n}\n\n// Vorgangsseite Fallback – V29.1 präzise Fehlererkennung\nconst MIN_HTML_LENGTH = 500;\nconst out = [];\n\nfor (const item of items) {\n  const rawHtml = item.json.html || item.json.data || '';\n  const title   = rawHtml.match(/<title>(.*?)<\\/title>/is)?.[1]?.trim() || '';\n  const isError = !!(item.json.error) || item.json.debug_hasError === true;\n\n  const volfdnr =\n    item.json.volfdnr || item.json.docId ||\n    (item.json.sourceUrl || '').match(/VOLFDNR=(\\d+)/i)?.[1] || '';\n\n  const canonicalUrl = volfdnr\n    ? `https://www.goslar.de/stadt/politik/allris/vo020_r.asp?VOLFDNR=${volfdnr}`\n    : (item.json.allrisUrl || item.json.sourceUrl || item.json.url || '');\n\n  const statusCode = Number(\n    item.json.statusCode ??\n    item.json.response?.statusCode ??\n    item.json.debug_statusCode ??\n    item.json.error?.statusCode ??\n    0\n  );\n\n  const debugBase = {\n    debug_htmlLength:     rawHtml.length,\n    debug_statusCode:     statusCode || item.json.debug_statusCode || '',\n    debug_hasError:       isError,\n    debug_requestUrl:     item.json.requestUrl || item.json.url || canonicalUrl,\n    debug_currentVolfdnr: volfdnr\n  };\n\n  // ── Drei getrennte Fehlerbedingungen ──────────────────────────────────────\n  const httpError  = isError || (Number.isFinite(statusCode) && statusCode >= 400);\n  const htmlTooShort = rawHtml.length < MIN_HTML_LENGTH;\n  const techTitle  = isTechnicalTitle(title);\n  const techBody   = !techTitle && containsTechnicalErrorPhrase(rawHtml.slice(0, 5000));\n  const emptyTitle = !title;\n\n  const vorgangsnummer =\n    extractVorgangsnummer(item.json.vorgangsnummer || '') ||\n    extractVorgangsnummer(title) ||\n    extractVorgangsnummer(rawHtml);\n  const missingVorgangsnummer = !vorgangsnummer;\n\n  let pageErrorReason = '';\n  if (httpError) {\n    pageErrorReason = (Number.isFinite(statusCode) && statusCode >= 400)\n      ? `http_${statusCode}` : 'http_error';\n  } else if (htmlTooShort) {\n    pageErrorReason = 'html_too_short';\n  } else if (techTitle) {\n    pageErrorReason = 'technical_error_title';\n  } else if (techBody) {\n    pageErrorReason = 'technical_error_body';\n  } else if (emptyTitle) {\n    pageErrorReason = 'empty_title';\n  } else if (missingVorgangsnummer) {\n    pageErrorReason = 'missing_vorgangsnummer';\n  }\n\n  const isFailed = !!(pageErrorReason);\n\n  if (!isFailed) {\n    out.push({ json: {\n      ...item.json,\n      sourceUrl:          canonicalUrl,\n      allrisUrl:          canonicalUrl,\n      volfdnr,\n      title,\n      vorgangsnummer,\n      detailStatus:       'ok',\n      debug_detailStatus: 'ok',\n      ...debugBase\n    }});\n  } else {\n    console.warn(`[Vorgangsseite Fallback] detail_failed: volfdnr=${volfdnr} reason=${pageErrorReason} status=${statusCode} htmlLen=${rawHtml.length} title=\"${title}\"`);\n    out.push({ json: {\n      source:             'ALLRIS Goslar',\n      sourceUrl:          canonicalUrl,\n      allrisUrl:          canonicalUrl,\n      volfdnr,\n      vorgangKey:         volfdnr ? `vol_${volfdnr}` : `url_${encodeURIComponent(canonicalUrl).slice(0,40)}`,\n      title:              '',\n      vorgangsnummer:     '',\n      html:               '',\n      detailStatus:       'detail_failed',\n      debug_detailStatus: 'detail_failed',\n      technicalPageDetected: true,\n      detectedStatusCode:  statusCode,\n      pageErrorReason,\n      length:             0,\n      combinedText:       '(Vorgangsseite konnte nicht geladen werden)',\n      ...debugBase\n    }});\n  }\n}\n\nreturn out;\n"
+      },
+      "id": "a83e04f5-61e1-4be3-9462-72817af5da29",
+      "name": "Vorgangsseite Fallback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2480,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "detail-ok-001",
+              "leftValue": "={{ $json.detailStatus }}",
+              "rightValue": "ok",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d5cf475f-7cad-45da-b1aa-359e243d09da",
+      "name": "Detail geladen?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2720,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Vorgangsseite konnte nicht geladen werden. Platzhalter-Item erstellen.\nreturn items.map(item => {\n  const volfdnr   = item.json.volfdnr || item.json.docId || '';\n  const sourceUrl = item.json.sourceUrl || item.json.url || '';\n  const allrisUrl = item.json.allrisUrl ||\n    (volfdnr\n      ? `https://www.goslar.de/stadt/politik/allris/vo020_r.asp?VOLFDNR=${volfdnr}`\n      : sourceUrl);\n  const vorgangKey = volfdnr\n    ? `vol_${volfdnr}`\n    : `url_${encodeURIComponent(sourceUrl).slice(0, 40)}`;\n\n  console.log(`[Insert fehlgeschlagener Vorgang] vorgangKey=${vorgangKey} volfdnr=${volfdnr}`);\n\n  return {\n    json: {\n      vorgangKey,\n      volfdnr,\n      title:             '(Vorgangsseite nicht geladen)',\n      vorgangsnummer:    '',\n      sourceUrl,\n      allrisUrl,\n      firstseen:         new Date().toISOString(),\n      lastseen:          new Date().toISOString(),\n      status:            'detail_failed',\n      vorfilterThemen:   [],\n      vorfilterKeywords: [],\n      vorfilterScore:    0,\n      documentsJson:     '[]',\n      documentCount:     0,\n      combinedText:      '(Vorgangsseite konnte nicht geladen werden)',\n      isKnown:           false,\n      needsRefresh:      false,\n      debug_loopPhase:   'insert_fehlgeschlagen'\n    }\n  };\n});\n"
+      },
+      "id": "f5fd19c4-8921-45aa-bb09-f488440bfa70",
+      "name": "Insert fehlgeschlagener Vorgang",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2960,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "vorgangKey": "={{ $json.vorgangKey }}",
+            "volfdnr": "={{ $json.volfdnr || '' }}",
+            "title": "(Vorgangsseite nicht geladen)",
+            "vorgangsnummer": "",
+            "sourceUrl": "={{ $json.sourceUrl || '' }}",
+            "allrisUrl": "={{ $json.allrisUrl || '' }}",
+            "firstseen": "={{ $now.toISO() }}",
+            "lastseen": "={{ $now.toISO() }}",
+            "status": "detail_failed",
+            "vorfilterScore": "={{ 0 }}",
+            "vorfilterThemen": "={{ JSON.stringify([]) }}",
+            "vorfilterKeywords": "={{ JSON.stringify([]) }}",
+            "documentsJson": "={{ JSON.stringify([]) }}",
+            "documentCount": "={{ 0 }}",
+            "combinedText": "(Vorgangsseite konnte nicht geladen werden)"
+          },
+          "schema": [
+            {
+              "id": "vorgangKey",
+              "displayName": "vorgangKey",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "volfdnr",
+              "displayName": "volfdnr",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorgangsnummer",
+              "displayName": "vorgangsnummer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "sourceUrl",
+              "displayName": "sourceUrl",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "allrisUrl",
+              "displayName": "allrisUrl",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "firstseen",
+              "displayName": "firstseen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "lastseen",
+              "displayName": "lastseen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorfilterScore",
+              "displayName": "vorfilterScore",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorfilterThemen",
+              "displayName": "vorfilterThemen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorfilterKeywords",
+              "displayName": "vorfilterKeywords",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "documentsJson",
+              "displayName": "documentsJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "documentCount",
+              "displayName": "documentCount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "combinedText",
+              "displayName": "combinedText",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "e71e00ee-555e-40fd-b1a2-9412bc792bb0",
+      "name": "Insert Detail Failed",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3920,
+        220
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Check Detail Known – $runIndex-sicher\n// Prüft ob der aktuell fehlgeschlagene Vorgang bereits in der DataTable existiert.\n// Get Vorgaenge Detail Failed liefert nur Treffer für den aktuellen vorgangKey.\n\nconst failedItems = $('Insert fehlgeschlagener Vorgang').all(0, $runIndex);\n\nif (!failedItems || failedItems.length !== 1) {\n  throw new Error(\n    `[Check Detail Known] Erwartet 1 fehlgeschlagenen Vorgang, ` +\n    `erhalten: ${failedItems?.length ?? 0}, runIndex=${$runIndex}`\n  );\n}\n\nconst failed = failedItems[0].json || {};\n\n// DataTable-Einträge für diesen vorgangKey (gefiltert durch Get Vorgaenge Detail Failed)\nconst rows = $input.all(0, $runIndex)\n  .map(item => item.json || {})\n  .filter(row => !!row.vorgangKey);\n\nconst matchingRows = rows.filter(\n  row => String(row.vorgangKey || '').trim() === String(failed.vorgangKey || '').trim()\n);\n\nif (matchingRows.length > 1) {\n  console.warn(\n    `[Check Detail Known] Bereits vorhandene Duplikate: ` +\n    `key=${failed.vorgangKey}, count=${matchingRows.length}, runIndex=${$runIndex}`\n  );\n}\n\nconst old = matchingRows[0];\n\nconsole.log(\n  `[Check Detail Known] vorgangKey=${failed.vorgangKey} ` +\n  `alreadyInTable=${!!old} oldStatus=${old?.status || ''} runIndex=${$runIndex}`\n);\n\nreturn [{\n  json: {\n    ...failed,\n    alreadyInTable:  !!old,\n    oldStatus:       String(old?.status || '').trim(),\n    oldCombinedText: old?.combinedText  || '',\n    debug_loopPhase: 'check_detail_known',\n    debug_runIndex:  $runIndex\n  }\n}];\n"
+      },
+      "id": "71f3fc40-4752-4b0b-9181-13d3ccb26745",
+      "name": "Check Detail Known",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3440,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "detail-insert-001",
+              "leftValue": "={{ $json.alreadyInTable }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "21bac2ec-d50d-4f47-9fb2-9ba20e39bd2b",
+      "name": "Detail Insert oder Update?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3680,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "lastseen": "={{ $now.toISO() }}",
+            "status": "detail_failed",
+            "combinedText": "={{ $json.combinedText }}"
+          },
+          "schema": [
+            {
+              "id": "lastseen",
+              "displayName": "lastseen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "combinedText",
+              "displayName": "combinedText",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "07444c31-d064-4cec-9e40-e8902a1d3173",
+      "name": "Update Detail Failed",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        4160,
+        400
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "e0827f97-3c5c-4cbc-95ba-af51b7961f1e",
+      "name": "Get Vorgaenge Detail Failed",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3200,
+        220
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "old-status-001",
+              "leftValue": "={{ $json.oldStatus }}",
+              "rightValue": "detail_failed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "0e72cf2d-0ea7-47a1-823a-fee9734a7a8a",
+      "name": "Alter Status detail_failed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3920,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "lastseen": "={{ $now.toISO() }}"
+          },
+          "schema": [
+            {
+              "id": "lastseen",
+              "displayName": "lastseen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9714dd58-4c36-4b4d-bb06-ee9158b48bc5",
+      "name": "Update Detail Lastseen Only",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        4160,
+        580
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Stellt sicher, dass HTTP Vorgangsseiten immer eine absolute URL bekommt.\n// Baut außerdem kanonische sourceUrl/allrisUrl aus volfdnr.\n\nreturn items.map(item => {\n  const raw =\n    item.json.url        ||\n    item.json.allrisUrl  ||\n    item.json.sourceUrl  ||\n    '';\n\n  let requestUrl = raw;\n  try {\n    requestUrl = raw.startsWith('http')\n      ? raw\n      : new URL(raw, 'https://www.goslar.de/stadt/politik/allris/vo040_r.asp').href;\n  } catch(e) {\n    requestUrl = raw;\n  }\n\n  const volfdnr =\n    item.json.volfdnr  ||\n    item.json.docId    ||\n    requestUrl.match(/VOLFDNR=(\\d+)/i)?.[1] ||\n    '';\n\n  const canonicalUrl = volfdnr\n    ? `https://www.goslar.de/stadt/politik/allris/vo020_r.asp?VOLFDNR=${volfdnr}`\n    : requestUrl;\n\n  return {\n    json: {\n      ...item.json,\n      url:        canonicalUrl,\n      requestUrl: canonicalUrl,\n      sourceUrl:  canonicalUrl,\n      allrisUrl:  canonicalUrl,\n      volfdnr,\n      docId:      volfdnr,\n      debug_requestUrl:  canonicalUrl,\n      debug_loopPhase:   'detail_url_normalized',\n      debug_currentVolfdnr: volfdnr\n    }\n  };\n});\n"
+      },
+      "id": "30b0906e-4cb3-47ce-9152-9487224239bc",
+      "name": "Normalisiere Vorgangsseiten URL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// TESTFILTER – nur eine einzelne ALLRIS-Vorlage verarbeiten\n// Zum Deaktivieren: TEST_MODE = false setzen\n\nconst TEST_MODE = false;\n\n// Hier deine VOLFDNR eintragen\n// Beispiel aus deinem Screenshot: vo020_r.asp?VOLFDNR=10723\nconst TEST_VOLFDNR = '10719';\n\nif (!TEST_MODE) {\n  return items;\n}\n\nconst filtered = items.filter(item => {\n  const volfdnr =\n    String(item.json.volfdnr || '') ||\n    String(item.json.docId || '') ||\n    String(item.json.sourceUrl || '').match(/VOLFDNR=(\\d+)/i)?.[1] ||\n    String(item.json.allrisUrl || '').match(/VOLFDNR=(\\d+)/i)?.[1] ||\n    '';\n\n  return volfdnr === TEST_VOLFDNR;\n});\n\nif (filtered.length === 0) {\n  throw new Error(`[Testfilter] Keine Vorlage mit VOLFDNR=${TEST_VOLFDNR} gefunden.`);\n}\n\nconsole.log(`[Testfilter] TEST_MODE aktiv: ${filtered.length} Vorgang mit VOLFDNR=${TEST_VOLFDNR} wird verarbeitet.`);\n\nreturn filtered.map(item => ({\n  json: {\n    ...item.json,\n    _testMode: true,\n    _testOnlyVolfdnr: TEST_VOLFDNR\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        40
+      ],
+      "id": "b6194ac0-4512-4ad5-9854-dc72b0d50955",
+      "name": "Einfacher Testfilter"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "http://tika:9998/tika",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "text/plain"
+            },
+            {
+              "name": "Content-Type",
+              "value": "={{ $binary.data.mimeType || 'application/octet-stream' }}"
+            },
+            {
+              "name": "X-Tika-PDFOcrStrategy",
+              "value": "auto"
+            },
+            {
+              "name": "X-Tika-OCRLanguage",
+              "value": "deu"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "data",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text",
+              "outputPropertyName": "tikaText"
+            }
+          },
+          "timeout": 300000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        6560,
+        940
+      ],
+      "id": "e2ab4f0f-0ce6-4794-a5a0-c06d039da954",
+      "name": "Tika",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prüft das heruntergeladene Binary auf Gültigkeit.\n// Setzt sendToTika: true/false für die nachfolgende IF-Node.\n// Hat nur einen Ausgang – die Verzweigung erfolgt durch eine separate IF-Node.\n\nconst item = items[0];\n\nasync function checkItem(item, index) {\n  const binData  = item.binary?.data;\n  const mimeType = (binData?.mimeType || '').toLowerCase();\n  const docUrl   = (item.json.url || '').toLowerCase();\n\n  // ── 1. Binary-Feld vorhanden? ─────────────────────────────────────────────\n  if (!binData) {\n    return {\n      ...item.json,\n      sendToTika:            false,\n      textExtractionSuccess: false,\n      textLength:            0,\n      textExtractionMethod:  'download_failed',\n      textExtractionError:   'Kein Binary-Feld im HTTP-Response vorhanden'\n    };\n  }\n\n  // ── 2. Buffer lesen (robust, kein Verlass auf fileSize-String) ────────────\n  let buffer;\n  try {\n    buffer = await this.helpers.getBinaryDataBuffer(index, 'data');\n  } catch(e) {\n    return {\n      ...item.json,\n      sendToTika:            false,\n      textExtractionSuccess: false,\n      textLength:            0,\n      textExtractionMethod:  'download_failed',\n      textExtractionError:   `Binary-Buffer nicht lesbar: ${e.message}`\n    };\n  }\n\n  if (!buffer || buffer.length === 0) {\n    return {\n      ...item.json,\n      sendToTika:            false,\n      textExtractionSuccess: false,\n      textLength:            0,\n      textExtractionMethod:  'download_failed',\n      textExtractionError:   'Heruntergeladene Datei ist leer (0 Byte)'\n    };\n  }\n\n  // ── 3. ZIP erkennen: Magic-Bytes PK (0x50 0x4B), MIME-Type, Endung ────────\n  const isPkZip = buffer[0] === 0x50 && buffer[1] === 0x4B;\n  const isZipMime = mimeType.includes('application/zip') || mimeType.includes('application/x-zip');\n  const isZipExt  = docUrl.endsWith('.zip');\n\n  if (isPkZip || isZipMime || isZipExt) {\n    console.warn(`[Prüfe Binary] ZIP erkannt. docRunKey=${item.json.docRunKey} mimeType=${mimeType}`);\n    return {\n      ...item.json,\n      sendToTika:            false,\n      textExtractionSuccess: false,\n      textLength:            0,\n      textExtractionMethod:  'zip_skipped',\n      textExtractionError:   `ZIP-Datei wird nicht als Dokumenttext verarbeitet (mimeType=${mimeType})`\n    };\n  }\n\n  // ── 4. HTML-Fehlerseite erkennen – anhand Dateiinhalt, nicht nur MIME ─────\n  // Prüfe die ersten 512 Byte als ASCII/Latin1\n  const head = buffer.slice(0, 512).toString('latin1').trimStart().toLowerCase();\n  const isHtml = head.startsWith('<!doctype html') ||\n                 head.startsWith('<html')           ||\n                 head.startsWith('<head')           ||\n                 head.startsWith('<body')           ||\n                 // gelegentlich BOM vorangestellt\n                 head.replace(/^\\ufeff/, '').startsWith('<!doctype');\n\n  if (isHtml) {\n    console.warn(`[Prüfe Binary] HTML-Inhalt erkannt statt Dokument. docRunKey=${item.json.docRunKey} mimeType=${mimeType}`);\n    return {\n      ...item.json,\n      sendToTika:            false,\n      textExtractionSuccess: false,\n      textLength:            0,\n      textExtractionMethod:  'download_failed',\n      textExtractionError:   `HTML-Fehlerseite empfangen statt Dokument (mimeType=${mimeType})`\n    };\n  }\n\n  // ── 5. Binary ist gültig ──────────────────────────────────────────────────\n  console.log(`[Prüfe Binary] OK. docRunKey=${item.json.docRunKey} size=${buffer.length} mimeType=${mimeType}`);\n  return {\n    ...item.json,\n    sendToTika: true\n  };\n}\n\nconst results = [];\nfor (let i = 0; i < items.length; i++) {\n  try {\n    const result = await checkItem.call(this, items[i], i);\n    results.push({ json: result, binary: items[i].binary });\n  } catch(e) {\n    console.error(`[Prüfe Binary] Unerwarteter Fehler bei Item ${i}: ${e.message}`);\n    results.push({ json: {\n      ...items[i].json,\n      sendToTika:            false,\n      textExtractionSuccess: false,\n      textLength:            0,\n      textExtractionMethod:  'download_failed',\n      textExtractionError:   `Unerwarteter Fehler: ${e.message}`\n    }, binary: items[i].binary });\n  }\n}\nreturn results;\n"
+      },
+      "id": "8d9d920e-3eb2-4a82-b31f-17f542d88e92",
+      "name": "Prüfe Binary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6080,
+        940
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "sendtotika-001",
+              "leftValue": "={{ $json.sendToTika }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "7f4b4607-307a-417c-b802-6b3dc8ba63b9",
+      "name": "IF sendToTika?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        6320,
+        940
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Metadaten nach Tika – Modus: Run Once for Each Item\n// Stellt Vorgangs- und Dokumentmetadaten nach dem Tika-HTTP-Aufruf wieder her.\n// Das aktuelle Item ist die Tika-HTTP-Antwort.\n// Die ursprünglichen Metadaten kommen aus dem verknüpften Eingangsitem\n// des True-Zweigs der IF-Node \"IF sendToTika?\".\n\n// Metadaten aus dem verknüpften Item vor Tika holen (item-linking)\nconst meta = $('IF sendToTika?').item.json;\n\n// Tika-Text: responseFormat=text legt den Text in json.data oder json.body ab.\n// tikaText ist gesetzt wenn die HTTP-Node \"Put Output in Field\" verwendet.\nconst tikaText =\n  typeof $json.tikaText === 'string' ? $json.tikaText :\n  typeof $json.data     === 'string' ? $json.data     :\n  typeof $json.body     === 'string' ? $json.body     :\n  '';\n\n// Tika-Fehler\nconst tikaError =\n  $json.error?.message ||\n  $json.message        ||\n  '';\n\nreturn {\n  json: {\n    vorgangKey:        meta.vorgangKey        || '',\n    volfdnr:           meta.volfdnr           || '',\n    title:             meta.title             || '',\n    vorgangsnummer:    meta.vorgangsnummer     || '',\n    sourceUrl:         meta.sourceUrl          || '',\n    allrisUrl:         meta.allrisUrl          || '',\n    documentCount:     meta.documentCount      || 0,\n    documentsJson:     meta.documentsJson      || '[]',\n    vorfilterThemen:   meta.vorfilterThemen    || [],\n    vorfilterKeywords: meta.vorfilterKeywords  || [],\n    vorfilterScore:    meta.vorfilterScore     || 0,\n    isKnown:           meta.isKnown            || false,\n    needsRefresh:      meta.needsRefresh       !== false,\n    url:               meta.url               || '',\n    type:              meta.type              || '',\n    docKey:            meta.docKey            || '',\n    label:             meta.label             || '',\n    docRunKey:         meta.docRunKey         || '',\n    referer:           meta.referer           || '',\n    stammVorgangsnummer: meta.stammVorgangsnummer || meta.vorgangsnummer || '',\n    folgeNummer:         String(meta.folgeNummer || ''),\n    istFolgevorgang:     meta.istFolgevorgang === true ||\n                         String(meta.istFolgevorgang || '').trim().toLowerCase() === 'true',\n    sendToTika:        true,\n    tikaText,\n    tikaError\n  }\n};\n"
+      },
+      "id": "c9972a70-7483-41eb-8601-f405322b0f5b",
+      "name": "Metadaten nach Tika",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6800,
+        940
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": "={{ $json._docLoopInit === true }}"
+        }
+      },
+      "id": "f7c01f0a-d307-4afb-a2f4-f396718ab3f4",
+      "name": "Loop Dokumente",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        5120,
+        760
+      ],
+      "alwaysOutputData": true
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP ALLRIS Übersicht",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP ALLRIS Übersicht": {
+      "main": [
+        [
+          {
+            "node": "codepage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrahiere Vorgangslinks": {
+      "main": [
+        [
+          {
+            "node": "Einfacher Testfilter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Vorgangsseiten": {
+      "main": [
+        [
+          {
+            "node": "Cookie Refresh",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrahiere Dokumentlinks": {
+      "main": [
+        [
+          {
+            "node": "Dedup Dokumentlinks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dedup Dokumentlinks": {
+      "main": [
+        [
+          {
+            "node": "Vorfilter annotieren",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vorfilter annotieren": {
+      "main": [
+        [
+          {
+            "node": "docKey",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "docKey": {
+      "main": [
+        [
+          {
+            "node": "Gruppierung nach Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gruppierung nach Vorgang": {
+      "main": [
+        [
+          {
+            "node": "Get all Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get all Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Check if known",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if known": {
+      "main": [
+        [
+          {
+            "node": "IF bekannt?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF bekannt?": {
+      "main": [
+        [
+          {
+            "node": "Update lastseen",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Expand Documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "codepage": {
+      "main": [
+        [
+          {
+            "node": "Weitere Übersichtsseiten laden",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weitere Übersichtsseiten laden": {
+      "main": [
+        [
+          {
+            "node": "Extrahiere Vorgangslinks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cookie Refresh": {
+      "main": [
+        [
+          {
+            "node": "Vorgangsseite Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Vorgangsseiten": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Warte zwischen Vorgangsseiten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Warte zwischen Vorgangsseiten": {
+      "main": [
+        [
+          {
+            "node": "Normalisiere Vorgangsseiten URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vorgangsseite Fallback": {
+      "main": [
+        [
+          {
+            "node": "Detail geladen?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detail geladen?": {
+      "main": [
+        [
+          {
+            "node": "Extrahiere Dokumentlinks",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert fehlgeschlagener Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert fehlgeschlagener Vorgang": {
+      "main": [
+        [
+          {
+            "node": "Get Vorgaenge Detail Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Detail Failed": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgangsseiten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update lastseen": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgangsseiten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Detail Known": {
+      "main": [
+        [
+          {
+            "node": "Detail Insert oder Update?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detail Insert oder Update?": {
+      "main": [
+        [
+          {
+            "node": "Insert Detail Failed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alter Status detail_failed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Detail Failed": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgangsseiten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Vorgaenge Detail Failed": {
+      "main": [
+        [
+          {
+            "node": "Check Detail Known",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alter Status detail_failed?": {
+      "main": [
+        [
+          {
+            "node": "Update Detail Failed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Detail Lastseen Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Detail Lastseen Only": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgangsseiten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalisiere Vorgangsseiten URL": {
+      "main": [
+        [
+          {
+            "node": "HTTP Vorgangsseiten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Einfacher Testfilter": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgangsseiten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Expand Documents": {
+      "main": [
+        [
+          {
+            "node": "Loop Dokumente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Dokumente": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Texts",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Hat Dokument URL?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hat Dokument URL?": {
+      "main": [
+        [
+          {
+            "node": "HTTP Dokument laden",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Markiere kein Dokument",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Markiere kein Dokument": {
+      "main": [
+        [
+          {
+            "node": "Handle Extract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Dokument laden": {
+      "main": [
+        [
+          {
+            "node": "Prüfe Binary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prüfe Binary": {
+      "main": [
+        [
+          {
+            "node": "IF sendToTika?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF sendToTika?": {
+      "main": [
+        [
+          {
+            "node": "Tika",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Handle Extract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tika": {
+      "main": [
+        [
+          {
+            "node": "Metadaten nach Tika",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Metadaten nach Tika": {
+      "main": [
+        [
+          {
+            "node": "Handle Extract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Extract": {
+      "main": [
+        [
+          {
+            "node": "Loop Dokumente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Texts": {
+      "main": [
+        [
+          {
+            "node": "Insert oder Update?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert oder Update?": {
+      "main": [
+        [
+          {
+            "node": "Insert neuer Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update bekannter Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert neuer Vorgang": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgangsseiten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update bekannter Vorgang": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgangsseiten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "31d05a5a-58c4-4ea7-8cbc-b155ed9c4694",
+  "meta": {
+    "instanceId": "3918cd7b1079333be95f7df5d1ce0c807af27c5d6c51c5bb061c962138165169"
+  },
+  "id": "Wq60bqSxSZ5CdQyh",
+  "tags": []
+}
