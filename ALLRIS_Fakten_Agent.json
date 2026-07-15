@@ -1,0 +1,110 @@
+{
+    "name":  "ALLRIS_Fakten_Agent",
+    "nodes":  [
+                  {
+                      "parameters":  {
+                                         "inputSource":  "passthrough"
+                                     },
+                      "id":  "5ddd51ea-f03d-433f-9cd4-6e0843eabc8a",
+                      "name":  "Execute Workflow Trigger",
+                      "type":  "n8n-nodes-base.executeWorkflowTrigger",
+                      "typeVersion":  1.1,
+                      "position":  [
+                                       0,
+                                       0
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "mode":  "runOnceForEachItem",
+                                         "jsCode":  "function safeStr(v) { return v === null || v === undefined ? \u0027\u0027 : String(v).trim(); }\n\nconst row = $json;\n\nconst sourceFactsText = [safeStr(row.title), safeStr(row.summaryText), safeStr(row.combinedText)]\n  .filter(Boolean).join(\u0027\\n\\n\u0027).slice(0, 6000);\n\nreturn {\n  json: {\n    vorgangKey: safeStr(row.vorgangKey),\n    vorgangsnummer: safeStr(row.vorgangsnummer),\n    title: safeStr(row.title),\n    sourceFactsText: sourceFactsText\n  }\n};"
+                                     },
+                      "id":  "80a3295b-348f-4598-9908-0a4e6d2e7bd7",
+                      "name":  "Normalisiere Eingabe",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       224,
+                                       0
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "jsCode":  "// PLATZHALTER - diesen Node in n8n loeschen und durch einen echten \u0027OpenAI\u0027 Node (aus der +-Palette) ersetzen.\n// Modell: gpt-4o-mini, Credential: \u0027OpenAI account\u0027, Prompt: siehe ALLRIS_Fakten_Agent_AI_PROMPT_TO_PASTE.txt\n// Bis dahin liefert dieser Platzhalter eine leere Extraktion, damit der Rest des Workflows testbar bleibt.\nreturn {\n  json: {\n    ...$json,\n    content: JSON.stringify({\n      sourceTopic: \u0027\u0027, sourceConflict: \u0027\u0027, requiredTerms: [], requiredObjects: [],\n      requiredAction: \u0027\u0027, affectedGroups: [], concreteNumbers: [], responsibilities: [],\n      documentType: \u0027\u0027, quotesVerbatim: []\n    })\n  }\n};"
+                                     },
+                      "id":  "c0fdafe3-9ab0-4f09-b654-4b46c955e02a",
+                      "name":  "PLATZHALTER - Ersetze durch OpenAI Node",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       448,
+                                       0
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "mode":  "runOnceForEachItem",
+                                         "jsCode":  "function safeStr(v) { return v === null || v === undefined ? \u0027\u0027 : String(v).trim(); }\nfunction asArr(v) { return Array.isArray(v) ? v.filter(Boolean).map(safeStr) : []; }\n\nfunction getAiText(j) {\n  if (typeof j.content === \u0027string\u0027) return j.content;\n  if (typeof j.text === \u0027string\u0027) return j.text;\n  if (j.message \u0026\u0026 typeof j.message.content === \u0027string\u0027) return j.message.content;\n  if (Array.isArray(j.choices) \u0026\u0026 j.choices[0] \u0026\u0026 j.choices[0].message) return safeStr(j.choices[0].message.content);\n  return safeStr(JSON.stringify(j));\n}\n\nfunction extractJson(text) {\n  const t = safeStr(text).replace(/```json/gi, \u0027```\u0027).replace(/```/g, \u0027\u0027);\n  const start = t.indexOf(\u0027{\u0027);\n  const end = t.lastIndexOf(\u0027}\u0027);\n  if (start === -1 || end === -1 || end \u003c start) return null;\n  try { return JSON.parse(t.substring(start, end + 1)); } catch (e) { return null; }\n}\n\nconst base = $(\u0027Normalisiere Eingabe\u0027).item.json;\nconst aiText = getAiText($json);\nconst parsed = extractJson(aiText);\n\nif (!parsed) {\n  return {\n    json: {\n      vorgangKey: base.vorgangKey,\n      vorgangsnummer: base.vorgangsnummer,\n      sourceTopic: \u0027\u0027, sourceConflict: \u0027\u0027, requiredTerms: [], requiredObjects: [],\n      requiredAction: \u0027\u0027, affectedGroups: [], concreteNumbers: [], responsibilities: [],\n      documentType: \u0027\u0027, quotesVerbatim: [],\n      parseError: true\n    }\n  };\n}\n\nreturn {\n  json: {\n    vorgangKey: base.vorgangKey,\n    vorgangsnummer: base.vorgangsnummer,\n    sourceTopic: safeStr(parsed.sourceTopic),\n    sourceConflict: safeStr(parsed.sourceConflict),\n    requiredTerms: asArr(parsed.requiredTerms),\n    requiredObjects: asArr(parsed.requiredObjects),\n    requiredAction: safeStr(parsed.requiredAction),\n    affectedGroups: asArr(parsed.affectedGroups),\n    concreteNumbers: asArr(parsed.concreteNumbers),\n    responsibilities: asArr(parsed.responsibilities),\n    documentType: safeStr(parsed.documentType),\n    quotesVerbatim: asArr(parsed.quotesVerbatim),\n    parseError: false\n  }\n};"
+                                     },
+                      "id":  "e683c0fc-6667-47a0-89c8-db887b320d75",
+                      "name":  "Parse Fakten JSON",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       672,
+                                       0
+                                   ]
+                  }
+              ],
+    "pinData":  {
+
+                },
+    "connections":  {
+                        "Execute Workflow Trigger":  {
+                                                         "main":  [
+                                                                      [
+                                                                          {
+                                                                              "node":  "Normalisiere Eingabe",
+                                                                              "type":  "main",
+                                                                              "index":  0
+                                                                          }
+                                                                      ]
+                                                                  ]
+                                                     },
+                        "Normalisiere Eingabe":  {
+                                                     "main":  [
+                                                                  [
+                                                                      {
+                                                                          "node":  "PLATZHALTER - Ersetze durch OpenAI Node",
+                                                                          "type":  "main",
+                                                                          "index":  0
+                                                                      }
+                                                                  ]
+                                                              ]
+                                                 },
+                        "PLATZHALTER - Ersetze durch OpenAI Node":  {
+                                                                        "main":  [
+                                                                                     [
+                                                                                         {
+                                                                                             "node":  "Parse Fakten JSON",
+                                                                                             "type":  "main",
+                                                                                             "index":  0
+                                                                                         }
+                                                                                     ]
+                                                                                 ]
+                                                                    }
+                    },
+    "active":  false,
+    "settings":  {
+                     "executionOrder":  "v1",
+                     "binaryMode":  "separate"
+                 },
+    "versionId":  "00000000-0000-4000-8000-0000000000e1",
+    "meta":  {
+                 "instanceId":  "3918cd7b1079333be95f7df5d1ce0c807af27c5d6c51c5bb061c962138165169"
+             },
+    "id":  "ALLRISFaktenAgentV1",
+    "tags":  [
+
+             ]
+}

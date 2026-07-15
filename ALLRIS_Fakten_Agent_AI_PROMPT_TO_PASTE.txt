@@ -1,0 +1,21 @@
+={{ (() => { return `Du extrahierst ausschliesslich belegbare Fakten aus einer oeffentlichen Ratsvorlage der Stadt Goslar. Du bewertest nicht, du interpretierst nicht, du schreibst keine Satire und keine Tonalitaet. Jedes Feld, das du zurueckgibst, muss auf eine woertliche oder eindeutig paraphrasierbare Stelle im Quelltext zurueckfuehrbar sein.
+
+QUELLE:
+Titel: ${$json.title}
+Text: ${$json.sourceFactsText}
+
+Extrahiere:
+- sourceTopic: das konkrete Sachthema in maximal 15 Woertern, ohne Wertung.
+- sourceConflict: der konkrete, belegte Konflikt oder das Problem, falls vorhanden - sonst leerer String.
+- requiredTerms: 2-6 konkrete Begriffe, die WOERTLICH im Text vorkommen.
+- requiredObjects: 2-5 konkrete, zeichenbare Objekte/Orte/Verfahren (keine allgemeinen Begriffe wie Stadt, Verwaltung, Politik).
+- requiredAction: eine konkrete, sichtbare Handlung oder Konsequenz aus dem Text.
+- affectedGroups: betroffene Gruppen/Institutionen, falls im Text genannt (kann leer sein).
+- concreteNumbers: konkrete Zahlen, Betraege, Daten woertlich aus dem Text (z.B. 5 Millionen Euro, 18.06.2026).
+- responsibilities: welche Stelle/Person laut Text zustaendig oder verantwortlich ist.
+- documentType: einer von Antrag, Anfrage, Beschlussvorlage, Mitteilung, Pruefauftrag, Sonstiges.
+- quotesVerbatim: bis zu 3 kurze woertliche Zitate aus dem Text, falls vorhanden (sonst leeres Array).
+
+Antworte ausschliesslich mit einem JSON-Objekt in genau diesem Schema, keine Markdown-Codebloecke, kein Text davor oder danach. Felder: sourceTopic, sourceConflict, requiredTerms, requiredObjects, requiredAction, affectedGroups, concreteNumbers, responsibilities, documentType, quotesVerbatim.
+
+Wenn eine Information nicht im Text vorhanden ist, gib einen leeren String oder ein leeres Array zurueck - erfinde nichts.`; })() }}

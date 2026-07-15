@@ -2192,6 +2192,125 @@
                                    ],
                       "onError":  "continueRegularOutput",
                       "alwaysOutputData":  true
+                  },
+                  {
+                      "parameters":  {
+                                         "mode":  "runOnceForEachItem",
+                                         "jsCode":  "return {\n  json: {\n    vorgangKey: $json.vorgangKey,\n    vorgangsnummer: $json.vorgangsnummer,\n    title: $json.title,\n    summaryText: $json.summaryText,\n    combinedText: $json.combinedText,\n    analysisJson: $json.analysisJson\n  }\n};"
+                                     },
+                      "id":  "ac7b13c0-ef27-4191-bad2-187cc769f4bf",
+                      "name":  "Fakten-Shadow: Baue Eingabe",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       6112,
+                                       1160
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "source":  "database",
+                                         "workflowId":  {
+                                                            "__rl":  true,
+                                                            "value":  "REPLACE_AFTER_IMPORT_FAKTEN_AGENT_WORKFLOW_ID",
+                                                            "mode":  "list",
+                                                            "cachedResultName":  "ALLRIS_Fakten_Agent"
+                                                        },
+                                         "options":  {
+                                                         "waitForSubWorkflow":  true
+                                                     }
+                                     },
+                      "id":  "2bad746f-9a58-4d70-841f-16659d5e10be",
+                      "name":  "Execute Workflow Fakten-Agent (Shadow)",
+                      "type":  "n8n-nodes-base.executeWorkflow",
+                      "typeVersion":  1.2,
+                      "position":  [
+                                       6336,
+                                       1160
+                                   ],
+                      "onError":  "continueRegularOutput",
+                      "alwaysOutputData":  true
+                  },
+                  {
+                      "parameters":  {
+                                         "mode":  "runOnceForEachItem",
+                                         "jsCode":  "function safeStr(v) { return v === null || v === undefined ? \u0027\u0027 : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === \u0027object\u0027 \u0026\u0026 !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p \u0026\u0026 typeof p === \u0027object\u0027 \u0026\u0026 !Array.isArray(p)) ? p : {}; }\n  catch (e) { return {}; }\n}\nfunction asArray(v) { return Array.isArray(v) ? v.filter(Boolean).map(safeStr) : []; }\n\nconst response = $json || {};\nconst original = $(\u0027Fakten-Shadow: Baue Eingabe\u0027).item.json || {};\nconst hasFakten = typeof response.sourceTopic === \u0027string\u0027;\n\nconst fakten = hasFakten ? response : {\n  vorgangKey: safeStr(original.vorgangKey),\n  vorgangsnummer: safeStr(original.vorgangsnummer),\n  sourceTopic: \u0027\u0027, sourceConflict: \u0027\u0027, requiredTerms: [], requiredObjects: [],\n  requiredAction: \u0027\u0027, affectedGroups: [], concreteNumbers: [], responsibilities: [],\n  documentType: \u0027\u0027, quotesVerbatim: [],\n  parseError: true,\n  callFailed: true\n};\n\n// Deterministischer Vergleich gegen das bereits gespeicherte analysisJson.sourceLock - kein KI-Urteil.\nconst analysis = parseObj(original.analysisJson);\nconst oldSourceLock = parseObj(analysis.sourceLock);\n\nfunction normalizeText(v) {\n  return safeStr(v).toLowerCase()\n    .replace(/ä/g, \u0027ae\u0027).replace(/ö/g, \u0027oe\u0027).replace(/ü/g, \u0027ue\u0027).replace(/ß/g, \u0027ss\u0027);\n}\nfunction stemLight(w) {\n  return w.replace(/(ungen|ierung|heit|keit|schaft|tion|ieren|iere|iert|ung|lich|isch|ische|ischen|ischer|isches)$/, \u0027\u0027).replace(/(en|er|em|es|e|n|s|t)$/, \u0027\u0027);\n}\nfunction tokenOverlap(a, b) {\n  const tokensA = normalizeText(a).split(/[\\W_]+/).filter(w =\u003e w.length \u003e= 4).map(stemLight);\n  const tokensB = normalizeText(b).split(/[\\W_]+/).filter(w =\u003e w.length \u003e= 4).map(stemLight);\n  if (tokensA.some(w =\u003e tokensB.includes(w))) return true;\n  const rawA = normalizeText(a).replace(/[\\W_]+/g, \u0027\u0027), rawB = normalizeText(b).replace(/[\\W_]+/g, \u0027\u0027);\n  for (const tok of tokensA) { if (tok.length \u003e= 5 \u0026\u0026 rawB.includes(tok)) return true; }\n  for (const tok of tokensB) { if (tok.length \u003e= 5 \u0026\u0026 rawA.includes(tok)) return true; }\n  return false;\n}\n\nconst oldRequiredTerms = asArray(oldSourceLock.requiredTerms);\nconst newRequiredTerms = asArray(fakten.requiredTerms);\nconst oldRequiredObjects = asArray(oldSourceLock.requiredObjects);\nconst newRequiredObjects = asArray(fakten.requiredObjects);\n\nconst termsMatched = newRequiredTerms.filter(t =\u003e oldRequiredTerms.some(o =\u003e tokenOverlap(t, o))).length;\nconst objectsMatched = newRequiredObjects.filter(t =\u003e oldRequiredObjects.some(o =\u003e tokenOverlap(t, o))).length;\nconst sourceTopicOverlap = (safeStr(oldSourceLock.sourceTopic) \u0026\u0026 safeStr(fakten.sourceTopic))\n  ? tokenOverlap(oldSourceLock.sourceTopic, fakten.sourceTopic)\n  : false;\n\nconst comparison = {\n  sourceTopicOverlap: sourceTopicOverlap,\n  requiredTermsMatched: termsMatched,\n  requiredTermsOldCount: oldRequiredTerms.length,\n  requiredTermsNewCount: newRequiredTerms.length,\n  requiredObjectsMatched: objectsMatched,\n  requiredObjectsOldCount: oldRequiredObjects.length,\n  requiredObjectsNewCount: newRequiredObjects.length\n};\n\nreturn {\n  json: {\n    vorgangKey: safeStr(original.vorgangKey),\n    faktenAgentJson: JSON.stringify(fakten),\n    faktenComparisonJson: JSON.stringify(comparison)\n  }\n};"
+                                     },
+                      "id":  "86a6612c-8bae-4f4c-9be9-e470ac0a3149",
+                      "name":  "Stelle Kontext nach Fakten-Agent wieder her",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       6560,
+                                       1160
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "operation":  "update",
+                                         "dataTableId":  {
+                                                             "__rl":  true,
+                                                             "value":  "hBLqpqeVEojPpOJl",
+                                                             "mode":  "list",
+                                                             "cachedResultName":  "allris_vorgaenge",
+                                                             "cachedResultUrl":  "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+                                                         },
+                                         "filters":  {
+                                                         "conditions":  [
+                                                                            {
+                                                                                "keyName":  "vorgangKey",
+                                                                                "keyValue":  "={{ $json.vorgangKey }}"
+                                                                            }
+                                                                        ]
+                                                     },
+                                         "columns":  {
+                                                         "mappingMode":  "defineBelow",
+                                                         "value":  {
+                                                                       "faktenAgentJson":  "={{ $json.faktenAgentJson }}",
+                                                                       "faktenComparisonJson":  "={{ $json.faktenComparisonJson }}"
+                                                                   },
+                                                         "matchingColumns":  [
+
+                                                                             ],
+                                                         "schema":  [
+                                                                        {
+                                                                            "id":  "faktenAgentJson",
+                                                                            "displayName":  "faktenAgentJson",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "readOnly":  false,
+                                                                            "removed":  false
+                                                                        },
+                                                                        {
+                                                                            "id":  "faktenComparisonJson",
+                                                                            "displayName":  "faktenComparisonJson",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "readOnly":  false,
+                                                                            "removed":  false
+                                                                        }
+                                                                    ],
+                                                         "attemptToConvertTypes":  false,
+                                                         "convertFieldsToString":  false
+                                                     },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "ac9d3796-da64-439f-8041-3ec9d80ac81b",
+                      "name":  "Speichere Fakten-Agent Shadow",
+                      "type":  "n8n-nodes-base.dataTable",
+                      "typeVersion":  1.1,
+                      "position":  [
+                                       6784,
+                                       1160
+                                   ],
+                      "alwaysOutputData":  true,
+                      "onError":  "continueRegularOutput"
                   }
               ],
     "pinData":  {
@@ -2331,6 +2450,11 @@
                                                                    },
                                                                    {
                                                                        "node":  "QA-Shadow: Baue QA-Eingabe",
+                                                                       "type":  "main",
+                                                                       "index":  0
+                                                                   },
+                                                                   {
+                                                                       "node":  "Fakten-Shadow: Baue Eingabe",
                                                                        "type":  "main",
                                                                        "index":  0
                                                                    }
@@ -2989,7 +3113,40 @@
                                                                                   }
                                                                               ]
                                                                           ]
-                                                             }
+                                                             },
+                        "Fakten-Shadow: Baue Eingabe":  {
+                                                            "main":  [
+                                                                         [
+                                                                             {
+                                                                                 "node":  "Execute Workflow Fakten-Agent (Shadow)",
+                                                                                 "type":  "main",
+                                                                                 "index":  0
+                                                                             }
+                                                                         ]
+                                                                     ]
+                                                        },
+                        "Execute Workflow Fakten-Agent (Shadow)":  {
+                                                                       "main":  [
+                                                                                    [
+                                                                                        {
+                                                                                            "node":  "Stelle Kontext nach Fakten-Agent wieder her",
+                                                                                            "type":  "main",
+                                                                                            "index":  0
+                                                                                        }
+                                                                                    ]
+                                                                                ]
+                                                                   },
+                        "Stelle Kontext nach Fakten-Agent wieder her":  {
+                                                                            "main":  [
+                                                                                         [
+                                                                                             {
+                                                                                                 "node":  "Speichere Fakten-Agent Shadow",
+                                                                                                 "type":  "main",
+                                                                                                 "index":  0
+                                                                                             }
+                                                                                         ]
+                                                                                     ]
+                                                                        }
                     },
     "active":  false,
     "settings":  {
