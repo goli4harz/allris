@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ALLRIS Redaktionssystem — Multi-Agenten-Architektur</title>
+<style>
+:root{
+  --paper:#EAE6DC; --paper-raised:#F4F1E9; --ink:#20241F; --ink-soft:#5B5E53; --line:#C3BBA9;
+  --accent:#26456B; --accent-soft:#D8E1EA;
+  --creative:#8C5F26; --creative-soft:#EDE0C8;
+  --stamp:#9B3A2C; --stamp-soft:#F1DAD3;
+  --archive:#4E6047; --archive-soft:#DFE6D6;
+  --font-display:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;
+  --font-body:Seravek,'Segoe UI',Calibri,Optima,sans-serif;
+  --font-mono:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#17181A; --paper-raised:#1E211E; --ink:#E7E3D8; --ink-soft:#A6A99C; --line:#3A3D36;
+    --accent:#82A7D3; --accent-soft:#22364B;
+    --creative:#D2A45E; --creative-soft:#3B2E16;
+    --stamp:#DE8677; --stamp-soft:#3A211C;
+    --archive:#93AC85; --archive-soft:#263021;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#17181A; --paper-raised:#1E211E; --ink:#E7E3D8; --ink-soft:#A6A99C; --line:#3A3D36;
+  --accent:#82A7D3; --accent-soft:#22364B;
+  --creative:#D2A45E; --creative-soft:#3B2E16;
+  --stamp:#DE8677; --stamp-soft:#3A211C;
+  --archive:#93AC85; --archive-soft:#263021;
+}
+:root[data-theme="light"]{
+  --paper:#EAE6DC; --paper-raised:#F4F1E9; --ink:#20241F; --ink-soft:#5B5E53; --line:#C3BBA9;
+  --accent:#26456B; --accent-soft:#D8E1EA;
+  --creative:#8C5F26; --creative-soft:#EDE0C8;
+  --stamp:#9B3A2C; --stamp-soft:#F1DAD3;
+  --archive:#4E6047; --archive-soft:#DFE6D6;
+}
+*{box-sizing:border-box;}
+body{margin:0;}
+.doc{
+  background:var(--paper); color:var(--ink); font-family:var(--font-body);
+  line-height:1.55; padding:0 0 5rem; max-width:100%; overflow-x:hidden;
+}
+.wrap{max-width:920px; margin:0 auto; padding:0 1.75rem;}
+.wrap-wide{max-width:1180px; margin:0 auto; padding:0 1.75rem;}
+
+/* Masthead */
+.masthead{border-bottom:1px solid var(--line); padding:3.2rem 0 2rem;}
+.eyebrow{font-family:var(--font-mono); font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-soft);}
+h1{
+  font-family:var(--font-display); font-weight:600; font-size:2.6rem; line-height:1.08;
+  margin:.5rem 0 .6rem; text-wrap:balance; letter-spacing:-.01em;
+}
+.dek{font-size:1.14rem; color:var(--ink-soft); max-width:62ch; text-wrap:balance; margin:0;}
+.meta-row{display:flex; gap:1.5rem; flex-wrap:wrap; margin-top:1.4rem; font-family:var(--font-mono); font-size:.75rem; color:var(--ink-soft);}
+.meta-row b{color:var(--ink); font-weight:600;}
+
+section{padding:2.6rem 0;}
+section + section{border-top:1px solid var(--line);}
+h2{
+  font-family:var(--font-display); font-size:1.5rem; font-weight:600; margin:0 0 .3rem;
+  letter-spacing:-.005em;
+}
+.section-intro{color:var(--ink-soft); max-width:68ch; margin:0 0 1.8rem; font-size:.98rem;}
+p{max-width:68ch;}
+
+/* Thesis */
+.thesis{
+  display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-top:1rem;
+}
+.thesis .card{
+  background:var(--paper-raised); border:1px solid var(--line); padding:1.3rem 1.4rem;
+}
+.thesis .card h3{font-family:var(--font-mono); font-size:.72rem; text-transform:uppercase; letter-spacing:.1em; margin:0 0 .6rem; color:var(--ink-soft);}
+.thesis .card p{margin:0; font-size:.95rem;}
+.thesis .no{color:var(--stamp);}
+.thesis .yes{color:var(--archive);}
+@media (max-width:640px){.thesis{grid-template-columns:1fr;}}
+
+/* Pipeline diagram */
+.pipeline-scroll{overflow-x:auto; padding-bottom:.5rem;}
+.pipeline{
+  display:flex; align-items:stretch; gap:0; min-width:840px; margin-top:.5rem;
+}
+.desk{
+  flex:1; min-width:130px; background:var(--paper-raised); border:1px solid var(--line);
+  padding:.9rem .9rem 1rem; position:relative;
+}
+.desk .role-tab{
+  font-family:var(--font-mono); font-size:.62rem; letter-spacing:.09em; text-transform:uppercase;
+  display:inline-block; padding:.15rem .4rem; margin-bottom:.55rem;
+}
+.desk h4{font-family:var(--font-display); font-size:1.02rem; margin:0 0 .2rem; font-weight:600;}
+.desk .sub{font-size:.76rem; color:var(--ink-soft); margin:0;}
+.desk.fact .role-tab{background:var(--accent-soft); color:var(--accent);}
+.desk.creative .role-tab{background:var(--creative-soft); color:var(--creative);}
+.desk.orch .role-tab{background:var(--line); color:var(--ink);}
+.connector{width:22px; flex-shrink:0; position:relative; align-self:center; height:2px; background:var(--line); margin:0 -1px;}
+.connector::after{content:'';position:absolute; right:-1px; top:-4px; border-style:solid; border-width:5px 0 5px 7px; border-color:transparent transparent transparent var(--line);}
+.gate{
+  flex-shrink:0; align-self:center; font-family:var(--font-mono); font-size:.66rem; letter-spacing:.06em;
+  border:1px solid var(--stamp); color:var(--stamp); padding:.3rem .5rem; white-space:nowrap; transform:rotate(-3deg);
+}
+.human-note{
+  text-align:center; font-family:var(--font-mono); font-size:.63rem; color:var(--ink-soft);
+  border:1px dashed var(--line); padding:.15rem .4rem; white-space:nowrap; align-self:center; flex-shrink:0; margin:0 .3rem;
+}
+.archive-link{display:flex; justify-content:center; margin:.4rem 0;}
+.archive-link .stem{width:1px; height:22px; background:repeating-linear-gradient(var(--line),var(--line) 3px,transparent 3px,transparent 7px);}
+.archive-bar{
+  background:var(--archive-soft); border:1px solid var(--archive); padding:.9rem 1.2rem; min-width:840px;
+  font-size:.85rem;
+}
+.archive-bar b{color:var(--archive); font-family:var(--font-mono); font-size:.7rem; text-transform:uppercase; letter-spacing:.08em;}
+
+/* Agent cards */
+.agent-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(310px,1fr)); gap:1.1rem; margin-top:1.6rem;}
+.agent-card{background:var(--paper-raised); border:1px solid var(--line); border-top:3px solid var(--role-color,var(--ink)); padding:1.3rem 1.4rem 1.4rem;}
+.agent-card .kicker{font-family:var(--font-mono); font-size:.65rem; text-transform:uppercase; letter-spacing:.1em; color:var(--role-color,var(--ink-soft));}
+.agent-card h3{font-family:var(--font-display); font-size:1.28rem; margin:.25rem 0 .5rem;}
+.agent-card .mandate{font-size:.94rem; margin:0 0 .9rem;}
+.agent-card .field{margin:0 0 .7rem;}
+.agent-card .field .label{font-family:var(--font-mono); font-size:.65rem; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-soft); display:block; margin-bottom:.3rem;}
+.agent-card code{font-family:var(--font-mono); font-size:.78rem; background:var(--accent-soft); padding:.05rem .3rem;}
+.agent-card .contract{font-family:var(--font-mono); font-size:.76rem; white-space:pre-wrap; background:var(--paper); border:1px solid var(--line); padding:.6rem .7rem; margin:0; line-height:1.5;}
+.agent-card .boundary{font-size:.85rem; border-left:2px solid var(--stamp); padding-left:.7rem; color:var(--ink);}
+.agent-card .boundary b{color:var(--stamp);}
+.agent-card .replaces{font-size:.78rem; color:var(--ink-soft); font-style:italic; margin-top:.8rem; margin-bottom:0;}
+.agent-card.c-fact{--role-color:var(--accent);}
+.agent-card.c-creative{--role-color:var(--creative);}
+.agent-card.c-qa{--role-color:var(--stamp);}
+.agent-card.c-archive{--role-color:var(--archive);}
+
+/* tables */
+table{border-collapse:collapse; width:100%; font-size:.83rem;}
+th,td{text-align:left; padding:.5rem .8rem; border-bottom:1px solid var(--line); vertical-align:top;}
+th{font-family:var(--font-mono); font-size:.66rem; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-soft); font-weight:600;}
+td code, td .mono{font-family:var(--font-mono); font-size:.8rem;}
+.table-scroll{overflow-x:auto; border:1px solid var(--line);}
+.table-scroll table{width:100%; min-width:640px;}
+.table-scroll th, .table-scroll td{border-bottom:1px solid var(--line);}
+
+/* phases */
+.phases{list-style:none; margin:1.6rem 0 0; padding:0; counter-reset:phase;}
+.phases li{
+  counter-increment:phase; position:relative; padding:0 0 1.4rem 3rem; border-left:1px solid var(--line); margin-left:.75rem;
+}
+.phases li:last-child{border-left-color:transparent;}
+.phases li::before{
+  content:counter(phase); position:absolute; left:-.9rem; top:0; width:1.8rem; height:1.8rem;
+  background:var(--paper); border:1px solid var(--ink); border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-mono); font-size:.78rem;
+}
+.phases h4{font-family:var(--font-display); font-size:1.05rem; margin:0 0 .3rem;}
+.phases p{margin:0; font-size:.9rem; color:var(--ink-soft); max-width:64ch;}
+.phases .risk{font-family:var(--font-mono); font-size:.65rem; text-transform:uppercase; letter-spacing:.07em; color:var(--archive);}
+
+.closing{background:var(--paper-raised); border:1px solid var(--line); padding:1.6rem 1.8rem;}
+.closing h2{margin-bottom:.8rem;}
+.closing ul{margin:0; padding-left:1.2rem; font-size:.92rem;}
+.closing li{margin-bottom:.4rem;}
+</style>
+</head>
+<body>
+<div class="doc">
+  <header class="masthead">
+    <div class="wrap">
+      <div class="eyebrow">ALLRIS · Architekturvorschlag</div>
+      <h1>Von der Workflow-Sammlung zum Redaktionssystem</h1>
+      <p class="dek">Sechs Agenten mit je einer Aufgabe, ein zentrales Redaktionsgedächtnis und ein Orchestrator, der die Freigabe-Logik an einer Stelle hält statt in zehn Nodes verteilt. Kein neuer Workflow pro Bug — ein System, das aus sich selbst lernt.</p>
+      <div class="meta-row">
+        <span><b>Basis:</b> P3 Bewertung, P3b Repair/Guard, P4 Content-Reaktion, P5 Visual Prompt Builder</span>
+        <span><b>Status:</b> Konzept zur Diskussion, noch nicht umgesetzt</span>
+      </div>
+    </div>
+  </header>
+
+  <section>
+    <div class="wrap">
+      <h2>Der Unterschied, den das macht</h2>
+      <p class="section-intro">Heute laufen sechs unabhängig getriggerte Workflows, die alle selbst auf <code>status</code>/<code>visualStatus</code> lesen und schreiben. Jeder neue Bug wird an der Fundstelle gepatcht — meist als weitere Zeile in einem ohnehin riesigen Prompt. Das Ergebnis: eine <code>AI Analyse JSON</code> mit ~44.000 Zeichen, eine <code>AI Visual JSON</code> mit ~39.000 Zeichen, SourceLock-Prüfungen an fünf verschiedenen Stellen mit je eigener Logik.</p>
+      <div class="thesis">
+        <div class="card">
+          <h3 class="no">Heute</h3>
+          <p>6 Workflows, die sich gegenseitig über Statuswerte "zurufen". SourceLock wird von der gleichen KI-Instanz erzeugt, die auch Relevanz bewertet und Satire briefet. Jede neue Regel wächst in denselben Mammut-Prompt.</p>
+        </div>
+        <div class="card">
+          <h3 class="yes">Vorschlag</h3>
+          <p>1 Orchestrator, 6 reine Funktionsagenten ohne eigenen Datenbank-Zugriff, 1 QA-Vertrag für alle Stufen, 1 Lern-Speicher statt Prompt-Wachstum. Fakten und Bewertung sind strukturell getrennt, nicht nur thematisch.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap-wide">
+      <h2>Die Redaktionsstrecke</h2>
+      <p class="section-intro">Jeder Agent bekommt sauberes JSON, liefert sauberes JSON zurück — keiner schreibt selbst in die Data Table. Das erledigt allein der Orchestrator, direkt nach jedem QA-Durchlauf. Damit verschwindet die "Node ersetzt Item"-Falle, die heute dreimal unabhängig voneinander Bugs verursacht hat.</p>
+      <div class="pipeline-scroll">
+        <div class="pipeline">
+          <div class="desk fact"><span class="role-tab">Sachbearbeitung</span><h4>Fakten-Agent</h4><p class="sub">Extraktion, kein Urteil</p></div>
+          <div class="connector"></div><div class="gate">QA</div><div class="connector"></div>
+          <div class="desk fact"><span class="role-tab">Sachbearbeitung</span><h4>Analyse-Agent</h4><p class="sub">Relevanz, Konflikt, Wirkung</p></div>
+          <div class="connector"></div><div class="gate">QA</div><div class="connector"></div>
+          <div class="desk creative"><span class="role-tab">Redaktion</span><h4>Satire-Agent</h4><p class="sub">Mehrere Schärfegrade</p></div>
+          <div class="human-note">Mensch: Headline-<br>Wahl (Matrix)</div>
+          <div class="desk creative"><span class="role-tab">Redaktion</span><h4>Bild-Agent</h4><p class="sub">Motiv + Prompt</p></div>
+          <div class="connector"></div><div class="gate">QA</div><div class="connector"></div>
+          <div class="desk orch"><span class="role-tab">Orchestrator</span><h4>Freigabe</h4><p class="sub">Schreibt als Einziger in die DB</p></div>
+        </div>
+        <div class="archive-link"><div class="stem"></div></div>
+        <div class="archive-bar"><b>Lern-Agent</b> — beobachtet jede QA-Entscheidung und jede Redaktionswahl (Auswahl vs. Reroll), liefert die 3–5 relevantesten Beispiele an jede Stufe zurück, bevor sie einen Prompt baut.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap-wide">
+      <h2>Die sechs Agenten im Detail</h2>
+      <p class="section-intro">Jede Karte zeigt die Aufgabe, den Vertrag (Input/Output) und — genauso wichtig — was der Agent ausdrücklich <b>nicht</b> tun darf. Diese Grenze ist QA-prüfbar, nicht nur eine Prompt-Anweisung.</p>
+
+      <div class="agent-grid">
+        <div class="agent-card c-fact">
+          <span class="kicker">01 · Sachbearbeitung</span>
+          <h3>Fakten-Agent</h3>
+          <p class="mandate">Extrahiert ausschließlich belegbare Informationen aus der Ratsvorlage. Jedes Feld muss auf eine Textstelle zurückführbar sein.</p>
+          <div class="field"><span class="label">Input</span>combinedText, title, Vorgangskette</div>
+          <div class="field"><span class="label">Output (= neuer SourceLock)</span>
+<pre class="contract">{ sourceTopic, sourceConflict,
+  requiredTerms[], requiredObjects[],
+  requiredAction, affectedGroups[],
+  concreteNumbers[], deadlines[],
+  responsibilities[], documentType,
+  quotesVerbatim[] }</pre></div>
+          <p class="boundary"><b>Ausgeschlossen:</b> Bewertung, Tonalität, Pointe, jede Formulierung, die nicht wörtlich im Dokument steht.</p>
+          <p class="replaces">Ersetzt: den extrahierenden Teil von "AI Zusammenfassung" + die SourceLock-Erzeugung, die heute in "AI Analyse JSON" mitläuft.</p>
+        </div>
+
+        <div class="agent-card c-fact">
+          <span class="kicker">02 · Sachbearbeitung</span>
+          <h3>Analyse-Agent</h3>
+          <p class="mandate">Bewertet politische Relevanz, Bürgerwirkung, Konflikte und Ungleichbehandlung — ausschließlich auf Basis der Fakten, ohne eigenen Dokumentzugriff.</p>
+          <div class="field"><span class="label">Input</span>facts (read-only, kein Rohtext)</div>
+          <div class="field"><span class="label">Output</span>
+<pre class="contract">{ politicalRelevance, buergerwirkung,
+  empfehlung, conflictType,
+  affectedGroupsRisk,
+  kommunikationspotenzial, reasoning }</pre></div>
+          <p class="boundary"><b>Ausgeschlossen:</b> Satire, Bildmotive, neue Fakten — jede Aussage in <code>reasoning</code> muss aus <code>facts.*</code> zitierbar sein.</p>
+          <p class="replaces">Ersetzt: den Bewertungsteil von "AI Analyse JSON", ohne satireBrief/satireAngle/visualAnchors.</p>
+        </div>
+
+        <div class="agent-card c-creative">
+          <span class="kicker">03 · Redaktion</span>
+          <h3>Satire-Agent</h3>
+          <p class="mandate">Entwickelt mehrere Satire-Ansätze mit unterschiedlicher Schärfe — verankert in den Fakten, nicht in der vorgegebenen Tonlage der Analyse.</p>
+          <div class="field"><span class="label">Input</span>facts (read-only) + empfehlung/conflictType nur als Schärfe-Richtwert</div>
+          <div class="field"><span class="label">Output</span>
+<pre class="contract">{ variants: [
+  { sharpness: mild|mittel|scharf,
+    angle, punchlines[],
+    targetInstitution,
+    headline, subline,
+    requiredTermUsed[] }, ... ] }</pre></div>
+          <p class="boundary"><b>Ausgeschlossen:</b> <code>targetInstitution</code> darf nie eine betroffene/schutzbedürftige Gruppe sein; jede Pointe braucht ≥1 Bezug zu <code>requiredTerms/-Objects</code>.</p>
+          <p class="replaces">Ersetzt: satireBrief/-Angle/-Punchlines aus "AI Analyse JSON" + "AI Headline Varianten" (P5) — heute an zwei Stellen, künftig an einer.</p>
+        </div>
+
+        <div class="agent-card c-creative">
+          <span class="kicker">04 · Redaktion</span>
+          <h3>Bild-Agent</h3>
+          <p class="mandate">Entwickelt nur Motividee und Bild-Prompt zu genau einer gewählten Satire-Variante — keine eigene Schlagzeile, keine eigene Schärfe-Entscheidung.</p>
+          <div class="field"><span class="label">Input</span>1 gewählte Variante + facts.requiredObjects/sourceTopic</div>
+          <div class="field"><span class="label">Output</span>
+<pre class="contract">{ motifIdea, imagePrompt,
+  negativePrompt, mustShowObjects[],
+  styleNotes }</pre></div>
+          <p class="boundary"><b>Ausgeschlossen:</b> Headline/Subline-Text (kommt fertig vom Satire-Agenten), Bewertung der Schärfe.</p>
+          <p class="replaces">Ersetzt: den Prompt-Bauteil von "AI Visual JSON" (P5) — heute zusätzlich mit Headline-Echo, Style-Lock und Sensible-Gruppen-Check in einem Prompt gebündelt.</p>
+        </div>
+
+        <div class="agent-card c-qa">
+          <span class="kicker">05 · Kontrolle</span>
+          <h3>QA-Agent</h3>
+          <p class="mandate">Sucht aktiv nach Fehlern, Halluzinationen und SourceLock-Verstößen. Bestätigt nichts von sich aus — liefert entweder Verstöße oder eine leere Liste.</p>
+          <div class="field"><span class="label">Input</span>{ stage, producedOutput, facts, priorArtifacts }</div>
+          <div class="field"><span class="label">Output</span>
+<pre class="contract">{ passed: bool,
+  violations: [{rule, evidence, severity}],
+  hallucinationSuspects[],
+  sourceLockBreaches[] }</pre></div>
+          <p class="boundary"><b>Ausgeschlossen:</b> Kein "sieht gut aus"-Freigabepfad; ein Agent, ein Vertrag für alle vier Content-Stufen.</p>
+          <p class="replaces">Ersetzt: P3-Validierung, P3b Pass 1+2, P4s zwei unabhängige SourceLock-Checks, P5s canonical-overwrite-Logik — heute fünf verstreute, teils inkonsistente Prüfungen.</p>
+        </div>
+
+        <div class="agent-card c-archive">
+          <span class="kicker">06 · Gedächtnis</span>
+          <h3>Lern-Agent</h3>
+          <p class="mandate">Speichert akzeptierte und abgelehnte Beispiele und macht sie für künftige Läufe abrufbar — kein eigener Content, keine Bewertung.</p>
+          <div class="field"><span class="label">Zwei Funktionen</span>
+<pre class="contract">record(stage, output, qaVerdict, humanVerdict)
+retrieve(stage, context) -&gt; top 3-5 Beispiele</pre></div>
+          <p class="boundary"><b>Ausgeschlossen:</b> Erzeugt selbst keine Inhalte; wirkt nur über Beispiele, die andere Agenten in ihren Prompt ziehen.</p>
+          <p class="replaces">Verhindert das Muster "neue Regel = neue Zeile im Mammut-Prompt" (z.B. die wachsende Liste sensibler Metaphern in P3b).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>Eine State Machine statt zwanzig Statuswerten</h2>
+      <p class="section-intro">Heute schreiben über zehn Nodes in vier Workflows unabhängig voneinander <code>status</code>/<code>visualStatus</code> (siehe Architektur-Review: über 20 verschiedene Werte im Umlauf). Im neuen System schreibt <b>nur der Orchestrator</b> den Fortschritt, direkt nach einem QA-Ergebnis — nirgendwo sonst.</p>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>pipelineStage</th><th>Bedeutung</th><th>Nächster Schritt</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">fakten_pending</td><td>Wartet auf Fakten-Agent</td><td>→ QA → analyse_pending</td></tr>
+            <tr><td class="mono">analyse_pending</td><td>Fakten geprüft, wartet auf Bewertung</td><td>→ QA → satire_pending oder <code>ignoriert</code>/<code>beobachtet</code> (Endzustand)</td></tr>
+            <tr><td class="mono">satire_pending</td><td>Wartet auf Satire-Varianten</td><td>→ QA → awaiting_headline_choice</td></tr>
+            <tr><td class="mono">awaiting_headline_choice</td><td>Mensch wählt Variante (Matrix)</td><td>→ bild_pending</td></tr>
+            <tr><td class="mono">bild_pending</td><td>Wartet auf Motiv + Prompt</td><td>→ QA → published</td></tr>
+            <tr><td class="mono">qa_retry(n)</td><td>QA hat abgelehnt, Wiederholung mit QA- und Lern-Kontext</td><td>zurück an denselben Agenten, max. n Versuche</td></tr>
+            <tr><td class="mono">qa_escalated</td><td>Retry-Limit erreicht</td><td>Matrix-Ops-Alarm (bestehendes Muster bleibt)</td></tr>
+            <tr><td class="mono">published</td><td>Endzustand, Content live</td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>Migrationsweg</h2>
+      <p class="section-intro">Kein Big-Bang-Umbau. Jede Phase ist für sich lauffähig und liefert bereits Wert, bevor die nächste beginnt.</p>
+      <ol class="phases">
+        <li><span class="risk">Geringstes Risiko</span><h4>QA-Agent konsolidieren</h4><p>Die fünf verstreuten Prüfungen (P3, P3b ×2, P4 ×2, P5) in einen Vertrag zusammenführen — noch ohne die anderen Agenten anzufassen.</p></li>
+        <li><span class="risk">Kann sofort parallel starten</span><h4>Lern-Speicher aufsetzen</h4><p>Neue Data Table <code>allris_lernbeispiele</code>; ab Tag 1 jede QA-Entscheidung und jede Matrix-Auswahl/-Reroll protokollieren, auch bevor ein Agent sie nutzt.</p></li>
+        <li><h4>Fakten/Analyse trennen</h4><p>Die 44K-Zeichen "AI Analyse JSON" aufteilen: Extraktion raus in den Fakten-Agenten, Bewertung bleibt, Zugriff auf Rohtext für die Bewertung kappen.</p></li>
+        <li><h4>Satire-Agent bilden</h4><p>satireBrief-Teil aus der Analyse plus "AI Headline Varianten" (P5) zu einem Agenten mit mehreren Schärfegraden zusammenführen.</p></li>
+        <li><h4>Bild-Agent verschlanken</h4><p>"AI Visual JSON" auf Motiv+Prompt reduzieren; Headline-Echo, Style-Lock-Text und Guard-Logik wandern in Satire-Agent bzw. QA-Agent.</p></li>
+        <li><span class="risk">Größter struktureller Schnitt, zuletzt</span><h4>Orchestrator ablösen</h4><p>Die sechs unabhängig getriggerten Workflows durch einen zentralen State-Machine-Owner ersetzen — erst wenn die Agentengrenzen sich in Phase 1–5 bewährt haben.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="closing">
+        <h2>Was sich dadurch konkret ändert</h2>
+        <ul>
+          <li><b>Qualität:</b> QA prüft aktiv gegen die Fakten des Fakten-Agenten, nicht gegen sich selbst — Halluzinationen fallen strukturell auf, nicht zufällig.</li>
+          <li><b>Wartbarkeit:</b> Sechs kleine, einzeln testbare Verträge statt vier Mammut-Prompts mit vermischten Zuständigkeiten.</li>
+          <li><b>Weniger Prompt-Wildwuchs:</b> Neue Regeln werden Lern-Beispiele, keine weiteren Zeilen in einem 44K-Zeichen-Text.</li>
+          <li><b>Eine Wahrheit für den Zustand:</b> Ein <code>pipelineStage</code>, geschrieben von genau einer Stelle, statt zwanzig verstreuter Statuswerte.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>
