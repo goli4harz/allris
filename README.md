@@ -18,11 +18,22 @@ n8n-Automatisierungspipeline für DIE PARTEI Kreisverband Goslar. Überwacht das
 
 ## Multi-Agenten-Architektur (im Aufbau)
 
-Zusätzlich zur klassischen Pipeline entsteht schrittweise ein System aus sechs einzeln zuständigen Agenten (Fakten, Analyse, Satire, Bild, QA, Lern) plus Orchestrator, das die verstreute Validierungslogik konsolidiert:
+Zusätzlich zur klassischen Pipeline entsteht schrittweise ein System aus sechs einzeln zuständigen Agenten (Fakten, Analyse, Satire, Bild, QA, Lern) plus Orchestrator, das die verstreute Validierungslogik konsolidiert. Alle Agenten laufen aktuell im **Schattenbetrieb** neben der klassischen Pipeline (P1–P7) — sie schreiben in eigene Spalten, ohne bestehendes Verhalten zu verändern:
 
-- `ALLRIS_QA_Agent.json` — konsolidierter Prüf-Agent (SourceLock/VisualAnchors-Vollständigkeit, Halluzinationsprüfung), aktuell im Schattenbetrieb neben P3.
+- `ALLRIS_QA_Agent.json` — konsolidierter Prüf-Agent (SourceLock/VisualAnchors-Vollständigkeit, Halluzinationsprüfung).
 - `ALLRIS_Lern_Agent.json` — speichert akzeptierte/abgelehnte QA-Beispiele und liefert sie als Few-Shot-Kontext zurück.
-- `ALLRIS_QA_Agent_AI_PROMPT_TO_PASTE.txt` — Prompt-Text für den KI-Node im QA-Agenten (muss manuell über die n8n-Node-Palette ergänzt werden, siehe Hinweis unten).
+- `ALLRIS_Fakten_Agent.json` — reine Fakten-Extraktion (keine Interpretation), Grundlage für Satire- und Bild-Agent.
+- `ALLRIS_Satire_Agent.json` — generiert mehrere Satire-Varianten in unterschiedlicher Schärfe inkl. Headline/Subline, auf Basis der extrahierten Fakten.
+- `ALLRIS_Bild_Agent.json` — baut Bild-Motiv, Visual-Anker und Bild-Prompt aus einer gewählten Satire-Variante.
+- `ALLRIS_*_AI_PROMPT_TO_PASTE.txt` — Prompt-Texte für die jeweiligen KI-Nodes (müssen manuell über die n8n-Node-Palette ergänzt werden, siehe Hinweis unten).
+
+### Orchestrator (Phase 6, im Aufbau)
+
+Ziel: die inzwischen ~45+ verstreuten `status`/`visualStatus`-Werte durch drei zentral definierte Achsen ersetzen (`contentStage`, `visualStage`, `imageStage`).
+
+- `ALLRIS_Orchestrator_Shadow.json` — liest alle Zeilen und berechnet unabhängig, was die drei neuen Achsen jeweils sein sollten (reiner Beobachter, schreibt nur in neue Spalten).
+- **Durchgang A (additives Dual-Write) ist abgeschlossen:** alle 9 Pipeline-Dateien (P1, P7, P2, P3, P3b, P4, P5, P5b, P6) schreiben die neuen Felder inzwischen selbst mit, parallel zu `status`/`visualStatus` — ohne bestehendes Verhalten zu ändern. Bisher ist nur P1 live in n8n getestet, die übrigen 8 sind code-geprüft, aber noch nicht importiert.
+- **Durchgang B (Lesen auf die neuen Felder umstellen)** ist noch nicht begonnen.
 
 ## Hinweis zum Import
 
