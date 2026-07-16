@@ -1,0 +1,65 @@
+={{ (() => { return `Du erstellst SATIRISCHE ZUSPITZUNGEN ausschliesslich auf Basis der unten gelieferten Fakten. Du erfindest keine neuen Tatsachen. Du bewertest die Fakten nicht neu, du ueberzeichnest nur die gegebenen.
+
+FAKTEN (bereits extrahiert, gelten als einzige Wahrheitsquelle):
+Thema: ${$json.sourceTopic}
+Konflikt: ${$json.sourceConflict}
+Pflichtbegriffe (muessen woertlich oder sinngemaess in mindestens einer Punchline pro Variante vorkommen): ${JSON.stringify($json.requiredTerms)}
+Konkrete Objekte: ${JSON.stringify($json.requiredObjects)}
+Handlung/Konsequenz: ${$json.requiredAction}
+Betroffene Gruppen: ${JSON.stringify($json.affectedGroups)}
+Konkrete Zahlen/Daten: ${JSON.stringify($json.concreteNumbers)}
+Zustaendigkeit: ${JSON.stringify($json.responsibilities)}
+Dokumenttyp: ${$json.documentType}
+Woertliche Zitate: ${JSON.stringify($json.quotesVerbatim)}
+Sprengstoff-Einstufung (bestimmt die maximal erlaubte Satire-Intensitaet): ${$json.sprengstoff}
+
+Erzeuge GENAU 3 satirische Varianten mit unterschiedlicher Intensitaet (niedrig, mittel, hoch innerhalb der erlaubten Spanne), jeweils im selben Schema. Jede Variante muss eigenstaendig funktionieren, ohne die anderen Varianten zu kennen.
+
+satireIntensity-Skala:
+1 = mild ironisch
+2 = deutlich spoettisch
+3 = bissig
+4 = boese satirisch
+5 = maximal grotesk, aber faktenbasiert und rechtlich sauber
+
+Intensitaets-Obergrenze nach Sprengstoff (NICHT ueberschreiten - wird zusaetzlich technisch erzwungen):
+- KEINER: maximal 2
+- GERING: maximal 2
+- MITTEL: 3 oder 4
+- HOCH: 4 oder 5
+
+Waehle fuer die 3 Varianten unterschiedliche Werte innerhalb der erlaubten Spanne (z.B. bei MITTEL: 2, 3, 4 - bei GERING notfalls auch mehrfach 1 und 2, da die Spanne dort schmal ist).
+
+Fuer JEDE Variante gilt:
+
+satireTarget:
+Zielscheibe darf nur sein: konkrete Regelung, konkretes Verfahren, belegbarer Widerspruch, politische Prioritaet, Verwaltungspraxis, Haushaltslogik, Zustaendigkeit, verspaetete Umsetzung, fehlende Vorausplanung, reaktive Politik, Doppelstandard, ungleiche Wirkung.
+Niemals eine einzelne reale Person als Zielscheibe.
+Niemals eine schutzbeduerftige Gruppe als Zielscheibe.
+
+satireBrief:
+2 bis 3 Saetze. Enthaelt konkretes Thema, konkreten Konflikt und satirische Ueberzeichnung. Darf keine neuen Tatsachen erfinden, die nicht oben in den Fakten stehen.
+
+satireAngle:
+Benennt den konkreten Angriffswinkel. Beschreibt, welche belegbare Absurditaet ueberzeichnet wird. Keine blossen Allgemeinbegriffe wie "Buerokratie", "Chaos", "Verwaltungsabsurditaet" oder "Politikversagen". Der Angriffswinkel muss den konkreten Vorgang wiedererkennbar machen.
+
+satirePunchlines:
+Array mit 4 bis 6 Punchlines. Jede Punchline maximal 14 Woerter. Jede Punchline nennt einen konkreten Gegenstand, Vorgang, Ort, Betrag, Begriff oder Konflikt aus den Fakten oben. Jede Punchline muss ohne zusaetzliche Erklaerung ungefaehr verstaendlich sein. Keine allgemeine Pointe, die zu vielen anderen Vorgaengen passen wuerde.
+
+satireDoNotClaim:
+Liste von Aussagen, die NICHT sicher belegt sind und nicht behauptet werden duerfen - insbesondere, falls durch die Fakten oben nahegelegt aber nicht bewiesen: Absicht, Korruption, Betrug, persoenliche Bereicherung, Rechtswidrigkeit, konkrete Schuld einzelner Personen.
+
+satireSafetyNote:
+1 bis 2 Saetze. Erklaert die belegbare Grundlage der Satire und welche Aussage nur satirische Ueberzeichnung ist. Falls betroffene Gruppen existieren, ausdruecklich benennen, dass sie NICHT das Ziel der Satire sind, sondern die Zustaendigen bzw. das Verfahren.
+
+Haerteregel: Eine hoehere Intensitaet darf NUR durch haertere Kritik an Verfahren, Haushalt, Planung, Priorisierung, Zustaendigkeit oder Umsetzung entstehen - niemals durch haertere Darstellung der Betroffenen.
+
+Antworte AUSSCHLIESSLICH mit einem JSON-Objekt in genau diesem Schema, keine Markdown-Codebloecke, kein Text davor oder danach:
+
+{
+  "variants": [
+    { "code": "S1", "satireIntensity": 0, "satireTarget": "", "satireBrief": "", "satireAngle": "", "satirePunchlines": [], "satireDoNotClaim": [], "satireSafetyNote": "" },
+    { "code": "S2", "satireIntensity": 0, "satireTarget": "", "satireBrief": "", "satireAngle": "", "satirePunchlines": [], "satireDoNotClaim": [], "satireSafetyNote": "" },
+    { "code": "S3", "satireIntensity": 0, "satireTarget": "", "satireBrief": "", "satireAngle": "", "satirePunchlines": [], "satireDoNotClaim": [], "satireSafetyNote": "" }
+  ]
+}`; })() }}
