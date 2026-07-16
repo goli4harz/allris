@@ -1,4 +1,4 @@
-{
+﻿{
     "name":  "ALLRIS_P6_Bildgenerierung",
     "nodes":  [
                   {
@@ -333,7 +333,11 @@
                                                          "mappingMode":  "defineBelow",
                                                          "value":  {
                                                                        "status":  "={{ $json.nextcloudUploaded === true ? \u0027image_composed\u0027 : ($json.status || \u0027nextcloud_upload_failed\u0027) }}",
+                                                                       "contentStage":  "={{ ($json.wordpressPosted === true || $json.wordpressPosted === \u0027true\u0027) ? \u0027content_posted\u0027 : \u0027content_generated\u0027 }}",
+                                                                       "contentErrorReason":  "",
                                                                        "visualStatus":  "={{ $json.nextcloudUploaded === true ? \u0027image_composed\u0027 : ($json.visualStatus || \u0027nextcloud_upload_failed\u0027) }}",
+                                                                       "visualStage":  "prompt_ready",
+                                                                       "imageStage":  "={{ $json.nextcloudUploaded === true ? \u0027composed\u0027 : \u0027upload_failed\u0027 }}",
                                                                        "visualJson":  "={{ typeof $json.visualJson === \u0027string\u0027 ? ($json.visualJson || \u0027{}\u0027) : JSON.stringify($json.visualJson || {}) }}",
                                                                        "imageFinalPath":  "={{ $json.imageFinalPath || \u0027\u0027 }}",
                                                                        "imageCreatedAt":  "={{ $json.imageCreatedAt || $now.toISO() }}",
@@ -1579,7 +1583,11 @@
                                                          "mappingMode":  "defineBelow",
                                                          "value":  {
                                                                        "status":  "={{ $json.status || \u0027image_quality_failed\u0027 }}",
+                                                                       "contentStage":  "={{ ($json.wordpressPosted === true || $json.wordpressPosted === \u0027true\u0027) ? \u0027content_posted\u0027 : \u0027content_generated\u0027 }}",
+                                                                       "contentErrorReason":  "",
                                                                        "visualStatus":  "={{ $json.visualStatus || \u0027image_quality_failed\u0027 }}",
+                                                                       "visualStage":  "prompt_ready",
+                                                                       "imageStage":  "qa_failed",
                                                                        "visualJson":  "={{ typeof $json.visualJson === \u0027string\u0027 ? ($json.visualJson || \u0027{}\u0027) : JSON.stringify($json.visualJson || {}) }}",
                                                                        "imageCreatedAt":  "={{ $now.toISO() }}",
                                                                        "imageWorkflowVersion":  "={{ $json.imageWorkflowVersion || \u0027sharepic-mini-v17.2-qa-retry-same-image\u0027 }}",
@@ -2766,7 +2774,11 @@
                                                          "mappingMode":  "defineBelow",
                                                          "value":  {
                                                                        "status":  "visual_topic_error_final",
+                                                                       "contentStage":  "={{ ($json.wordpressPosted === true || $json.wordpressPosted === 'true') ? 'content_posted' : 'content_generated' }}",
+                                                                       "contentErrorReason":  "",
                                                                        "visualStatus":  "visual_topic_error_final",
+                                                                       "visualStage":  "prompt_ready",
+                                                                       "imageStage":  "topic_error_final",
                                                                        "visualJson":  "={{ typeof $json.visualJson === \u0027string\u0027 ? ($json.visualJson || \u0027{}\u0027) : JSON.stringify($json.visualJson || {}) }}",
                                                                        "visualDecisionReason":  "={{ \u0027Bildkonzept nach \u0027 + ($json.imageConceptRepairAttempt || 0) + \u0027 Reparaturversuchen weiterhin ungültig: \u0027 + ($json.imageConceptErrorText || \u0027unbekannter Fehler\u0027) }}",
                                                                        "imageHeadline":  "={{ $json.imageHeadline || \u0027\u0027 }}",
@@ -3948,7 +3960,11 @@
                                                          "mappingMode":  "defineBelow",
                                                          "value":  {
                                                                        "status":  "blocked_by_source_lock",
-                                                                       "visualStatus":  "blocked_by_source_lock"
+                                                                       "contentStage":  "={{ ($json.wordpressPosted === true || $json.wordpressPosted === 'true') ? 'content_posted' : 'content_generated' }}",
+                                                                       "contentErrorReason":  "",
+                                                                       "visualStatus":  "blocked_by_source_lock",
+                                                                       "visualStage":  "blocked_source_lock",
+                                                                       "imageStage":  "={{ $json.imageFinalPath ? 'composed' : 'not_started' }}"
                                                                    }
                                                      },
                                          "options":  {
