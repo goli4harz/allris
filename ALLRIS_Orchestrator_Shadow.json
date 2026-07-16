@@ -1,0 +1,183 @@
+{
+  "name": "ALLRIS_Orchestrator_Shadow",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "6fd6b5a4-d6b7-48f6-bf8a-73f718666650",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "returnAll": true
+      },
+      "id": "0a09e22f-83dc-4185-b574-cf7c345f3f2f",
+      "name": "Lese alle Vorgaenge",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst row = $json;\nconst status = safeStr(row.status);\nconst visualStatus = safeStr(row.visualStatus);\n\n// Werte, die status/visualStatus in P6 (Bildgenerierung) annehmen koennen -\n// dort ueberschreiben beide Spalten sich gegenseitig mit denselben Werten,\n// das ist die \"dritte Achse\" (Bild-Stufe), keine echte Content- oder Visual-Stufe mehr.\nconst IMAGE_VALUES = new Set([\n  'image_composed', 'nextcloud_upload_failed', 'image_retrying', 'retry_required',\n  'image_qa_error', 'image_quality_failed', 'image_qa_approved', 'visual_concept_repairing',\n  'visual_concept_repair_failed', 'visual_prompt_ready', 'visual_topic_error_final',\n  'blocked_by_source_lock', 'image_qa_rechecking', 'force_image_refresh', 'force_image_reset',\n  'force_full_image_refresh', 'visual_prompt_failed_final', 'image_prompt_ready',\n  'image_retry_required', 'image_qa_retry_required', 'raw_generated', 'ready_for_composite'\n]);\n\nconst CONTENT_ERROR = new Set([\n  'detail_failed', 'metadata_error', 'analysis_error', 'summary_input_error',\n  'summary_parse_error', 'content_error'\n]);\n\nconst CONTENT_DIRECT = {\n  '': 'new',\n  'needs_summary': 'needs_summary',\n  'watching': 'watching',\n  'ignored': 'ignored',\n  'needs_content': 'needs_content',\n  'content_generated': 'content_generated',\n  'content_posted': 'content_posted',\n  'nextcloud_failed': 'needs_summary',\n  'nextcloud_failed_final': 'archiving_failed',\n  'nextcloud_archived': 'needs_summary'\n};\n\nlet contentStage;\nlet contentErrorReason = '';\nif (CONTENT_ERROR.has(status)) {\n  contentStage = 'error';\n  contentErrorReason = status;\n} else if (Object.prototype.hasOwnProperty.call(CONTENT_DIRECT, status)) {\n  contentStage = CONTENT_DIRECT[status];\n} else if (IMAGE_VALUES.has(status)) {\n  // status wurde von P6 ueberschrieben - Content muss zu diesem Zeitpunkt laengst fertig sein.\n  contentStage = (row.wordpressPosted === 'true' || row.wordpressPosted === true) ? 'content_posted' : 'content_generated';\n} else {\n  contentStage = 'unknown';\n}\n\nconst VISUAL_DIRECT = {\n  'no_visual': 'not_applicable',\n  'visual_topic_ok': 'topic_ok',\n  'visual_topic_error': 'topic_error',\n  'blocked_by_content_error': 'blocked_content_error',\n  'blocked_by_source_lock': 'blocked_source_lock',\n  'waiting_for_content': 'waiting_for_content',\n  'needs_visual_prompt': 'needs_prompt',\n  'visual_prompt_ready': 'prompt_ready',\n  'visual_prompt_error': 'prompt_error',\n  'visual_prompt_topic_error': 'prompt_error',\n  'awaiting_headline_choice': 'awaiting_headline_choice',\n  'headline_selected': 'headline_selected',\n  'force_visual_reset': 'needs_prompt',\n  'visual_prompt_failed_final': 'prompt_failed_final'\n};\n\nlet visualStage;\nif (Object.prototype.hasOwnProperty.call(VISUAL_DIRECT, visualStatus)) {\n  visualStage = VISUAL_DIRECT[visualStatus];\n} else if (IMAGE_VALUES.has(visualStatus)) {\n  // visualStatus wurde von P6 ueberschrieben - Prompt-Phase muss abgeschlossen sein.\n  visualStage = 'prompt_ready';\n} else if (visualStatus === '') {\n  visualStage = 'not_applicable';\n} else {\n  visualStage = 'unknown';\n}\n\nconst IMAGE_DIRECT = {\n  'raw_generated': 'raw_generated',\n  'ready_for_composite': 'ready_for_composite',\n  'image_composed': 'composed',\n  'nextcloud_upload_failed': 'upload_failed',\n  'image_retrying': 'qa_pending',\n  'retry_required': 'qa_pending',\n  'image_retry_required': 'qa_pending',\n  'image_qa_error': 'qa_pending',\n  'image_qa_retry_required': 'qa_pending',\n  'image_qa_rechecking': 'qa_pending',\n  'image_quality_failed': 'qa_failed',\n  'image_qa_approved': 'qa_approved',\n  'visual_concept_repairing': 'concept_repairing',\n  'visual_concept_repair_failed': 'concept_repair_failed',\n  'visual_topic_error_final': 'topic_error_final'\n};\n\nlet imageStage = 'not_started';\nif (Object.prototype.hasOwnProperty.call(IMAGE_DIRECT, visualStatus)) {\n  imageStage = IMAGE_DIRECT[visualStatus];\n} else if (Object.prototype.hasOwnProperty.call(IMAGE_DIRECT, status)) {\n  imageStage = IMAGE_DIRECT[status];\n} else if (safeStr(row.imageFinalPath)) {\n  imageStage = 'composed';\n}\n\nreturn {\n  json: {\n    vorgangKey: row.vorgangKey,\n    _rawStatus: status,\n    _rawVisualStatus: visualStatus,\n    contentStage: contentStage,\n    contentErrorReason: contentErrorReason,\n    visualStage: visualStage,\n    imageStage: imageStage\n  }\n};"
+      },
+      "id": "c54b219c-34ca-4176-ab20-f434b4bb02db",
+      "name": "Berechne Pipeline-Stages",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "contentStage": "={{ $json.contentStage }}",
+            "contentErrorReason": "={{ $json.contentErrorReason }}",
+            "visualStage": "={{ $json.visualStage }}",
+            "imageStage": "={{ $json.imageStage }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "contentStage",
+              "displayName": "contentStage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "contentErrorReason",
+              "displayName": "contentErrorReason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "visualStage",
+              "displayName": "visualStage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imageStage",
+              "displayName": "imageStage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "732ce53a-02ca-45e9-98d7-da0a3120ad54",
+      "name": "Speichere Pipeline-Stages",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        672,
+        0
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Lese alle Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lese alle Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Berechne Pipeline-Stages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Berechne Pipeline-Stages": {
+      "main": [
+        [
+          {
+            "node": "Speichere Pipeline-Stages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "982687e8-8586-43bb-a78c-0c40df82f2c5",
+  "meta": {
+    "instanceId": "3918cd7b1079333be95f7df5d1ce0c807af27c5d6c51c5bb061c962138165169"
+  },
+  "id": "bYWUnBHojUIE0IXL",
+  "tags": []
+}
