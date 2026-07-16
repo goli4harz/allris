@@ -240,7 +240,7 @@
     },
     {
       "parameters": {
-        "jsCode": "\nfunction extractVorgangsnummer(text) {\n  if (!text) return '';\n  const m = String(text).match(/\\b(\\d{4})\\s*\\/\\s*(\\d+)(?:-(\\d+))?\\b/);\n  if (!m) return '';\n  return m[1] + '/' + m[2] + (m[3] ? '-' + m[3] : '');\n}\n\nconst HTTP_ERROR_TITLE_RE = /^\\s*(?:400[\\s:-]+bad\\s+request|401[\\s:-]+unauthorized|403[\\s:-]+forbidden|404[\\s:-]+not\\s+found|408[\\s:-]+request\\s+time[- ]?out|429[\\s:-]+too\\s+many\\s+requests|500[\\s:-]+internal\\s+server\\s+error|501[\\s:-]+not\\s+implemented|502[\\s:-]+bad\\s+gateway|503[\\s:-]+service\\s+unavailable|504[\\s:-]+gateway\\s*time[- ]?out)\\s*$/i;\n\nconst TECH_ERROR_PHRASE_RE = /gateway\\s*time[- ]?out|bad\\s+gateway|service\\s+unavailable|internal\\s+server\\s+error|request\\s+time[- ]?out|upstream\\s+timed\\s+out|proxy\\s+error|temporarily\\s+unavailable|too\\s+many\\s+requests|serverfehler|nginx\\s+error|cloudflare\\s+error/i;\n\nfunction isTechnicalTitle(value) {\n  const text = String(value || '').trim();\n  return HTTP_ERROR_TITLE_RE.test(text) || TECH_ERROR_PHRASE_RE.test(text);\n}\n\nfunction containsTechnicalErrorPhrase(value) {\n  return TECH_ERROR_PHRASE_RE.test(String(value || ''));\n}\n\nfunction isValidVorgangsnummer(v) {\n  return /^\\d{4}\\/\\d+(?:-\\d+)?$/.test(String(v || '').trim());\n}\n\n// Check if known – V29.1 mit erweitertem Metadatenvergleich\n// $runIndex-sicher\n\nfunction normalizeTitle(value) {\n  return String(value || '').replace(/\\s+/g, ' ').trim();\n}\n\nfunction normalizeVorgangsnummer(value) {\n  const match = String(value || '').match(/\\b(\\d{4})\\s*\\/\\s*(\\d+)(?:-(\\d+))?\\b/);\n  return match ? `${match[1]}/${match[2]}${match[3] ? '-' + match[3] : ''}` : '';\n}\n\nconst databaseItems = $input.all(0, $runIndex);\nconst groupedItems  = $('Gruppierung nach Vorgang').all(0, $runIndex);\n\nif (!groupedItems || groupedItems.length !== 1) {\n  throw new Error(\n    `[Check if known] Erwartet genau 1 aktuellen Vorgang, ` +\n    `erhalten: ${groupedItems?.length ?? 0}, runIndex=${$runIndex}`\n  );\n}\n\nconst current = groupedItems[0].json || {};\nconst key     = String(current.vorgangKey || '').trim();\n\nif (!key) {\n  throw new Error('[Check if known] Aktueller Vorgang besitzt keinen vorgangKey.');\n}\n\nfunction normalizeDocsJson(raw) {\n  try {\n    let documents;\n    if (Array.isArray(raw)) {\n      documents = raw;\n    } else {\n      documents = JSON.parse(String(raw || '[]'));\n    }\n    if (!Array.isArray(documents)) return '[]';\n    const urls = documents\n      .map(d => (typeof d === 'string' ? d.trim() : String(d?.docKey || d?.url || '').trim()))\n      .filter(Boolean)\n      .sort();\n    return JSON.stringify(urls);\n  } catch (e) {\n    console.warn(`[Check if known] documentsJson Lesefehler: ${e.message}`);\n    return '[]';\n  }\n}\n\n// Datenbankzeilen filtern\nconst matchingRows = databaseItems\n  .map(item => item.json || {})\n  .filter(row => String(row.vorgangKey || '').trim() === key);\n\nconst duplicateCount = matchingRows.length;\nconst isKnown        = duplicateCount > 0;\n\nif (duplicateCount > 1) {\n  console.warn(`[Check if known] Duplikate: key=${key}, count=${duplicateCount}, runIndex=${$runIndex}`);\n}\n\nlet needsRefresh         = !isKnown;\nlet documentsChanged     = false;\nlet oldDocumentsJson     = '[]';\nlet oldDocumentCount     = 0;\nlet oldStatus            = '';\nlet oldTitle             = '';\nlet oldVorgangsnummer    = '';\nlet oldMetadataInvalid   = false;\nlet metadataRepairNeeded = false;\nlet titleChanged         = false;\nlet vorgangsnummerChanged = false;\nlet normalizedOldTitle   = '';\nlet normalizedCurrentTitle = '';\nlet normalizedOldNumber  = '';\nlet normalizedCurrentNumber = '';\n\nif (isKnown) {\n  const old = matchingRows[0];\n\n  oldDocumentsJson  = old.documentsJson  || '[]';\n  oldDocumentCount  = Number.parseInt(String(old.documentCount || '0'), 10) || 0;\n  oldStatus         = String(old.status  || '').trim();\n  oldTitle          = String(old.title   || '').trim();\n  oldVorgangsnummer = String(old.vorgangsnummer || '').trim();\n\n  // Dokumentänderungen prüfen\n  const newNorm = normalizeDocsJson(current.documentsJson);\n  const oldNorm = normalizeDocsJson(oldDocumentsJson);\n  documentsChanged = newNorm !== oldNorm;\n  needsRefresh  = documentsChanged;\n\n  // Status → immer refresh\n  if (oldStatus === 'detail_failed' || oldStatus === 'metadata_error') {\n    needsRefresh = true;\n  }\n\n  // Normalisierte Vergleiche\n  normalizedOldTitle      = normalizeTitle(oldTitle);\n  normalizedCurrentTitle  = normalizeTitle(current.title || '');\n  normalizedOldNumber     = normalizeVorgangsnummer(oldVorgangsnummer);\n  normalizedCurrentNumber = normalizeVorgangsnummer(current.vorgangsnummer || '');\n\n  titleChanged =\n    !!normalizedCurrentTitle &&\n    normalizedOldTitle !== normalizedCurrentTitle;\n\n  vorgangsnummerChanged =\n    !!normalizedCurrentNumber &&\n    normalizedOldNumber !== normalizedCurrentNumber;\n\n  // Beschädigte Metadaten erkennen\n  const titleEmpty       = !oldTitle;\n  const titleTech        = isTechnicalTitle(oldTitle);\n  const titlePlaceholder = oldTitle === '(Vorgangsseite nicht geladen)';\n  const titleBad         = titleEmpty || titleTech || titlePlaceholder;\n\n  const numMissing  = !oldVorgangsnummer;\n  const numInvalid  = !isValidVorgangsnummer(oldVorgangsnummer);\n  const urlMissing  = !old.allrisUrl && !old.sourceUrl;\n\n  oldMetadataInvalid = titleBad || numMissing || numInvalid || urlMissing;\n\n  // Reparatur auslösen wenn aktuelle Daten gültig und Bestand fehlerhaft/abweichend\n  const currentHasValidTitle = !!(current.title) && !isTechnicalTitle(current.title);\n  const currentHasValidNum   = isValidVorgangsnummer(current.vorgangsnummer);\n\n  if (currentHasValidTitle && currentHasValidNum) {\n    if (oldMetadataInvalid || titleChanged || vorgangsnummerChanged ||\n        oldStatus === 'detail_failed' || oldStatus === 'metadata_error') {\n      metadataRepairNeeded = true;\n      needsRefresh         = true;\n      console.log(\n        `[Check if known] Metadaten-Reparatur: key=${key} ` +\n        `oldTitle=\"${oldTitle}\" → currentTitle=\"${current.title}\" ` +\n        `oldNum=\"${oldVorgangsnummer}\" → currentNum=\"${current.vorgangsnummer}\" ` +\n        `oldMetadataInvalid=${oldMetadataInvalid} titleChanged=${titleChanged} ` +\n        `vorgangsnummerChanged=${vorgangsnummerChanged}`\n      );\n    }\n  }\n}\n\nconsole.log(\n  `[Check if known] key=${key} isKnown=${isKnown} needsRefresh=${needsRefresh} ` +\n  `oldStatus=${oldStatus} oldMetadataInvalid=${oldMetadataInvalid} ` +\n  `metadataRepairNeeded=${metadataRepairNeeded} titleChanged=${titleChanged} ` +\n  `vorgangsnummerChanged=${vorgangsnummerChanged} duplicateCount=${duplicateCount} runIndex=${$runIndex}`\n);\n\nreturn [{\n  json: {\n    ...current,\n    isKnown,\n    needsRefresh,\n    documentsChanged,\n    oldDocumentsJson,\n    oldDocumentCount,\n    oldStatus,\n    oldTitle,\n    oldVorgangsnummer,\n    oldMetadataInvalid,\n    metadataRepairNeeded,\n    titleChanged,\n    vorgangsnummerChanged,\n    normalizedOldTitle,\n    normalizedCurrentTitle,\n    normalizedOldNumber,\n    normalizedCurrentNumber,\n    existingDuplicateCount: duplicateCount,\n    debug_runIndex:  $runIndex,\n    debug_loopPhase: isKnown\n      ? (needsRefresh ? 'known_refresh' : 'known_unchanged')\n      : 'new_vorgang'\n  }\n}];\n"
+        "jsCode": "\nfunction extractVorgangsnummer(text) {\n  if (!text) return '';\n  const m = String(text).match(/\\b(\\d{4})\\s*\\/\\s*(\\d+)(?:-(\\d+))?\\b/);\n  if (!m) return '';\n  return m[1] + '/' + m[2] + (m[3] ? '-' + m[3] : '');\n}\n\nconst HTTP_ERROR_TITLE_RE = /^\\s*(?:400[\\s:-]+bad\\s+request|401[\\s:-]+unauthorized|403[\\s:-]+forbidden|404[\\s:-]+not\\s+found|408[\\s:-]+request\\s+time[- ]?out|429[\\s:-]+too\\s+many\\s+requests|500[\\s:-]+internal\\s+server\\s+error|501[\\s:-]+not\\s+implemented|502[\\s:-]+bad\\s+gateway|503[\\s:-]+service\\s+unavailable|504[\\s:-]+gateway\\s*time[- ]?out)\\s*$/i;\n\nconst TECH_ERROR_PHRASE_RE = /gateway\\s*time[- ]?out|bad\\s+gateway|service\\s+unavailable|internal\\s+server\\s+error|request\\s+time[- ]?out|upstream\\s+timed\\s+out|proxy\\s+error|temporarily\\s+unavailable|too\\s+many\\s+requests|serverfehler|nginx\\s+error|cloudflare\\s+error/i;\n\nfunction isTechnicalTitle(value) {\n  const text = String(value || '').trim();\n  return HTTP_ERROR_TITLE_RE.test(text) || TECH_ERROR_PHRASE_RE.test(text);\n}\n\nfunction containsTechnicalErrorPhrase(value) {\n  return TECH_ERROR_PHRASE_RE.test(String(value || ''));\n}\n\nfunction isValidVorgangsnummer(v) {\n  return /^\\d{4}\\/\\d+(?:-\\d+)?$/.test(String(v || '').trim());\n}\n\n// Check if known – V29.1 mit erweitertem Metadatenvergleich\n// $runIndex-sicher\n\nfunction normalizeTitle(value) {\n  return String(value || '').replace(/\\s+/g, ' ').trim();\n}\n\nfunction normalizeVorgangsnummer(value) {\n  const match = String(value || '').match(/\\b(\\d{4})\\s*\\/\\s*(\\d+)(?:-(\\d+))?\\b/);\n  return match ? `${match[1]}/${match[2]}${match[3] ? '-' + match[3] : ''}` : '';\n}\n\nconst databaseItems = $input.all(0, $runIndex);\nconst groupedItems  = $('Gruppierung nach Vorgang').all(0, $runIndex);\n\nif (!groupedItems || groupedItems.length !== 1) {\n  throw new Error(\n    `[Check if known] Erwartet genau 1 aktuellen Vorgang, ` +\n    `erhalten: ${groupedItems?.length ?? 0}, runIndex=${$runIndex}`\n  );\n}\n\nconst current = groupedItems[0].json || {};\nconst key     = String(current.vorgangKey || '').trim();\n\nif (!key) {\n  throw new Error('[Check if known] Aktueller Vorgang besitzt keinen vorgangKey.');\n}\n\nfunction normalizeDocsJson(raw) {\n  try {\n    let documents;\n    if (Array.isArray(raw)) {\n      documents = raw;\n    } else {\n      documents = JSON.parse(String(raw || '[]'));\n    }\n    if (!Array.isArray(documents)) return '[]';\n    const urls = documents\n      .map(d => (typeof d === 'string' ? d.trim() : String(d?.docKey || d?.url || '').trim()))\n      .filter(Boolean)\n      .sort();\n    return JSON.stringify(urls);\n  } catch (e) {\n    console.warn(`[Check if known] documentsJson Lesefehler: ${e.message}`);\n    return '[]';\n  }\n}\n\n// Datenbankzeilen filtern\nconst matchingRows = databaseItems\n  .map(item => item.json || {})\n  .filter(row => String(row.vorgangKey || '').trim() === key);\n\nconst duplicateCount = matchingRows.length;\nconst isKnown        = duplicateCount > 0;\n\nif (duplicateCount > 1) {\n  console.warn(`[Check if known] Duplikate: key=${key}, count=${duplicateCount}, runIndex=${$runIndex}`);\n}\n\nlet needsRefresh         = !isKnown;\nlet documentsChanged     = false;\nlet oldDocumentsJson     = '[]';\nlet oldDocumentCount     = 0;\nlet oldStatus            = '';\nlet oldTitle             = '';\nlet oldVorgangsnummer    = '';\nlet oldMetadataInvalid   = false;\nlet metadataRepairNeeded = false;\nlet titleChanged         = false;\nlet vorgangsnummerChanged = false;\nlet normalizedOldTitle   = '';\nlet normalizedCurrentTitle = '';\nlet normalizedOldNumber  = '';\nlet normalizedCurrentNumber = '';\nlet oldWordpressPosted   = '';\n\nif (isKnown) {\n  const old = matchingRows[0];\n\n  oldDocumentsJson  = old.documentsJson  || '[]';\n  oldDocumentCount  = Number.parseInt(String(old.documentCount || '0'), 10) || 0;\n  oldStatus         = String(old.status  || '').trim();\n  oldTitle          = String(old.title   || '').trim();\n  oldVorgangsnummer = String(old.vorgangsnummer || '').trim();\n  oldWordpressPosted = String(old.wordpressPosted || '').trim();\n\n  // Dokumentänderungen prüfen\n  const newNorm = normalizeDocsJson(current.documentsJson);\n  const oldNorm = normalizeDocsJson(oldDocumentsJson);\n  documentsChanged = newNorm !== oldNorm;\n  needsRefresh  = documentsChanged;\n\n  // Status → immer refresh\n  if (oldStatus === 'detail_failed' || oldStatus === 'metadata_error') {\n    needsRefresh = true;\n  }\n\n  // Normalisierte Vergleiche\n  normalizedOldTitle      = normalizeTitle(oldTitle);\n  normalizedCurrentTitle  = normalizeTitle(current.title || '');\n  normalizedOldNumber     = normalizeVorgangsnummer(oldVorgangsnummer);\n  normalizedCurrentNumber = normalizeVorgangsnummer(current.vorgangsnummer || '');\n\n  titleChanged =\n    !!normalizedCurrentTitle &&\n    normalizedOldTitle !== normalizedCurrentTitle;\n\n  vorgangsnummerChanged =\n    !!normalizedCurrentNumber &&\n    normalizedOldNumber !== normalizedCurrentNumber;\n\n  // Beschädigte Metadaten erkennen\n  const titleEmpty       = !oldTitle;\n  const titleTech        = isTechnicalTitle(oldTitle);\n  const titlePlaceholder = oldTitle === '(Vorgangsseite nicht geladen)';\n  const titleBad         = titleEmpty || titleTech || titlePlaceholder;\n\n  const numMissing  = !oldVorgangsnummer;\n  const numInvalid  = !isValidVorgangsnummer(oldVorgangsnummer);\n  const urlMissing  = !old.allrisUrl && !old.sourceUrl;\n\n  oldMetadataInvalid = titleBad || numMissing || numInvalid || urlMissing;\n\n  // Reparatur auslösen wenn aktuelle Daten gültig und Bestand fehlerhaft/abweichend\n  const currentHasValidTitle = !!(current.title) && !isTechnicalTitle(current.title);\n  const currentHasValidNum   = isValidVorgangsnummer(current.vorgangsnummer);\n\n  if (currentHasValidTitle && currentHasValidNum) {\n    if (oldMetadataInvalid || titleChanged || vorgangsnummerChanged ||\n        oldStatus === 'detail_failed' || oldStatus === 'metadata_error') {\n      metadataRepairNeeded = true;\n      needsRefresh         = true;\n      console.log(\n        `[Check if known] Metadaten-Reparatur: key=${key} ` +\n        `oldTitle=\"${oldTitle}\" → currentTitle=\"${current.title}\" ` +\n        `oldNum=\"${oldVorgangsnummer}\" → currentNum=\"${current.vorgangsnummer}\" ` +\n        `oldMetadataInvalid=${oldMetadataInvalid} titleChanged=${titleChanged} ` +\n        `vorgangsnummerChanged=${vorgangsnummerChanged}`\n      );\n    }\n  }\n}\n\nconsole.log(\n  `[Check if known] key=${key} isKnown=${isKnown} needsRefresh=${needsRefresh} ` +\n  `oldStatus=${oldStatus} oldMetadataInvalid=${oldMetadataInvalid} ` +\n  `metadataRepairNeeded=${metadataRepairNeeded} titleChanged=${titleChanged} ` +\n  `vorgangsnummerChanged=${vorgangsnummerChanged} duplicateCount=${duplicateCount} runIndex=${$runIndex}`\n);\n\n// === Orchestrator-Migration Durchgang A: contentStage additiv mitschreiben ===\n// Spiegelt exakt die Content-Stage-Zuordnung aus ALLRIS_Orchestrator_Shadow.json,\n// damit status und contentStage niemals auseinanderlaufen. Rein additiv - status\n// bleibt bis zum eigentlichen Cutover (Lesen umstellen) die Quelle der Wahrheit.\nconst CONTENT_ERROR = new Set(['detail_failed', 'metadata_error', 'analysis_error', 'summary_input_error', 'summary_parse_error', 'content_error']);\nconst CONTENT_DIRECT = { '': 'new', 'needs_summary': 'needs_summary', 'watching': 'watching', 'ignored': 'ignored', 'needs_content': 'needs_content', 'content_generated': 'content_generated', 'content_posted': 'content_posted', 'nextcloud_failed': 'needs_summary', 'nextcloud_failed_final': 'archiving_failed', 'nextcloud_archived': 'needs_summary' };\nconst IMAGE_VALUES = new Set(['image_composed', 'nextcloud_upload_failed', 'image_retrying', 'retry_required', 'image_qa_error', 'image_quality_failed', 'image_qa_approved', 'visual_concept_repairing', 'visual_concept_repair_failed', 'visual_prompt_ready', 'visual_topic_error_final', 'blocked_by_source_lock', 'image_qa_rechecking', 'force_image_refresh', 'force_image_reset', 'force_full_image_refresh', 'visual_prompt_failed_final', 'image_prompt_ready', 'image_retry_required', 'image_qa_retry_required', 'raw_generated', 'ready_for_composite']);\nfunction mapContentStage(statusValue, wordpressPostedValue) {\n  const s = String(statusValue || '').trim();\n  if (CONTENT_ERROR.has(s)) return { stage: 'error', reason: s };\n  if (Object.prototype.hasOwnProperty.call(CONTENT_DIRECT, s)) return { stage: CONTENT_DIRECT[s], reason: '' };\n  if (IMAGE_VALUES.has(s)) {\n    const posted = wordpressPostedValue === 'true' || wordpressPostedValue === true;\n    return { stage: posted ? 'content_posted' : 'content_generated', reason: '' };\n  }\n  return { stage: 'unknown', reason: '' };\n}\n\nconst willResetToNeedsSummary = isKnown && (documentsChanged || ['', 'needs_summary', 'detail_failed', 'metadata_error', 'analysis_error', 'summary_input_error'].includes(oldStatus));\nlet contentStageToWrite = 'needs_summary';\nlet contentErrorReasonToWrite = '';\nif (isKnown && !willResetToNeedsSummary) {\n  const mapped = mapContentStage(oldStatus, oldWordpressPosted);\n  contentStageToWrite = mapped.stage;\n  contentErrorReasonToWrite = mapped.reason;\n}\n\nreturn [{\n  json: {\n    ...current,\n    isKnown,\n    needsRefresh,\n    documentsChanged,\n    oldDocumentsJson,\n    oldDocumentCount,\n    oldStatus,\n    oldTitle,\n    oldVorgangsnummer,\n    oldMetadataInvalid,\n    metadataRepairNeeded,\n    titleChanged,\n    vorgangsnummerChanged,\n    normalizedOldTitle,\n    normalizedCurrentTitle,\n    normalizedOldNumber,\n    normalizedCurrentNumber,\n    existingDuplicateCount: duplicateCount,\n    contentStageToWrite,\n    contentErrorReasonToWrite,\n    debug_runIndex:  $runIndex,\n    debug_loopPhase: isKnown\n      ? (needsRefresh ? 'known_refresh' : 'known_unchanged')\n      : 'new_vorgang'\n  }\n}];\n"
       },
       "id": "b7fda84c-85dc-4a92-82a3-3200bf8cdc9e",
       "name": "Check if known",
@@ -472,6 +472,7 @@
             "firstseen": "={{ $now.toISO() }}",
             "lastseen": "={{ $now.toISO() }}",
             "status": "needs_summary",
+            "contentStage": "needs_summary",
             "vorfilterScore": "={{ $json.vorfilterScore || 0 }}",
             "vorfilterThemen": "={{ JSON.stringify($json.vorfilterThemen || []) }}",
             "vorfilterKeywords": "={{ JSON.stringify($json.vorfilterKeywords || []) }}",
@@ -567,6 +568,16 @@
             {
               "id": "status",
               "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "contentStage",
+              "displayName": "contentStage",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1335,6 +1346,8 @@
             "documentCount": "={{ $json.documentCount || 0 }}",
             "combinedText": "={{ $json.combinedText || '' }}",
             "status": "={{ ($json.documentsChanged === true || ['', 'needs_summary', 'detail_failed', 'metadata_error', 'analysis_error', 'summary_input_error'].includes($json.oldStatus)) ? 'needs_summary' : $json.oldStatus }}",
+            "contentStage": "={{ $json.contentStageToWrite }}",
+            "contentErrorReason": "={{ $json.contentErrorReasonToWrite }}",
             "stammVorgangsnummer": "={{ $json.stammVorgangsnummer || $json.vorgangsnummer || '' }}",
             "folgeNummer": "={{ $json.folgeNummer || '' }}",
             "istFolgevorgang": "={{ $json.istFolgevorgang === true }}"
@@ -1354,6 +1367,26 @@
             {
               "id": "status",
               "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "contentStage",
+              "displayName": "contentStage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "contentErrorReason",
+              "displayName": "contentErrorReason",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1625,6 +1658,8 @@
             "firstseen": "={{ $now.toISO() }}",
             "lastseen": "={{ $now.toISO() }}",
             "status": "detail_failed",
+            "contentStage": "error",
+            "contentErrorReason": "detail_failed",
             "vorfilterScore": "={{ 0 }}",
             "vorfilterThemen": "={{ JSON.stringify([]) }}",
             "vorfilterKeywords": "={{ JSON.stringify([]) }}",
@@ -1716,6 +1751,26 @@
             {
               "id": "status",
               "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "contentStage",
+              "displayName": "contentStage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "contentErrorReason",
+              "displayName": "contentErrorReason",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1869,6 +1924,8 @@
           "value": {
             "lastseen": "={{ $now.toISO() }}",
             "status": "detail_failed",
+            "contentStage": "error",
+            "contentErrorReason": "detail_failed",
             "combinedText": "={{ $json.combinedText }}"
           },
           "schema": [
@@ -1885,6 +1942,26 @@
             {
               "id": "status",
               "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "contentStage",
+              "displayName": "contentStage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "contentErrorReason",
+              "displayName": "contentErrorReason",
               "required": false,
               "defaultMatch": false,
               "display": true,
