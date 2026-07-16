@@ -5,13 +5,13 @@
       "parameters": {
         "inputSource": "passthrough"
       },
-      "id": "208325e7-6321-49d7-8402-5e4e406f4a09",
+      "id": "a39f977d-e246-48a3-8c30-efd312fdb78e",
       "name": "Execute Workflow Trigger",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
       "position": [
-        0,
-        0
+        1008,
+        240
       ]
     },
     {
@@ -19,27 +19,27 @@
         "mode": "runOnceForEachItem",
         "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction asArr(v) { return Array.isArray(v) ? v.filter(Boolean).map(safeStr) : []; }\n\nconst row = $json;\n\nreturn {\n  json: {\n    vorgangKey: safeStr(row.vorgangKey),\n    vorgangsnummer: safeStr(row.vorgangsnummer),\n    sourceTopic: safeStr(row.sourceTopic),\n    sourceConflict: safeStr(row.sourceConflict),\n    requiredTerms: asArr(row.requiredTerms),\n    requiredObjects: asArr(row.requiredObjects),\n    requiredAction: safeStr(row.requiredAction),\n    affectedGroups: asArr(row.affectedGroups),\n    concreteNumbers: asArr(row.concreteNumbers),\n    responsibilities: asArr(row.responsibilities),\n    documentType: safeStr(row.documentType),\n    quotesVerbatim: asArr(row.quotesVerbatim),\n    sprengstoff: safeStr(row.sprengstoff) || 'GERING'\n  }\n};"
       },
-      "id": "271bb668-0bf3-46a0-a96f-19ef842360a3",
+      "id": "68197602-ac9e-4293-bf43-51e5e4ecf735",
       "name": "Normalisiere Eingabe",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        224,
-        0
+        1232,
+        240
       ]
     },
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction asArr(v) { return Array.isArray(v) ? v.filter(Boolean).map(safeStr) : []; }\n\nfunction getAiText(j) {\n  if (typeof j.content === 'string') return j.content;\n  if (typeof j.text === 'string') return j.text;\n  if (j.message && typeof j.message.content === 'string') return j.message.content;\n  if (Array.isArray(j.choices) && j.choices[0] && j.choices[0].message) return safeStr(j.choices[0].message.content);\n  if (Array.isArray(j.output)) {\n    const msg = j.output.find(function(o) { return o && o.type === 'message' && Array.isArray(o.content); });\n    const part = msg && msg.content.find(function(c) { return c && typeof c.text === 'string'; });\n    if (part) return part.text;\n  }\n  return safeStr(JSON.stringify(j));\n}\n\nfunction extractJson(text) {\n  const t = safeStr(text).replace(/```json/gi, '```').replace(/```/g, '');\n  const start = t.indexOf('{');\n  const end = t.lastIndexOf('}');\n  if (start === -1 || end === -1 || end < start) return null;\n  try { return JSON.parse(t.substring(start, end + 1)); } catch (e) { return null; }\n}\n\nconst base = $('Normalisiere Eingabe').item.json;\nconst aiText = getAiText($json);\nconst parsed = extractJson(aiText);\n\nconst ceilings = { KEINER: 2, GERING: 2, MITTEL: 4, HOCH: 5 };\nconst maxIntensity = ceilings[base.sprengstoff] || 2;\n\nfunction clampVariant(v, idx) {\n  v = (v && typeof v === 'object') ? v : {};\n  let intensity = Number(v.satireIntensity);\n  if (!Number.isFinite(intensity)) intensity = 1;\n  intensity = Math.max(1, Math.min(maxIntensity, Math.round(intensity)));\n  return {\n    code: safeStr(v.code) || ('S' + (idx + 1)),\n    satireIntensity: intensity,\n    satireTarget: safeStr(v.satireTarget),\n    satireBrief: safeStr(v.satireBrief),\n    satireAngle: safeStr(v.satireAngle),\n    satirePunchlines: asArr(v.satirePunchlines),\n    satireDoNotClaim: asArr(v.satireDoNotClaim),\n    satireSafetyNote: safeStr(v.satireSafetyNote)\n  };\n}\n\nif (!parsed || !Array.isArray(parsed.variants) || parsed.variants.length === 0) {\n  return {\n    json: {\n      vorgangKey: base.vorgangKey,\n      vorgangsnummer: base.vorgangsnummer,\n      variants: [],\n      parseError: true\n    }\n  };\n}\n\nreturn {\n  json: {\n    vorgangKey: base.vorgangKey,\n    vorgangsnummer: base.vorgangsnummer,\n    variants: parsed.variants.map(clampVariant),\n    parseError: false\n  }\n};"
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction asArr(v) { return Array.isArray(v) ? v.filter(Boolean).map(safeStr) : []; }\n\nfunction getAiText(j) {\n  if (typeof j.content === 'string') return j.content;\n  if (typeof j.text === 'string') return j.text;\n  if (j.message && typeof j.message.content === 'string') return j.message.content;\n  if (Array.isArray(j.choices) && j.choices[0] && j.choices[0].message) return safeStr(j.choices[0].message.content);\n  if (Array.isArray(j.output)) {\n    const msg = j.output.find(function(o) { return o && o.type === 'message' && Array.isArray(o.content); });\n    const part = msg && msg.content.find(function(c) { return c && typeof c.text === 'string'; });\n    if (part) return part.text;\n  }\n  return safeStr(JSON.stringify(j));\n}\n\nfunction extractJson(text) {\n  const t = safeStr(text).replace(/```json/gi, '```').replace(/```/g, '');\n  const start = t.indexOf('{');\n  const end = t.lastIndexOf('}');\n  if (start === -1 || end === -1 || end < start) return null;\n  try { return JSON.parse(t.substring(start, end + 1)); } catch (e) { return null; }\n}\n\nfunction normalizeText(v) {\n  return safeStr(v).toLowerCase()\n    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss');\n}\nfunction stemLight(w) {\n  return w.replace(/(ungen|ierung|heit|keit|schaft|tion|ieren|iere|iert|ung|lich|isch|ische|ischen|ischer|isches)$/, '').replace(/(en|er|em|es|e|n|s|t)$/, '');\n}\nfunction tokenOverlap(a, b) {\n  const tokensA = normalizeText(a).split(/[\\W_]+/).filter(w => w.length >= 4).map(stemLight);\n  const tokensB = normalizeText(b).split(/[\\W_]+/).filter(w => w.length >= 4).map(stemLight);\n  if (tokensA.some(w => tokensB.includes(w))) return true;\n  const rawA = normalizeText(a).replace(/[\\W_]+/g, ''), rawB = normalizeText(b).replace(/[\\W_]+/g, '');\n  for (const tok of tokensA) { if (tok.length >= 5 && rawB.includes(tok)) return true; }\n  for (const tok of tokensB) { if (tok.length >= 5 && rawA.includes(tok)) return true; }\n  return false;\n}\n\nconst base = $('Normalisiere Eingabe').item.json;\nconst aiText = getAiText($json);\nconst parsed = extractJson(aiText);\n\nconst ceilings = { KEINER: 2, GERING: 2, MITTEL: 4, HOCH: 5 };\nconst maxIntensity = ceilings[base.sprengstoff] || 2;\nconst requiredTerms = asArr(base.requiredTerms);\n\nfunction clampVariant(v, idx) {\n  v = (v && typeof v === 'object') ? v : {};\n  let intensity = Number(v.satireIntensity);\n  if (!Number.isFinite(intensity)) intensity = 1;\n  intensity = Math.max(1, Math.min(maxIntensity, Math.round(intensity)));\n  const imageHeadline = safeStr(v.imageHeadline);\n  const imageSubline = safeStr(v.imageSubline);\n  const headlineText = imageHeadline + ' ' + imageSubline;\n  const headlineGrounded = requiredTerms.length === 0 ? null : requiredTerms.some(function(t) { return tokenOverlap(t, headlineText); });\n  return {\n    code: safeStr(v.code) || ('S' + (idx + 1)),\n    satireIntensity: intensity,\n    satireTarget: safeStr(v.satireTarget),\n    satireBrief: safeStr(v.satireBrief),\n    satireAngle: safeStr(v.satireAngle),\n    satirePunchlines: asArr(v.satirePunchlines),\n    satireDoNotClaim: asArr(v.satireDoNotClaim),\n    satireSafetyNote: safeStr(v.satireSafetyNote),\n    imageHeadline: imageHeadline,\n    imageSubline: imageSubline,\n    headlineGrounded: headlineGrounded\n  };\n}\n\nif (!parsed || !Array.isArray(parsed.variants) || parsed.variants.length === 0) {\n  return {\n    json: {\n      vorgangKey: base.vorgangKey,\n      vorgangsnummer: base.vorgangsnummer,\n      variants: [],\n      parseError: true\n    }\n  };\n}\n\nreturn {\n  json: {\n    vorgangKey: base.vorgangKey,\n    vorgangsnummer: base.vorgangsnummer,\n    variants: parsed.variants.map(clampVariant),\n    parseError: false\n  }\n};"
       },
-      "id": "578fb1a5-b9f0-42fb-9a23-1adbbee15fe9",
+      "id": "67e517cb-96e8-448c-bc51-72b600e5ee18",
       "name": "Parse Satire JSON",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        784,
-        0
+        1792,
+        240
       ]
     },
     {
@@ -53,7 +53,7 @@
         "responses": {
           "values": [
             {
-              "content": "={{ (() => { return `Du erstellst SATIRISCHE ZUSPITZUNGEN ausschliesslich auf Basis der unten gelieferten Fakten. Du erfindest keine neuen Tatsachen. Du bewertest die Fakten nicht neu, du ueberzeichnest nur die gegebenen.\n\nFAKTEN (bereits extrahiert, gelten als einzige Wahrheitsquelle):\nThema: ${$json.sourceTopic}\nKonflikt: ${$json.sourceConflict}\nPflichtbegriffe (muessen woertlich oder sinngemaess in mindestens einer Punchline pro Variante vorkommen): ${JSON.stringify($json.requiredTerms)}\nKonkrete Objekte: ${JSON.stringify($json.requiredObjects)}\nHandlung/Konsequenz: ${$json.requiredAction}\nBetroffene Gruppen: ${JSON.stringify($json.affectedGroups)}\nKonkrete Zahlen/Daten: ${JSON.stringify($json.concreteNumbers)}\nZustaendigkeit: ${JSON.stringify($json.responsibilities)}\nDokumenttyp: ${$json.documentType}\nWoertliche Zitate: ${JSON.stringify($json.quotesVerbatim)}\nSprengstoff-Einstufung (bestimmt die maximal erlaubte Satire-Intensitaet): ${$json.sprengstoff}\n\nErzeuge GENAU 3 satirische Varianten mit unterschiedlicher Intensitaet (niedrig, mittel, hoch innerhalb der erlaubten Spanne), jeweils im selben Schema. Jede Variante muss eigenstaendig funktionieren, ohne die anderen Varianten zu kennen.\n\nsatireIntensity-Skala:\n1 = mild ironisch\n2 = deutlich spoettisch\n3 = bissig\n4 = boese satirisch\n5 = maximal grotesk, aber faktenbasiert und rechtlich sauber\n\nIntensitaets-Obergrenze nach Sprengstoff (NICHT ueberschreiten - wird zusaetzlich technisch erzwungen):\n- KEINER: maximal 2\n- GERING: maximal 2\n- MITTEL: 3 oder 4\n- HOCH: 4 oder 5\n\nWaehle fuer die 3 Varianten unterschiedliche Werte innerhalb der erlaubten Spanne (z.B. bei MITTEL: 2, 3, 4 - bei GERING notfalls auch mehrfach 1 und 2, da die Spanne dort schmal ist).\n\nFuer JEDE Variante gilt:\n\nsatireTarget:\nZielscheibe darf nur sein: konkrete Regelung, konkretes Verfahren, belegbarer Widerspruch, politische Prioritaet, Verwaltungspraxis, Haushaltslogik, Zustaendigkeit, verspaetete Umsetzung, fehlende Vorausplanung, reaktive Politik, Doppelstandard, ungleiche Wirkung.\nNiemals eine einzelne reale Person als Zielscheibe.\nNiemals eine schutzbeduerftige Gruppe als Zielscheibe.\n\nsatireBrief:\n2 bis 3 Saetze. Enthaelt konkretes Thema, konkreten Konflikt und satirische Ueberzeichnung. Darf keine neuen Tatsachen erfinden, die nicht oben in den Fakten stehen.\n\nsatireAngle:\nBenennt den konkreten Angriffswinkel. Beschreibt, welche belegbare Absurditaet ueberzeichnet wird. Keine blossen Allgemeinbegriffe wie \"Buerokratie\", \"Chaos\", \"Verwaltungsabsurditaet\" oder \"Politikversagen\". Der Angriffswinkel muss den konkreten Vorgang wiedererkennbar machen.\n\nsatirePunchlines:\nArray mit 4 bis 6 Punchlines. Jede Punchline maximal 14 Woerter. Jede Punchline nennt einen konkreten Gegenstand, Vorgang, Ort, Betrag, Begriff oder Konflikt aus den Fakten oben. Jede Punchline muss ohne zusaetzliche Erklaerung ungefaehr verstaendlich sein. Keine allgemeine Pointe, die zu vielen anderen Vorgaengen passen wuerde.\n\nsatireDoNotClaim:\nListe von Aussagen, die NICHT sicher belegt sind und nicht behauptet werden duerfen - insbesondere, falls durch die Fakten oben nahegelegt aber nicht bewiesen: Absicht, Korruption, Betrug, persoenliche Bereicherung, Rechtswidrigkeit, konkrete Schuld einzelner Personen.\n\nsatireSafetyNote:\n1 bis 2 Saetze. Erklaert die belegbare Grundlage der Satire und welche Aussage nur satirische Ueberzeichnung ist. Falls betroffene Gruppen existieren, ausdruecklich benennen, dass sie NICHT das Ziel der Satire sind, sondern die Zustaendigen bzw. das Verfahren.\n\nHaerteregel: Eine hoehere Intensitaet darf NUR durch haertere Kritik an Verfahren, Haushalt, Planung, Priorisierung, Zustaendigkeit oder Umsetzung entstehen - niemals durch haertere Darstellung der Betroffenen.\n\nAntworte AUSSCHLIESSLICH mit einem JSON-Objekt in genau diesem Schema, keine Markdown-Codebloecke, kein Text davor oder danach:\n\n{\n  \"variants\": [\n    { \"code\": \"S1\", \"satireIntensity\": 0, \"satireTarget\": \"\", \"satireBrief\": \"\", \"satireAngle\": \"\", \"satirePunchlines\": [], \"satireDoNotClaim\": [], \"satireSafetyNote\": \"\" },\n    { \"code\": \"S2\", \"satireIntensity\": 0, \"satireTarget\": \"\", \"satireBrief\": \"\", \"satireAngle\": \"\", \"satirePunchlines\": [], \"satireDoNotClaim\": [], \"satireSafetyNote\": \"\" },\n    { \"code\": \"S3\", \"satireIntensity\": 0, \"satireTarget\": \"\", \"satireBrief\": \"\", \"satireAngle\": \"\", \"satirePunchlines\": [], \"satireDoNotClaim\": [], \"satireSafetyNote\": \"\" }\n  ]\n}`; })() }}\n"
+              "content": "=={{ (() => { return `Du erstellst SATIRISCHE ZUSPITZUNGEN samt Headline/Subline ausschliesslich auf Basis der unten gelieferten Fakten. Du erfindest keine neuen Tatsachen. Du bewertest die Fakten nicht neu, du ueberzeichnest nur die gegebenen.\n\nFAKTEN (bereits extrahiert, gelten als einzige Wahrheitsquelle):\nThema: ${$json.sourceTopic}\nKonflikt: ${$json.sourceConflict}\nPflichtbegriffe (muessen woertlich oder sinngemaess in mindestens einer Punchline UND in Headline oder Subline pro Variante vorkommen): ${JSON.stringify($json.requiredTerms)}\nKonkrete Objekte: ${JSON.stringify($json.requiredObjects)}\nHandlung/Konsequenz: ${$json.requiredAction}\nBetroffene Gruppen: ${JSON.stringify($json.affectedGroups)}\nKonkrete Zahlen/Daten: ${JSON.stringify($json.concreteNumbers)}\nZustaendigkeit: ${JSON.stringify($json.responsibilities)}\nDokumenttyp: ${$json.documentType}\nWoertliche Zitate: ${JSON.stringify($json.quotesVerbatim)}\nSprengstoff-Einstufung (bestimmt die maximal erlaubte Satire-Intensitaet): ${$json.sprengstoff}\n\nErzeuge GENAU 3 satirische Varianten mit unterschiedlicher Intensitaet (niedrig, mittel, hoch innerhalb der erlaubten Spanne), jeweils im selben Schema. Jede Variante muss eigenstaendig funktionieren, ohne die anderen Varianten zu kennen, und braucht einen eigenen Angriffswinkel, eine eigene Pointe oder einen eigenen satirischen Mechanismus - keine Synonym-Variante derselben Formulierung.\n\nsatireIntensity-Skala:\n1 = mild ironisch\n2 = deutlich spoettisch\n3 = bissig\n4 = boese satirisch\n5 = maximal grotesk, aber faktenbasiert und rechtlich sauber\n\nIntensitaets-Obergrenze nach Sprengstoff (NICHT ueberschreiten - wird zusaetzlich technisch erzwungen):\n- KEINER: maximal 2\n- GERING: maximal 2\n- MITTEL: 3 oder 4\n- HOCH: 4 oder 5\n\nWaehle fuer die 3 Varianten unterschiedliche Werte innerhalb der erlaubten Spanne (z.B. bei MITTEL: 2, 3, 4 - bei GERING notfalls auch mehrfach 1 und 2, da die Spanne dort schmal ist).\n\nFuer JEDE Variante gilt:\n\nsatireTarget:\nZielscheibe darf nur sein: konkrete Regelung, konkretes Verfahren, belegbarer Widerspruch, politische Prioritaet, Verwaltungspraxis, Haushaltslogik, Zustaendigkeit, verspaetete Umsetzung, fehlende Vorausplanung, reaktive Politik, Doppelstandard, ungleiche Wirkung.\nNiemals eine einzelne reale Person als Zielscheibe.\nNiemals eine schutzbeduerftige Gruppe als Zielscheibe.\n\nsatireBrief:\n2 bis 3 Saetze. Enthaelt konkretes Thema, konkreten Konflikt und satirische Ueberzeichnung. Darf keine neuen Tatsachen erfinden, die nicht oben in den Fakten stehen.\n\nsatireAngle:\nBenennt den konkreten Angriffswinkel. Beschreibt, welche belegbare Absurditaet ueberzeichnet wird. Keine blossen Allgemeinbegriffe wie \"Buerokratie\", \"Chaos\", \"Verwaltungsabsurditaet\" oder \"Politikversagen\". Der Angriffswinkel muss den konkreten Vorgang wiedererkennbar machen.\n\nsatirePunchlines:\nArray mit 4 bis 6 Punchlines. Jede Punchline maximal 14 Woerter. Jede Punchline nennt einen konkreten Gegenstand, Vorgang, Ort, Betrag, Begriff oder Konflikt aus den Fakten oben. Jede Punchline muss ohne zusaetzliche Erklaerung ungefaehr verstaendlich sein. Keine allgemeine Pointe, die zu vielen anderen Vorgaengen passen wuerde.\n\nsatireDoNotClaim:\nListe von Aussagen, die NICHT sicher belegt sind und nicht behauptet werden duerfen - insbesondere, falls durch die Fakten oben nahegelegt aber nicht bewiesen: Absicht, Korruption, Betrug, persoenliche Bereicherung, Rechtswidrigkeit, konkrete Schuld einzelner Personen.\n\nsatireSafetyNote:\n1 bis 2 Saetze. Erklaert die belegbare Grundlage der Satire und welche Aussage nur satirische Ueberzeichnung ist. Falls betroffene Gruppen existieren, ausdruecklich benennen, dass sie NICHT das Ziel der Satire sind, sondern die Zustaendigen bzw. das Verfahren.\n\nimageHeadline:\nMaximal 6 Woerter. Boese, absurd, plakatfaehig - aber bei sensiblen Themen niemals auf Kosten betroffener Personen. Baut direkt auf satireBrief/satireAngle/satirePunchlines derselben Variante auf.\n\nimageSubline:\nMaximal 9 Woerter. Trockene DIE-PARTEI-Reaktion gegen Verwaltung, Haushalt, Verfahren, Zustaendigkeit oder Umsetzung - niemals gegen Betroffene.\nimageHeadline und imageSubline muessen zusammen als EIN zusammenhaengender Lesefluss funktionieren, nicht als zwei unabhaengige Saetze mit eigenem Thema.\nMindestens eines der beiden Felder MUSS ein klares Themenwort aus den Fakten oben enthalten (z.B. einen der Pflichtbegriffe oder konkreten Objekte).\nMindestens ein Pflichtbegriff aus den Fakten oben MUSS woertlich oder sinngemaess in imageHeadline ODER imageSubline vorkommen.\nVerboten: brave Verwaltungssprache, neutrale Zusammenfassung, juristische Floskeln, neue Tatsachenbehauptungen ohne Faktengrundlage, Korruptionsvorwuerfe, persoenliche Angriffe auf echte Personen.\n\nHaerteregel: Eine hoehere Intensitaet darf NUR durch haertere Kritik an Verfahren, Haushalt, Planung, Priorisierung, Zustaendigkeit oder Umsetzung entstehen - niemals durch haertere Darstellung der Betroffenen. Das gilt fuer satirePunchlines UND fuer imageHeadline/imageSubline gleichermassen.\n\n==================================================\nSENSIBLE BETROFFENE / SCHUTZBEDUERFTIGE GRUPPEN\n==================================================\n\nDiese Regeln sind verbindlich und ueberschreiben alle anderen Regeln.\n\nWenn affectedGroups oben Kinder, Schueler, Menschen mit Behinderung, blinde oder sehbehinderte Menschen, kranke Menschen, alte Menschen, Unfallopfer, arme Menschen, wohnungslose Menschen, Gefluechtete oder andere schutzbeduerftige Gruppen enthaelt, gilt zusaetzlich:\n\n1. Die Satire darf niemals gegen die betroffene Person oder Gruppe gerichtet sein.\n2. Die Satire darf niemals deren Einschraenkung, Hilfsmittel, Schutzbedarf oder Lage laecherlich machen.\n3. Die satirische Zielscheibe muss Verwaltung, Haushalt, Verfahren, Zustaendigkeit, verspaetete Umsetzung, Prioritaetensetzung oder Buerokratielogik sein.\n4. Keine Formulierung, die ein Bildmodell spaeter als Gefahr, Hindernis, Demuetigung oder Spott gegen Betroffene visualisieren koennte.\n5. Wenn eine Formulierung doppeldeutig ist, waehle die sicherere Variante.\n\n==================================================\nKEIN ERZWUNGENER KONFLIKT\n==================================================\n\nEin fehlender Konflikt darf niemals durch eine unbelegte Vorgeschichte ersetzt werden. Insbesondere gilt:\n- neue Beteiligung ungleich frueherer Ausschluss\n- neue Rolle ungleich fruehere Inkompetenz\n- neue Regel ungleich vorheriges Chaos\n- neue Massnahme ungleich vorheriges Versagen\n- neue Pruefung ungleich bisherige Ignoranz\n- neue Planung ungleich bisherige Planlosigkeit\n- offene Frage ungleich fehlende Existenz\n- Forderung ungleich bisheriges Fehlen\n- erwartete Wirkung ungleich sicheres Ergebnis\n\nWenn eine Pointe nur funktioniert, weil sie eine dieser unbelegten Vorgeschichten unterstellt: verwerfen und neu formulieren.\n\n==================================================\nSELBSTPRUEFUNG VOR AUSGABE\n==================================================\n\nPruefe fuer JEDE Variante:\n1. Erkennt man das Thema, wenn man imageHeadline und imageSubline zusammen liest?\n2. Kommt mindestens ein Pflichtbegriff in imageHeadline oder imageSubline vor?\n3. Ist bei schutzbeduerftigen Gruppen die Pointe eindeutig gegen Verwaltung/Haushalt/Verfahren gerichtet, nicht gegen Betroffene?\n4. Sind imageHeadline und imageSubline zusammen EIN kohaerenter Gedanke?\n5. Ist die Pointe frei von unbelegten Vorgeschichten-Unterstellungen (siehe KEIN ERZWUNGENER KONFLIKT)?\n6. Unterscheidet sich diese Variante in Pointe und Angriffswinkel klar von den anderen beiden (nicht nur im Wortlaut)?\n\nWenn eine dieser Fragen \"nein\" ergibt: Variante neu formulieren, bevor sie ausgegeben wird.\n\nAntworte AUSSCHLIESSLICH mit einem JSON-Objekt in genau diesem Schema, keine Markdown-Codebloecke, kein Text davor oder danach:\n\n{\n  \"variants\": [\n    { \"code\": \"S1\", \"satireIntensity\": 0, \"satireTarget\": \"\", \"satireBrief\": \"\", \"satireAngle\": \"\", \"satirePunchlines\": [], \"satireDoNotClaim\": [], \"satireSafetyNote\": \"\", \"imageHeadline\": \"\", \"imageSubline\": \"\" },\n    { \"code\": \"S2\", \"satireIntensity\": 0, \"satireTarget\": \"\", \"satireBrief\": \"\", \"satireAngle\": \"\", \"satirePunchlines\": [], \"satireDoNotClaim\": [], \"satireSafetyNote\": \"\", \"imageHeadline\": \"\", \"imageSubline\": \"\" },\n    { \"code\": \"S3\", \"satireIntensity\": 0, \"satireTarget\": \"\", \"satireBrief\": \"\", \"satireAngle\": \"\", \"satirePunchlines\": [], \"satireDoNotClaim\": [], \"satireSafetyNote\": \"\", \"imageHeadline\": \"\", \"imageSubline\": \"\" }\n  ]\n}`; })() }}\n"
             }
           ]
         },
@@ -63,10 +63,10 @@
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 2.3,
       "position": [
-        432,
-        0
+        1440,
+        240
       ],
-      "id": "f7f03368-8a0f-4872-bd93-c7cda961ca0d",
+      "id": "1f27ae4f-4255-4dbb-a60a-442195433785",
       "name": "Message a model",
       "credentials": {
         "openAiApi": {
@@ -76,7 +76,44 @@
       }
     }
   ],
-  "pinData": {},
+  "pinData": {
+    "Execute Workflow Trigger": [
+      {
+        "json": {
+          "vorgangKey": "vol_10738",
+          "vorgangsnummer": "2026/195",
+          "sourceTopic": "Lagerung von Bauschutt in der Rammelsberger Straße",
+          "sourceConflict": "Anwohner befürchten gesundheitliche Risiken durch Staubentwicklung.",
+          "requiredTerms": [
+            "Bauschutt",
+            "Rammelsberger Straße",
+            "Baustelle"
+          ],
+          "requiredObjects": [
+            "Rammelsberger Straße 40",
+            "Abbruchmaterialien"
+          ],
+          "requiredAction": "Klärung der Untätigkeit durch die Stadtverwaltung.",
+          "affectedGroups": [
+            "Anwohner"
+          ],
+          "concreteNumbers": [
+            "30.06.2026",
+            "18.06.2026",
+            "über zwei Monaten"
+          ],
+          "responsibilities": [],
+          "documentType": "Anfrage",
+          "quotesVerbatim": [
+            "Lagerung von Bauschutt in der Rammelsberger Straße",
+            "Anwohner befürchten gesundheitliche Risiken durch Staubentwicklung",
+            "die Baustelle nicht ordnungsgemäß durch Bauzäune gesichert ist"
+          ],
+          "sprengstoff": "GERING"
+        }
+      }
+    ]
+  },
   "connections": {
     "Execute Workflow Trigger": {
       "main": [
@@ -117,7 +154,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "5ea85893-845b-4246-91ae-d0e55f00ba2e",
+  "versionId": "f4edf10b-47da-44d3-a720-e17164edf0eb",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "3918cd7b1079333be95f7df5d1ce0c807af27c5d6c51c5bb061c962138165169"

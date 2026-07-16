@@ -1,9 +1,9 @@
-={{ (() => { return `Du erstellst SATIRISCHE ZUSPITZUNGEN ausschliesslich auf Basis der unten gelieferten Fakten. Du erfindest keine neuen Tatsachen. Du bewertest die Fakten nicht neu, du ueberzeichnest nur die gegebenen.
+={{ (() => { return `Du erstellst SATIRISCHE ZUSPITZUNGEN samt Headline/Subline ausschliesslich auf Basis der unten gelieferten Fakten. Du erfindest keine neuen Tatsachen. Du bewertest die Fakten nicht neu, du ueberzeichnest nur die gegebenen.
 
 FAKTEN (bereits extrahiert, gelten als einzige Wahrheitsquelle):
 Thema: ${$json.sourceTopic}
 Konflikt: ${$json.sourceConflict}
-Pflichtbegriffe (muessen woertlich oder sinngemaess in mindestens einer Punchline pro Variante vorkommen): ${JSON.stringify($json.requiredTerms)}
+Pflichtbegriffe (muessen woertlich oder sinngemaess in mindestens einer Punchline UND in Headline oder Subline pro Variante vorkommen): ${JSON.stringify($json.requiredTerms)}
 Konkrete Objekte: ${JSON.stringify($json.requiredObjects)}
 Handlung/Konsequenz: ${$json.requiredAction}
 Betroffene Gruppen: ${JSON.stringify($json.affectedGroups)}
@@ -13,7 +13,7 @@ Dokumenttyp: ${$json.documentType}
 Woertliche Zitate: ${JSON.stringify($json.quotesVerbatim)}
 Sprengstoff-Einstufung (bestimmt die maximal erlaubte Satire-Intensitaet): ${$json.sprengstoff}
 
-Erzeuge GENAU 3 satirische Varianten mit unterschiedlicher Intensitaet (niedrig, mittel, hoch innerhalb der erlaubten Spanne), jeweils im selben Schema. Jede Variante muss eigenstaendig funktionieren, ohne die anderen Varianten zu kennen.
+Erzeuge GENAU 3 satirische Varianten mit unterschiedlicher Intensitaet (niedrig, mittel, hoch innerhalb der erlaubten Spanne), jeweils im selben Schema. Jede Variante muss eigenstaendig funktionieren, ohne die anderen Varianten zu kennen, und braucht einen eigenen Angriffswinkel, eine eigene Pointe oder einen eigenen satirischen Mechanismus - keine Synonym-Variante derselben Formulierung.
 
 satireIntensity-Skala:
 1 = mild ironisch
@@ -52,14 +52,69 @@ Liste von Aussagen, die NICHT sicher belegt sind und nicht behauptet werden duer
 satireSafetyNote:
 1 bis 2 Saetze. Erklaert die belegbare Grundlage der Satire und welche Aussage nur satirische Ueberzeichnung ist. Falls betroffene Gruppen existieren, ausdruecklich benennen, dass sie NICHT das Ziel der Satire sind, sondern die Zustaendigen bzw. das Verfahren.
 
-Haerteregel: Eine hoehere Intensitaet darf NUR durch haertere Kritik an Verfahren, Haushalt, Planung, Priorisierung, Zustaendigkeit oder Umsetzung entstehen - niemals durch haertere Darstellung der Betroffenen.
+imageHeadline:
+Maximal 6 Woerter. Boese, absurd, plakatfaehig - aber bei sensiblen Themen niemals auf Kosten betroffener Personen. Baut direkt auf satireBrief/satireAngle/satirePunchlines derselben Variante auf.
+
+imageSubline:
+Maximal 9 Woerter. Trockene DIE-PARTEI-Reaktion gegen Verwaltung, Haushalt, Verfahren, Zustaendigkeit oder Umsetzung - niemals gegen Betroffene.
+imageHeadline und imageSubline muessen zusammen als EIN zusammenhaengender Lesefluss funktionieren, nicht als zwei unabhaengige Saetze mit eigenem Thema.
+Mindestens eines der beiden Felder MUSS ein klares Themenwort aus den Fakten oben enthalten (z.B. einen der Pflichtbegriffe oder konkreten Objekte).
+Mindestens ein Pflichtbegriff aus den Fakten oben MUSS woertlich oder sinngemaess in imageHeadline ODER imageSubline vorkommen.
+Verboten: brave Verwaltungssprache, neutrale Zusammenfassung, juristische Floskeln, neue Tatsachenbehauptungen ohne Faktengrundlage, Korruptionsvorwuerfe, persoenliche Angriffe auf echte Personen.
+
+Haerteregel: Eine hoehere Intensitaet darf NUR durch haertere Kritik an Verfahren, Haushalt, Planung, Priorisierung, Zustaendigkeit oder Umsetzung entstehen - niemals durch haertere Darstellung der Betroffenen. Das gilt fuer satirePunchlines UND fuer imageHeadline/imageSubline gleichermassen.
+
+==================================================
+SENSIBLE BETROFFENE / SCHUTZBEDUERFTIGE GRUPPEN
+==================================================
+
+Diese Regeln sind verbindlich und ueberschreiben alle anderen Regeln.
+
+Wenn affectedGroups oben Kinder, Schueler, Menschen mit Behinderung, blinde oder sehbehinderte Menschen, kranke Menschen, alte Menschen, Unfallopfer, arme Menschen, wohnungslose Menschen, Gefluechtete oder andere schutzbeduerftige Gruppen enthaelt, gilt zusaetzlich:
+
+1. Die Satire darf niemals gegen die betroffene Person oder Gruppe gerichtet sein.
+2. Die Satire darf niemals deren Einschraenkung, Hilfsmittel, Schutzbedarf oder Lage laecherlich machen.
+3. Die satirische Zielscheibe muss Verwaltung, Haushalt, Verfahren, Zustaendigkeit, verspaetete Umsetzung, Prioritaetensetzung oder Buerokratielogik sein.
+4. Keine Formulierung, die ein Bildmodell spaeter als Gefahr, Hindernis, Demuetigung oder Spott gegen Betroffene visualisieren koennte.
+5. Wenn eine Formulierung doppeldeutig ist, waehle die sicherere Variante.
+
+==================================================
+KEIN ERZWUNGENER KONFLIKT
+==================================================
+
+Ein fehlender Konflikt darf niemals durch eine unbelegte Vorgeschichte ersetzt werden. Insbesondere gilt:
+- neue Beteiligung ungleich frueherer Ausschluss
+- neue Rolle ungleich fruehere Inkompetenz
+- neue Regel ungleich vorheriges Chaos
+- neue Massnahme ungleich vorheriges Versagen
+- neue Pruefung ungleich bisherige Ignoranz
+- neue Planung ungleich bisherige Planlosigkeit
+- offene Frage ungleich fehlende Existenz
+- Forderung ungleich bisheriges Fehlen
+- erwartete Wirkung ungleich sicheres Ergebnis
+
+Wenn eine Pointe nur funktioniert, weil sie eine dieser unbelegten Vorgeschichten unterstellt: verwerfen und neu formulieren.
+
+==================================================
+SELBSTPRUEFUNG VOR AUSGABE
+==================================================
+
+Pruefe fuer JEDE Variante:
+1. Erkennt man das Thema, wenn man imageHeadline und imageSubline zusammen liest?
+2. Kommt mindestens ein Pflichtbegriff in imageHeadline oder imageSubline vor?
+3. Ist bei schutzbeduerftigen Gruppen die Pointe eindeutig gegen Verwaltung/Haushalt/Verfahren gerichtet, nicht gegen Betroffene?
+4. Sind imageHeadline und imageSubline zusammen EIN kohaerenter Gedanke?
+5. Ist die Pointe frei von unbelegten Vorgeschichten-Unterstellungen (siehe KEIN ERZWUNGENER KONFLIKT)?
+6. Unterscheidet sich diese Variante in Pointe und Angriffswinkel klar von den anderen beiden (nicht nur im Wortlaut)?
+
+Wenn eine dieser Fragen "nein" ergibt: Variante neu formulieren, bevor sie ausgegeben wird.
 
 Antworte AUSSCHLIESSLICH mit einem JSON-Objekt in genau diesem Schema, keine Markdown-Codebloecke, kein Text davor oder danach:
 
 {
   "variants": [
-    { "code": "S1", "satireIntensity": 0, "satireTarget": "", "satireBrief": "", "satireAngle": "", "satirePunchlines": [], "satireDoNotClaim": [], "satireSafetyNote": "" },
-    { "code": "S2", "satireIntensity": 0, "satireTarget": "", "satireBrief": "", "satireAngle": "", "satirePunchlines": [], "satireDoNotClaim": [], "satireSafetyNote": "" },
-    { "code": "S3", "satireIntensity": 0, "satireTarget": "", "satireBrief": "", "satireAngle": "", "satirePunchlines": [], "satireDoNotClaim": [], "satireSafetyNote": "" }
+    { "code": "S1", "satireIntensity": 0, "satireTarget": "", "satireBrief": "", "satireAngle": "", "satirePunchlines": [], "satireDoNotClaim": [], "satireSafetyNote": "", "imageHeadline": "", "imageSubline": "" },
+    { "code": "S2", "satireIntensity": 0, "satireTarget": "", "satireBrief": "", "satireAngle": "", "satirePunchlines": [], "satireDoNotClaim": [], "satireSafetyNote": "", "imageHeadline": "", "imageSubline": "" },
+    { "code": "S3", "satireIntensity": 0, "satireTarget": "", "satireBrief": "", "satireAngle": "", "satirePunchlines": [], "satireDoNotClaim": [], "satireSafetyNote": "", "imageHeadline": "", "imageSubline": "" }
   ]
 }`; })() }}
