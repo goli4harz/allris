@@ -1,0 +1,127 @@
+{
+  "name": "ALLRIS_Bild_Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "4dee4e95-4bd0-4170-a585-922add109904",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        1008,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction asArr(v) { return Array.isArray(v) ? v.filter(Boolean).map(safeStr) : []; }\n\nconst row = $json;\n\nreturn {\n  json: {\n    vorgangKey: safeStr(row.vorgangKey),\n    vorgangsnummer: safeStr(row.vorgangsnummer),\n    sourceTopic: safeStr(row.sourceTopic),\n    requiredObjects: asArr(row.requiredObjects),\n    requiredAction: safeStr(row.requiredAction),\n    affectedGroups: asArr(row.affectedGroups),\n    satireBrief: safeStr(row.satireBrief),\n    satireAngle: safeStr(row.satireAngle),\n    satirePunchlines: asArr(row.satirePunchlines),\n    satireTarget: safeStr(row.satireTarget),\n    satireIntensity: row.satireIntensity,\n    satireDoNotClaim: asArr(row.satireDoNotClaim),\n    satireSafetyNote: safeStr(row.satireSafetyNote),\n    imageHeadline: safeStr(row.imageHeadline),\n    imageSubline: safeStr(row.imageSubline)\n  }\n};"
+      },
+      "id": "267cfbc3-0853-4905-b38e-78d5f9468713",
+      "name": "Normalisiere Eingabe",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1232,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction asArr(v) { return Array.isArray(v) ? v.filter(Boolean).map(safeStr) : []; }\n\nfunction getAiText(j) {\n  if (typeof j.content === 'string') return j.content;\n  if (typeof j.text === 'string') return j.text;\n  if (j.message && typeof j.message.content === 'string') return j.message.content;\n  if (Array.isArray(j.choices) && j.choices[0] && j.choices[0].message) return safeStr(j.choices[0].message.content);\n  if (Array.isArray(j.output)) {\n    const msg = j.output.find(function(o) { return o && o.type === 'message' && Array.isArray(o.content); });\n    const part = msg && msg.content.find(function(c) { return c && typeof c.text === 'string'; });\n    if (part) return part.text;\n  }\n  return safeStr(JSON.stringify(j));\n}\n\nfunction extractJson(text) {\n  const t = safeStr(text).replace(/```json/gi, '```').replace(/```/g, '');\n  const start = t.indexOf('{');\n  const end = t.lastIndexOf('}');\n  if (start === -1 || end === -1 || end < start) return null;\n  try { return JSON.parse(t.substring(start, end + 1)); } catch (e) { return null; }\n}\n\nconst base = $('Normalisiere Eingabe').item.json;\nconst aiText = getAiText($json);\nconst parsed = extractJson(aiText);\n\nif (!parsed) {\n  return {\n    json: {\n      vorgangKey: base.vorgangKey,\n      vorgangsnummer: base.vorgangsnummer,\n      imageHeadline: base.imageHeadline,\n      imageSubline: base.imageSubline,\n      visualMetaphor: '', visualPflichtobjekte: [], visualPflichthandlung: '',\n      visualBetroffene: [], visualOrt: '', visualUeberzeichnung: '',\n      visualErkennungssatz: '', visualVerboteneErsatzmotive: [],\n      imagePrompt: '', imageNegativePrompt: '', altText: '',\n      sensitiveTopicDetected: false, sensitiveGroup: '',\n      parseError: true\n    }\n  };\n}\n\nreturn {\n  json: {\n    vorgangKey: base.vorgangKey,\n    vorgangsnummer: base.vorgangsnummer,\n    imageHeadline: base.imageHeadline,\n    imageSubline: base.imageSubline,\n    visualMetaphor: safeStr(parsed.visualMetaphor),\n    visualPflichtobjekte: asArr(parsed.visualPflichtobjekte),\n    visualPflichthandlung: safeStr(parsed.visualPflichthandlung),\n    visualBetroffene: asArr(parsed.visualBetroffene),\n    visualOrt: safeStr(parsed.visualOrt),\n    visualUeberzeichnung: safeStr(parsed.visualUeberzeichnung),\n    visualErkennungssatz: safeStr(parsed.visualErkennungssatz),\n    visualVerboteneErsatzmotive: asArr(parsed.visualVerboteneErsatzmotive),\n    imagePrompt: safeStr(parsed.imagePrompt),\n    imageNegativePrompt: safeStr(parsed.imageNegativePrompt),\n    altText: safeStr(parsed.altText),\n    sensitiveTopicDetected: parsed.sensitiveTopicDetected === true,\n    sensitiveGroup: safeStr(parsed.sensitiveGroup),\n    parseError: false\n  }\n};"
+      },
+      "id": "3cca1f29-047e-4393-a12d-3ae19488fd81",
+      "name": "Parse Bild JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1744,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "={{ (() => { return `Du erstellst das komplette visuelle Konzept fuer ein Satire-Sharepic: visuelle Anker (Pflichtobjekte, Handlung, Ort, Ueberzeichnung, Erkennungssatz, verbotene Ersatzmotive) UND den fertigen Bildgenerierungs-Prompt samt Negativ-Prompt und Alt-Text. Du erfindest keine neuen Tatsachen. Die Headline und Subline stehen bereits fest und werden NICHT veraendert.\n\nGEWAEHLTE SATIRE-VARIANTE (bereits final, nicht veraendern):\nHeadline (fest, wortwoertlich uebernehmen): ${$json.imageHeadline}\nSubline (fest, wortwoertlich uebernehmen): ${$json.imageSubline}\nSatire-Briefing: ${$json.satireBrief}\nSatire-Angriffswinkel: ${$json.satireAngle}\nSatire-Punchlines: ${JSON.stringify($json.satirePunchlines)}\nZielscheibe der Satire: ${$json.satireTarget}\nSatire-Intensitaet: ${$json.satireIntensity}\nNicht behaupten: ${JSON.stringify($json.satireDoNotClaim)}\nSatire-Sicherheitsnotiz: ${$json.satireSafetyNote}\n\nFAKTEN (bereits extrahiert, gelten als einzige Wahrheitsquelle):\nKonkretes Thema: ${$json.sourceTopic}\nKonkrete Objekte: ${JSON.stringify($json.requiredObjects)}\nHandlung/Konsequenz: ${$json.requiredAction}\nBetroffene Gruppen: ${JSON.stringify($json.affectedGroups)}\n\n==================================================\nTEIL 1: VISUELLE ANKER\n==================================================\n\nvisualMetaphor:\n- Beschreibt genau ein Hauptmotiv.\n- Das Hauptmotiv zeigt denselben Konflikt wie satireBrief und satireAngle.\n- Hoechstens drei wesentliche Bildelemente.\n- Konkrete Sachobjekte sind besser als abstrakte Symbole.\n- Keine rein allgemeine Rathaus-, Aktenberg-, Waage-, Sparschwein-, Geldsack- oder Symbol-Metapher als Hauptmotiv.\n- Keine realistischen Behauptungen ueber erfundene Ereignisse.\n- Groteske Ueberzeichnung ist erlaubt, wenn sie eindeutig karikierend bleibt.\n\nvisualPflichtobjekte:\n- Mindestens zwei konkrete, zeichnbare Objekte oder Motivanker.\n- Besser drei.\n- Keine abstrakten Begriffe.\n- Keine reinen Rollenbegriffe.\n- Keine allgemeinen Symbole, wenn konkrete Objekte moeglich sind.\n- Keine schutzbeduerftigen Personen bei sensiblen Themen, wenn Sachobjekte ausreichen.\n- Keine Symbolobjekte wie Sparschwein, Geldsack, Waage, Aktenberg oder allgemeines Rathaus, sofern sie nicht selbst Gegenstand der Vorlage sind.\n\nGute Objektgruppen:\n- Infrastruktur: Strasse, Haltestelle, Bauzaun, Absperrbake, Rampe, Lichtsignalanlage\n- Technik: akustischer Signalgeber, Tasterkasten, taktile Bodenplatten, Leitstreifen\n- Verwaltung: Bescheid, Antrag, Aufkleber, Ratsvorlagen-Ordner, Genehmigung, Massnahmenplan\n- Haushalt als Nebenmotiv: Haushaltsordner, Foerderbescheid, Kostenstelle\n- Stadtbild: Altstadthaus, Denkmalschutz-Siegel, Plakatstaender\n- Versorgung: Bus, Kita-Tuer, Schulranzen, Waermerohr\n\nWenn nur abstrakte Inhalte vorliegen, waehle konkrete Ersatzobjekte:\n- fehlende Entscheidung -> leerer Bescheidplatz\n- Pruefung -> offener Ordner\n- Haushaltsproblem -> Haushaltsordner oder Kostenstelle\n- Barriere -> verschlossener Zugang oder endende Rampe, ohne Betroffene laecherlich zu machen\n- verzoegerte Umsetzung -> Bauzaun vor unfertiger Loesung\n\nvisualPflichthandlung:\n- Eine konkrete sichtbare Handlung oder Situation.\n- Muss im spaeteren Bild zeigbar sein.\n- Nicht nur \"pruefen\", \"diskutieren\" oder \"entscheiden\", wenn das abstrakt bleibt.\n- Abstrakte Vorgaenge als sichtbare Szene uebersetzen:\n  - Foerderung fehlt -> leerer Foerderbescheid liegt auf einem Tisch\n  - Zustaendigkeit unklar -> mehrere Schilder zeigen in verschiedene Richtungen\n  - Umsetzung verzoegert -> Bauzaun steht vor unfertiger Loesung\n  - ungleiche Verteilung -> grosse und kleine Stapel werden unterschiedlich verteilt\n  - fehlende Barrierefreiheit -> Rampe endet vor einer verschlossenen Tuer\n  - reaktive Nachruestung -> technische Hilfen werden sichtbar nachtraeglich an bestehende Anlage montiert\n\nvisualBetroffene:\n- Nur Gruppen aufnehmen, die sichtbar erscheinen duerfen oder muessen.\n- Bei sensiblen Gruppen moeglichst leer lassen, wenn das Motiv ueber Sachobjekte funktioniert.\n- Keine verletzliche Gruppe zur Pointe machen.\n- Bei sensiblen Themen darf eine betroffene Gruppe nur ruhig, wuerdevoll und nicht-karikierend erscheinen, wenn sie fuer das Verstaendnis zwingend noetig ist.\n\nBETROFFENE SIND NIE DIE POINTE (gilt IMMER, unabhaengig davon ob affectedGroups eine schutzbeduerftige Gruppe im engeren Sinn ist):\nDie in \"Betroffene Gruppen\" (affectedGroups) genannten Personen sind diejenigen, die vom Missstand betroffen sind oder sich beschweren. Sie duerfen in visualPflichthandlung, visualUeberzeichnung oder imagePrompt NIEMALS sorglos, albern, gleichgueltig, vergnuegt inmitten der Gefahr oder als Mitverursacher des Problems dargestellt werden - auch nicht komisch-uebertrieben.\nWenn sie im Bild vorkommen, dann nur als sichtbar Leidtragende, neutral oder abwesend - niemals als komische Figur. Die satirische Pointe muss visuell bei der Verwaltung/dem Verfahren bleiben (z.B. durch eine selbstzufriedene oder gleichgueltige Amtsfigur), nicht beim Verhalten der Betroffenen.\n\nvisualOrt:\n- Konkreter Ort, wenn aus Vorlage oder Thema ableitbar.\n- Beispiele: Goslar, Altstadt, Marktplatz, Strasse, Schule, Kita, Bushaltestelle, Rathausumfeld, Stadtteil, konkrete Strasse oder Kreuzung.\n- Wenn kein Ort ableitbar ist, leer lassen oder \"Goslar allgemein\" schreiben.\n\nvisualUeberzeichnung:\n- Beschreibt die satirische Uebertreibung des belegbaren Konflikts.\n- Muss denselben Konflikt wie der Satire-Angriffswinkel behandeln.\n- Grotesk erlaubt, aber ohne neue Tatsachenbehauptung.\n- Keine zusaetzlichen politischen Themen eroeffnen.\n- Bei sensiblen Themen keine Schutzlage als Metapher verwenden.\n\nvisualErkennungssatz:\n- Ein Satz, der beschreibt, woran eine aussenstehende Person das Thema erkennt.\n- Muss ohne Caption verstaendlich machen, was ungefaehr gezeigt wird.\n- Muss mindestens zwei visualPflichtobjekte und die visualPflichthandlung enthalten.\n- Muss konkretes Sachthema und konkreten Konflikt erkennbar machen.\n- Gute Form: \"Erkennbar wird das Thema durch ..., ..., und ... .\"\n\nvisualVerboteneErsatzmotive:\n- Array mit mindestens drei verbotenen Abdrift-Motiven.\n- Verbiete allgemeine Motive, die das Thema verwaessern wuerden.\n- Typische Verbote: allgemeines Rathaus, allgemeiner Aktenberg, beliebiger Geldsack, allgemeine Waage der Gerechtigkeit, zufaellige Clowns, abstraktes Politiktheater, beliebige empoerte Buergergruppe, Symbolbild ohne konkrete Pflichtobjekte, reine Finanzsymbolik als Hauptpointe.\n- Bei sensiblen Themen zusaetzlich Motive verbieten, in denen Betroffene laecherlich, hilflos, gefaehrdet oder als Pointe dargestellt werden.\n\n==================================================\nTEIL 2: BILDGENERIERUNGS-PROMPT\n==================================================\n\nFESTER BILDSTIL / STYLE LOCK (immer verwenden):\nGroteske kommunalpolitische Satire-Illustration im halb-realistischen Karikaturstil.\nSehr ausdrucksstarke ueberzeichnete Gesichter.\nGrosse aufgerissene Augen, glubschige oder hervorquellende Augen, ratlose oder fassungslose Mimik bei allgemeinen Buergerfiguren. Panische Mimik ist nur bei nicht schutzbeduerftigen anonymen Buergerfiguren erlaubt und niemals bei konkret betroffenen vulnerablen Personen.\nSelbstzufriedene, bequeme, ueberhebliche oder grotesk entspannte Amts-, Verwaltungs- oder Machtfiguren, wenn es zum Thema passt.\nLeicht ueberproportionierte Koepfe, Haende und Gesichtszuege.\nDramatische, aber klare Koerpersprache.\nDetailreiche Goslar-/Harz-/Altstadt-Anmutung, wenn thematisch sinnvoll.\nRealistische Materialien und Umgebung, aber satirisch ueberhoehte Figuren.\nPlakativ, hochwertig, scharf, kontrastreich, politisches Share-Pic, bissige Lokalpolitik-Satire.\nKein flacher Cartoon. Kein Kinderbuchstil. Kein Anime. Kein sauberes Corporate-Icon-Design.\n\nFigurenregeln:\n- Geschlechterverhaeltnis der anonymen Buerger-, Amts- und Verwaltungsfiguren muss ausgeglichen sein.\n- anonyme allgemeine Buergerfiguren duerfen ueberzeichnet, ratlos oder fassungslos wirken.\n- panische Buergerfiguren sind nur erlaubt, wenn sie nicht zur konkret betroffenen oder schutzbeduerftigen Gruppe gehoeren.\n- schutzbeduerftige oder konkret betroffene Personen duerfen nicht panisch, hilflos, laecherlich, grotesk verzerrt oder in akuter Gefahr dargestellt werden.\n- Amts-, Verwaltungs- oder Machtfiguren duerfen selbstzufrieden, bequem, ueberheblich oder grotesk entspannt wirken.\n- keine echten Personen, keine erkennbaren Politiker, keine realen Privatpersonen, keine Portraetaehnlichkeit.\n- Figuren sind immer symbolische Typen, keine konkreten Personen.\n\nimagePrompt MUSS:\n- NUR das satirische Bildmotiv beschreiben, ohne sichtbaren Text im Bild (keine Buchstaben, Ziffern, Zahlen, lesbaren Schilder/Plakate/Stempel/Aktenbeschriftungen, keine echten Logos/Wappen/Siegel).\n- mit dem konkreten Thema beginnen, das Thema bereits im ersten Satz sichtbar machen.\n- mindestens drei sichtbare Motivanker enthalten (aus visualPflichtobjekte).\n- die visuelle Metapher aus visualMetaphor verwenden, wenn sie zum Thema passt, aber maximal eine zentrale Hauptmetapher.\n- jedes wichtige Objekt muss Thema, Konflikt oder Pointe erklaeren, keine unklaren Zusatzsymbole.\n- auch ohne Headline und Subline verstaendlich bleiben.\n- immer den festen Bildstil aus STYLE LOCK verwenden.\n- keine realen Personen, keine Politikeraehnlichkeit, keine Portraetaehnlichkeit.\n- 4:5 Hochformat.\n\nReihenfolge im imagePrompt:\n1. Konkretes Thema als Motiv beschreiben\n2. Drei sichtbare Motivanker nennen\n3. Konflikt oder Pointe sichtbar machen\n4. Satirische Uebertreibung beschreiben\n5. Stil, Format und Verbote nennen\n\nimagePrompt DARF NICHT:\n- ein allgemeines Katastrophenbild erzeugen.\n- ein Bild erzeugen, dessen Thema erst durch Erklaerung verstaendlich wird.\n- die affectedGroups sorglos, albern, gleichgueltig oder vergnuegt inmitten der Gefahr zeigen (siehe BETROFFENE SIND NIE DIE POINTE oben).\n\nDer imagePrompt soll am Ende sinngemaess den Stil verankern, ungefaehr wie:\n\"consistent grotesque semi-realistic political caricature style, exaggerated facial expressions, bulging eyes for general non-vulnerable citizen figures, calm dignified vulnerable people if shown, smug municipal authority figure when appropriate, detailed Goslar old-town atmosphere, high contrast, sharp, poster-like, satirical local politics illustration, 4:5 portrait format, no visible text, no letters, no numbers, no logos, no real people\"\n\nimageNegativePrompt:\nAuf Englisch, Ausschlussliste fuer das Bildmodell. Nutze als Basis (bei Bedarf um vorgangsspezifische Begriffe ergaenzen):\n\"text, letters, words, typography, headline, subline, numbers, digits, signs, labels, captions, QR code, barcode, stamp, blurry, real people, politicians, coats of arms, seals, official logos, unclear symbols, symbolic clutter, random danger symbols, vulnerable person in danger, mocking disabled people, mocking blind people, humiliating vulnerable people, obstacle directly in front of blind person, open pit in front of blind person, mocking children, flat cartoon, anime, children book illustration, corporate vector style, generic mascot style, realistic portrait, celebrity likeness, politician likeness, real person likeness, neutral facial expressions, boring composition, unclear topic, NSFW\"\n\naltText:\nKurze Beschreibung des Sharepics fuer Screenreader, 1 bis 2 Saetze.\n\n==================================================\nVERBOTEN UEBERALL\n==================================================\n- Fakten erfinden\n- echte Personen oder Politikergesichter\n- Wappen, Siegel, amtliche Logos\n- echte Partei- oder Stadtlogos im Bildmotiv\n- unbelegte Vorwuerfe\n- diskriminierende Inhalte\n- Text/Buchstaben/Ziffern/Zahlen im Bildmotiv\n- QR-Codes oder andere Codes/Barcodes\n- Wahlaufrufe oder Wahlkampf-Slogans im Motiv\n- beleidigende Darstellung einzelner Privatpersonen\n- unklare Zusatzsymbole\n- mehrere konkurrierende Hauptmetaphern\n\n==================================================\nSENSIBLE BETROFFENE / SCHUTZBEDUERFTIGE GRUPPEN\n==================================================\nDiese Regeln sind verbindlich und ueberschreiben alle anderen Regeln.\n\nWenn affectedGroups oben Kinder, Schueler, Menschen mit Behinderung, blinde oder sehbehinderte Menschen, kranke Menschen, alte Menschen, Unfallopfer, arme Menschen, wohnungslose Menschen, Gefluechtete oder andere schutzbeduerftige Gruppen enthaelt, MUSS der imagePrompt zusaetzlich ausdruecklich enthalten:\n- keine Verhoehnung betroffener Personen\n- keine betroffene Person in akuter Gefahr\n- keine panische Darstellung schutzbeduerftiger Personen\n- keine koerperlichen Hindernisse direkt vor blinden oder sehbehinderten Personen\n- Satire richtet sich sichtbar gegen Verwaltung, Haushalt, Verfahren oder verspaetete Umsetzung\n\nWenn das Motiv eine betroffene Person zeigt, muss sie ruhig, wuerdevoll und nicht karikierend dargestellt werden.\nWenn das Motiv ohne betroffene Person verstaendlich ist, ist die Variante ohne betroffene Person zu bevorzugen.\n\nSetze in diesem Fall sensitiveTopicDetected auf true und benenne die betroffene Gruppe in sensitiveGroup.\n\nAntworte AUSSCHLIESSLICH mit einem JSON-Objekt in genau diesem Schema, keine Markdown-Codebloecke, kein Text davor oder danach:\n\n{\n  \"visualMetaphor\": \"\",\n  \"visualPflichtobjekte\": [],\n  \"visualPflichthandlung\": \"\",\n  \"visualBetroffene\": [],\n  \"visualOrt\": \"\",\n  \"visualUeberzeichnung\": \"\",\n  \"visualErkennungssatz\": \"\",\n  \"visualVerboteneErsatzmotive\": [],\n  \"imagePrompt\": \"\",\n  \"imageNegativePrompt\": \"\",\n  \"altText\": \"\",\n  \"sensitiveTopicDetected\": false,\n  \"sensitiveGroup\": \"\"\n}`; })() }}\n"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        1440,
+        256
+      ],
+      "id": "238d29bc-6b23-486c-93ee-f1cd8409bc20",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "RiT1gwJpQWzSo6NO",
+          "name": "OpenAI account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Normalisiere Eingabe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalisiere Eingabe": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Parse Bild JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "bcf17346-a1c2-4fff-932f-1511b740a694",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3918cd7b1079333be95f7df5d1ce0c807af27c5d6c51c5bb061c962138165169"
+  },
+  "id": "WR1xVNo4AjcsKlMv",
+  "tags": []
+}

@@ -37,6 +37,11 @@ Zielscheibe darf nur sein: konkrete Regelung, konkretes Verfahren, belegbarer Wi
 Niemals eine einzelne reale Person als Zielscheibe.
 Niemals eine schutzbeduerftige Gruppe als Zielscheibe.
 
+BETROFFENE SIND NIE DIE POINTE (gilt IMMER, unabhaengig davon ob affectedGroups auf der Liste schutzbeduerftiger Gruppen unten steht):
+Die in "Betroffene Gruppen" (affectedGroups) genannten Personen sind diejenigen, die vom Missstand betroffen sind oder sich beschweren - zum Beispiel Anwohner, die unter einem Missstand leiden. Sie sind NIEMALS die Pointe oder Zielscheibe der Satire.
+Sie duerfen in Punchlines, satireBrief oder satireAngle NICHT als sorglos, dumm, gleichgueltig, ignorant, vergnuegt inmitten der Gefahr oder als Mitverursacher des Problems dargestellt werden - auch nicht ironisch oder beilaeufig.
+Wenn sie erwaehnt werden, dann ausschliesslich als Leidtragende eines Verwaltungsversagens, nie als Witzfigur. Die Pointe muss bei der Verwaltung/dem Verfahren bleiben, nicht beim Verhalten oder der Reaktion der Betroffenen.
+
 satireBrief:
 2 bis 3 Saetze. Enthaelt konkretes Thema, konkreten Konflikt und satirische Ueberzeichnung. Darf keine neuen Tatsachen erfinden, die nicht oben in den Fakten stehen.
 
@@ -106,6 +111,7 @@ Pruefe fuer JEDE Variante:
 4. Sind imageHeadline und imageSubline zusammen EIN kohaerenter Gedanke?
 5. Ist die Pointe frei von unbelegten Vorgeschichten-Unterstellungen (siehe KEIN ERZWUNGENER KONFLIKT)?
 6. Unterscheidet sich diese Variante in Pointe und Angriffswinkel klar von den anderen beiden (nicht nur im Wortlaut)?
+7. Werden die affectedGroups irgendwo als sorglos, dumm, gleichgueltig oder vergnuegt inmitten der Gefahr dargestellt (siehe BETROFFENE SIND NIE DIE POINTE)? Falls ja: neu formulieren.
 
 Wenn eine dieser Fragen "nein" ergibt: Variante neu formulieren, bevor sie ausgegeben wird.
 

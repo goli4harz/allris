@@ -1,0 +1,211 @@
+={{ (() => { return `Du erstellst das komplette visuelle Konzept fuer ein Satire-Sharepic: visuelle Anker (Pflichtobjekte, Handlung, Ort, Ueberzeichnung, Erkennungssatz, verbotene Ersatzmotive) UND den fertigen Bildgenerierungs-Prompt samt Negativ-Prompt und Alt-Text. Du erfindest keine neuen Tatsachen. Die Headline und Subline stehen bereits fest und werden NICHT veraendert.
+
+GEWAEHLTE SATIRE-VARIANTE (bereits final, nicht veraendern):
+Headline (fest, wortwoertlich uebernehmen): ${$json.imageHeadline}
+Subline (fest, wortwoertlich uebernehmen): ${$json.imageSubline}
+Satire-Briefing: ${$json.satireBrief}
+Satire-Angriffswinkel: ${$json.satireAngle}
+Satire-Punchlines: ${JSON.stringify($json.satirePunchlines)}
+Zielscheibe der Satire: ${$json.satireTarget}
+Satire-Intensitaet: ${$json.satireIntensity}
+Nicht behaupten: ${JSON.stringify($json.satireDoNotClaim)}
+Satire-Sicherheitsnotiz: ${$json.satireSafetyNote}
+
+FAKTEN (bereits extrahiert, gelten als einzige Wahrheitsquelle):
+Konkretes Thema: ${$json.sourceTopic}
+Konkrete Objekte: ${JSON.stringify($json.requiredObjects)}
+Handlung/Konsequenz: ${$json.requiredAction}
+Betroffene Gruppen: ${JSON.stringify($json.affectedGroups)}
+
+==================================================
+TEIL 1: VISUELLE ANKER
+==================================================
+
+visualMetaphor:
+- Beschreibt genau ein Hauptmotiv.
+- Das Hauptmotiv zeigt denselben Konflikt wie satireBrief und satireAngle.
+- Hoechstens drei wesentliche Bildelemente.
+- Konkrete Sachobjekte sind besser als abstrakte Symbole.
+- Keine rein allgemeine Rathaus-, Aktenberg-, Waage-, Sparschwein-, Geldsack- oder Symbol-Metapher als Hauptmotiv.
+- Keine realistischen Behauptungen ueber erfundene Ereignisse.
+- Groteske Ueberzeichnung ist erlaubt, wenn sie eindeutig karikierend bleibt.
+
+visualPflichtobjekte:
+- Mindestens zwei konkrete, zeichnbare Objekte oder Motivanker.
+- Besser drei.
+- Keine abstrakten Begriffe.
+- Keine reinen Rollenbegriffe.
+- Keine allgemeinen Symbole, wenn konkrete Objekte moeglich sind.
+- Keine schutzbeduerftigen Personen bei sensiblen Themen, wenn Sachobjekte ausreichen.
+- Keine Symbolobjekte wie Sparschwein, Geldsack, Waage, Aktenberg oder allgemeines Rathaus, sofern sie nicht selbst Gegenstand der Vorlage sind.
+
+Gute Objektgruppen:
+- Infrastruktur: Strasse, Haltestelle, Bauzaun, Absperrbake, Rampe, Lichtsignalanlage
+- Technik: akustischer Signalgeber, Tasterkasten, taktile Bodenplatten, Leitstreifen
+- Verwaltung: Bescheid, Antrag, Aufkleber, Ratsvorlagen-Ordner, Genehmigung, Massnahmenplan
+- Haushalt als Nebenmotiv: Haushaltsordner, Foerderbescheid, Kostenstelle
+- Stadtbild: Altstadthaus, Denkmalschutz-Siegel, Plakatstaender
+- Versorgung: Bus, Kita-Tuer, Schulranzen, Waermerohr
+
+Wenn nur abstrakte Inhalte vorliegen, waehle konkrete Ersatzobjekte:
+- fehlende Entscheidung -> leerer Bescheidplatz
+- Pruefung -> offener Ordner
+- Haushaltsproblem -> Haushaltsordner oder Kostenstelle
+- Barriere -> verschlossener Zugang oder endende Rampe, ohne Betroffene laecherlich zu machen
+- verzoegerte Umsetzung -> Bauzaun vor unfertiger Loesung
+
+visualPflichthandlung:
+- Eine konkrete sichtbare Handlung oder Situation.
+- Muss im spaeteren Bild zeigbar sein.
+- Nicht nur "pruefen", "diskutieren" oder "entscheiden", wenn das abstrakt bleibt.
+- Abstrakte Vorgaenge als sichtbare Szene uebersetzen:
+  - Foerderung fehlt -> leerer Foerderbescheid liegt auf einem Tisch
+  - Zustaendigkeit unklar -> mehrere Schilder zeigen in verschiedene Richtungen
+  - Umsetzung verzoegert -> Bauzaun steht vor unfertiger Loesung
+  - ungleiche Verteilung -> grosse und kleine Stapel werden unterschiedlich verteilt
+  - fehlende Barrierefreiheit -> Rampe endet vor einer verschlossenen Tuer
+  - reaktive Nachruestung -> technische Hilfen werden sichtbar nachtraeglich an bestehende Anlage montiert
+
+visualBetroffene:
+- Nur Gruppen aufnehmen, die sichtbar erscheinen duerfen oder muessen.
+- Bei sensiblen Gruppen moeglichst leer lassen, wenn das Motiv ueber Sachobjekte funktioniert.
+- Keine verletzliche Gruppe zur Pointe machen.
+- Bei sensiblen Themen darf eine betroffene Gruppe nur ruhig, wuerdevoll und nicht-karikierend erscheinen, wenn sie fuer das Verstaendnis zwingend noetig ist.
+
+BETROFFENE SIND NIE DIE POINTE (gilt IMMER, unabhaengig davon ob affectedGroups eine schutzbeduerftige Gruppe im engeren Sinn ist):
+Die in "Betroffene Gruppen" (affectedGroups) genannten Personen sind diejenigen, die vom Missstand betroffen sind oder sich beschweren. Sie duerfen in visualPflichthandlung, visualUeberzeichnung oder imagePrompt NIEMALS sorglos, albern, gleichgueltig, vergnuegt inmitten der Gefahr oder als Mitverursacher des Problems dargestellt werden - auch nicht komisch-uebertrieben.
+Wenn sie im Bild vorkommen, dann nur als sichtbar Leidtragende, neutral oder abwesend - niemals als komische Figur. Die satirische Pointe muss visuell bei der Verwaltung/dem Verfahren bleiben (z.B. durch eine selbstzufriedene oder gleichgueltige Amtsfigur), nicht beim Verhalten der Betroffenen.
+
+visualOrt:
+- Konkreter Ort, wenn aus Vorlage oder Thema ableitbar.
+- Beispiele: Goslar, Altstadt, Marktplatz, Strasse, Schule, Kita, Bushaltestelle, Rathausumfeld, Stadtteil, konkrete Strasse oder Kreuzung.
+- Wenn kein Ort ableitbar ist, leer lassen oder "Goslar allgemein" schreiben.
+
+visualUeberzeichnung:
+- Beschreibt die satirische Uebertreibung des belegbaren Konflikts.
+- Muss denselben Konflikt wie der Satire-Angriffswinkel behandeln.
+- Grotesk erlaubt, aber ohne neue Tatsachenbehauptung.
+- Keine zusaetzlichen politischen Themen eroeffnen.
+- Bei sensiblen Themen keine Schutzlage als Metapher verwenden.
+
+visualErkennungssatz:
+- Ein Satz, der beschreibt, woran eine aussenstehende Person das Thema erkennt.
+- Muss ohne Caption verstaendlich machen, was ungefaehr gezeigt wird.
+- Muss mindestens zwei visualPflichtobjekte und die visualPflichthandlung enthalten.
+- Muss konkretes Sachthema und konkreten Konflikt erkennbar machen.
+- Gute Form: "Erkennbar wird das Thema durch ..., ..., und ... ."
+
+visualVerboteneErsatzmotive:
+- Array mit mindestens drei verbotenen Abdrift-Motiven.
+- Verbiete allgemeine Motive, die das Thema verwaessern wuerden.
+- Typische Verbote: allgemeines Rathaus, allgemeiner Aktenberg, beliebiger Geldsack, allgemeine Waage der Gerechtigkeit, zufaellige Clowns, abstraktes Politiktheater, beliebige empoerte Buergergruppe, Symbolbild ohne konkrete Pflichtobjekte, reine Finanzsymbolik als Hauptpointe.
+- Bei sensiblen Themen zusaetzlich Motive verbieten, in denen Betroffene laecherlich, hilflos, gefaehrdet oder als Pointe dargestellt werden.
+
+==================================================
+TEIL 2: BILDGENERIERUNGS-PROMPT
+==================================================
+
+FESTER BILDSTIL / STYLE LOCK (immer verwenden):
+Groteske kommunalpolitische Satire-Illustration im halb-realistischen Karikaturstil.
+Sehr ausdrucksstarke ueberzeichnete Gesichter.
+Grosse aufgerissene Augen, glubschige oder hervorquellende Augen, ratlose oder fassungslose Mimik bei allgemeinen Buergerfiguren. Panische Mimik ist nur bei nicht schutzbeduerftigen anonymen Buergerfiguren erlaubt und niemals bei konkret betroffenen vulnerablen Personen.
+Selbstzufriedene, bequeme, ueberhebliche oder grotesk entspannte Amts-, Verwaltungs- oder Machtfiguren, wenn es zum Thema passt.
+Leicht ueberproportionierte Koepfe, Haende und Gesichtszuege.
+Dramatische, aber klare Koerpersprache.
+Detailreiche Goslar-/Harz-/Altstadt-Anmutung, wenn thematisch sinnvoll.
+Realistische Materialien und Umgebung, aber satirisch ueberhoehte Figuren.
+Plakativ, hochwertig, scharf, kontrastreich, politisches Share-Pic, bissige Lokalpolitik-Satire.
+Kein flacher Cartoon. Kein Kinderbuchstil. Kein Anime. Kein sauberes Corporate-Icon-Design.
+
+Figurenregeln:
+- Geschlechterverhaeltnis der anonymen Buerger-, Amts- und Verwaltungsfiguren muss ausgeglichen sein.
+- anonyme allgemeine Buergerfiguren duerfen ueberzeichnet, ratlos oder fassungslos wirken.
+- panische Buergerfiguren sind nur erlaubt, wenn sie nicht zur konkret betroffenen oder schutzbeduerftigen Gruppe gehoeren.
+- schutzbeduerftige oder konkret betroffene Personen duerfen nicht panisch, hilflos, laecherlich, grotesk verzerrt oder in akuter Gefahr dargestellt werden.
+- Amts-, Verwaltungs- oder Machtfiguren duerfen selbstzufrieden, bequem, ueberheblich oder grotesk entspannt wirken.
+- keine echten Personen, keine erkennbaren Politiker, keine realen Privatpersonen, keine Portraetaehnlichkeit.
+- Figuren sind immer symbolische Typen, keine konkreten Personen.
+
+imagePrompt MUSS:
+- NUR das satirische Bildmotiv beschreiben, ohne sichtbaren Text im Bild (keine Buchstaben, Ziffern, Zahlen, lesbaren Schilder/Plakate/Stempel/Aktenbeschriftungen, keine echten Logos/Wappen/Siegel).
+- mit dem konkreten Thema beginnen, das Thema bereits im ersten Satz sichtbar machen.
+- mindestens drei sichtbare Motivanker enthalten (aus visualPflichtobjekte).
+- die visuelle Metapher aus visualMetaphor verwenden, wenn sie zum Thema passt, aber maximal eine zentrale Hauptmetapher.
+- jedes wichtige Objekt muss Thema, Konflikt oder Pointe erklaeren, keine unklaren Zusatzsymbole.
+- auch ohne Headline und Subline verstaendlich bleiben.
+- immer den festen Bildstil aus STYLE LOCK verwenden.
+- keine realen Personen, keine Politikeraehnlichkeit, keine Portraetaehnlichkeit.
+- 4:5 Hochformat.
+
+Reihenfolge im imagePrompt:
+1. Konkretes Thema als Motiv beschreiben
+2. Drei sichtbare Motivanker nennen
+3. Konflikt oder Pointe sichtbar machen
+4. Satirische Uebertreibung beschreiben
+5. Stil, Format und Verbote nennen
+
+imagePrompt DARF NICHT:
+- ein allgemeines Katastrophenbild erzeugen.
+- ein Bild erzeugen, dessen Thema erst durch Erklaerung verstaendlich wird.
+- die affectedGroups sorglos, albern, gleichgueltig oder vergnuegt inmitten der Gefahr zeigen (siehe BETROFFENE SIND NIE DIE POINTE oben).
+
+Der imagePrompt soll am Ende sinngemaess den Stil verankern, ungefaehr wie:
+"consistent grotesque semi-realistic political caricature style, exaggerated facial expressions, bulging eyes for general non-vulnerable citizen figures, calm dignified vulnerable people if shown, smug municipal authority figure when appropriate, detailed Goslar old-town atmosphere, high contrast, sharp, poster-like, satirical local politics illustration, 4:5 portrait format, no visible text, no letters, no numbers, no logos, no real people"
+
+imageNegativePrompt:
+Auf Englisch, Ausschlussliste fuer das Bildmodell. Nutze als Basis (bei Bedarf um vorgangsspezifische Begriffe ergaenzen):
+"text, letters, words, typography, headline, subline, numbers, digits, signs, labels, captions, QR code, barcode, stamp, blurry, real people, politicians, coats of arms, seals, official logos, unclear symbols, symbolic clutter, random danger symbols, vulnerable person in danger, mocking disabled people, mocking blind people, humiliating vulnerable people, obstacle directly in front of blind person, open pit in front of blind person, mocking children, flat cartoon, anime, children book illustration, corporate vector style, generic mascot style, realistic portrait, celebrity likeness, politician likeness, real person likeness, neutral facial expressions, boring composition, unclear topic, NSFW"
+
+altText:
+Kurze Beschreibung des Sharepics fuer Screenreader, 1 bis 2 Saetze.
+
+==================================================
+VERBOTEN UEBERALL
+==================================================
+- Fakten erfinden
+- echte Personen oder Politikergesichter
+- Wappen, Siegel, amtliche Logos
+- echte Partei- oder Stadtlogos im Bildmotiv
+- unbelegte Vorwuerfe
+- diskriminierende Inhalte
+- Text/Buchstaben/Ziffern/Zahlen im Bildmotiv
+- QR-Codes oder andere Codes/Barcodes
+- Wahlaufrufe oder Wahlkampf-Slogans im Motiv
+- beleidigende Darstellung einzelner Privatpersonen
+- unklare Zusatzsymbole
+- mehrere konkurrierende Hauptmetaphern
+
+==================================================
+SENSIBLE BETROFFENE / SCHUTZBEDUERFTIGE GRUPPEN
+==================================================
+Diese Regeln sind verbindlich und ueberschreiben alle anderen Regeln.
+
+Wenn affectedGroups oben Kinder, Schueler, Menschen mit Behinderung, blinde oder sehbehinderte Menschen, kranke Menschen, alte Menschen, Unfallopfer, arme Menschen, wohnungslose Menschen, Gefluechtete oder andere schutzbeduerftige Gruppen enthaelt, MUSS der imagePrompt zusaetzlich ausdruecklich enthalten:
+- keine Verhoehnung betroffener Personen
+- keine betroffene Person in akuter Gefahr
+- keine panische Darstellung schutzbeduerftiger Personen
+- keine koerperlichen Hindernisse direkt vor blinden oder sehbehinderten Personen
+- Satire richtet sich sichtbar gegen Verwaltung, Haushalt, Verfahren oder verspaetete Umsetzung
+
+Wenn das Motiv eine betroffene Person zeigt, muss sie ruhig, wuerdevoll und nicht karikierend dargestellt werden.
+Wenn das Motiv ohne betroffene Person verstaendlich ist, ist die Variante ohne betroffene Person zu bevorzugen.
+
+Setze in diesem Fall sensitiveTopicDetected auf true und benenne die betroffene Gruppe in sensitiveGroup.
+
+Antworte AUSSCHLIESSLICH mit einem JSON-Objekt in genau diesem Schema, keine Markdown-Codebloecke, kein Text davor oder danach:
+
+{
+  "visualMetaphor": "",
+  "visualPflichtobjekte": [],
+  "visualPflichthandlung": "",
+  "visualBetroffene": [],
+  "visualOrt": "",
+  "visualUeberzeichnung": "",
+  "visualErkennungssatz": "",
+  "visualVerboteneErsatzmotive": [],
+  "imagePrompt": "",
+  "imageNegativePrompt": "",
+  "altText": "",
+  "sensitiveTopicDetected": false,
+  "sensitiveGroup": ""
+}`; })() }}

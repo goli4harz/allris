@@ -13,13 +13,13 @@
           ]
         }
       },
-      "id": "51a23bab-6d2c-47bb-88fd-fd9fd359b8e2",
+      "id": "7bb1a380-c763-4b6b-b78f-acd0aa814612",
       "name": "Schedule Trigger",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.1,
       "position": [
-        20144,
-        6352
+        23536,
+        6480
       ]
     },
     {
@@ -43,26 +43,26 @@
         },
         "returnAll": true
       },
-      "id": "56419bb6-aa9f-43f5-a2ec-4c08e98c3c55",
+      "id": "4c766078-dad5-487f-aa50-f4075fea22f5",
       "name": "Hole needs_summary",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        20368,
-        6368
+        23760,
+        6496
       ]
     },
     {
       "parameters": {
         "options": {}
       },
-      "id": "7d7b5d9e-6e3e-43ac-869e-df788ac4a99c",
+      "id": "b711056f-7284-45b8-817a-21302265aef5",
       "name": "Loop Vorgänge",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        20816,
-        6368
+        24208,
+        6496
       ]
     },
     {
@@ -83,13 +83,13 @@
         "builtInTools": {},
         "options": {}
       },
-      "id": "f3a97ab0-6ed3-4760-89e6-22f70ffb9a2c",
+      "id": "a7912e8a-f15f-49fa-b6f7-4e1f60efb1d6",
       "name": "AI Zusammenfassung",
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 2.3,
       "position": [
-        21248,
-        7088
+        24640,
+        7216
       ],
       "credentials": {
         "openAiApi": {
@@ -102,13 +102,13 @@
       "parameters": {
         "jsCode": "function extractJson(text) {\n  if (!text) return null;\n  const stripped = String(text)\n    .replace(/^```(?:json)?\\s*/i, '')\n    .replace(/\\s*```\\s*$/i, '')\n    .trim();\n  const start = stripped.indexOf('{');\n  const end = stripped.lastIndexOf('}');\n  if (start === -1 || end === -1 || end <= start) return null;\n  return stripped.slice(start, end + 1);\n}\n\nfunction getAiText(item) {\n  const o = item.json.output;\n  if (o && Array.isArray(o) && o[0]?.content?.[0]?.text) {\n    return o[0].content[0].text;\n  }\n  if (Array.isArray(item.json.content)) {\n    const text = item.json.content\n      .map(entry => entry?.text || entry?.content || '')\n      .filter(Boolean)\n      .join('\\n');\n    if (text) return text;\n  }\n  return (\n    item.json.text ||\n    item.json.output_text ||\n    item.json.message?.content ||\n    item.json.choices?.[0]?.message?.content ||\n    ''\n  );\n}\n\nfunction asArray(value) {\n  if (Array.isArray(value)) {\n    return value\n      .filter(v => v !== null && v !== undefined && String(v).trim() !== '')\n      .map(v => String(v).trim());\n  }\n\n  if (typeof value === 'string' && value.trim() !== '') {\n    const t = value.trim();\n\n    try {\n      const parsed = JSON.parse(t);\n      if (Array.isArray(parsed)) {\n        return parsed.filter(Boolean).map(v => String(v).trim());\n      }\n    } catch (e) {}\n\n    return t\n      .split(/\\s*\\|\\s*/)\n      .filter(Boolean)\n      .map(v => String(v).trim());\n  }\n\n  return [];\n}\n\nfunction cleanText(value) {\n  return String(value == null ? '' : value)\n    .replace(/\\r/g, '')\n    .trim();\n}\n\nfunction normalizeKey(value) {\n  return cleanText(value).toLowerCase();\n}\n\nfunction normalizeVn(value) {\n  return cleanText(value).replace(/\\s+/g, '');\n}\n\nfunction isTechnicalPlaceholder(value) {\n  const text = cleanText(value);\n  if (!text) return true;\n\n  const normalized = text\n    .toLowerCase()\n    .replace(/[„“”\"'`´]/g, '')\n    .replace(/\\s+/g, ' ')\n    .trim();\n\n  if (['null', 'undefined', 'n/a', 'na', 'leer'].includes(normalized)) {\n    return true;\n  }\n\n  return (\n    /^\\(?dokumentlinks? gefunden,?\\s*aber kein dokumenttext extrahierbar\\)?[.!]?$/i.test(text) ||\n    /^\\(?kein dokumenttext extrahierbar\\)?[.!]?$/i.test(text) ||\n    /^\\(?keine dokumenttexte? extrahierbar\\)?[.!]?$/i.test(text) ||\n    /^\\(?kein verwertbarer dokumenttext\\)?[.!]?$/i.test(text) ||\n    /^vorgangsseite\\b.*(?:fehler|nicht erreichbar|nicht geladen|leer)/i.test(text) ||\n    /^(?:fehler|error|download fehlgeschlagen|extraktion fehlgeschlagen)\\b/i.test(text)\n  );\n}\n\nfunction getNodeItems(nodeName) {\n  try {\n    const nodeItems = $(nodeName).all(0, $runIndex);\n    return Array.isArray(nodeItems) ? nodeItems : [];\n  } catch (e) {\n    return [];\n  }\n}\n\nfunction rowUsable(candidate) {\n  if (!candidate) return false;\n  const combinedText = cleanText(candidate.combinedText);\n  return combinedText.length >= 300 && !isTechnicalPlaceholder(combinedText);\n}\n\nfunction scoreRow(candidate, expectedKey, expectedVn, expectedTitle) {\n  if (!candidate) return -999;\n  let score = 0;\n\n  const key = normalizeKey(candidate.vorgangKey);\n  const vn = normalizeVn(candidate.vorgangsnummer);\n  const title = cleanText(candidate.title).toLowerCase();\n\n  if (expectedKey) score += key === expectedKey ? 1000 : -1000;\n  if (expectedVn) score += vn === expectedVn ? 500 : -500;\n  if (expectedTitle && title && title === expectedTitle.toLowerCase()) score += 100;\n\n  if (candidate.summaryInputOk === true) score += 50;\n  if (rowUsable(candidate)) score += 25;\n  if (cleanText(candidate.summaryText).length > 50) score += 5;\n\n  return score;\n}\n\nfunction getSummarySourceRow(summary) {\n  // WICHTIGER FIX:\n  // Die KI-Zusammenfassung muss ihren eigenen VorgangKey/Vorgangsnummer zurückgeben.\n  // Dadurch wird verhindert, dass bei mehreren Items die KI-Antwort eines Vorgangs\n  // mit dem Datensatz eines anderen Vorgangs gespeichert wird.\n  const expectedKey = normalizeKey(summary?.vorgangKey || summary?.sourceVorgangKey || '');\n  const expectedVn = normalizeVn(summary?.vorgangsnummer || summary?.sourceVorgangsnummer || '');\n  const expectedTitle = cleanText(summary?.title || summary?.sourceTitle || '');\n\n  const candidateNodes = [\n    'Prepare Summary Input',\n    'Prüfe Summary Input',\n    'NC Aggregiere Texte',\n    'Prüfe vorhandenen combinedText',\n    'Prüfe vorhandene Summary',\n    'Loop Vorgänge'\n  ];\n\n  const candidates = [];\n  for (const nodeName of candidateNodes) {\n    const nodeItems = getNodeItems(nodeName);\n    for (let i = 0; i < nodeItems.length; i++) {\n      const row = nodeItems[i]?.json || null;\n      if (!row) continue;\n      candidates.push({\n        nodeName,\n        itemIndex: i,\n        row,\n        score: scoreRow(row, expectedKey, expectedVn, expectedTitle)\n      });\n    }\n  }\n\n  // Bei neuer Prompt-Version müssen diese Metadaten vorhanden sein.\n  // Ohne sie wird nur noch dann fortgesetzt, wenn wirklich exakt ein eindeutiger\n  // Vorgang im Kontext liegt. Sonst lieber blockieren als falsch speichern.\n  if (!expectedKey && !expectedVn) {\n    const keys = Array.from(new Set(\n      candidates\n        .map(c => normalizeKey(c.row.vorgangKey))\n        .filter(Boolean)\n    ));\n\n    if (keys.length === 1) {\n      const row = candidates\n        .filter(c => normalizeKey(c.row.vorgangKey) === keys[0])\n        .sort((a, b) => b.score - a.score)[0]?.row;\n      if (row) return row;\n    }\n\n    throw new Error(\n      'Parse Summary JSON blockiert: KI-Antwort enthält keinen vorgangKey/vorgangsnummer und der Kontext ist nicht eindeutig. ' +\n      'Damit würde eine falsche Zuordnung zwischen Titel und Zusammenfassung drohen.'\n    );\n  }\n\n  const matches = candidates\n    .filter(c => c.score > 0)\n    .sort((a, b) => b.score - a.score);\n\n  if (!matches.length) {\n    throw new Error(\n      'Parse Summary JSON blockiert: Kein Quelldatensatz passt zur KI-Antwort. ' +\n      'KI vorgangKey=\"' + (summary?.vorgangKey || '') + '\", vorgangsnummer=\"' + (summary?.vorgangsnummer || '') + '\".'\n    );\n  }\n\n  const best = matches[0].row;\n\n  if (expectedKey && normalizeKey(best.vorgangKey) !== expectedKey) {\n    throw new Error(\n      'Parse Summary JSON blockiert: VorgangKey-Konflikt. KI=' +\n      expectedKey + ', Datensatz=' + normalizeKey(best.vorgangKey)\n    );\n  }\n\n  if (expectedVn && normalizeVn(best.vorgangsnummer) !== expectedVn) {\n    throw new Error(\n      'Parse Summary JSON blockiert: Vorgangsnummer-Konflikt. KI=' +\n      expectedVn + ', Datensatz=' + normalizeVn(best.vorgangsnummer)\n    );\n  }\n\n  return best;\n}\n\nconst item = $input.item;\nconst rawText = getAiText(item);\nconst jsonStr = extractJson(rawText);\n\nlet summary = null;\nif (jsonStr) {\n  try {\n    summary = JSON.parse(jsonStr);\n  } catch (e) {}\n}\n\nif (!summary) {\n  // Kein sicherer Kontext ohne parsebare KI-Antwort.\n  return [{\n    json: {\n      summaryParseError: true,\n      rawSummaryText: rawText,\n      summaryJson: '{}',\n      summaryText: '',\n      summarySentences: '[]',\n      thema: '',\n      betroffene: '[]',\n      kostenHaushalt: '',\n      buergerwirkung: '',\n      offenePunkte: '[]',\n      unsicherheitenSummary: '[]',\n      status: 'summary_parse_error'\n    }\n  }];\n}\n\nconst row = getSummarySourceRow(summary);\n\n// combinedText aus dem tatsächlich verwendeten KI-Eingang erhalten.\n// Dadurch wird ein per Nextcloud/Tika erzeugter Text später in der DataTable gespeichert.\nconst combinedText = cleanText(row.combinedText);\nconst combinedTextLength = combinedText.length;\n\nconst summarySentences = asArray(summary.summarySentences);\nconst betroffene = asArray(summary.betroffene);\nconst offenePunkte = asArray(summary.offenePunkte);\nconst unsicherheiten = asArray(summary.unsicherheiten);\n\nreturn [{\n  json: {\n    ...row,\n    combinedText,\n    combinedTextLength,\n    summaryParseError: false,\n    rawSummaryText: '',\n    summaryJson: JSON.stringify(summary),\n    summarySourceVorgangKey: summary.vorgangKey || '',\n    summarySourceVorgangsnummer: summary.vorgangsnummer || '',\n    summarySourceTitle: summary.title || '',\n    summaryText: summary.summaryText || summarySentences.join(' '),\n    summarySentences: JSON.stringify(summarySentences),\n    thema: summary.thema || '',\n    betroffene: JSON.stringify(betroffene),\n    kostenHaushalt: summary.kostenHaushalt || '',\n    buergerwirkung: summary.buergerwirkung || '',\n    offenePunkte: JSON.stringify(offenePunkte),\n    unsicherheitenSummary: JSON.stringify(unsicherheiten)\n  }\n}];\n"
       },
-      "id": "5105835b-4734-4d32-a4b2-663c8108bafb",
+      "id": "809229b2-42fa-49a0-a9bd-67a9562d18ad",
       "name": "Parse Summary JSON",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        21600,
-        7088
+        24992,
+        7216
       ]
     },
     {
@@ -259,13 +259,13 @@
         },
         "options": {}
       },
-      "id": "636f1aed-658a-437e-ba8a-4a7c4acbaf11",
+      "id": "3500fc34-18d6-4cda-a809-860c00dbca06",
       "name": "Speichere Summary",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        22032,
-        7088
+        25424,
+        7216
       ],
       "alwaysOutputData": true
     },
@@ -273,13 +273,13 @@
       "parameters": {
         "jsCode": "// ── Branch-sicherer Datenzugriff (BRANCH_SAFE_SUMMARY_FIX) ──────────────────\n// Build Summary Message wird vom TRUE-Pfad (vorhandene Summary, Speichere Summary\n// wurde NICHT ausgeführt) und vom FALSE-Pfad (neue Summary) erreicht.\n// Daher darf $('Speichere Summary') NICHT direkt aufgerufen werden.\nfunction getNodeJsonIfExecuted(nodeName) {\n  try {\n    return $(nodeName).item.json || {};\n  } catch (e) {\n    return {};\n  }\n}\n\n// Loop Vorgänge ist normalerweise die Basisquelle für Vorgangsfelder.\n// V12.12: Wenn der Loop-Kontext nicht zum aktuellen Input passt, wird er verworfen.\n// Sonst können Titel und Zusammenfassung aus unterschiedlichen Vorgängen gemischt werden.\nlet baseData = getNodeJsonIfExecuted('Loop Vorgänge');\n\n// Aktueller Input hat Vorrang (enthält Summary-Felder des jeweiligen Pfads)\nconst currentData = $input.item.json || {};\n\nfunction _normKey(v) { return String(v || '').trim().toLowerCase(); }\nfunction _normVn(v) { return String(v || '').trim().replace(/\\s+/g, ''); }\n\nconst _currentKey = _normKey(currentData.vorgangKey);\nconst _baseKey = _normKey(baseData.vorgangKey);\nconst _currentVn = _normVn(currentData.vorgangsnummer);\nconst _baseVn = _normVn(baseData.vorgangsnummer);\n\nif ((_currentKey && _baseKey && _currentKey !== _baseKey) ||\n    (_currentVn && _baseVn && _currentVn !== _baseVn)) {\n  baseData = {};\n}\n\n// Merge: currentData überschreibt baseData; leere currentData-Felder\n// werden durch baseData aufgefüllt.\nconst data = { ...baseData, ...currentData };\n\n// Explizite Fallbacks für kritische Summary-Felder, damit kein gefüllter\n// Wert durch einen leeren currentData-Eintrag verloren geht.\nconst summaryText   = String(currentData.summaryText   || baseData.summaryText   || '').trim();\nconst summaryJson   = currentData.summaryJson   || baseData.summaryJson   || '';\nconst summarySentences = currentData.summarySentences || baseData.summarySentences || [];\nconst thema         = currentData.thema         || baseData.thema         || '';\nconst betroffeneRaw = currentData.betroffene    || baseData.betroffene    || '';\nconst kostenHaushalt  = currentData.kostenHaushalt  || baseData.kostenHaushalt  || '';\nconst buergerwirkung  = currentData.buergerwirkung  || baseData.buergerwirkung  || '';\nconst offenePunkteRaw = currentData.offenePunkte   || baseData.offenePunkte   || '';\nconst unsicherheitenRaw = currentData.unsicherheitenSummary || baseData.unsicherheitenSummary || '';\n\n// Basis-Vorgangsfelder aus data (immer vorhanden)\nconst j = {\n  ...data,\n  summaryText,\n  summaryJson,\n  summarySentences,\n  thema,\n  betroffene: betroffeneRaw,\n  kostenHaushalt,\n  buergerwirkung,\n  offenePunkte: offenePunkteRaw,\n  unsicherheitenSummary: unsicherheitenRaw\n};\n\n// ── Metadaten-Schutzprüfung (B4) ─────────────────────────────────────────────\nconst _guardTitle = String(j.title || '').trim();\nconst _guardVorgangsnummer = String(j.vorgangsnummer || '').trim();\nconst _HTTP_ERROR_TITLE_RE_G = /^\\s*(?:400[\\s:-]+bad\\s+request|401[\\s:-]+unauthorized|403[\\s:-]+forbidden|404[\\s:-]+not\\s+found|408[\\s:-]+request\\s+time[- ]?out|429[\\s:-]+too\\s+many\\s+requests|500[\\s:-]+internal\\s+server\\s+error|501[\\s:-]+not\\s+implemented|502[\\s:-]+bad\\s+gateway|503[\\s:-]+service\\s+unavailable|504[\\s:-]+gateway\\s*time[- ]?out)\\s*$/i;\nconst _TECH_PHRASE_RE_G = /gateway\\s*time[- ]?out|bad\\s+gateway|service\\s+unavailable|internal\\s+server\\s+error|request\\s+time[- ]?out|upstream\\s+timed\\s+out|proxy\\s+error|temporarily\\s+unavailable|too\\s+many\\s+requests|serverfehler|nginx\\s+error|cloudflare\\s+error/i;\n\nif (!_guardTitle || _HTTP_ERROR_TITLE_RE_G.test(_guardTitle) || _TECH_PHRASE_RE_G.test(_guardTitle)) {\n  throw new Error('Matrix-Ausgabe blockiert: ungültige Vorgangsmetadaten. Titel: \"' + _guardTitle + '\"');\n}\nif (!/^\\d{4}\\/\\d+(?:-\\d+)?$/.test(_guardVorgangsnummer)) {\n  throw new Error('Matrix-Ausgabe blockiert: ungültige Vorgangsnummer: \"' + _guardVorgangsnummer + '\"');\n}\n// ── Ende Schutzprüfung ─────────────────────────────────────────────────────\n\nfunction parseList(value) {\n  if (Array.isArray(value)) return value.filter(Boolean).map(v => String(v).trim());\n  if (value === null || value === undefined || value === '') return [];\n  const t = String(value).trim();\n  if (!t) return [];\n  try {\n    const parsed = JSON.parse(t);\n    if (Array.isArray(parsed)) return parsed.filter(Boolean).map(v => String(v).trim());\n  } catch (e) {}\n  return t.split(/\\s*\\|\\s*/).filter(Boolean).map(v => String(v).trim());\n}\n\nif (j.summaryParseError) {\n  const msg =\n    `⚠️ [PARSE-FEHLER Zusammenfassung] ${j.title || ''}\\n` +\n    `${j.allrisUrl || ''}\\n\\n` +\n    `Die KI-Antwort konnte nicht als JSON gelesen werden. Bitte rawSummaryText prüfen.`;\n\n  return [{\n    json: {\n      ...j,\n      summaryMessage: msg,\n      txnId: 'err_sum_' + Date.now() + '_' + (j.vorgangKey || '').replace(/[^a-zA-Z0-9]/g,'').substring(0,10)\n    }\n  }];\n}\n\nconst sentences    = parseList(j.summarySentences);\nconst betroffene   = parseList(j.betroffene);\nconst offenePunkte = parseList(j.offenePunkte);\nconst unsicherheiten = parseList(j.unsicherheitenSummary);\n\n\n// ── Vorgangskette-Block für Matrix (nur bei Folgevorgängen) ──────────────────\nlet vorgangsketteBlock = '';\n\nif (j.istFolgevorgang === true || String(j.istFolgevorgang || '').trim() === 'true') {\n  const details = Array.isArray(j.vorgangsketteDetails) ? j.vorgangsketteDetails : [];\n  const fehlend = Array.isArray(j.fehlendeVorherigeVorgaenge) ? j.fehlendeVorherigeVorgaenge : [];\n  const vollstaendig = j.vorgangsketteVollstaendig === true;\n\n  let ketteLines = ['', 'Bezug zu vorherigen Vorgängen:', ''];\n  ketteLines.push(`* Stammvorgang: ${j.stammVorgangsnummer || ''}`);\n\n  const berücksichtigt = details.filter(d => d.gefunden && d.kontextVerwendet);\n  const nichtBerücksichtigt = details.filter(d => d.gefunden && !d.kontextVerwendet);\n\n  if (berücksichtigt.length > 0) {\n    ketteLines.push('* Berücksichtigte Vorgänge:');\n    for (const d of berücksichtigt) {\n      const quelleText = d.kontextQuelle === 'summary'\n        ? 'vorhandene Zusammenfassung'\n        : 'Dokumenttext als Fallback';\n      ketteLines.push(`  * ${d.vorgangsnummer} – ${quelleText}`);\n    }\n  }\n\n  if (nichtBerücksichtigt.length > 0) {\n    ketteLines.push('* Gefunden, aber in diesem Lauf nicht als Kontext verfügbar:');\n    for (const d of nichtBerücksichtigt) {\n      ketteLines.push(`  * ${d.vorgangsnummer}`);\n    }\n  }\n\n  if (fehlend.length > 0) {\n    ketteLines.push('* Fehlende Vorgänge:');\n    for (const vn of fehlend) {\n      ketteLines.push(`  * ${vn}`);\n    }\n  }\n\n  ketteLines.push(`* Vorgangskette vollständig: ${vollstaendig ? 'Ja' : 'Nein'}`);\n  vorgangsketteBlock = ketteLines.join('\\n');\n}\n\nlet msg = `📄 Neue ALLRIS-Vorlage\\n\\n`;\nmsg += `Titel:\\n${j.title || ''}\\n\\n`;\nmsg += `Vorgangsnummer:\\n${j.vorgangsnummer || ''}\\n\\n`;\nmsg += `Link:\\n${j.allrisUrl || ''}\\n\\n`;\n\nif (vorgangsketteBlock) { msg += vorgangsketteBlock + '\\n\\n'; }\n\nmsg += `Kurzfassung:\\n`;\n\nlet summaryBlock = '';\n\nif (j.summaryText && String(j.summaryText).trim()) {\n  summaryBlock = String(j.summaryText).trim();\n} else if (sentences.length > 0) {\n  summaryBlock = sentences.join(' ');\n} else {\n  summaryBlock = '(keine Zusammenfassung)';\n}\n\nsummaryBlock = summaryBlock\n  .replace(/\\r\\n/g, '\\n')\n  .replace(/[ \\t]+\\n/g, '\\n')\n  .replace(/\\n{3,}/g, '\\n\\n')\n  .trim();\n\nmsg += summaryBlock;\n\nmsg += `\\n\\nEinordnung:\\n`;\nmsg += `- Thema: ${j.thema || '—'}\\n`;\nmsg += `- Betroffene: ${betroffene.join(', ') || '—'}\\n`;\nmsg += `- Kosten/Haushalt: ${j.kostenHaushalt || '—'}\\n`;\nmsg += `- Bürgerwirkung: ${j.buergerwirkung || '—'}\\n`;\n\nif (offenePunkte.length > 0) {\n  msg += `- Offene Punkte:\\n` + offenePunkte.map(p => `  • ${p}`).join('\\n') + '\\n';\n}\n\nif (unsicherheiten.length > 0) {\n  msg += `- Unsicherheiten:\\n` + unsicherheiten.map(p => `  • ${p}`).join('\\n') + '\\n';\n}\n\nconst txnId = 'sum_' + Date.now() + '_' + (j.vorgangKey || '').replace(/[^a-zA-Z0-9]/g,'').substring(0,10);\n\nreturn [{\n  json: {\n    ...j,\n    summaryMessage: msg,\n    txnId\n  }\n}];\n"
       },
-      "id": "f974d27a-c3ab-44bb-b85f-6b48d586fb85",
+      "id": "6c6cf9f2-c66d-4e01-8988-3ed22ea8ae3f",
       "name": "Build Summary Message",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        22256,
-        7088
+        25648,
+        7216
       ]
     },
     {
@@ -305,13 +305,13 @@
           "timeout": 30000
         }
       },
-      "id": "9b1486fb-1537-4aff-a4c8-ab828bfb75cf",
+      "id": "ef47dc88-bf93-46e9-9f86-c2e41165cb3a",
       "name": "Send Matrix Raum A",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        22496,
-        6816
+        25888,
+        6944
       ],
       "credentials": {
         "httpHeaderAuth": {
@@ -370,13 +370,13 @@
         },
         "options": {}
       },
-      "id": "980d050e-78e6-4174-8f17-29270bbd7664",
+      "id": "f415c2a4-db83-4802-b918-2d668544caf6",
       "name": "Mark Summary Posted",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        23168,
-        6816
+        26560,
+        6944
       ],
       "alwaysOutputData": true
     },
@@ -398,13 +398,13 @@
         "builtInTools": {},
         "options": {}
       },
-      "id": "3da4ad76-0fb5-4134-943e-7ba3b9dde305",
+      "id": "ee01d21c-cdd4-46ce-8fe1-dc00b7ddbcda",
       "name": "AI Analyse JSON",
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 2.3,
       "position": [
-        22672,
-        7088
+        26064,
+        7216
       ],
       "retryOnFail": true,
       "credentials": {
@@ -418,13 +418,13 @@
       "parameters": {
         "jsCode": "// n8n Code Node: \"Parse Analyse JSON\"\n// Dieser Code ersetzt den bisherigen Code im Node vollständig.\n//\n// Zweck:\n// 1. KI-Rohantwort aus \"AI Analyse JSON\" lesen\n// 2. JSON daraus extrahieren\n// 3. Ursprüngliche Vorgangsdaten aus \"Prepare Analyse Input\" zurückholen\n// 4. Bewertung normalisieren\n// 5. Visual Guard anwenden\n// 6. NUR vorhandene DataTable-Spalten befüllen\n//\n// Keine neuen Spalten nötig.\n// Detaildaten bleiben in:\n// - analysisJson.sourceLock\n// - analysisJson.visualAnchors\n// - analysisJson.visualWorkflow\n// - analysisJson.visualGuardErrors\n\nfunction extractJson(text) {\n  if (!text) return null;\n\n  const stripped = String(text)\n    .replace(/^```(?:json)?\\s*/i, '')\n    .replace(/\\s*```\\s*$/i, '')\n    .trim();\n\n  const start = stripped.indexOf('{');\n  const end = stripped.lastIndexOf('}');\n\n  if (start === -1 || end === -1 || end <= start) return null;\n\n  return stripped.slice(start, end + 1);\n}\n\nfunction getAiText(item) {\n  const j = item.json || {};\n\n  const o = j.output;\n  if (o && Array.isArray(o) && o[0]?.content?.[0]?.text) {\n    return o[0].content[0].text;\n  }\n\n  if (Array.isArray(j.content)) {\n    const text = j.content\n      .map(entry => entry?.text || entry?.content || '')\n      .filter(Boolean)\n      .join('\\n');\n\n    if (text) return text;\n  }\n\n  return (\n    j.text ||\n    j.output_text ||\n    j.message?.content ||\n    j.choices?.[0]?.message?.content ||\n    ''\n  );\n}\n\nfunction getNodeItems(nodeName) {\n  try {\n    const items = $(nodeName).all(0, $runIndex);\n    return Array.isArray(items) ? items : [];\n  } catch (e) {\n    try {\n      const items = $(nodeName).all();\n      return Array.isArray(items) ? items : [];\n    } catch (e2) {\n      return [];\n    }\n  }\n}\n\nfunction getPrepareAnalyseRow() {\n  const items = getNodeItems('Prepare Analyse Input');\n\n  if (items.length === 1 && items[0]?.json) {\n    return items[0].json;\n  }\n\n  try {\n    const j = $('Prepare Analyse Input').item.json;\n    if (j && Object.keys(j).length > 0) return j;\n  } catch (e) {}\n\n  if (items.length > 0 && items[0]?.json) {\n    return items[0].json;\n  }\n\n  return {};\n}\n\nfunction safeStr(v) {\n  return v === null || v === undefined ? '' : String(v).trim();\n}\n\nfunction normalizeText(v) {\n  return safeStr(v)\n    .toLowerCase()\n    .replace(/ä/g, 'ae')\n    .replace(/ö/g, 'oe')\n    .replace(/ü/g, 'ue')\n    .replace(/ß/g, 'ss')\n    .replace(/[„“”\"'`´]/g, '')\n    .replace(/[\\-–—]/g, ' ')\n    .replace(/[^a-z0-9]+/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n\n  if (typeof v === 'string') {\n    try {\n      const p = JSON.parse(v);\n      if (p && typeof p === 'object' && !Array.isArray(p)) return p;\n    } catch (e) {}\n  }\n\n  return {};\n}\n\nfunction asArray(v) {\n  if (Array.isArray(v)) {\n    return v\n      .filter(x => x !== null && x !== undefined && safeStr(x) !== '')\n      .map(x => safeStr(x));\n  }\n\n  if (v === null || v === undefined || v === '') return [];\n\n  if (typeof v === 'string') {\n    const t = v.trim();\n    if (!t) return [];\n\n    try {\n      const p = JSON.parse(t);\n      if (Array.isArray(p)) {\n        return p\n          .filter(x => x !== null && x !== undefined && safeStr(x) !== '')\n          .map(x => safeStr(x));\n      }\n    } catch (e) {}\n\n    return t\n      .split(/\\s*\\|\\s*/)\n      .map(x => safeStr(x))\n      .filter(Boolean);\n  }\n\n  return [safeStr(v)].filter(Boolean);\n}\n\nfunction uniqueArray(arr) {\n  const out = [];\n  const seen = new Set();\n\n  for (const item of asArray(arr)) {\n    const key = normalizeText(item);\n    if (!key || seen.has(key)) continue;\n    seen.add(key);\n    out.push(item);\n  }\n\n  return out;\n}\n\nfunction hasValue(v) {\n  if (Array.isArray(v)) return v.length > 0;\n  if (v && typeof v === 'object') return Object.keys(v).length > 0;\n  return safeStr(v).length > 0;\n}\n\nfunction pick(primary, fallback, fallback2 = '') {\n  if (hasValue(primary)) return primary;\n  if (hasValue(fallback)) return fallback;\n  return fallback2;\n}\n\nfunction toNumber(v, fallback = 0) {\n  const n = Number(String(v ?? '').replace(',', '.'));\n  return Number.isFinite(n) ? n : fallback;\n}\n\nfunction toBool(v) {\n  if (v === true || v === 1) return true;\n  if (v === false || v === 0 || v === null || v === undefined) return false;\n\n  const s = String(v).trim().toLowerCase();\n  return ['true', '1', 'yes', 'ja', 'y'].includes(s);\n}\n\nfunction enumValue(v, allowed, fallback) {\n  const s = safeStr(v).toUpperCase();\n  return allowed.includes(s) ? s : fallback;\n}\n\nfunction clamp(n, min, max) {\n  return Math.max(min, Math.min(max, n));\n}\n\nfunction atLeastSprengstoff(current, minimum) {\n  const order = { KEINER: 0, GERING: 1, MITTEL: 2, HOCH: 3 };\n  const reverse = ['KEINER', 'GERING', 'MITTEL', 'HOCH'];\n  return reverse[Math.max(order[current] ?? 0, order[minimum] ?? 0)];\n}\n\n// ============================================================\n// 1. KI-ANTWORT PARSEN\n// ============================================================\n\nconst item = $input.item;\nconst rowData = getPrepareAnalyseRow();\nconst rawText = getAiText(item);\nconst jsonStr = extractJson(rawText);\n\nlet analysis = null;\nlet parseError = false;\n\nif (jsonStr) {\n  try {\n    analysis = JSON.parse(jsonStr);\n  } catch (e) {\n    parseError = true;\n  }\n} else {\n  parseError = true;\n}\n\nif (parseError || !analysis) {\n  return [{\n    json: {\n      ...rowData,\n      analysisParseError: true,\n      rawAiText: rawText,\n      analysisJson: '{}',\n\n      relevantScore: 0,\n      sprengstoff: 'KEINER',\n      empfehlung: 'BEOBACHTEN',\n      kommunikationspotenzial: 0,\n      themes: '',\n      matrixKurzbetreff: '[FEHLER] ' + (rowData.title || ''),\n      ampel: '⚪',\n\n      kurzfassung: '',\n      kritischeNachfrage: '',\n      begruendungBewertung: '',\n      werProfitiert: '',\n      werZahltOderTraegtNachteile: '',\n      warumRelevant: '',\n      belegbareFakten: '',\n      unsicherheiten: '',\n      warnsignale: '',\n\n      instagramCarouselNoetig: false,\n\n      visualStatus: 'analysis_error',\n      instagramSharepicNoetig: false,\n      visualDecisionReason: 'Analyse-JSON konnte nicht verarbeitet werden',\n      visualNeeded: false,\n\n      satireBrief: '',\n      satireAngle: '',\n      satirePunchlines: '[]',\n      visualMetaphor: '',\n      satireTarget: '',\n      satireIntensity: 0,\n      satireDoNotClaim: '[]',\n      satireSafetyNote: '',\n\n      satireWorkflowVersion: 'satire-parse-guard-existing-columns-v3',\n      status: 'analysis_error'\n    }\n  }];\n}\n\nconst s = analysis;\n\n// ============================================================\n// 2. SOURCELOCK UND VISUAL ANCHORS LESEN\n// ============================================================\n\nconst nestedSourceLock = parseObj(s.sourceLock);\nconst nestedVisualAnchors = parseObj(s.visualAnchors);\n\nlet sourceLock = {\n  sourceTopic: safeStr(pick(nestedSourceLock.sourceTopic, s.sourceTopic)),\n  sourceConflict: safeStr(pick(nestedSourceLock.sourceConflict, s.sourceConflict)),\n  requiredTerms: uniqueArray(pick(nestedSourceLock.requiredTerms, s.requiredTerms, [])),\n  requiredObjects: uniqueArray(pick(nestedSourceLock.requiredObjects, s.requiredObjects, [])),\n  requiredAction: safeStr(pick(nestedSourceLock.requiredAction, s.requiredAction)),\n  affectedGroups: uniqueArray(pick(nestedSourceLock.affectedGroups, s.affectedGroups, [])),\n  forbiddenDrift: uniqueArray(pick(nestedSourceLock.forbiddenDrift, s.forbiddenDrift, []))\n};\n\nlet visualAnchors = {\n  satireThemaKonkret: safeStr(pick(nestedVisualAnchors.satireThemaKonkret, s.satireThemaKonkret)),\n  satireKonfliktKonkret: safeStr(pick(nestedVisualAnchors.satireKonfliktKonkret, s.satireKonfliktKonkret)),\n  visualPflichtobjekte: uniqueArray(pick(nestedVisualAnchors.visualPflichtobjekte, s.visualPflichtobjekte, [])),\n  visualPflichthandlung: safeStr(pick(nestedVisualAnchors.visualPflichthandlung, s.visualPflichthandlung)),\n  visualBetroffene: uniqueArray(pick(nestedVisualAnchors.visualBetroffene, s.visualBetroffene, [])),\n  visualOrt: safeStr(pick(nestedVisualAnchors.visualOrt, s.visualOrt || '')),\n  visualUeberzeichnung: safeStr(pick(nestedVisualAnchors.visualUeberzeichnung, s.visualUeberzeichnung)),\n  visualErkennungssatz: safeStr(pick(nestedVisualAnchors.visualErkennungssatz, s.visualErkennungssatz)),\n  visualVerboteneErsatzmotive: uniqueArray(pick(nestedVisualAnchors.visualVerboteneErsatzmotive, s.visualVerboteneErsatzmotive, []))\n};\n\n// ============================================================\n// 3. QUELLTEXT FÜR KONTEXT\n// ============================================================\n\nconst sourceText = [\n  rowData.title,\n  rowData.vorgangsnummer,\n  rowData.summaryText,\n  rowData.thema,\n  rowData.betroffene,\n  rowData.kostenHaushalt,\n  rowData.buergerwirkung,\n  rowData.offenePunkte,\n  rowData.unsicherheitenSummary,\n  rowData.combinedText,\n  rowData.analyseContext\n].map(safeStr).join('\\n');\n\nconst sourceNorm = normalizeText(sourceText);\n\n// ============================================================\n// 4. ENTSCHEIDUNGSFELDER NORMALISIEREN\n// ============================================================\n\nlet relevanz = toNumber(s.relevanz, 0);\nlet kommunikationspotenzial = toNumber(s.kommunikationspotenzial, 0);\n\nlet sprengstoff = enumValue(\n  s.sprengstoff,\n  ['KEINER', 'GERING', 'MITTEL', 'HOCH'],\n  'KEINER'\n);\n\nlet empfehlung = enumValue(\n  s.empfehlung,\n  ['IGNORIEREN', 'BEOBACHTEN', 'REAGIEREN'],\n  'BEOBACHTEN'\n);\n\nconst ungleichFlag =\n  s.ungleichbehandlungErkannt === true ||\n  s.willkuerErkannt === true ||\n  s.doppelstandardErkannt === true;\n\nif (ungleichFlag) {\n  relevanz = Math.max(relevanz, 8);\n  kommunikationspotenzial = Math.max(kommunikationspotenzial, 8);\n  sprengstoff = atLeastSprengstoff(sprengstoff, 'MITTEL');\n  empfehlung = 'REAGIEREN';\n}\n\nif (\n  (relevanz >= 7 && kommunikationspotenzial >= 7) ||\n  sprengstoff === 'HOCH' ||\n  (sprengstoff === 'MITTEL' && relevanz >= 7) ||\n  (s.oeffentlicheGelderBetroffen === true && relevanz >= 6)\n) {\n  empfehlung = 'REAGIEREN';\n} else if (relevanz >= 5 && empfehlung !== 'REAGIEREN') {\n  empfehlung = 'BEOBACHTEN';\n} else if (\n  relevanz <= 4 &&\n  sprengstoff === 'KEINER' &&\n  asArray(s.warnsignale).length === 0 &&\n  !ungleichFlag\n) {\n  empfehlung = 'IGNORIEREN';\n}\n\nconst ampelMap = {\n  KEINER: '⚪',\n  GERING: '🟡',\n  MITTEL: '🟠',\n  HOCH: '🔴'\n};\n\nconst ampel = ampelMap[sprengstoff] || '⚪';\n\nlet reaktionNoetig = toBool(s.reaktionNoetig);\n\nif (empfehlung === 'REAGIEREN') reaktionNoetig = true;\nif (empfehlung === 'IGNORIEREN') reaktionNoetig = false;\n\nconst maxIntensityBySprengstoff = {\n  KEINER: 2,\n  GERING: 2,\n  MITTEL: 4,\n  HOCH: 5\n};\n\nlet satireIntensity = toNumber(s.satireIntensity, 1);\nsatireIntensity = clamp(satireIntensity, 1, maxIntensityBySprengstoff[sprengstoff] || 2);\n\n// ============================================================\n// 5. SENSIBLE THEMEN ERKENNEN\n// ============================================================\n\nconst sensitiveContextText = normalizeText([\n  sourceText,\n  sourceLock.affectedGroups.join(' '),\n  s.kurzfassung,\n  s.warumRelevant,\n  s.begruendungBewertung,\n  s.moeglicheSatirischeReaktion,\n  s.satireBrief,\n  s.visualMetaphor\n].join(' '));\n\nconst sensitiveContext =\n  /\\b(minderjaehrig|minderjaehrige|kind|kinder|schueler|schuelerin|schuelerinnen|schuelern|behinderung|behindert|barrierefrei|barrierefreiheit|blind|blinde|blinder|sehbehindert|taub|krank|pflege|rollstuhl|gefluechtet|wohnungslos|obdachlos|armut|opfer|notlage)\\b/.test(sensitiveContextText);\n\nfunction isAllowedSensitiveSachobjekt(text) {\n  const n = normalizeText(text);\n\n  return /\\b(lichtsignalanlage|ampel|signalanlage|signalgeber|akustischer signalgeber|taster|tasterkasten|taktile bodenplatten|bodenplatten|leitstreifen|rampe|rollstuhlrampe|barrierefreier zugang|barrierefreier taster|bordsteinabsenkung|massnahmenplan|maßnahmenplan|fussgaengerfurt|fussgaengerueberweg|querung|verkehrsinsel)\\b/.test(n);\n}\n\nfunction containsSensitivePerson(text) {\n  const n = normalizeText(text);\n  if (!n) return false;\n  if (isAllowedSensitiveSachobjekt(n)) return false;\n\n  return /\\b(blinder|blinde|blindem|blinden|sehbehinderter|sehbehinderte|sehbehinderten|mensch mit behinderung|menschen mit behinderung|behinderter|behinderte|behinderten|schueler|schuelerin|schuelerinnen|schuelern|kind|kinder|minderjaehriger|minderjaehrige|patient|patientin|pflegebeduerftiger|pflegebeduerftige|rollstuhlfahrer|gefluechteter|gefluechtete|wohnungsloser|wohnungslose|obdachloser|obdachlose|kranker|kranke)\\b/.test(n);\n}\n\nfunction containsSensitiveScene(text) {\n  const n = normalizeText(text);\n  if (!n || !sensitiveContext) return false;\n\n  if (/\\b(ein|eine|der|die|gruppe|gruppe von|mehrere|kleine gruppe)\\s+(blinder|blinde|blindem|blinden|sehbehinderter|sehbehinderte|sehbehinderten|schueler|schuelerin|schuelerinnen|kind|kinder|rollstuhlfahrer|behinderte|behinderten)\\b/.test(n)) {\n    return true;\n  }\n\n  if (/\\b(blinder|blinde|blinden|sehbehinderte|sehbehinderten|schueler|schuelerin|schuelerinnen|kind|kinder|rollstuhlfahrer|behinderte|behinderten)\\b.{0,90}\\b(tippt|drueckt|zeigt|stehen|steht|warten|wartet|laufen|laeuft|irren|irrt|suchen|sucht|stolpern|stolpert|queren|ueberqueren)\\b/.test(n)) {\n    return true;\n  }\n\n  if (/\\b(blinde|blinder|blinden|sehbehinderte|schueler|kinder|rollstuhlfahrer|behinderte)\\b.{0,120}\\b(gefahr|gefaehrdet|verunsichert|hilflos|panik|panisch|unfall|verkehrschaos|risiko|dramatisch)\\b/.test(n)) {\n    return true;\n  }\n\n  return false;\n}\n\nfunction containsSensitiveMetaphor(text) {\n  const n = normalizeText(text);\n  if (!n || !sensitiveContext) return false;\n\n  if (/\\bblind(e|er|es|en)?\\s+(sparschwein|haushalt|verwaltung|planung|politik|ampel|stadt|verfahren|rathaus)\\b/.test(n)) return true;\n\n  if (/\\b(taub(e|er|es|en)?|lahm(e|er|es|en)?|krank(e|er|es|en)?|hilflos(e|er|es|en)?)\\s+(verwaltung|planung|haushalt|politik|ampel|stadt|verfahren|rathaus)\\b/.test(n)) return true;\n\n  if (/barrierefreiheit.{0,60}\\b(luxus|spass|spasz|spaß|teurer spass|teurer spasz|teurer spaß|uebertriebene forderung|übertriebene forderung)\\b/.test(n)) return true;\n\n  return false;\n}\n\n// ============================================================\n// 6. SYMBOL-DRIFT ERKENNEN\n// ============================================================\n\nconst forbiddenSymbolRe =\n  /\\b(sparschwein|geldsack|waage|aktenberg|rathaus|nebel|monster|hai|haie|marionette|marionetten|theaterbuehne|theaterbühne|theater|clown|clowns|maskottchen)\\b/;\n\nfunction sourceContainsExactTerm(term) {\n  const n = normalizeText(term);\n  if (!n || n.length < 3) return false;\n  return sourceNorm.includes(n);\n}\n\nfunction isForbiddenSymbolObject(text) {\n  const n = normalizeText(text);\n  if (!n) return false;\n  if (!forbiddenSymbolRe.test(n)) return false;\n\n  return !sourceContainsExactTerm(text);\n}\n\nconst genericObjectSet = new Set([\n  'stadt',\n  'verwaltung',\n  'politik',\n  'buerokratie',\n  'bürokratie',\n  'gerechtigkeit',\n  'haushalt',\n  'kosten',\n  'finanzierung',\n  'massnahme',\n  'maßnahme',\n  'verfahren',\n  'gremium',\n  'beschluss',\n  'antrag',\n  'vorlage',\n  'thema',\n  'konflikt',\n  'situation',\n  'problem',\n  'prioritaet',\n  'priorität',\n  'zustaendigkeit',\n  'zuständigkeit',\n  'planung',\n  'umsetzung'\n].map(normalizeText));\n\nfunction isConcreteObject(text) {\n  const n = normalizeText(text);\n  if (!n || n.length < 3) return false;\n  if (genericObjectSet.has(n)) return false;\n  if (isForbiddenSymbolObject(text)) return false;\n  if (sensitiveContext && containsSensitivePerson(text)) return false;\n  return true;\n}\n\nfunction concreteCount(arr) {\n  return asArray(arr).filter(isConcreteObject).length;\n}\n\n// ============================================================\n// 7. FORBIDDENDRIFT BEREINIGEN\n// ============================================================\n\nconst genuineParts = new Set([\n  'finanzierung',\n  'haushalt',\n  'kosten',\n  'haushaltsreste',\n  'haushaltsrest',\n  'massnahme',\n  'maßnahme',\n  'ort',\n  'gremium',\n  'sachobjekt',\n  'einrichtung',\n  'lichtsignalanlage',\n  'ampel',\n  'signalgeber',\n  'taster',\n  'tasterkasten',\n  'bodenplatten',\n  'leitstreifen',\n  'barrierefreiheit',\n  'barrierefrei',\n  'heinerich pieper strasse',\n  'heinrich pieper strasse',\n  'berliner allee'\n].map(normalizeText));\n\nconst requiredSet = new Set([\n  ...sourceLock.requiredTerms,\n  ...sourceLock.requiredObjects,\n  sourceLock.requiredAction,\n  visualAnchors.satireThemaKonkret,\n  visualAnchors.visualOrt\n].map(normalizeText).filter(Boolean));\n\nsourceLock.forbiddenDrift = uniqueArray(sourceLock.forbiddenDrift).filter(d => {\n  const n = normalizeText(d);\n  if (!n) return false;\n  if (genuineParts.has(n)) return false;\n  if (requiredSet.has(n)) return false;\n  return true;\n});\n\nconst fallbackForbiddenDrift = [\n  'allgemeine Rathaus-Satire ohne konkreten Vorgangsbezug',\n  'allgemeiner Aktenberg als Hauptmotiv',\n  'beliebiger Geldsack oder reine Finanzsymbolik als Hauptpointe',\n  'Pointe auf Kosten schutzbedürftiger Betroffener',\n  'Korruptionsunterstellung oder persönliche Schuldzuweisung'\n];\n\nfor (const d of fallbackForbiddenDrift) {\n  if (sourceLock.forbiddenDrift.length >= 3) break;\n  if (!sourceLock.forbiddenDrift.some(x => normalizeText(x) === normalizeText(d))) {\n    sourceLock.forbiddenDrift.push(d);\n  }\n}\n\n// ============================================================\n// 8. VALIDIERUNG SOURCELOCK + VISUAL ANCHORS\n// ============================================================\n\nconst sourceLockErrors = [];\n\nif (!sourceLock.sourceTopic) {\n  sourceLockErrors.push('sourceLock.sourceTopic fehlt');\n}\n\nif (!sourceLock.sourceConflict) {\n  sourceLockErrors.push('sourceLock.sourceConflict fehlt');\n}\n\nif (sourceLock.requiredTerms.length < 2) {\n  sourceLockErrors.push('sourceLock.requiredTerms enthält weniger als 2 Begriffe');\n}\n\nif (concreteCount(sourceLock.requiredObjects) < 2) {\n  sourceLockErrors.push('sourceLock.requiredObjects enthält weniger als 2 konkrete Objekte');\n}\n\nif (!sourceLock.requiredAction) {\n  sourceLockErrors.push('sourceLock.requiredAction fehlt');\n}\n\nconst visualAnchorsErrors = [];\n\nif (!visualAnchors.satireThemaKonkret) {\n  visualAnchorsErrors.push('satireThemaKonkret fehlt');\n}\n\nif (!visualAnchors.satireKonfliktKonkret) {\n  visualAnchorsErrors.push('satireKonfliktKonkret fehlt');\n}\n\nif (concreteCount(visualAnchors.visualPflichtobjekte) < 2) {\n  visualAnchorsErrors.push('visualPflichtobjekte enthält weniger als 2 konkrete zeichnbare Objekte');\n}\n\nif (!visualAnchors.visualPflichthandlung) {\n  visualAnchorsErrors.push('visualPflichthandlung fehlt');\n}\n\nif (!visualAnchors.visualErkennungssatz) {\n  visualAnchorsErrors.push('visualErkennungssatz fehlt');\n}\n\nif (visualAnchors.visualVerboteneErsatzmotive.length < 2) {\n  visualAnchorsErrors.push('visualVerboteneErsatzmotive enthält weniger als 2 Einträge');\n}\n\n// ============================================================\n// 9. VISUAL GUARD\n// ============================================================\n\nconst visualSceneText = [\n  visualAnchors.visualPflichthandlung,\n  visualAnchors.visualUeberzeichnung,\n  visualAnchors.visualErkennungssatz,\n  s.visualMetaphor,\n  s.satireBrief,\n  s.satireAngle,\n  asArray(s.satirePunchlines).join(' '),\n  s.moeglicheSatirischeReaktion\n].map(safeStr).join(' ');\n\nconst visualGuardErrors = [];\n\nconst sensitivePersonObjects = [\n  ...visualAnchors.visualPflichtobjekte,\n  ...sourceLock.requiredObjects\n].filter(x => sensitiveContext && containsSensitivePerson(x));\n\nif (sensitivePersonObjects.length > 0) {\n  visualGuardErrors.push(\n    'Sensible Betroffene als Pflichtobjekt/sourceLock.requiredObject erkannt: ' +\n    sensitivePersonObjects.join(', ')\n  );\n}\n\nif (sensitiveContext && containsSensitiveScene(visualSceneText)) {\n  visualGuardErrors.push(\n    'Sensible Betroffene erscheinen in Visual- oder Satirefeldern als Bildszene/Pointe'\n  );\n}\n\nif (sensitiveContext && containsSensitiveMetaphor(visualSceneText)) {\n  visualGuardErrors.push(\n    'Schutzlage wird als Metapher, Wortspiel oder Karikatureigenschaft verwendet'\n  );\n}\n\nlet visualBetroffeneCleared = false;\n\nif (sensitiveContext && visualAnchors.visualBetroffene.length > 0) {\n  visualAnchors.visualBetroffene = [];\n  visualBetroffeneCleared = true;\n}\n\nconst forbiddenSymbols = [\n  ...visualAnchors.visualPflichtobjekte,\n  ...sourceLock.requiredObjects\n].filter(isForbiddenSymbolObject);\n\nif (forbiddenSymbols.length > 0) {\n  visualGuardErrors.push(\n    'Symbol-Drift als Pflichtobjekt/sourceLock.requiredObject erkannt: ' +\n    forbiddenSymbols.join(', ')\n  );\n}\n\nconst sourceLockValid = sourceLockErrors.length === 0;\nconst visualAnchorsValid = visualAnchorsErrors.length === 0;\nconst guardValid = visualGuardErrors.length === 0;\n\n// ============================================================\n// 10. VISUAL-FREIGABE\n// ============================================================\n\nconst visualCandidate =\n  empfehlung === 'REAGIEREN' &&\n  kommunikationspotenzial >= 7;\n\nconst visualReady =\n  visualCandidate &&\n  sourceLockValid &&\n  visualAnchorsValid &&\n  guardValid;\n\nlet visualStatus = 'no_visual';\nlet instagramSharepicNoetig = false;\nlet instagramCarouselNoetig = false;\nlet visualNeeded = false;\nlet visualDecisionReason = '';\n\nif (!visualCandidate) {\n  visualStatus = 'no_visual';\n  visualDecisionReason = 'Kein Sharepic nötig: Empfehlung oder Kommunikationspotenzial reichen nicht.';\n} else if (visualReady) {\n  visualStatus = 'visual_topic_ok';\n  instagramSharepicNoetig = true;\n  instagramCarouselNoetig = true;\n  visualNeeded = true;\n  visualDecisionReason = 'Sharepic freigegeben: SourceLock und Visual-Anker vollständig, keine sensible Betroffenen-Pointe, keine Symbol-Drift.';\n} else {\n  visualStatus = 'visual_topic_error';\n  instagramSharepicNoetig = false;\n  instagramCarouselNoetig = false;\n  visualNeeded = false;\n\n  const allErrors = [\n    ...sourceLockErrors,\n    ...visualAnchorsErrors,\n    ...visualGuardErrors\n  ];\n\n  visualDecisionReason = 'Sharepic blockiert: ' + allErrors.join(' | ');\n}\n\n// ============================================================\n// 10b. DOWNSTREAM-GUARD (P1/P2/P3 bereits fortgeschritten?)\n// Verhindert, dass eine erneute Analyse (z.B. Re-Scrape/Vorgangskette)\n// bereits von P1/P2/P3 weiterverarbeitete Zeilen zuruecksetzt.\n// Gleiche Logik wie in ALLRIS_Repair_SourceLock_VisualGuard, erweitert um P3-Stufen.\n// ============================================================\n\nfunction hasP1Content(row) {\n  if (safeStr(row.websiteHeadline)) return true;\n  const cj = safeStr(row.contentJson);\n  if (!cj || cj === '{}' || cj === 'null') return false;\n  try {\n    const p = JSON.parse(cj);\n    return p && typeof p === 'object' && !Array.isArray(p) && Object.keys(p).length > 0;\n  } catch (e) {\n    return false;\n  }\n}\n\nconst ADVANCED_VISUAL_STATUS = [\n  'needs_visual_prompt', 'awaiting_headline_choice', 'headline_selected',\n  'visual_prompt_ready', 'visual_prompt_error', 'visual_prompt_topic_error',\n  'blocked_by_source_lock', 'blocked_by_content_error', 'force_visual_reset',\n  'image_composed', 'image_qa_approved', 'image_qa_error', 'image_qa_retry_required',\n  'image_retry_required', 'image_quality_failed', 'nextcloud_upload_failed',\n  'image_generation_error', 'image_prompt_error'\n];\n\nconst downstreamProgressed = hasP1Content(rowData) || ADVANCED_VISUAL_STATUS.includes(safeStr(rowData.visualStatus));\n\nif (downstreamProgressed) {\n  visualStatus = safeStr(rowData.visualStatus) || visualStatus;\n  instagramSharepicNoetig = rowData.instagramSharepicNoetig === true || rowData.instagramCarouselNoetig === true || rowData.visualNeeded === true;\n  instagramCarouselNoetig = instagramSharepicNoetig;\n  visualNeeded = instagramSharepicNoetig;\n  visualDecisionReason = safeStr(rowData.visualDecisionReason) || 'Bereits von P1/P2/P3 weiterverarbeitet - visualStatus/status durch erneute Analyse nicht ueberschrieben.';\n}\n\n// ============================================================\n// 11. FREIGABEEMPFEHLUNG\n// ============================================================\n\nconst beweissicherheit = enumValue(\n  s.beweissicherheit,\n  ['NIEDRIG', 'MITTEL', 'HOCH'],\n  'NIEDRIG'\n);\n\nconst rechtlichesRisiko = enumValue(\n  s.rechtlichesRisiko,\n  ['NIEDRIG', 'MITTEL', 'HOCH'],\n  'NIEDRIG'\n);\n\nlet freigabeEmpfohlen = toBool(s.freigabeEmpfohlen);\n\nif (\n  empfehlung === 'REAGIEREN' &&\n  beweissicherheit !== 'NIEDRIG' &&\n  rechtlichesRisiko !== 'HOCH'\n) {\n  freigabeEmpfohlen = true;\n}\n\nif (\n  rechtlichesRisiko === 'HOCH' ||\n  beweissicherheit === 'NIEDRIG'\n) {\n  freigabeEmpfohlen = false;\n}\n\n// ============================================================\n// 12. STATUS\n// ============================================================\n\nlet status = 'watching';\n\nif (empfehlung === 'IGNORIEREN') status = 'ignored';\nif (empfehlung === 'BEOBACHTEN') status = 'watching';\nif (empfehlung === 'REAGIEREN') status = 'needs_content';\n\nif (downstreamProgressed) {\n  status = safeStr(rowData.status) || status;\n}\n\n// ============================================================\n// 13. NORMALISIERTES ANALYSISJSON\n// ============================================================\n\nconst normalizedAnalysis = {\n  ...s,\n\n  relevanz,\n  kommunikationspotenzial,\n  sprengstoff,\n  empfehlung,\n  reaktionNoetig,\n  ampel,\n\n  beweissicherheit,\n  rechtlichesRisiko,\n  freigabeEmpfohlen,\n\n  satireIntensity,\n\n  instagramCarouselNoetig,\n  instagramSharepicNoetig,\n  visualNeeded,\n  visualStatus,\n\n  sourceLock,\n  sourceLockValid,\n  sourceLockErrors,\n\n  visualAnchors,\n  visualAnchorsValid,\n  visualAnchorsErrors,\n\n  visualGuardErrors,\n  sensitiveContext,\n  visualBetroffeneCleared,\n\n  visualWorkflow: {\n    visualNeeded,\n    visualStatus,\n    workflowStatus: visualReady\n      ? 'waiting_for_content'\n      : (visualCandidate ? 'blocked_by_visual_guard' : 'no_visual'),\n    visualDecisionReason,\n    sourceLockValid,\n    sourceLockErrors,\n    visualAnchorsValid,\n    visualAnchorsErrors,\n    visualGuardErrors,\n    sensitiveContext,\n    visualBetroffeneCleared\n  },\n\n  visualDecisionReason\n};\n\n// ============================================================\n// 14. BESTEHENDE TOP-LEVEL-SPALTEN BEFÜLLEN\n// ============================================================\n\nconst kernthemen = asArray(s.kernthemen);\nconst nebenthemen = asArray(s.nebenthemen);\nconst themes = [...new Set([...kernthemen, ...nebenthemen])].join(', ');\n\nreturn [{\n  json: {\n    ...rowData,\n\n    analysisParseError: false,\n    rawAiText: '',\n\n    analysisJson: JSON.stringify(normalizedAnalysis),\n\n    relevantScore: relevanz,\n    sprengstoff,\n    empfehlung,\n    kommunikationspotenzial,\n    themes,\n\n    matrixKurzbetreff:\n      s.matrixKurzbetreff ||\n      ((ampel || '⚪') + ' ' + (rowData.title || '')).substring(0, 120),\n\n    ampel,\n\n    kurzfassung: Array.isArray(s.kurzfassung)\n      ? s.kurzfassung.join(' ')\n      : safeStr(s.kurzfassung),\n\n    kritischeNachfrage: Array.isArray(s.kritischeNachfrage)\n      ? s.kritischeNachfrage.join(' ')\n      : safeStr(s.kritischeNachfrage),\n\n    begruendungBewertung: Array.isArray(s.begruendungBewertung)\n      ? s.begruendungBewertung.join(' ')\n      : safeStr(s.begruendungBewertung),\n\n    werProfitiert: Array.isArray(s.werProfitiert)\n      ? s.werProfitiert.join(', ')\n      : safeStr(s.werProfitiert),\n\n    werZahltOderTraegtNachteile: Array.isArray(s.werZahltOderTraegtNachteile)\n      ? s.werZahltOderTraegtNachteile.join(', ')\n      : safeStr(s.werZahltOderTraegtNachteile),\n\n    warumRelevant: Array.isArray(s.warumRelevant)\n      ? s.warumRelevant.join(' ')\n      : safeStr(s.warumRelevant),\n\n    belegbareFakten: asArray(s.belegbareFakten).join(' | '),\n    unsicherheiten: asArray(s.unsicherheiten).join(' | '),\n    warnsignale: asArray(s.warnsignale).join(' | '),\n\n    instagramCarouselNoetig,\n\n    status,\n\n    satireBrief: safeStr(s.satireBrief),\n    satireAngle: safeStr(s.satireAngle),\n    satirePunchlines: JSON.stringify(asArray(s.satirePunchlines)),\n    visualMetaphor: safeStr(s.visualMetaphor),\n    satireTarget: safeStr(s.satireTarget),\n    satireIntensity,\n    satireDoNotClaim: JSON.stringify(asArray(s.satireDoNotClaim)),\n    satireSafetyNote: safeStr(s.satireSafetyNote),\n\n    visualStatus,\n    instagramSharepicNoetig,\n    visualDecisionReason,\n    visualNeeded,\n\n    satireWorkflowVersion: 'satire-parse-guard-existing-columns-v3'\n  }\n}];"
       },
-      "id": "4e45379d-b319-4cd4-9424-3d2dacdcc68a",
+      "id": "fca30d5e-1ced-4114-b2a1-b7e493153cd1",
       "name": "Parse Analyse JSON",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        23024,
-        7088
+        26416,
+        7216
       ]
     },
     {
@@ -828,13 +828,13 @@
         },
         "options": {}
       },
-      "id": "45089a30-8aff-43ca-a737-6fb7cdd92beb",
+      "id": "e63bb466-365b-47f6-a23c-b948e8a027cc",
       "name": "Speichere Analyse",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        23248,
-        7088
+        26640,
+        7216
       ],
       "alwaysOutputData": true
     },
@@ -842,50 +842,50 @@
       "parameters": {
         "jsCode": "// Loop weitertakten\nreturn [{ json: $input.item.json }];\n"
       },
-      "id": "7fbf2817-2924-4ca7-a4cf-0ec08a7dedc1",
+      "id": "7cde78c0-48d4-4433-86bc-abdae2b2a153",
       "name": "Nächster Vorgang",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        23424,
-        6816
+        26816,
+        6944
       ]
     },
     {
       "parameters": {},
-      "id": "2f4907db-d4da-4030-b9c6-d4a2b6685660",
+      "id": "ec762eae-acf4-4da0-b0ab-5bd60f108212",
       "name": "Merge Vorgang Abschluss",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
       "position": [
-        23344,
-        6608
+        26736,
+        6736
       ]
     },
     {
       "parameters": {
         "jsCode": "// Prepare Analyse Input\n// Gibt summaryText + Einordnungsfelder weiter.\n// Fügt zusätzlich einen kurzen Warnwort-Auszug aus combinedText an,\n// damit die Eskalationsregel für Ungleichbehandlung/Willkür zuverlässig greift.\n\n// Robust: Nach Matrix/DataTable kann der aktuelle Input abgespeckt sein.\n// Build Summary Message enthält die vollständige Originalzeile.\n// Branch-sicherer Datenzugriff (BRANCH_SAFE_SUMMARY_FIX)\nfunction getNodeJsonIfExecuted(nodeName) {\n  try { return $(nodeName).item.json || {}; } catch (e) { return {}; }\n}\nconst _bsmData = getNodeJsonIfExecuted('Build Summary Message');\nconst j = { ..._bsmData, ...$input.item.json };\n\nconst WARN_WORDS = [\n  'ungleichbehandlung','ungleiche behandlung','benachteiligung',\n  'willkür','willkuer','doppelstandard','sonderbehandlung','bevorzugung',\n  'unterschiedliche maßstäbe','unterschiedliche massstäbe','unterschiedliche massstaebe',\n  'fehlende gleichbehandlung',\n  'nicht nachvollziehbar','intransparent','beschwerde','kritik an',\n  'verwaltungshandeln','abweichend von','pflichtgemäßem ermessen','pflichtgemaessem ermessen',\n  'auf antrag der verwaltung','rechtswidrig','widerspruch'\n];\n\nconst fullText  = j.combinedText || '';\nconst lowerText = fullText.toLowerCase();\n\n// Alle Warnwort-Treffer mit Kontext sammeln (je ±300 Zeichen)\nconst snippets = [];\nconst seen     = new Set();\n\nfor (const word of WARN_WORDS) {\n  let pos = 0;\n  while (pos < lowerText.length) {\n    const idx = lowerText.indexOf(word, pos);\n    if (idx === -1) break;\n    const start  = Math.max(0, idx - 300);\n    const end    = Math.min(fullText.length, idx + 400);\n    const bucket = Math.floor(start / 500);   // Überlappungen vermeiden\n    if (!seen.has(bucket)) {\n      seen.add(bucket);\n      snippets.push(fullText.slice(start, end).trim());\n    }\n    pos = idx + word.length;\n    if (snippets.length >= 8) break;          // max. 8 Snippets\n  }\n  if (snippets.length >= 8) break;\n}\n\n// Erste 1.500 Zeichen immer nehmen (enthält oft Beschlusstext + Kernaussage)\nconst docStart = fullText.substring(0, 1500).trim();\n\nlet warnContext = '';\nif (snippets.length > 0) {\n  warnContext = '\\n\\n--- Auszüge mit Warnsignalen aus Dokumenttext ---\\n' +\n    snippets.map((s, i) => `[${i+1}] …${s}…`).join('\\n\\n');\n}\n\nconst analyseContext = docStart\n  ? '\\n\\n--- Anfang Dokumenttext (erste 1.500 Zeichen) ---\\n' + docStart\n  : '';\n\n// Gesamtlänge begrenzen (~3.000 Zeichen Zusatzkontext)\nconst extra = (analyseContext + warnContext).substring(0, 3000);\n\nreturn [{\n  json: {\n    ...j,\n    analyseContext: extra,\n    warnSnippetCount: snippets.length,\n    analyseContextLength: extra.length\n  }\n}];\n"
       },
-      "id": "841ac181-641e-4139-a019-1f2e17dc1470",
+      "id": "9555cad0-09e1-4905-b197-01a52b09a727",
       "name": "Prepare Analyse Input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        22448,
-        7088
+        25840,
+        7216
       ]
     },
     {
       "parameters": {
         "jsCode": "const raw = $input.all();\n\n// Input kann Array-in-Array sein je nach Loop-Node-Verhalten\nlet items_to_process = [];\nfor (const item of raw) {\n  const j = item.json;\n  if (Array.isArray(j)) {\n    // Loop gab Array als json zurück → jedes Element einzeln\n    for (const el of j) {\n      items_to_process.push(typeof el === 'object' && el !== null ? el : {});\n    }\n  } else if (j && typeof j === 'object') {\n    items_to_process.push(j);\n  }\n}\n\nif (items_to_process.length === 0) {\n  return [{ json: { _error: 'no_valid_input' } }];\n}\n\nfunction extractYear(val) {\n  if (!val) return null;\n  const m = String(val).match(/\\b(20\\d{2})\\b/);\n  return m ? m[1] : null;\n}\n\nreturn items_to_process.map(j => {\n  const year = extractYear(j.firstseen)\n    || extractYear(j.lastseen)\n    || extractYear(j.summaryCreatedAt)\n    || new Date().getFullYear().toString();\n\n  let base = (j.nextcloudFolder || '').trim().replace(/\\/+$/, '');\n  let nc_originale_path;\n\n  if (base.startsWith('/DiePARTEI/Allris/')) {\n    nc_originale_path = base.endsWith('/01_originale') ? base : base + '/01_originale';\n  } else if (base.endsWith('/01_originale')) {\n    nc_originale_path = '/DiePARTEI/Allris/' + year + '/' + base;\n  } else if (base !== '') {\n    nc_originale_path = '/DiePARTEI/Allris/' + year + '/' + base + '/01_originale';\n  } else {\n    const vgnr = (j.vorgangKey || 'unbekannt').replace(/\\//g, '_');\n    nc_originale_path = '/DiePARTEI/Allris/' + year + '/' + vgnr + '/01_originale';\n  }\n\n  // Doppelte Slashes entfernen\n  nc_originale_path = nc_originale_path.replace(/\\/+/g, '/');\n\n  return { json: { ...j, nc_originale_path, _ncYear: year } };\n});\n"
       },
-      "id": "8cfb37e0-47a0-4a16-becf-859df659ee14",
+      "id": "52241557-60d1-4db6-8871-a437a60bab67",
       "name": "Build NC Originale Path",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        20144,
-        6800
+        23536,
+        6928
       ]
     },
     {
@@ -894,13 +894,13 @@
         "operation": "list",
         "path": "={{ $json.nc_originale_path }}"
       },
-      "id": "f26994fb-c0b1-4504-bd1b-6f2aa3066502",
+      "id": "bb2637b5-3f74-47c2-b1b2-273898dd9a81",
       "name": "NC Liste Dokumente",
       "type": "n8n-nodes-base.nextCloud",
       "typeVersion": 1,
       "position": [
-        20368,
-        6800
+        23760,
+        6928
       ],
       "credentials": {
         "nextCloudApi": {
@@ -914,13 +914,13 @@
       "parameters": {
         "jsCode": "// NC Split Dateien – V11.7 NON-PDF SAFE\n// Nur echte PDF-Kandidaten werden in den Download-/Tika-Loop gegeben.\n// Bilder und andere Dateitypen werden sauber übersprungen und niemals an Tika gesendet.\n// Modus: Run Once for All Items.\n\nconst base = $('Prepare Summary Input').item.json;\nconst nc_originale_path = $input.first()?.json?.nc_originale_path || '';\n\nfunction safeStr(v) {\n  return v === null || v === undefined ? '' : String(v).trim();\n}\n\nfunction decodePath(rawPath) {\n  try { return decodeURIComponent(rawPath); }\n  catch (e) { return rawPath; }\n}\n\nfunction getName(item) {\n  const rawPath = safeStr(item?.json?.path || item?.json?.name);\n  const decodedPath = decodePath(rawPath);\n  return decodedPath.split('/').pop() || safeStr(item?.json?.name);\n}\n\nfunction getExtension(name) {\n  const m = safeStr(name).toLowerCase().match(/\\.([a-z0-9]+)$/i);\n  return m ? m[1] : '';\n}\n\nconst allFiles = items.filter(i => {\n  const type = safeStr(i?.json?.type).toLowerCase();\n  // Nextcloud liefert normalerweise type=file. Falls type fehlt, reicht ein Dateiname mit Endung.\n  const name = getName(i);\n  return type === 'file' || (!type && /\\.[a-z0-9]{1,8}$/i.test(name));\n});\n\nconst pdfFiles = [];\nconst skippedFiles = [];\n\nfor (const item of allFiles) {\n  const name = getName(item);\n  const ext = getExtension(name);\n\n  if (ext === 'pdf') {\n    pdfFiles.push(item);\n  } else {\n    skippedFiles.push({\n      name,\n      extension: ext || 'ohne_endung',\n      reason: 'non_pdf_skipped'\n    });\n  }\n}\n\nconst skippedNonPdfFiles = skippedFiles.map(f => f.name);\nconst skippedNonPdfCount = skippedFiles.length;\n\nif (pdfFiles.length === 0) {\n  return [{\n    json: {\n      ...base,\n      nc_originale_path,\n      combinedText: '',\n      combinedTextLength: 0,\n      _docCount: 0,\n      pdfFilesFound: 0,\n      pdfFilesExtracted: 0,\n      pdfExtractErrors: 0,\n      skippedNonPdfCount,\n      skippedNonPdfFiles,\n      summaryInputOk: false,\n      summaryInputProblem: 'no_pdf_found',\n      summaryInputSource: 'nextcloud_no_pdf'\n    }\n  }];\n}\n\nconst currentVorgangKey = safeStr(base.vorgangKey);\nconst ncLoopBatchId = `${currentVorgangKey}::${$runIndex}`;\n\nreturn pdfFiles.map(f => {\n  const rawPath = safeStr(f.json.path || f.json.name);\n  const decodedPath = decodePath(rawPath);\n  const name = decodedPath.split('/').pop();\n  const ncFilePath = '/' + decodedPath.replace(/^\\/+/, '');\n\n  return {\n    json: {\n      ...base,\n      nc_originale_path,\n      _ncFileName: name,\n      _ncFilePath: ncFilePath,\n      _ncExpectedType: 'pdf',\n      _ncLoopInit: true,\n      _ncLoopVorgangKey: currentVorgangKey,\n      _ncLoopBatchId: ncLoopBatchId,\n      skippedNonPdfCount,\n      skippedNonPdfFiles\n    }\n  };\n});"
       },
-      "id": "0d97d207-c815-4cee-a07c-4390b7419199",
+      "id": "57fd6d67-22e6-470d-ac22-e77b9875ec60",
       "name": "NC Split Dateien",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        20592,
-        6800
+        23984,
+        6928
       ]
     },
     {
@@ -928,13 +928,13 @@
         "operation": "download",
         "path": "={{ $json._ncFilePath }}"
       },
-      "id": "88167a4d-91c4-4375-89bf-c55cac304771",
+      "id": "43d6f223-114d-468f-880b-bc3b57aedf2b",
       "name": "NC Lade Datei",
       "type": "n8n-nodes-base.nextCloud",
       "typeVersion": 1,
       "position": [
-        20400,
-        7296
+        23792,
+        7424
       ],
       "credentials": {
         "nextCloudApi": {
@@ -949,26 +949,26 @@
         "mode": "runOnceForEachItem",
         "jsCode": "// NC Handle PDF Text – V11.7 NON-PDF SAFE\n// Normalisiert genau ein Dokument-Ergebnis.\n// Modus: Run Once for Each Item.\n\nconst j = $json || {};\n\n// A) Bewusst übersprungene Datei: kein Parse-Fehler und kein Tika-Aufruf.\nif (j.sendToTika === false && j.textExtractionSkipped === true) {\n  return {\n    json: {\n      ...j,\n      _ncLoopInit: false,\n      _textExtracted: false,\n      _pdfText: '',\n      _extractReason: j.textExtractionMethod || 'file_skipped',\n      _extractSkipped: true,\n      textExtractionSuccess: false,\n      textLength: 0,\n      textExtractionError: j.textExtractionError || ''\n    }\n  };\n}\n\n// B) Technischer Download-/Binary-Fehler.\nif (j.sendToTika === false) {\n  return {\n    json: {\n      ...j,\n      _ncLoopInit: false,\n      _textExtracted: false,\n      _pdfText: '',\n      _extractReason: j.textExtractionMethod || 'download_failed',\n      _extractSkipped: false,\n      textExtractionSuccess: false,\n      textLength: 0,\n      textExtractionError: j.textExtractionError || 'Datei konnte nicht verarbeitet werden'\n    }\n  };\n}\n\n// C) Tika-Ergebnis.\nconst tikaError = String(j.tikaError || j.error?.message || '').trim();\n\nconst rawText =\n  typeof j.tikaText === 'string' ? j.tikaText :\n  typeof j.data === 'string' ? j.data :\n  typeof j.body === 'string' ? j.body :\n  '';\n\nconst text = rawText.trim();\n\nlet _textExtracted = false;\nlet _extractReason = '';\nlet _pdfText = '';\nlet textExtractionSuccess = false;\nlet textExtractionMethod = '';\nlet textExtractionError = '';\n\nif (text.length >= 30) {\n  _textExtracted = true;\n  _extractReason = 'ok';\n  _pdfText = text;\n  textExtractionSuccess = true;\n  textExtractionMethod = 'tika_pdf';\n} else if (tikaError) {\n  _extractReason = 'tika_error';\n  textExtractionMethod = 'tika_error';\n  textExtractionError = tikaError;\n} else if (text.length > 0) {\n  _extractReason = 'tika_too_short';\n  textExtractionMethod = 'tika_too_short';\n  textExtractionError = `Tika lieferte nur ${text.length} Zeichen (Minimum: 30)`;\n} else {\n  _extractReason = 'tika_empty';\n  textExtractionMethod = 'tika_empty';\n  textExtractionError = 'Tika lieferte keinen Dokumenttext';\n}\n\nreturn {\n  json: {\n    ...j,\n    _ncLoopInit: false,\n    _textExtracted,\n    _pdfText,\n    _extractReason,\n    _extractSkipped: false,\n    textExtractionSuccess,\n    textExtractionMethod,\n    textLength: text.length,\n    textExtractionError\n  }\n};"
       },
-      "id": "67531039-9c4e-4af2-ad93-9bae2d44762b",
+      "id": "c3ec380c-6dec-4d9d-bd7a-b17cf4396b37",
       "name": "NC Handle PDF Text",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        21648,
-        7280
+        25040,
+        7408
       ]
     },
     {
       "parameters": {
         "jsCode": "// NC Aggregiere Texte – V11.7 NON-PDF SAFE\n// Fasst alle PDF-Ergebnisse eines Vorgangs zusammen.\n// Bewusst übersprungene Nicht-PDF-/Bilddateien gelten nicht als Parse- oder Extraktionsfehler.\n// Modus: Run Once for All Items.\n\nconst inputItems = $input.all(0, $runIndex);\nif (!Array.isArray(inputItems) || inputItems.length === 0) return [];\n\nfunction safeStr(v) {\n  return v === null || v === undefined ? '' : String(v).trim();\n}\n\nfunction getVorgangKey(item) {\n  const j = item?.json || {};\n  const direct = safeStr(j.vorgangKey || j._ncLoopVorgangKey);\n  if (direct) return direct;\n  const batchId = safeStr(j._ncLoopBatchId);\n  return batchId.includes('::') ? batchId.split('::')[0].trim() : '';\n}\n\nconst noPdfItem = inputItems.find(item => item?.json?.summaryInputProblem === 'no_pdf_found');\nconst hasDocumentResult = inputItems.some(item => {\n  const j = item?.json || {};\n  return Boolean(j._ncFilePath || j._ncFileName || j._textExtracted !== undefined || j._pdfText);\n});\n\nif (noPdfItem && !hasDocumentResult) {\n  const base0 = noPdfItem.json || {};\n  return [{\n    json: {\n      ...base0,\n      combinedText: '',\n      combinedTextLength: 0,\n      pdfFilesFound: 0,\n      pdfFilesExtracted: 0,\n      pdfExtractErrors: 0,\n      skippedPdfCandidates: 0,\n      skippedNonPdfCount: Number(base0.skippedNonPdfCount || 0),\n      skippedNonPdfFiles: Array.isArray(base0.skippedNonPdfFiles) ? base0.skippedNonPdfFiles : [],\n      summaryInputOk: false,\n      summaryInputProblem: 'no_pdf_found',\n      summaryInputSource: 'nextcloud_no_pdf'\n    }\n  }];\n}\n\nlet currentVorgangKey = '';\nfor (let i = inputItems.length - 1; i >= 0; i--) {\n  const key = getVorgangKey(inputItems[i]);\n  if (key) { currentVorgangKey = key; break; }\n}\n\nconst onlyEmptyControlItems = inputItems.every(item => {\n  const j = item?.json || {};\n  return !getVorgangKey(item) && !j._ncLoopBatchId && !j._ncFileName && !j._ncFilePath &&\n         !j.summaryInputProblem && !j._pdfText && j._textExtracted === undefined;\n});\n\nif (!currentVorgangKey) {\n  if (onlyEmptyControlItems) return [];\n  throw new Error(`NC Aggregiere Texte: Eingangsitem ohne vorgangKey. runIndex=${$runIndex} items=${inputItems.length}`);\n}\n\nlet currentBatchId = '';\nfor (let i = inputItems.length - 1; i >= 0; i--) {\n  const j = inputItems[i]?.json || {};\n  const batchId = safeStr(j._ncLoopBatchId);\n  if (batchId && getVorgangKey(inputItems[i]) === currentVorgangKey) {\n    currentBatchId = batchId;\n    break;\n  }\n}\n\nlet currentItems = inputItems.filter(item => {\n  const j = item?.json || {};\n  const sameVorgang = getVorgangKey(item) === currentVorgangKey;\n  const sameBatch = !currentBatchId || j._ncLoopBatchId === currentBatchId;\n  return sameVorgang && sameBatch;\n});\nif (currentItems.length === 0) {\n  currentItems = inputItems.filter(item => getVorgangKey(item) === currentVorgangKey);\n}\n\nconst documentItems = currentItems.filter(item => {\n  const j = item?.json || {};\n  return Boolean(j._ncFilePath || j._ncFileName || j._textExtracted !== undefined || j._pdfText);\n});\n\nconst seenKeys = new Set();\nconst dedupedItems = [];\nlet fallbackIndex = 0;\nfor (const item of documentItems) {\n  const j = item?.json || {};\n  const dedupeKey = safeStr(j._ncFilePath || j._ncFileName || `${currentVorgangKey}::fallback::${fallbackIndex++}`);\n  if (!seenKeys.has(dedupeKey)) {\n    seenKeys.add(dedupeKey);\n    dedupedItems.push(item);\n  }\n}\n\nconst baseItem =\n  currentItems.find(item => item?.json?.title && getVorgangKey(item)) ||\n  currentItems[0] || inputItems[0];\nconst base = baseItem?.json || {};\n\nconst nc_originale_path =\n  currentItems.find(item => item?.json?.nc_originale_path)?.json?.nc_originale_path ||\n  base.nc_originale_path || '';\n\nconst textItems = dedupedItems.filter(item => {\n  const j = item?.json || {};\n  return j._textExtracted === true && safeStr(j._pdfText) !== '';\n});\n\nconst skippedItems = dedupedItems.filter(item => {\n  const j = item?.json || {};\n  return j._extractSkipped === true || j.textExtractionSkipped === true;\n});\n\nconst errorItems = dedupedItems.filter(item => {\n  const j = item?.json || {};\n  return j._textExtracted !== true && j._extractSkipped !== true && j.textExtractionSkipped !== true;\n});\n\nconst pdfFilesFound = dedupedItems.length;\nconst pdfFilesExtracted = textItems.length;\nconst pdfExtractErrors = errorItems.length;\nconst skippedPdfCandidates = skippedItems.length;\n\nconst parts = textItems.map(item => {\n  const j = item.json || {};\n  const fileName = safeStr(j._ncFileName) || 'unbekannt';\n  const text = safeStr(j._pdfText);\n  return `--- Dokument: ${fileName} ---\\n${text}`;\n});\n\nconst combinedText = parts.join('\\n\\n').slice(0, 60000);\nconst combinedTextLength = combinedText.length;\nconst combinedTextLower = combinedText.toLowerCase();\nconst placeholderTerms = [\n  '(kein dokumenttext',\n  '(dokumentlinks gefunden, aber kein dokumenttext extrahierbar)',\n  'kein text extrahiert',\n  'no text',\n  'keine inhalte'\n];\nconst isPlaceholder = placeholderTerms.some(term => combinedTextLower.includes(term));\n\nlet summaryInputOk = false;\nlet summaryInputProblem = '';\nlet summaryInputSource = 'nextcloud_tika_pdf';\n\nif (pdfFilesFound === 0) {\n  summaryInputProblem = 'no_pdf_found';\n  summaryInputSource = 'nextcloud_no_pdf';\n} else if (pdfFilesExtracted === 0) {\n  summaryInputProblem = skippedPdfCandidates === pdfFilesFound\n    ? 'no_valid_pdf_content'\n    : 'document_text_error';\n  summaryInputSource = 'nextcloud_tika_failed';\n} else if (combinedTextLength < 300 || isPlaceholder) {\n  summaryInputProblem = 'combined_text_too_short';\n  summaryInputSource = 'nextcloud_tika_failed';\n} else {\n  summaryInputOk = true;\n}\n\nconst skippedNonPdfCount = Math.max(...currentItems.map(i => Number(i?.json?.skippedNonPdfCount || 0)), 0);\nconst skippedNonPdfFiles = currentItems.find(i => Array.isArray(i?.json?.skippedNonPdfFiles))?.json?.skippedNonPdfFiles || [];\n\nreturn [{\n  json: {\n    ...base,\n    vorgangKey: currentVorgangKey,\n    nc_originale_path,\n    combinedText,\n    combinedTextLength,\n    pdfFilesFound,\n    pdfFilesExtracted,\n    pdfExtractErrors,\n    skippedPdfCandidates,\n    skippedNonPdfCount,\n    skippedNonPdfFiles,\n    summaryInputOk,\n    summaryInputProblem: summaryInputOk ? '' : summaryInputProblem,\n    summaryInputSource\n  }\n}];"
       },
-      "id": "b7934266-5e52-4667-b9fa-c912506d77bc",
+      "id": "e8e6c626-2e34-4af3-96ca-c29ed2ea2b79",
       "name": "NC Aggregiere Texte",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        20384,
-        7072
+        23776,
+        7200
       ]
     },
     {
@@ -1019,13 +1019,13 @@
         },
         "options": {}
       },
-      "id": "e36d8527-e61d-419d-92b5-f1218a4b8bda",
+      "id": "eebbeedb-3551-415b-a532-5bd843170abd",
       "name": "Speichere Fehler Status",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
       "position": [
-        21472,
-        6848
+        24864,
+        6976
       ],
       "alwaysOutputData": true
     },
@@ -1055,13 +1055,13 @@
           "looseTypeValidation": true
         }
       },
-      "id": "0c1cac83-c5e1-4f85-bf18-2c2d4ce68afc",
+      "id": "4cbeef20-36b9-4ae5-bb3d-0facadad2d8e",
       "name": "Prüfe Summary Input",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        20608,
-        7072
+        24000,
+        7200
       ]
     },
     {
@@ -1069,13 +1069,13 @@
         "mode": "runOnceForEachItem",
         "jsCode": "const raw = $input.item.json;\nconst s = Array.isArray(raw) ? (raw[0] || {}) : (raw || {});\nconst now = new Date().toLocaleString('de-DE', { timeZone: 'Europe/Berlin' });\n\nlet summary = {};\ntry { summary = JSON.parse(s.summaryJson || '{}'); } catch(e) {}\nlet analyse = {};\ntry { analyse = JSON.parse(s.analysisJson || '{}'); } catch(e) {}\n\nfunction toList(val) {\n  if (Array.isArray(val)) return val.map(v => '- ' + v).join('\\n');\n  if (typeof val === 'string' && val) return val.split(/\\s*\\|\\s*/).map(v => '- ' + v).join('\\n');\n  return '';\n}\n\n// Pfad berechnen\nfunction extractYear(val) {\n  const m = String(val || '').match(/\\b(20\\d{2})\\b/);\n  return m ? m[1] : new Date().getFullYear().toString();\n}\nconst year = extractYear(s.firstseen || s.lastseen);\nlet base = (s.nextcloudFolder || '')\n  .trim().replace(/\\/+$/, '').replace(/\\/01_originale$/, '');\n\nlet nc_base_path;\nif (base.startsWith('/DiePARTEI/Allris/')) {\n  nc_base_path = base;\n} else if (base) {\n  nc_base_path = '/DiePARTEI/Allris/' + year + '/' + base;\n} else {\n  nc_base_path = '/DiePARTEI/Allris/' + year + '/' + (s.vorgangKey || 'unbekannt').replace(/\\//g, '_');\n}\nnc_base_path = nc_base_path.replace(/\\/+/g, '/');\nconst nc_summary_path = nc_base_path + '/03_zusammenfassung';\nconst fileName = (s.vorgangKey || 'zusammenfassung').replace(/[\\/\\s]/g, '_') + '_zusammenfassung.md';\n\n\n// ── Vorgangskette-Abschnitt (nur bei Folgevorgängen) ────────────────────────\nlet vorgangsketteMd = '';\n\nif (s.istFolgevorgang === true || String(s.istFolgevorgang || '').trim() === 'true') {\n  const details = Array.isArray(s.vorgangsketteDetails) ? s.vorgangsketteDetails : [];\n  const fehlend = Array.isArray(s.fehlendeVorherigeVorgaenge) ? s.fehlendeVorherigeVorgaenge : [];\n  const vollstaendig = s.vorgangsketteVollstaendig === true;\n\n  const mdLines = [\n    '',\n    '## Bezug zu vorherigen Vorgängen',\n    '',\n    `**Stammvorgang:** ${s.stammVorgangsnummer || ''}`,\n    `**Vorgangskette vollständig:** ${vollstaendig ? 'Ja' : 'Nein'}`,\n    ''\n  ];\n\n  const mitKontext    = details.filter(d => d.gefunden && d.kontextVerwendet);\n  const ohneKontext   = details.filter(d => d.gefunden && !d.kontextVerwendet);\n\n  if (mitKontext.length > 0) {\n    mdLines.push('### Berücksichtigte Vorgänge', '');\n    for (const d of mitKontext) {\n      const quelleText = d.kontextQuelle === 'summary'\n        ? 'vorhandene Zusammenfassung'\n        : 'Dokumenttext als Fallback';\n      const link = d.allrisUrl ? `[${d.vorgangsnummer}](${d.allrisUrl})` : d.vorgangsnummer;\n      mdLines.push(`* ${link} – ${quelleText}`);\n    }\n    mdLines.push('');\n  }\n\n  if (ohneKontext.length > 0) {\n    mdLines.push('### Gefunden, aber in diesem Lauf nicht als Kontext verfügbar', '');\n    for (const d of ohneKontext) {\n      mdLines.push(`* ${d.vorgangsnummer}`);\n    }\n    mdLines.push('');\n  }\n\n  if (fehlend.length > 0) {\n    mdLines.push('### Fehlende Vorgänge', '');\n    for (const vn of fehlend) {\n      mdLines.push(`* ${vn}`);\n    }\n    mdLines.push('');\n  }\n\n  vorgangsketteMd = mdLines.join('\\n');\n}\n\nconst md = [\n  '# ' + (s.title || s.vorgangKey || ''),\n  '',\n  '| | |',\n  '|---|---|',\n  '| **Vorgangsnummer** | ' + (s.vorgangsnummer || '') + ' |',\n  '| **ALLRIS-Link** | ' + (s.allrisUrl || '') + ' |',\n  '| **Erstellt** | ' + now + ' |',\n  '| **Ampel** | ' + (s.ampel || analyse.ampel || '') + ' |',\n  '| **Sprengstoff** | ' + (s.sprengstoff || analyse.sprengstoff || '') + ' |',\n  '| **Empfehlung** | ' + (s.empfehlung || analyse.empfehlung || '') + ' |',\n  '| **Relevanz** | ' + (s.relevantScore || analyse.relevanz || '') + ' |',\n  '',\n  '---',\n  '',\n  ...(vorgangsketteMd ? [vorgangsketteMd, '---', ''] : []),\n  '## Zusammenfassung',\n  '',\n  s.summaryText || summary.summaryText || '',\n  '',\n  '---',\n  '',\n  '## Thema',\n  '',\n  s.thema || summary.thema || '',\n  '',\n  '## Betroffene',\n  '',\n  toList(summary.betroffene || s.betroffene),\n  '',\n  '## Kosten / Haushalt',\n  '',\n  s.kostenHaushalt || summary.kostenHaushalt || '',\n  '',\n  '## Bürgerwirkung',\n  '',\n  s.buergerwirkung || summary.buergerwirkung || '',\n  '',\n  '## Offene Punkte',\n  '',\n  toList(summary.offenePunkte),\n  '',\n  '## Unsicherheiten',\n  '',\n  toList(summary.unsicherheiten || s.unsicherheitenSummary),\n  '',\n  '---',\n  '',\n  '## Bewertung',\n  '',\n  '**Kurzfassung:** ' + (s.kurzfassung || analyse.kurzfassung || ''),\n  '',\n  '**Kritische Nachfrage:** ' + (s.kritischeNachfrage || analyse.kritischeNachfrage || ''),\n  '',\n  '**Begründung:** ' + (s.begruendungBewertung || analyse.begruendungBewertung || ''),\n  '',\n  '**Wer profitiert:** ' + (s.werProfitiert || analyse.werProfitiert || ''),\n  '',\n  '**Wer trägt Nachteile:** ' + (s.werZahltOderTraegtNachteile || analyse.werZahltOderTraegtNachteile || ''),\n].join('\\n');\n\nreturn { json: { ...s, _mdContent: md, _mdFileName: fileName, nc_summary_path } };\n"
       },
-      "id": "1eafdc25-91a5-495d-9c64-3738a3c7e97b",
+      "id": "cf1914dd-f69a-4b33-af27-bd7ab565b6c8",
       "name": "Build Summary Markdown",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        22736,
-        7312
+        26128,
+        7440
       ]
     },
     {
@@ -1083,13 +1083,13 @@
         "resource": "folder",
         "path": "={{ $json.nc_summary_path }}"
       },
-      "id": "e3422720-e8f7-4b7a-b643-7b1f80df036f",
+      "id": "8e4fd330-94b2-4832-8e34-70af44ea1704",
       "name": "NC Erstelle Summary Ordner",
       "type": "n8n-nodes-base.nextCloud",
       "typeVersion": 1,
       "position": [
-        22960,
-        7312
+        26352,
+        7440
       ],
       "retryOnFail": true,
       "credentials": {
@@ -1105,13 +1105,13 @@
         "path": "={{ $json.nc_summary_path + '/' + $json._mdFileName }}",
         "fileContent": "={{ $json._mdContent }}"
       },
-      "id": "40549a9d-e816-4800-9685-6758c45adb39",
+      "id": "52b1a0f4-7bbe-4be6-aeeb-457f2d586096",
       "name": "NC Upload Summary MD",
       "type": "n8n-nodes-base.nextCloud",
       "typeVersion": 1,
       "position": [
-        23184,
-        7312
+        26576,
+        7440
       ],
       "retryOnFail": true,
       "alwaysOutputData": true,
@@ -1127,13 +1127,13 @@
       "parameters": {
         "jsCode": "// Prüft, ob combinedText aus der DataTable wirklich verwendbaren Dokumenttext enthält.\n// >= 300 Zeichen und kein technischer Platzhalter -> direkt zur AI Zusammenfassung.\n// Sonst -> Nextcloud/Tika-Fallback.\n//\n// Modus: Run Once for All Items\n\nfunction cleanText(value) {\n  return String(value == null ? '' : value)\n    .replace(/\\r/g, '')\n    .trim();\n}\n\nfunction isTechnicalPlaceholder(value) {\n  const text = cleanText(value);\n  if (!text) return true;\n\n  const normalized = text\n    .toLowerCase()\n    .replace(/[„“”\"'`´]/g, '')\n    .replace(/\\s+/g, ' ')\n    .trim();\n\n  if (['null', 'undefined', 'n/a', 'na', 'leer'].includes(normalized)) {\n    return true;\n  }\n\n  return (\n    /^\\(?dokumentlinks? gefunden,?\\s*aber kein dokumenttext extrahierbar\\)?[.!]?$/i.test(text) ||\n    /^\\(?kein dokumenttext extrahierbar\\)?[.!]?$/i.test(text) ||\n    /^\\(?keine dokumenttexte? extrahierbar\\)?[.!]?$/i.test(text) ||\n    /^\\(?kein verwertbarer dokumenttext\\)?[.!]?$/i.test(text) ||\n    /^vorgangsseite\\b.*(?:fehler|nicht erreichbar|nicht geladen|leer)/i.test(text) ||\n    /^(?:fehler|error|download fehlgeschlagen|extraktion fehlgeschlagen)\\b/i.test(text)\n  );\n}\n\nconst out = [];\n\nfor (const item of items) {\n  const j = item.json || {};\n  const combinedText = cleanText(j.combinedText);\n  const combinedTextLength = combinedText.length;\n  const technicalPlaceholder = isTechnicalPlaceholder(combinedText);\n  const ok = combinedTextLength >= 300 && !technicalPlaceholder;\n\n  out.push({\n    json: {\n      ...j,\n      combinedText,\n      combinedTextLength,\n      combinedTextIsTechnicalPlaceholder: technicalPlaceholder,\n      summaryInputOk: ok,\n      summaryInputSource: ok\n        ? 'datatable_combinedText'\n        : 'nextcloud_fallback_needed',\n      summaryInputProblem: ok\n        ? ''\n        : (technicalPlaceholder\n            ? 'combinedText_technical_placeholder'\n            : 'combinedText_missing_or_too_short')\n    }\n  });\n}\n\nreturn out;\n"
       },
-      "id": "87fd8c17-a2db-428b-8113-74050c89e622",
+      "id": "11fa19dd-12a0-435b-930e-fe6ad79fdc34",
       "name": "Prüfe vorhandenen combinedText",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        22640,
-        6320
+        26032,
+        6448
       ]
     },
     {
@@ -1160,13 +1160,13 @@
         },
         "options": {}
       },
-      "id": "aec854c4-9499-445a-a115-af761d1d4666",
+      "id": "8c81a2ef-2275-40a7-8b32-2bb145c00255",
       "name": "IF combinedText vorhanden?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        22864,
-        6320
+        26256,
+        6448
       ]
     },
     {
@@ -1176,10 +1176,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        20592,
-        6368
+        23984,
+        6496
       ],
-      "id": "f91f4353-c793-4579-afb3-7a4cea3a5826",
+      "id": "b46a3c82-08dd-4f52-aee5-2708dc572bb4",
       "name": "Code in JavaScript1"
     },
     {
@@ -1207,13 +1207,13 @@
         },
         "options": {}
       },
-      "id": "b65bd359-b360-4bfc-98ed-abf858d7f724",
+      "id": "68c517de-fcf7-4243-8e31-ec493f565f07",
       "name": "Ist Folgevorgang?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        21680,
-        6352
+        25072,
+        6480
       ]
     },
     {
@@ -1221,13 +1221,13 @@
         "mode": "runOnceForEachItem",
         "jsCode": "// Prepare Summary Input – V10.4\n// Der aktuelle Vorgang ist bereits durch \"Bereite Vorgangskette vor\" angereichert.\n// Hier nur noch Stammkontext-Kompatibilität sicherstellen und an AI übergeben.\n\nconst current = $input.item.json || {};\n\n// Alle Felder sind bereits vorhanden (vorherigeVorgaenge, vorgangsketteKontext, etc.)\n// Nur sicherstellen, dass isFollowUp korrekt gesetzt ist\nconst istFolgevorgang =\n  current.istFolgevorgang === true ||\n  String(current.istFolgevorgang || '').trim().toLowerCase() === 'true' ||\n  (String(current.folgeNummer || '').trim() !== '');\n\nreturn {\n  json: {\n    ...current,\n    istFolgevorgang\n  }\n};\n"
       },
-      "id": "6af35bb6-e4c8-455d-b681-87bd288787a4",
+      "id": "7d61347a-3b20-43ca-a729-bb0dc36a44e2",
       "name": "Prepare Summary Input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        22416,
-        6320
+        25808,
+        6448
       ]
     },
     {
@@ -1235,13 +1235,13 @@
         "mode": "runOnceForEachItem",
         "jsCode": "// Normalisiere Vorgangsbeziehung\n// Wird direkt nach Loop Vorgänge ausgeführt.\n// Erhält alle Felder des Datensatzes und normalisiert robust die drei Folgevorgang-Felder.\n// Unterstützt Boolean und String für istFolgevorgang.\n\nconst current = $input.item.json || {};\n\nconst vorgangsnummer = String(current.vorgangsnummer || '').trim();\n\nconst match = vorgangsnummer.match(/^(\\d{4})\\s*\\/\\s*(\\d+)(?:-(\\d+))?$/);\n\nlet derivedStamm =\n  String(current.stammVorgangsnummer || '').trim();\n\nlet derivedFolge =\n  String(current.folgeNummer || '').trim();\n\nlet derivedIstFolgevorgang =\n  current.istFolgevorgang === true ||\n  String(current.istFolgevorgang || '').trim().toLowerCase() === 'true';\n\nif (match) {\n  const stammAusNummer = `${match[1]}/${match[2]}`;\n  const folgeAusNummer = match[3] || '';\n\n  if (!derivedStamm) {\n    derivedStamm = stammAusNummer;\n  }\n\n  if (!derivedFolge && folgeAusNummer) {\n    derivedFolge = folgeAusNummer;\n  }\n\n  if (folgeAusNummer) {\n    derivedIstFolgevorgang = true;\n  }\n}\n\nif (!derivedStamm) {\n  derivedStamm = vorgangsnummer;\n}\n\nreturn {\n  json: {\n    ...current,\n    stammVorgangsnummer: derivedStamm,\n    folgeNummer:         derivedFolge,\n    istFolgevorgang:     derivedIstFolgevorgang\n  }\n};\n"
       },
-      "id": "463220e1-1d00-4828-a0ed-a3ff3f1d49ab",
+      "id": "780587ab-0069-4499-84b7-fc0f8ed3e22a",
       "name": "Normalisiere Vorgangsbeziehung",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        21056,
-        6368
+        24448,
+        6496
       ]
     },
     {
@@ -1268,13 +1268,13 @@
         },
         "options": {}
       },
-      "id": "35f69a73-4309-4a64-a840-f905506708f8",
+      "id": "80c31f2b-b7da-4e57-b570-699427131681",
       "name": "IF NC Datei vorhanden?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        20816,
-        6800
+        24208,
+        6928
       ]
     },
     {
@@ -1283,13 +1283,13 @@
           "reset": "={{ $json._ncLoopInit === true }}"
         }
       },
-      "id": "35fe8f48-99f1-4642-b893-695219810b30",
+      "id": "794d2abe-e43a-4c62-a699-084fa0aeb0c8",
       "name": "NC Loop Dateien",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        20160,
-        7072
+        23552,
+        7200
       ],
       "alwaysOutputData": true
     },
@@ -1297,13 +1297,13 @@
       "parameters": {
         "jsCode": "// NC Prüfe Binary – V11.7 NON-PDF SAFE\n// Es werden ausschließlich technisch plausible PDFs an Tika weitergegeben.\n// JPG, PNG, GIF, TIFF, ZIP, HTML und sonstige Binärdateien werden sauber übersprungen.\n// Modus: Run Once for All Items.\n\nasync function checkItem(item, index) {\n  const j = item.json || {};\n  const binData = item.binary?.data;\n  const mimeType = String(binData?.mimeType || '').toLowerCase();\n  const ncFileName = String(j._ncFileName || '').trim();\n  const ncFilePath = String(j._ncFilePath || '').trim();\n  const vorgangKey = String(j.vorgangKey || '').trim();\n  const lowerName = ncFileName.toLowerCase();\n  const lowerPath = ncFilePath.toLowerCase();\n\n  function skipped(method, reason, extra = {}) {\n    console.warn(`[NC Prüfe Binary] Übersprungen. method=${method} vorgangKey=${vorgangKey} file=${ncFileName} mimeType=${mimeType}`);\n    return {\n      ...j,\n      ...extra,\n      sendToTika: false,\n      textExtractionSkipped: true,\n      textExtractionSuccess: false,\n      textLength: 0,\n      textExtractionMethod: method,\n      textExtractionError: reason || ''\n    };\n  }\n\n  function failed(method, reason, extra = {}) {\n    console.warn(`[NC Prüfe Binary] Fehler. method=${method} vorgangKey=${vorgangKey} file=${ncFileName} mimeType=${mimeType}`);\n    return {\n      ...j,\n      ...extra,\n      sendToTika: false,\n      textExtractionSkipped: false,\n      textExtractionSuccess: false,\n      textLength: 0,\n      textExtractionMethod: method,\n      textExtractionError: reason || ''\n    };\n  }\n\n  // 1. Unerwartete Nicht-PDF-Dateien niemals an Tika senden.\n  const hasPdfExtension = lowerName.endsWith('.pdf') || lowerPath.endsWith('.pdf');\n  if (!hasPdfExtension) {\n    return skipped('non_pdf_skipped', `Nicht-PDF-Datei wurde nicht verarbeitet: ${ncFileName || ncFilePath}`);\n  }\n\n  // 2. Binary-Feld vorhanden?\n  if (!binData) {\n    return failed('download_failed', 'Kein Binary-Feld im Nextcloud-Download vorhanden');\n  }\n\n  // 3. Buffer lesen.\n  let buffer;\n  try {\n    buffer = await this.helpers.getBinaryDataBuffer(index, 'data');\n  } catch (e) {\n    return failed('binary_read_error', `Binary-Buffer nicht lesbar: ${e.message}`);\n  }\n\n  if (!buffer || buffer.length === 0) {\n    return failed('binary_empty', 'Heruntergeladene Datei ist leer (0 Byte)');\n  }\n\n  // 4. Magic Bytes / Inhaltstyp erkennen.\n  const first16 = buffer.slice(0, 16);\n  const head1024 = buffer.slice(0, 1024).toString('latin1');\n  const headLower = head1024.trimStart().toLowerCase();\n\n  const isPdfMagic = head1024.includes('%PDF-');\n  const isJpeg = first16[0] === 0xFF && first16[1] === 0xD8 && first16[2] === 0xFF;\n  const isPng = first16.length >= 8 &&\n    first16[0] === 0x89 && first16[1] === 0x50 && first16[2] === 0x4E && first16[3] === 0x47 &&\n    first16[4] === 0x0D && first16[5] === 0x0A && first16[6] === 0x1A && first16[7] === 0x0A;\n  const isGif = head1024.startsWith('GIF87a') || head1024.startsWith('GIF89a');\n  const isTiff = (first16[0] === 0x49 && first16[1] === 0x49 && first16[2] === 0x2A && first16[3] === 0x00) ||\n                 (first16[0] === 0x4D && first16[1] === 0x4D && first16[2] === 0x00 && first16[3] === 0x2A);\n  const isPkZip = first16[0] === 0x50 && first16[1] === 0x4B;\n  const isHtml = headLower.startsWith('<!doctype html') ||\n                 headLower.startsWith('<html') ||\n                 headLower.startsWith('<head') ||\n                 headLower.startsWith('<body');\n\n  if (isJpeg || isPng || isGif || isTiff || mimeType.startsWith('image/')) {\n    return skipped(\n      'image_skipped',\n      `Datei trägt eine PDF-Endung, enthält aber Bilddaten und wird nicht an Tika gesendet (mimeType=${mimeType || 'unbekannt'})`,\n      { detectedBinaryType: isJpeg ? 'jpeg' : isPng ? 'png' : isGif ? 'gif' : isTiff ? 'tiff' : 'image' }\n    );\n  }\n\n  if (isPkZip || mimeType.includes('zip')) {\n    return skipped('zip_skipped', `ZIP-/Office-Container wird in diesem PDF-Pfad nicht verarbeitet (mimeType=${mimeType || 'unbekannt'})`);\n  }\n\n  if (isHtml || mimeType.includes('text/html')) {\n    return failed('html_received', `HTML-Fehlerseite statt PDF empfangen (mimeType=${mimeType || 'unbekannt'})`);\n  }\n\n  // 5. Eine .pdf-Datei ohne PDF-Signatur nicht an Tika schicken.\n  if (!isPdfMagic) {\n    return skipped(\n      'invalid_pdf_skipped',\n      `Datei besitzt die Endung .pdf, hat aber keine erkennbare PDF-Signatur (mimeType=${mimeType || 'unbekannt'})`\n    );\n  }\n\n  console.log(`[NC Prüfe Binary] PDF OK. vorgangKey=${vorgangKey} file=${ncFileName} size=${buffer.length} mimeType=${mimeType}`);\n  return {\n    ...j,\n    sendToTika: true,\n    textExtractionSkipped: false,\n    detectedBinaryType: 'pdf'\n  };\n}\n\nconst results = [];\nfor (let i = 0; i < items.length; i++) {\n  try {\n    const result = await checkItem.call(this, items[i], i);\n    results.push({ json: result, binary: items[i].binary });\n  } catch (e) {\n    results.push({\n      json: {\n        ...items[i].json,\n        sendToTika: false,\n        textExtractionSkipped: false,\n        textExtractionSuccess: false,\n        textLength: 0,\n        textExtractionMethod: 'binary_check_failed',\n        textExtractionError: `Unerwarteter Prüfungsfehler: ${e.message}`\n      },\n      binary: items[i].binary\n    });\n  }\n}\n\nreturn results;"
       },
-      "id": "e78be47c-ccf1-4cf3-ae03-520cca0a586f",
+      "id": "e7252fd0-c005-4418-8f26-7d3b56b164d8",
       "name": "NC Prüfe Binary",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        20624,
-        7296
+        24016,
+        7424
       ]
     },
     {
@@ -1331,13 +1331,13 @@
         },
         "options": {}
       },
-      "id": "0577e1a2-fa6b-4c49-b608-bca4426f1ffa",
+      "id": "7d8b2af8-802e-4c38-81d8-167006544b0c",
       "name": "NC IF sendToTika?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        20848,
-        7296
+        24240,
+        7424
       ]
     },
     {
@@ -1378,13 +1378,13 @@
           "timeout": 300000
         }
       },
-      "id": "959fc0a5-124c-4781-9703-6c3032bf3c4f",
+      "id": "a50db05c-acff-4700-8094-0646541855f4",
       "name": "NC Tika",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        21072,
-        7312
+        24464,
+        7440
       ],
       "retryOnFail": true,
       "maxTries": 2,
@@ -1396,13 +1396,13 @@
         "mode": "runOnceForEachItem",
         "jsCode": "// NC Metadaten nach Tika – Modus: Run Once for Each Item\n// Stellt Vorgangs- und Dokumentmetadaten nach dem Tika-HTTP-Aufruf wieder her.\n// Das aktuelle Item ist die Tika-HTTP-Antwort.\n// Die ursprünglichen Metadaten kommen aus dem verknüpften Eingangsitem\n// des True-Zweigs der IF-Node \"NC IF sendToTika?\".\n\nconst meta = $('NC IF sendToTika?').item.json;\n\nconst tikaText =\n  typeof $json.tikaText === 'string' ? $json.tikaText :\n  typeof $json.data     === 'string' ? $json.data     :\n  typeof $json.body     === 'string' ? $json.body     :\n  '';\n\nconst tikaError =\n  $json.error?.message ||\n  $json.message        ||\n  '';\n\nreturn {\n  json: {\n    ...meta,\n    sendToTika: true,\n    tikaText,\n    tikaError\n  }\n};\n"
       },
-      "id": "49a9b439-eaa0-419d-aaaa-e2bdadbe1225",
+      "id": "2d0ba91c-b75e-47ab-bbe0-81ea71884a0d",
       "name": "NC Metadaten nach Tika",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        21360,
-        7312
+        24752,
+        7440
       ]
     },
     {
@@ -1410,13 +1410,13 @@
         "mode": "runOnceForEachItem",
         "jsCode": "// Prüfe Metadaten – V10.1 METADATA_GUARD\n// Modus: Run Once for Each Item\n\nconst j = $json || {};\n\nconst title          = String(j.title          || '').trim();\nconst vorgangsnummer = String(j.vorgangsnummer || '').trim();\nconst allrisUrl      = String(j.allrisUrl || j.sourceUrl || '').trim();\nconst volfdnr        = String(j.volfdnr        || '').trim();\n\nconst HTTP_ERROR_TITLE_RE = /^\\s*(?:400[\\s:-]+bad\\s+request|401[\\s:-]+unauthorized|403[\\s:-]+forbidden|404[\\s:-]+not\\s+found|408[\\s:-]+request\\s+time[- ]?out|429[\\s:-]+too\\s+many\\s+requests|500[\\s:-]+internal\\s+server\\s+error|501[\\s:-]+not\\s+implemented|502[\\s:-]+bad\\s+gateway|503[\\s:-]+service\\s+unavailable|504[\\s:-]+gateway\\s*time[- ]?out)\\s*$/i;\n\nconst TECH_ERROR_PHRASE_RE = /gateway\\s*time[- ]?out|bad\\s+gateway|service\\s+unavailable|internal\\s+server\\s+error|request\\s+time[- ]?out|upstream\\s+timed\\s+out|proxy\\s+error|temporarily\\s+unavailable|too\\s+many\\s+requests|serverfehler|nginx\\s+error|cloudflare\\s+error/i;\n\nfunction isTechnicalTitle(value) {\n  const text = String(value || '').trim();\n  return HTTP_ERROR_TITLE_RE.test(text) || TECH_ERROR_PHRASE_RE.test(text);\n}\n\nconst errors = [];\n\nif (!title) {\n  errors.push('title_missing');\n} else if (isTechnicalTitle(title)) {\n  errors.push('technical_title');\n} else if (title === '(Vorgangsseite nicht geladen)') {\n  errors.push('placeholder_title');\n}\n\nif (!/^\\d{4}\\/\\d+(?:-\\d+)?$/.test(vorgangsnummer)) {\n  errors.push('invalid_vorgangsnummer');\n}\n\nif (!allrisUrl) {\n  errors.push('allris_url_missing');\n}\n\nif (volfdnr && vorgangsnummer === volfdnr) {\n  errors.push('volfdnr_used_as_vorgangsnummer');\n}\n\nreturn {\n  json: {\n    ...j,\n    metadataValid:     errors.length === 0,\n    metadataErrors:    errors,\n    metadataErrorText: errors.join(', ')\n  }\n};\n"
       },
-      "id": "218e7a97-63f7-4ba6-b7f0-60e04b94e998",
+      "id": "75162b03-6816-451b-b700-4511be38c0aa",
       "name": "Prüfe Metadaten",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        21280,
-        6368
+        24672,
+        6496
       ]
     },
     {
@@ -1444,13 +1444,13 @@
         },
         "options": {}
       },
-      "id": "5cd6bdae-50e1-4e44-bcd2-7c953880f7e8",
+      "id": "3b4a35cc-285b-4c96-a8f3-2329a6198279",
       "name": "IF Metadaten gültig?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        21504,
-        6368
+        24896,
+        6496
       ]
     },
     {
@@ -1516,13 +1516,13 @@
         },
         "options": {}
       },
-      "id": "f0b0dcf8-fdbe-405e-82ed-14711da9fac3",
+      "id": "80f9899b-830f-4447-aaa6-6c1c0aad2c5f",
       "name": "Speichere Metadatenfehler",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        21632,
-        6688
+        25024,
+        6816
       ],
       "alwaysOutputData": true
     },
@@ -1546,13 +1546,13 @@
         },
         "returnAll": true
       },
-      "id": "9b0e08fd-2045-4b9b-a500-eff605c5550d",
+      "id": "e9a05a05-f80e-419b-bfb7-1bf657bf72a1",
       "name": "Hole Vorgangskette",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        21936,
-        6336
+        25328,
+        6464
       ],
       "alwaysOutputData": true
     },
@@ -1560,13 +1560,13 @@
       "parameters": {
         "jsCode": "// Bereite Vorgangskette vor – V11.5\n// Modus: Run Once for All Items\n// Korrektur:\n// - summaryText hat immer Vorrang.\n// - Falls summaryText leer/nicht geliefert ist, wird summaryJson.summaryText genutzt.\n// - Erst danach wird echter combinedText als Fallback verwendet.\n// - Technische Platzhalter wie „Dokumentlinks gefunden, aber kein Dokumenttext extrahierbar“\n//   gelten niemals als Dokumenttext.\n\nfunction parseVorgangsnummer(v) {\n  const m = String(v || '').trim().match(/^(\\d{4})\\/(\\d+)(?:-(\\d+))?$/);\n  if (!m) return null;\n  return {\n    jahr: Number(m[1]),\n    hauptnummer: Number(m[2]),\n    folgeString: m[3] || '',\n    folgeNumerisch: m[3] ? Number(m[3]) : 0,\n    istFolgevorgang: Boolean(m[3]),\n    stammVorgangsnummer: `${m[1]}/${m[2]}`,\n    normalisiert: m[3] ? `${m[1]}/${m[2]}-${m[3]}` : `${m[1]}/${m[2]}`\n  };\n}\n\nfunction normalizeVN(v) {\n  const p = parseVorgangsnummer(v);\n  return p ? p.normalisiert : String(v || '').trim();\n}\n\nfunction parseObject(value) {\n  if (!value) return {};\n  if (typeof value === 'object' && !Array.isArray(value)) return value;\n  try {\n    const parsed = JSON.parse(String(value));\n    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};\n  } catch (e) {\n    return {};\n  }\n}\n\nfunction parseArray(value) {\n  if (Array.isArray(value)) return value;\n  if (!value) return [];\n  try {\n    const parsed = JSON.parse(String(value));\n    return Array.isArray(parsed) ? parsed : [];\n  } catch (e) {\n    return [];\n  }\n}\n\nfunction cleanText(value) {\n  return String(value == null ? '' : value)\n    .replace(/\\r/g, '')\n    .replace(/[ \\t]+/g, ' ')\n    .replace(/\\n{3,}/g, '\\n\\n')\n    .trim();\n}\n\nfunction isTechnicalPlaceholder(value) {\n  const text = cleanText(value);\n  if (!text) return true;\n\n  const normalized = text\n    .toLowerCase()\n    .replace(/[„“”\"'`´]/g, '')\n    .replace(/\\s+/g, ' ')\n    .trim();\n\n  if (['null', 'undefined', 'n/a', 'na', 'leer'].includes(normalized)) return true;\n\n  return (\n    /^\\(?dokumentlinks? gefunden,? aber kein dokumenttext extrahierbar\\)?[.!]?$/i.test(text) ||\n    /^\\(?kein dokumenttext extrahierbar\\)?[.!]?$/i.test(text) ||\n    /^\\(?keine dokumenttexte? extrahierbar\\)?[.!]?$/i.test(text) ||\n    /^\\(?kein verwertbarer dokumenttext\\)?[.!]?$/i.test(text) ||\n    /^vorgangsseite\\b.*(?:fehler|nicht erreichbar|nicht geladen|leer)/i.test(text) ||\n    /^(?:fehler|error|download fehlgeschlagen|extraktion fehlgeschlagen)\\b/i.test(text)\n  );\n}\n\nfunction firstUsableText(values, minLength = 1) {\n  for (const value of values) {\n    const text = cleanText(value);\n    if (!text) continue;\n    if (isTechnicalPlaceholder(text)) continue;\n    if (text.length < minLength) continue;\n    return text;\n  }\n  return '';\n}\n\nfunction getSummaryText(row) {\n  const summaryJson = parseObject(row.summaryJson);\n  const summarySentences = parseArray(row.summarySentences);\n  const summaryJsonSentences = parseArray(summaryJson.summarySentences);\n\n  return firstUsableText([\n    row.summaryText,\n    summaryJson.summaryText,\n    summarySentences.join(' '),\n    summaryJsonSentences.join(' ')\n  ], 20);\n}\n\nfunction getCombinedText(row) {\n  return firstUsableText([row.combinedText], 80);\n}\n\nfunction getCurrentRow() {\n  try {\n    const rows = $('Normalisiere Vorgangsbeziehung').all(0, $runIndex);\n    if (Array.isArray(rows) && rows.length > 0) return rows[0].json || {};\n  } catch (e) {}\n  throw new Error('Bereite Vorgangskette vor: Aktueller Vorgang konnte nicht run-sicher geladen werden.');\n}\n\nconst current = getCurrentRow();\nconst currentVN = parseVorgangsnummer(current.vorgangsnummer || '');\n\nif (!currentVN || !currentVN.istFolgevorgang) {\n  return [{\n    json: {\n      ...current,\n      folgeNummerNumerisch: 0,\n      vorherigeVorgaenge: [],\n      vorherigeVorgaengeGefunden: [],\n      vorherigeVorgaengeVerwendet: [],\n      fehlendeVorherigeVorgaenge: [],\n      vorgangsketteVollstaendig: true,\n      vorgangsketteKontextVerwendet: false,\n      vorgangsketteKontextStatus: 'not_followup',\n      vorgangsketteHinweis: '',\n      vorgangsketteKontext: '',\n      vorgangsketteKontextGekuerzt: false,\n      vorgangsketteDetails: []\n    }\n  }];\n}\n\nconst currentFolgeN = currentVN.folgeNumerisch;\nconst stammVN = currentVN.stammVorgangsnummer;\nconst erwartet = [stammVN];\nfor (let i = 1; i < currentFolgeN; i++) {\n  erwartet.push(`${stammVN}-${String(i).padStart(2, '0')}`);\n}\n\n// In diesem Node liegen die Ergebnisse von „Hole Vorgangskette“ direkt am Eingang.\n// $input.all() ist hier robuster als ein zusätzlicher runIndex-Zugriff.\nconst allRows = $input.all().map(item => item.json || {});\nconst currentKey = String(current.vorgangKey || '').trim();\n\nconst relevantRows = allRows.filter(row => {\n  const rvn = parseVorgangsnummer(row.vorgangsnummer || '');\n  if (!rvn) return false;\n  if (rvn.stammVorgangsnummer !== stammVN) return false;\n  if (String(row.vorgangKey || '').trim() === currentKey) return false;\n  return rvn.folgeNumerisch < currentFolgeN;\n});\n\nconst rowByVN = {};\nfor (const row of relevantRows) {\n  const norm = normalizeVN(row.vorgangsnummer || '');\n  if (norm) rowByVN[norm] = row;\n}\n\nconst MAX_PER_ITEM = 4000;\nconst MAX_GESAMT = 12000;\nconst details = [];\nlet gesamtChars = 0;\nlet gekuerzt = false;\n\n// Neuere Vorgänge zuerst budgetieren, danach chronologisch ausgeben.\nfor (const vn of [...erwartet].reverse()) {\n  const row = rowByVN[vn];\n\n  if (!row) {\n    details.push({\n      vorgangsnummer: vn,\n      title: '',\n      allrisUrl: '',\n      wordpressPostLink: '',\n      folgeNummer: vn.includes('-') ? vn.split('-').pop() : '',\n      istStammvorgang: !vn.includes('-'),\n      gefunden: false,\n      kontextVerwendet: false,\n      kontextQuelle: 'not_found',\n      kontextStatus: 'previous_not_found',\n      summaryText: '',\n      combinedTextExcerpt: '',\n      diagnose: 'Datensatz nicht gefunden'\n    });\n    continue;\n  }\n\n  const summaryText = getSummaryText(row);\n  const combinedText = getCombinedText(row);\n\n  let kontextQuelle = 'unavailable';\n  let kontextStatus = 'previous_without_text';\n  let kontextVerwendet = false;\n  let textForContext = '';\n  let diagnose = '';\n\n  if (summaryText) {\n    kontextQuelle = 'summary';\n    kontextStatus = 'summary_available';\n    kontextVerwendet = true;\n    textForContext = summaryText;\n  } else if (combinedText) {\n    kontextQuelle = 'combined_text';\n    kontextStatus = 'combined_text_fallback';\n    kontextVerwendet = true;\n    textForContext = combinedText;\n  } else {\n    const rawCombinedText = cleanText(row.combinedText);\n    diagnose = isTechnicalPlaceholder(rawCombinedText)\n      ? 'Nur technischer Extraktionsplatzhalter vorhanden'\n      : 'Weder Zusammenfassung noch Dokumenttext vorhanden';\n  }\n\n  let textTrimmed = '';\n  if (kontextVerwendet) {\n    const remaining = Math.max(0, MAX_GESAMT - gesamtChars);\n    const limit = Math.min(MAX_PER_ITEM, remaining);\n\n    if (limit > 0) {\n      if (textForContext.length > limit) {\n        textTrimmed = textForContext.slice(0, limit) + '…';\n        gekuerzt = true;\n      } else {\n        textTrimmed = textForContext;\n      }\n      gesamtChars += textTrimmed.length;\n    } else {\n      kontextVerwendet = false;\n      kontextQuelle = 'text_limit';\n      kontextStatus = 'context_skipped_text_limit';\n      diagnose = 'Textlimit der Vorgangskette erreicht';\n      gekuerzt = true;\n    }\n  }\n\n  details.push({\n    vorgangsnummer: normalizeVN(row.vorgangsnummer || '') || vn,\n    title: cleanText(row.title),\n    allrisUrl: cleanText(row.allrisUrl || row.sourceUrl),\n    wordpressPostLink: cleanText(row.wordpressPostLink),\n    folgeNummer: vn.includes('-') ? vn.split('-').pop() : '',\n    istStammvorgang: !vn.includes('-'),\n    gefunden: true,\n    kontextVerwendet,\n    kontextQuelle,\n    kontextStatus,\n    summaryText: kontextQuelle === 'summary' ? textTrimmed : '',\n    combinedTextExcerpt: kontextQuelle === 'combined_text' ? textTrimmed : '',\n    diagnose\n  });\n}\n\ndetails.sort((a, b) => {\n  const aNum = a.folgeNummer ? Number(a.folgeNummer) : -1;\n  const bNum = b.folgeNummer ? Number(b.folgeNummer) : -1;\n  return aNum - bNum;\n});\n\nconst gefunden = details.filter(d => d.gefunden).map(d => d.vorgangsnummer);\nconst verwendet = details.filter(d => d.kontextVerwendet).map(d => d.vorgangsnummer);\nconst fehlend = erwartet.filter(vn => !rowByVN[vn]);\nconst vollstaendig = fehlend.length === 0;\nconst kontextVerwendetBool = verwendet.length > 0;\n\nlet vorgangsketteKontextStatus = 'not_found';\nif (kontextVerwendetBool && vollstaendig) vorgangsketteKontextStatus = 'full_context';\nelse if (kontextVerwendetBool) vorgangsketteKontextStatus = 'partial_context';\nelse if (gefunden.length > 0) vorgangsketteKontextStatus = 'found_without_context';\n\nconst kontextParts = [];\nfor (const detail of details) {\n  if (!detail.kontextVerwendet) continue;\n  const quelle = detail.kontextQuelle === 'summary'\n    ? 'Vorhandene Zusammenfassung'\n    : 'Dokumenttext (Fallback)';\n  const header = `=== Vorheriger Vorgang: ${detail.vorgangsnummer} – ${detail.title || '(kein Titel)'} ===\\nQuelle: ${quelle}`;\n  const text = detail.summaryText || detail.combinedTextExcerpt;\n  if (text) kontextParts.push(`${header}\\n\\n${text}`);\n}\nconst vorgangsketteKontext = kontextParts.join('\\n\\n---\\n\\n');\n\nconst hinweise = [];\nif (fehlend.length > 0) hinweise.push(`Fehlende Vorgänge: ${fehlend.join(', ')}`);\nif (gekuerzt) hinweise.push('Vorgangskette wurde wegen des Textlimits gekürzt.');\nif (!kontextVerwendetBool && gefunden.length > 0) {\n  hinweise.push('Frühere Vorgänge wurden gefunden, lieferten bei diesem Lauf aber keinen nutzbaren Kontext.');\n}\n\nconst stammDetail = details.find(d => d.istStammvorgang);\n\nreturn [{\n  json: {\n    ...current,\n    folgeNummerNumerisch: currentFolgeN,\n    vorherigeVorgaenge: erwartet,\n    vorherigeVorgaengeGefunden: gefunden,\n    vorherigeVorgaengeVerwendet: verwendet,\n    fehlendeVorherigeVorgaenge: fehlend,\n    vorgangsketteVollstaendig: vollstaendig,\n    vorgangsketteKontextVerwendet: kontextVerwendetBool,\n    vorgangsketteKontextStatus,\n    vorgangsketteHinweis: hinweise.join(' | '),\n    vorgangsketteKontext,\n    vorgangsketteKontextGekuerzt: gekuerzt,\n    vorgangsketteDetails: details,\n    stammKontextStatus: stammDetail?.kontextStatus || 'parent_not_found',\n    stammVorgangGefunden: stammDetail?.gefunden ?? false,\n    stammTitel: stammDetail?.title || '',\n    stammAllrisUrl: stammDetail?.allrisUrl || '',\n    stammSummaryText: stammDetail?.summaryText || '',\n    stammCombinedTextExcerpt: stammDetail?.combinedTextExcerpt || ''\n  }\n}];"
       },
-      "id": "0ebd5f85-2bbd-4ec5-8310-2efe30fdc36e",
+      "id": "1ed0f9c6-6956-43cc-a908-a51e96982329",
       "name": "Bereite Vorgangskette vor",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        22192,
-        6320
+        25584,
+        6448
       ]
     },
     {
@@ -1593,13 +1593,13 @@
         },
         "options": {}
       },
-      "id": "f19c30b0-4aba-4c57-be9a-62f9dc254f50",
+      "id": "f14d3cfb-2a56-41d1-a5a3-2eafa8ceae80",
       "name": "IF Summary JSON gültig?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        21824,
-        7088
+        25216,
+        7216
       ]
     },
     {
@@ -1651,13 +1651,13 @@
         },
         "options": {}
       },
-      "id": "9743c402-4243-4d06-b168-9e4cc287d714",
+      "id": "635b1889-95d1-46cd-8db3-ff1ba0c2cddb",
       "name": "Speichere Summary Parsefehler",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        21712,
-        6848
+        25104,
+        6976
       ],
       "alwaysOutputData": true
     },
@@ -1666,13 +1666,13 @@
         "mode": "runOnceForEachItem",
         "jsCode": "// Prüft, ob eine verwertbare Zusammenfassung bereits vorhanden ist.\n// Falls ja, wird die KI-Zusammenfassung übersprungen.\n// V12.12: Eine vorhandene Summary ist nur noch nutzbar, wenn ihr summaryJson\n// eindeutig zum aktuellen Datensatz gehört. Alte summaryJson ohne VorgangKey/\n// Vorgangsnummer werden bewusst neu erzeugt, damit keine alten Fehlzuordnungen\n// weiterverwendet werden.\nconst j = $input.item.json || {};\n\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction normKey(v) { return safeStr(v).toLowerCase(); }\nfunction normVn(v) { return safeStr(v).replace(/\\s+/g, ''); }\n\nfunction isSummaryUsable(row) {\n  const text = safeStr(row.summaryText);\n  if (text.length < 50) return false;\n\n  const sj = safeStr(row.summaryJson);\n  if (!sj || sj === '{}' || sj === 'null') return false;\n\n  try {\n    const parsed = JSON.parse(sj);\n    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return false;\n\n    const rowKey = normKey(row.vorgangKey);\n    const rowVn = normVn(row.vorgangsnummer);\n    const parsedKey = normKey(parsed.vorgangKey || parsed.sourceVorgangKey || '');\n    const parsedVn = normVn(parsed.vorgangsnummer || parsed.sourceVorgangsnummer || '');\n\n    // Ohne diese Metadaten gilt eine vorhandene Summary als Altbestand und wird neu erzeugt.\n    if (!parsedKey && !parsedVn) return false;\n\n    if (rowKey && parsedKey && rowKey !== parsedKey) return false;\n    if (rowVn && parsedVn && rowVn !== parsedVn) return false;\n\n    const contentFields = ['summaryText', 'thema', 'buergerwirkung', 'offenePunkte'];\n    return contentFields.some(f => safeStr(parsed[f]).length > 10);\n  } catch (e) {\n    return false;\n  }\n}\n\nreturn {\n  json: {\n    ...j,\n    _summaryAlreadyUsable: isSummaryUsable(j)\n  }\n};\n"
       },
-      "id": "d14b22b4-ea31-4a39-876c-4bfebc57ae24",
+      "id": "7b7f5737-7cf6-43da-bc33-b4e4bf5071c1",
       "name": "Prüfe vorhandene Summary",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        20832,
-        7072
+        24224,
+        7200
       ]
     },
     {
@@ -1699,13 +1699,13 @@
         },
         "options": {}
       },
-      "id": "9d998752-99c2-4082-8d1c-19494bb5f6ed",
+      "id": "2b75b8cc-d073-4e72-b553-961626b56a31",
       "name": "IF Vorhandene Summary nutzbar?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        21056,
-        7072
+        24448,
+        7200
       ]
     },
     {
@@ -1728,52 +1728,52 @@
           ]
         }
       },
-      "id": "9ba1f1bf-86d7-402d-91e2-03705c1dda47",
+      "id": "9334218d-e707-47bb-b916-0fa5c938d586",
       "name": "Hole needs_content visual_topic_error",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
       "position": [
-        20368,
-        6576
+        23760,
+        6704
       ]
     },
     {
       "parameters": {
         "jsCode": "// Sortierung: 1. firstseen aufsteigend, 2. volfdnr numerisch, 3. vorgangKey lexikografisch\nfunction parseDate(v) {\n  if (!v) return 0;\n  const t = Date.parse(String(v));\n  return Number.isFinite(t) ? t : 0;\n}\nfunction parseVolfdnr(v) {\n  if (!v) return Infinity;\n  const n = parseInt(String(v).replace(/[^0-9]/g, ''), 10);\n  return Number.isFinite(n) ? n : Infinity;\n}\nconst items = $input.all();\nitems.sort((a, b) => {\n  const ja = a.json || {}, jb = b.json || {};\n  const fa = parseDate(ja.firstseen), fb = parseDate(jb.firstseen);\n  if (fa !== fb) return fa - fb;\n  const va = parseVolfdnr(ja.volfdnr), vb = parseVolfdnr(jb.volfdnr);\n  if (va !== vb) return va - vb;\n  return String(ja.vorgangKey || '').localeCompare(String(jb.vorgangKey || ''));\n});\nreturn items;\n"
       },
-      "id": "117a4d06-e01b-4624-bc6d-0e97b41b22c5",
+      "id": "9a189d59-4ca2-4404-85a9-c7cd3acb105b",
       "name": "Sortiere Repair-Vorgänge",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        20816,
-        6576
+        24208,
+        6704
       ]
     },
     {
       "parameters": {
         "options": {}
       },
-      "id": "cef0fafe-129c-4a63-b2d4-4c7683498a85",
+      "id": "c05bdc56-b437-4df2-b688-87db207e4ac8",
       "name": "Loop Repair-Vorgänge",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        21040,
-        6576
+        24432,
+        6704
       ]
     },
     {
       "parameters": {
         "jsCode": "// Nächster Repair-Vorgang (V12_7)\nconst items = $input.all();\nconst rawItem = items && items[0];\nconst j = (rawItem && rawItem.json && typeof rawItem.json === 'object' && !Array.isArray(rawItem.json))\n  ? rawItem.json\n  : {};\nreturn [{ json: j }];\n"
       },
-      "id": "e032e7a2-63d8-45f6-aec9-4e19498bbafe",
+      "id": "a5461414-c553-45ac-8f3a-b14f551dfe7d",
       "name": "Nächster Repair-Vorgang",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        22512,
-        6576
+        25904,
+        6704
       ]
     },
     {
@@ -1781,13 +1781,13 @@
         "mode": "runOnceForEachItem",
         "jsCode": "// Prüft ob Matrix-Versand erfolgreich war\nconst item = $input.item;\nconst j = item.json || {};\n\n// n8n setzt item.error wenn der HTTP-Request fehlschlägt (auch bei continueOnFail)\nconst hasError = !!(item.error || j.error || j.__error);\n\n// Matrix gibt bei Erfolg event_id zurück\nconst eventId = j.event_id || j.eventId || j['event_id'] || '';\nconst matrixSuccess = !hasError && typeof eventId === 'string' && eventId.startsWith('$');\n\nreturn {\n  json: {\n    ...j,\n    _matrixRaumASentOk: matrixSuccess,\n    _matrixRaumAEventId: eventId\n  }\n};\n"
       },
-      "id": "6e781abf-446b-4c1e-a575-170282d9b69a",
+      "id": "01f56b82-a56b-49c2-a21e-3ee2d0b6a46b",
       "name": "Prüfe Matrix Raum A Erfolg",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        22704,
-        6816
+        26096,
+        6944
       ]
     },
     {
@@ -1814,39 +1814,39 @@
         },
         "options": {}
       },
-      "id": "fa320951-ca46-4d83-806d-3de23d80be01",
+      "id": "1734e07f-dd11-4651-a75e-abdc6c7d7b06",
       "name": "IF Matrix Raum A ok?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        22944,
-        6816
+        26336,
+        6944
       ]
     },
     {
       "parameters": {
         "jsCode": "// FIX 5: Filtert needs_content Datensätze die einen ungültigen Source-Lock haben\n// oder fehlende visualAnchors (wenn Bild nötig)\nconst items = $input.all();\n\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; } catch(e) { return {}; }\n}\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction asArr(v) {\n  if (Array.isArray(v)) return v.filter(Boolean).map(s => String(s).trim());\n  if (typeof v === 'string' && v.trim()) {\n    try { const p = JSON.parse(v); if (Array.isArray(p)) return p.filter(Boolean).map(s => String(s).trim()); } catch(e) {}\n  }\n  return [];\n}\nfunction robustBool(v) {\n  if (v === true || v === 1) return true;\n  if (typeof v === 'string') { const s = v.trim().toLowerCase(); return s === 'true' || s === '1'; }\n  return false;\n}\n\nreturn items.filter(item => {\n  const j = item.json || {};\n  if (safeStr(j.status) !== 'needs_content') return false;\n  // Korrekte Datensätze nicht reparieren\n  // Hinweis: analysis_error visualStatus kann bei needs_content vorkommen - diese reparieren wir\n  \n  const analysis = parseObj(j.analysisJson);\n  const sl = parseObj(analysis.sourceLock || {});\n  const va = parseObj(analysis.visualAnchors || {});\n  const slValidFlag = robustBool(analysis.sourceLockValid);\n  const vaValidFlag = robustBool(analysis.visualAnchorsValid);\n  \n  const slOk = !!(safeStr(sl.sourceTopic) && safeStr(sl.sourceConflict) &&\n    asArr(sl.requiredTerms).length >= 2 && asArr(sl.requiredObjects).length >= 2 &&\n    safeStr(sl.requiredAction) && slValidFlag);\n  const vaOk = !!(safeStr(va.satireThemaKonkret) && safeStr(va.satireKonfliktKonkret) &&\n    asArr(va.visualPflichtobjekte).length >= 2 && safeStr(va.visualPflichthandlung) &&\n    safeStr(va.visualErkennungssatz) && safeStr(va.visualUeberzeichnung) &&\n    asArr(va.visualVerboteneErsatzmotive).length >= 2 && vaValidFlag);\n  \n  const needsVisual = robustBool(j.visualNeeded) || robustBool(j.instagramSharepicNoetig);\n  const slRepairNeeded = !slOk;\n  const vaRepairNeeded = needsVisual && !vaOk;\n  return slRepairNeeded || vaRepairNeeded;\n});\n"
       },
-      "id": "dd29a31e-09ad-436d-b31a-431ed41d7766",
+      "id": "66008e01-2f4f-45a0-8d2a-2ced40a228ef",
       "name": "Filter Repair-Kandidaten",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        20592,
-        6576
+        23984,
+        6704
       ]
     },
     {
       "parameters": {
         "jsCode": "// Idempotenz-Guard: verhindert erneute KI-Verarbeitung bereits fertiger Vorgaenge,\n// unabhaengig vom status-Feld (das durch andere Bugs faelschlich zurueckgesetzt werden kann).\n// Prueft harte Fertigstellungs-Merkmale statt sich allein auf status=needs_summary zu verlassen.\n\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nfunction hasValidAnalysis(row) {\n  const aj = safeStr(row.analysisJson);\n  if (!aj || aj === '{}' || aj === 'null') return false;\n  try {\n    const parsed = JSON.parse(aj);\n    return parsed && typeof parsed === 'object' && !Array.isArray(parsed);\n  } catch (e) {\n    return false;\n  }\n}\n\nfunction hasValidContent(row) {\n  if (safeStr(row.websiteHeadline)) return true;\n  const cj = safeStr(row.contentJson);\n  if (!cj || cj === '{}' || cj === 'null') return false;\n  try {\n    const parsed = JSON.parse(cj);\n    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) && Object.keys(parsed).length > 0;\n  } catch (e) {\n    return false;\n  }\n}\n\n// FIX: P1 kann bereits contentJson/websiteHeadline erzeugt und status auf\n// content_generated/content_posted gesetzt haben, bevor status durch einen\n// anderen Bug wieder auf needs_summary zurueckfiel. Die alte Ableitung kannte\n// nur empfehlung und konnte so einen Datensatz nie ueber needs_content hinaus\n// reparieren, obwohl P2s Content-Gate content_generated/content_posted\n// verlangt - bei empfehlung=BEOBACHTEN landete er sogar auf watching und fiel\n// damit aus jedem Eingangsfilter der Pipeline heraus.\nfunction deriveCorrectedStatus(row) {\n  const ADVANCED_STATUS = ['content_generated', 'content_posted'];\n  if (hasValidContent(row)) {\n    return ADVANCED_STATUS.includes(safeStr(row.status)) ? row.status : 'content_generated';\n  }\n  if (row.empfehlung === 'IGNORIEREN') return 'ignored';\n  if (row.empfehlung === 'REAGIEREN') return 'needs_content';\n  return 'watching';\n}\n\nconst items = $input.all();\n\nreturn items.map(item => {\n  const j = item.json || {};\n\n  const summaryOk = safeStr(j.summaryText).length >= 50;\n  const analysisOk = hasValidAnalysis(j);\n  const analysedAt = safeStr(j.lastAnalysisAt).length > 0;\n\n  const alreadyProcessed = summaryOk && analysisOk && analysedAt;\n\n  return {\n    json: {\n      ...j,\n      _guardAlreadyProcessed: alreadyProcessed,\n      _guardCorrectedStatus: alreadyProcessed ? deriveCorrectedStatus(j) : j.status\n    }\n  };\n});"
       },
-      "id": "a41f0d9f-8030-4776-aa05-a915825a7406",
+      "id": "bb311ed6-d928-40e2-962b-9ed24b8701b1",
       "name": "Guard Bereits verarbeitet (Idempotenz)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        20480,
-        6240
+        23872,
+        6368
       ]
     },
     {
@@ -1873,13 +1873,13 @@
         },
         "options": {}
       },
-      "id": "144f9473-ce43-4f78-b422-a967eef605be",
+      "id": "69527765-931a-4230-8034-a69d46a740e1",
       "name": "IF Bereits verarbeitet? (Guard)",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        20480,
-        6368
+        23872,
+        6496
       ]
     },
     {
@@ -1920,13 +1920,13 @@
         },
         "options": {}
       },
-      "id": "f04c97ea-ade3-41d3-95f8-a0ae6dd3699e",
+      "id": "e82cc4ef-95e1-4d34-946c-fab2c132cef2",
       "name": "Repariere Status (Guard)",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        20480,
-        6528
+        23872,
+        6656
       ]
     },
     {
@@ -1950,13 +1950,13 @@
           "waitForSubWorkflow": true
         }
       },
-      "id": "7810df71-5fcc-4647-b01f-cf19bf29d25d",
+      "id": "66e9ea1e-32fa-42d4-89da-14d5aa568921",
       "name": "Execute Workflow Repair (neu)",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        23472,
-        7088
+        26864,
+        7216
       ]
     },
     {
@@ -1980,13 +1980,13 @@
           "waitForSubWorkflow": true
         }
       },
-      "id": "1d28ad5e-3522-4b5b-9cf5-d5cdfa0c7685",
+      "id": "c104016b-c6ff-426d-a28f-fa7284115df0",
       "name": "Execute Workflow Repair (existing)",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        21920,
-        6576
+        25312,
+        6704
       ]
     },
     {
@@ -1994,13 +1994,13 @@
         "mode": "runOnceForEachItem",
         "jsCode": "return {\n  json: {\n    qaStage: 'analyse',\n    vorgangKey: $json.vorgangKey,\n    vorgangsnummer: $json.vorgangsnummer,\n    title: $json.title,\n    analysisJson: $json.analysisJson,\n    summaryText: $json.summaryText,\n    combinedText: $json.combinedText,\n    skipAdversarialCheck: false\n  }\n};"
       },
-      "id": "a8b1e163-0a63-44ff-b1be-b97da8c1753e",
+      "id": "5316ed61-4875-4899-ae7e-75d53991275b",
       "name": "QA-Shadow: Baue QA-Eingabe",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        20160,
-        7504
+        23552,
+        7632
       ]
     },
     {
@@ -2015,13 +2015,13 @@
           "waitForSubWorkflow": true
         }
       },
-      "id": "954f1508-d2b2-4242-837c-0946f4c228d2",
+      "id": "0f4f161e-81e9-4c40-bea8-5c2416c1452c",
       "name": "Execute Workflow QA-Agent (Shadow)",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        20384,
-        7504
+        23776,
+        7632
       ],
       "alwaysOutputData": true,
       "onError": "continueRegularOutput"
@@ -2031,13 +2031,13 @@
         "mode": "runOnceForEachItem",
         "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst response = $json || {};\nconst original = $('QA-Shadow: Baue QA-Eingabe').item.json || {};\nconst hasVerdict = typeof response.passed === 'boolean';\n\nconst verdict = hasVerdict ? response : {\n  passed: false,\n  violations: [{ code: 'qa_agent_call_failed', field: 'qaVerdictJson', message: 'QA-Agent-Aufruf fehlgeschlagen oder ohne Verdikt zurueckgekehrt', severity: 'unknown' }],\n  hallucinationSuspects: [],\n  sourceLockBreaches: [],\n  qaStage: 'analyse',\n  vorgangKey: safeStr(original.vorgangKey),\n  vorgangsnummer: safeStr(original.vorgangsnummer),\n  checkedAt: new Date().toISOString(),\n  aiSkipped: true\n};\n\nreturn {\n  json: {\n    ...original,\n    qaVerdictJson: JSON.stringify(verdict),\n    qaPassed: verdict.passed === true,\n    qaCheckedAt: verdict.checkedAt || new Date().toISOString()\n  }\n};"
       },
-      "id": "dc166e4d-8354-43b7-831a-c250d5b91b53",
+      "id": "bd5beeb4-2f2c-4f20-975d-14edf85d2c5d",
       "name": "Stelle Kontext nach QA-Agent wieder her",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        20608,
-        7504
+        24000,
+        7632
       ]
     },
     {
@@ -2103,13 +2103,13 @@
         },
         "options": {}
       },
-      "id": "3d2493cb-21e6-4d30-8b6e-3e4b09b45483",
+      "id": "557da812-e8e3-47c9-9256-63aea008bfdd",
       "name": "Speichere QA Verdict (Shadow)",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        20832,
-        7504
+        24224,
+        7632
       ],
       "alwaysOutputData": true,
       "onError": "continueRegularOutput"
@@ -2119,13 +2119,13 @@
         "mode": "runOnceForEachItem",
         "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; }\n  catch (e) { return {}; }\n}\n\nconst row = $json;\nconst verdict = parseObj(row.qaVerdictJson);\nconst outcome = row.qaPassed === true ? 'accepted' : 'rejected';\n\nconst violations = Array.isArray(verdict.violations) ? verdict.violations : [];\nconst hallucinations = Array.isArray(verdict.hallucinationSuspects) ? verdict.hallucinationSuspects : [];\n\nlet exampleSummary;\nif (outcome === 'accepted') {\n  exampleSummary = safeStr(row.title) + ' - QA bestanden, keine Verstoesse.';\n} else {\n  const firstIssues = [...violations.map(v => v.message), ...hallucinations.map(h => h.claim)].filter(Boolean).slice(0, 3);\n  exampleSummary = safeStr(row.title) + ' - ' + (firstIssues.length ? firstIssues.join(' | ') : 'QA abgelehnt ohne Detail');\n}\n\nreturn {\n  json: {\n    lernAction: 'record',\n    vorgangKey: safeStr(row.vorgangKey),\n    vorgangsnummer: safeStr(row.vorgangsnummer),\n    qaStage: safeStr(row.qaStage) || 'analyse',\n    source: 'qa_agent',\n    outcome: outcome,\n    exampleSummary: exampleSummary.slice(0, 500),\n    detailsJson: safeStr(row.qaVerdictJson) || '{}'\n  }\n};"
       },
-      "id": "62d9494b-905d-4a94-b8f9-992e56eb3236",
+      "id": "86ab24ea-7f69-46a2-b626-be9eb0929f65",
       "name": "Lern-Shadow: Baue Record-Eingabe",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        21072,
-        7552
+        24464,
+        7680
       ]
     },
     {
@@ -2140,13 +2140,13 @@
           "waitForSubWorkflow": true
         }
       },
-      "id": "e5b252a9-d7aa-44b8-a33d-0192cadc9fca",
+      "id": "bc8de4ae-8df8-491d-86ef-26109b246ada",
       "name": "Execute Workflow Lern-Agent (Record)",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        21296,
-        7552
+        24688,
+        7680
       ],
       "alwaysOutputData": true,
       "onError": "continueRegularOutput"
@@ -2156,13 +2156,13 @@
         "mode": "runOnceForEachItem",
         "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; }\n  catch (e) { return {}; }\n}\nfunction asArray(v) { return Array.isArray(v) ? v.filter(Boolean).map(safeStr) : []; }\n\nconst analysis = parseObj($json.analysisJson);\nconst sourceLock = parseObj(analysis.sourceLock);\n\nreturn {\n  json: {\n    vorgangKey: $json.vorgangKey,\n    vorgangsnummer: $json.vorgangsnummer,\n    title: $json.title,\n    summaryText: $json.summaryText,\n    combinedText: $json.combinedText,\n    sprengstoff: safeStr(analysis.sprengstoff) || 'GERING',\n    oldSourceTopic: safeStr(sourceLock.sourceTopic),\n    oldRequiredTerms: asArray(sourceLock.requiredTerms),\n    oldRequiredObjects: asArray(sourceLock.requiredObjects)\n  }\n};"
       },
-      "id": "87fb2caa-b968-4a57-bc24-2709b48028d9",
+      "id": "c7a8b32d-88c5-4623-9fed-cbc2d6eb2523",
       "name": "Fakten-Shadow: Baue Eingabe",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        21808,
-        7600
+        24944,
+        7648
       ]
     },
     {
@@ -2177,13 +2177,13 @@
           "waitForSubWorkflow": true
         }
       },
-      "id": "a0a2e9cb-abe5-4453-b149-c1afe29f735a",
+      "id": "a635e6f1-fc9f-49cf-a368-b02f1956040c",
       "name": "Execute Workflow Fakten-Agent (Shadow)",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        22032,
-        7600
+        25168,
+        7648
       ],
       "alwaysOutputData": true,
       "onError": "continueRegularOutput"
@@ -2193,13 +2193,13 @@
         "mode": "runOnceForEachItem",
         "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction asArray(v) { return Array.isArray(v) ? v.filter(Boolean).map(safeStr) : []; }\n\nconst response = $json || {};\nconst original = $('Fakten-Shadow: Baue Eingabe').itemMatching($itemIndex).json || {};\nconst hasFakten = typeof response.sourceTopic === 'string';\n\nconst fakten = hasFakten ? response : {\n  vorgangKey: safeStr(original.vorgangKey),\n  vorgangsnummer: safeStr(original.vorgangsnummer),\n  sourceTopic: '', sourceConflict: '', requiredTerms: [], requiredObjects: [],\n  requiredAction: '', affectedGroups: [], concreteNumbers: [], responsibilities: [],\n  documentType: '', quotesVerbatim: [],\n  parseError: true,\n  callFailed: true\n};\n\n// Vergleich gegen das bereits VOR der Sub-Workflow-Grenze extrahierte sourceLock (siehe Fakten-Shadow: Baue Eingabe) - kein KI-Urteil.\nconst oldSourceLock = {\n  sourceTopic: safeStr(original.oldSourceTopic),\n  requiredTerms: asArray(original.oldRequiredTerms),\n  requiredObjects: asArray(original.oldRequiredObjects)\n};\n\nfunction normalizeText(v) {\n  return safeStr(v).toLowerCase()\n    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss');\n}\nfunction stemLight(w) {\n  return w.replace(/(ungen|ierung|heit|keit|schaft|tion|ieren|iere|iert|ung|lich|isch|ische|ischen|ischer|isches)$/, '').replace(/(en|er|em|es|e|n|s|t)$/, '');\n}\nfunction tokenOverlap(a, b) {\n  const tokensA = normalizeText(a).split(/[\\W_]+/).filter(w => w.length >= 4).map(stemLight);\n  const tokensB = normalizeText(b).split(/[\\W_]+/).filter(w => w.length >= 4).map(stemLight);\n  if (tokensA.some(w => tokensB.includes(w))) return true;\n  const rawA = normalizeText(a).replace(/[\\W_]+/g, ''), rawB = normalizeText(b).replace(/[\\W_]+/g, '');\n  for (const tok of tokensA) { if (tok.length >= 5 && rawB.includes(tok)) return true; }\n  for (const tok of tokensB) { if (tok.length >= 5 && rawA.includes(tok)) return true; }\n  return false;\n}\n\nconst oldRequiredTerms = asArray(oldSourceLock.requiredTerms);\nconst newRequiredTerms = asArray(fakten.requiredTerms);\nconst oldRequiredObjects = asArray(oldSourceLock.requiredObjects);\nconst newRequiredObjects = asArray(fakten.requiredObjects);\n\nconst termsMatched = newRequiredTerms.filter(t => oldRequiredTerms.some(o => tokenOverlap(t, o))).length;\nconst objectsMatched = newRequiredObjects.filter(t => oldRequiredObjects.some(o => tokenOverlap(t, o))).length;\nconst sourceTopicOverlap = (safeStr(oldSourceLock.sourceTopic) && safeStr(fakten.sourceTopic))\n  ? tokenOverlap(oldSourceLock.sourceTopic, fakten.sourceTopic)\n  : false;\n\nconst comparison = {\n  sourceTopicOverlap: sourceTopicOverlap,\n  requiredTermsMatched: termsMatched,\n  requiredTermsOldCount: oldRequiredTerms.length,\n  requiredTermsNewCount: newRequiredTerms.length,\n  requiredObjectsMatched: objectsMatched,\n  requiredObjectsOldCount: oldRequiredObjects.length,\n  requiredObjectsNewCount: newRequiredObjects.length\n};\n\nreturn {\n  json: {\n    vorgangKey: safeStr(original.vorgangKey),\n    sprengstoff: safeStr(original.sprengstoff) || 'GERING',\n    faktenAgentJson: JSON.stringify(fakten),\n    faktenComparisonJson: JSON.stringify(comparison)\n  }\n};"
       },
-      "id": "3c7882ba-7180-4a10-b8f3-e9d1f93ead62",
+      "id": "4dd890dc-525d-47ea-b9c4-5917398e563d",
       "name": "Stelle Kontext nach Fakten-Agent wieder her",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        22256,
-        7600
+        25392,
+        7648
       ]
     },
     {
@@ -2254,13 +2254,13 @@
         },
         "options": {}
       },
-      "id": "d1775747-5005-4922-8016-191bffc39080",
+      "id": "2dcc34c1-d76a-4662-b283-3634ae11ed53",
       "name": "Speichere Fakten-Agent Shadow",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        22480,
-        7600
+        25616,
+        7648
       ],
       "alwaysOutputData": true,
       "onError": "continueRegularOutput"
@@ -2270,13 +2270,13 @@
         "mode": "runOnceForEachItem",
         "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; }\n  catch (e) { return {}; }\n}\n\nconst fakten = parseObj($json.faktenAgentJson);\n\nreturn {\n  json: {\n    vorgangKey: $json.vorgangKey,\n    vorgangsnummer: safeStr(fakten.vorgangsnummer),\n    sourceTopic: fakten.sourceTopic,\n    sourceConflict: fakten.sourceConflict,\n    requiredTerms: fakten.requiredTerms,\n    requiredObjects: fakten.requiredObjects,\n    requiredAction: fakten.requiredAction,\n    affectedGroups: fakten.affectedGroups,\n    concreteNumbers: fakten.concreteNumbers,\n    responsibilities: fakten.responsibilities,\n    documentType: fakten.documentType,\n    quotesVerbatim: fakten.quotesVerbatim,\n    sprengstoff: $json.sprengstoff\n  }\n};"
       },
-      "id": "05cbf5a3-9838-4f7d-ba87-5982de778b34",
+      "id": "c01e5494-fbba-44c3-acb2-4de758834d8b",
       "name": "Satire-Shadow: Baue Eingabe",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        21808,
-        7904
+        23920,
+        7888
       ]
     },
     {
@@ -2291,13 +2291,13 @@
           "waitForSubWorkflow": true
         }
       },
-      "id": "579d38f4-d83f-430b-a473-a2fcb902fc7d",
+      "id": "3498243f-011e-42df-894a-5ab2bfc629b9",
       "name": "Execute Workflow Satire-Agent (Shadow)",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        22032,
-        7904
+        24144,
+        7888
       ],
       "alwaysOutputData": true,
       "onError": "continueRegularOutput"
@@ -2305,15 +2305,15 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst response = $json || {};\nconst original = $('Satire-Shadow: Baue Eingabe').itemMatching($itemIndex).json || {};\nconst hasVariants = Array.isArray(response.variants) && response.variants.length > 0;\n\nconst result = hasVariants ? response : {\n  vorgangKey: safeStr(original.vorgangKey),\n  vorgangsnummer: safeStr(original.vorgangsnummer),\n  variants: [],\n  parseError: true,\n  callFailed: true\n};\n\nreturn {\n  json: {\n    vorgangKey: safeStr(original.vorgangKey) || safeStr(response.vorgangKey),\n    satireAgentJson: JSON.stringify(result)\n  }\n};"
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction asArray(v) { return Array.isArray(v) ? v.filter(Boolean).map(safeStr) : []; }\n\nconst response = $json || {};\nconst original = $('Satire-Shadow: Baue Eingabe').itemMatching($itemIndex).json || {};\nconst hasVariants = Array.isArray(response.variants) && response.variants.length > 0;\n\nconst result = hasVariants ? response : {\n  vorgangKey: safeStr(original.vorgangKey),\n  vorgangsnummer: safeStr(original.vorgangsnummer),\n  variants: [],\n  parseError: true,\n  callFailed: true\n};\n\nreturn {\n  json: {\n    vorgangKey: safeStr(original.vorgangKey) || safeStr(response.vorgangKey),\n    vorgangsnummer: safeStr(original.vorgangsnummer),\n    satireAgentJson: JSON.stringify(result),\n    sourceTopic: safeStr(original.sourceTopic),\n    requiredObjects: asArray(original.requiredObjects),\n    requiredAction: safeStr(original.requiredAction),\n    affectedGroups: asArray(original.affectedGroups)\n  }\n};"
       },
-      "id": "bccad199-9156-4b6c-a7e1-a82c0f54239b",
+      "id": "e556cc79-1dc3-4850-a05b-5ac455c77018",
       "name": "Stelle Kontext nach Satire-Agent wieder her",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        22256,
-        7904
+        24368,
+        7888
       ]
     },
     {
@@ -2357,13 +2357,125 @@
         },
         "options": {}
       },
-      "id": "c722cf88-31c6-4f07-96c4-84cdca8b704e",
+      "id": "6dc78257-7159-4aee-9648-319e35b274da",
       "name": "Speichere Satire-Agent Shadow",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        22480,
-        7904
+        24592,
+        7888
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; }\n  catch (e) { return {}; }\n}\nfunction asArray(v) { return Array.isArray(v) ? v.filter(Boolean).map(safeStr) : []; }\n\nconst satire = parseObj($json.satireAgentJson);\nconst variants = Array.isArray(satire.variants) ? satire.variants : [];\nconst chosen = variants.length > 1 ? variants[1] : (variants[0] || {});\n\nreturn {\n  json: {\n    vorgangKey: $json.vorgangKey,\n    vorgangsnummer: safeStr($json.vorgangsnummer),\n    sourceTopic: safeStr($json.sourceTopic),\n    requiredObjects: asArray($json.requiredObjects),\n    requiredAction: safeStr($json.requiredAction),\n    affectedGroups: asArray($json.affectedGroups),\n    satireBrief: safeStr(chosen.satireBrief),\n    satireAngle: safeStr(chosen.satireAngle),\n    satirePunchlines: asArray(chosen.satirePunchlines),\n    satireTarget: safeStr(chosen.satireTarget),\n    satireIntensity: chosen.satireIntensity,\n    satireDoNotClaim: asArray(chosen.satireDoNotClaim),\n    satireSafetyNote: safeStr(chosen.satireSafetyNote),\n    imageHeadline: safeStr(chosen.imageHeadline),\n    imageSubline: safeStr(chosen.imageSubline)\n  }\n};"
+      },
+      "id": "b7b2a24e-9255-4691-aa55-b97bf2b0a1ec",
+      "name": "Bild-Shadow: Baue Eingabe",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        24816,
+        7888
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "WR1xVNo4AjcsKlMv",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/WR1xVNo4AjcsKlMv",
+          "cachedResultName": "ALLRIS_Bild_Agent"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "5ceaaacc-abee-4c4e-a9db-240aedd1e19c",
+      "name": "Execute Workflow Bild-Agent (Shadow)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        25040,
+        7888
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst response = $json || {};\nconst original = $('Bild-Shadow: Baue Eingabe').itemMatching($itemIndex).json || {};\nconst hasPrompt = typeof response.imagePrompt === 'string' && response.imagePrompt.length > 0;\n\nconst result = hasPrompt ? response : {\n  vorgangKey: safeStr(original.vorgangKey),\n  parseError: true,\n  callFailed: true\n};\n\nreturn {\n  json: {\n    vorgangKey: safeStr(original.vorgangKey) || safeStr(response.vorgangKey),\n    bildAgentJson: JSON.stringify(result)\n  }\n};"
+      },
+      "id": "302ce25a-d4f2-41b9-8d6c-b97a608be01b",
+      "name": "Stelle Kontext nach Bild-Agent wieder her",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        25264,
+        7888
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "bildAgentJson": "={{ $json.bildAgentJson }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "bildAgentJson",
+              "displayName": "bildAgentJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "cf4a0fa0-8f22-4386-8210-3fc5b136d2b6",
+      "name": "Speichere Bild-Agent Shadow",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        25488,
+        7888
       ],
       "alwaysOutputData": true,
       "onError": "continueRegularOutput"
@@ -3231,6 +3343,44 @@
             "node": "Speichere Satire-Agent Shadow",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Bild-Shadow: Baue Eingabe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bild-Shadow: Baue Eingabe": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow Bild-Agent (Shadow)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow Bild-Agent (Shadow)": {
+      "main": [
+        [
+          {
+            "node": "Stelle Kontext nach Bild-Agent wieder her",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stelle Kontext nach Bild-Agent wieder her": {
+      "main": [
+        [
+          {
+            "node": "Speichere Bild-Agent Shadow",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -3241,7 +3391,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "198ceebd-2ff0-46f0-b0b5-4eae7e6075cb",
+  "versionId": "230f7864-8b69-430d-ba0f-beb78f26b3c4",
   "meta": {
     "instanceId": "3918cd7b1079333be95f7df5d1ce0c807af27c5d6c51c5bb061c962138165169"
   },
