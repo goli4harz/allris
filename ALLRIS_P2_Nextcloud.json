@@ -278,6 +278,8 @@
           "value": {
             "nextcloudFolder": "={{ $json.nextcloudFolder }}",
             "status": "={{ ['', 'detail_failed', 'metadata_error', 'analysis_error', 'summary_input_error'].includes($json.existingStatus) ? 'needs_summary' : $json.existingStatus }}",
+            "contentStage": "={{ $json.contentStageToWrite }}",
+            "contentErrorReason": "={{ $json.contentErrorReasonToWrite }}",
             "lastseen": "={{ $now.toISO() }}"
           },
           "matchingColumns": [],
@@ -295,6 +297,26 @@
             {
               "id": "status",
               "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "contentStage",
+              "displayName": "contentStage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "contentErrorReason",
+              "displayName": "contentErrorReason",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -388,7 +410,7 @@
     },
     {
       "parameters": {
-        "jsCode": "\n// Aggregiert Upload-Ergebnisse je Vorgang.\n// Input kommt aus dem nativen Merge-Node (mode: append).\n//\n// n8n Merge-Node (append): Feuert sobald EINER der Inputs Daten liefert\n// und der andere Input ebenfalls gefeuert hat oder leer ist.\n// Bei batchSize:1 pro Vorgang und Dokument-Loop:\n//   - Alle erfolgreichen Uploads kommen über Markiere Upload Erfolg → Merge input0\n//   - Alle Fehler kommen über Markiere Upload Fehler → Merge input1\n//   - Wenn ALLE Dokumente erfolgreich: input1 empfängt keine Items → Merge\n//     gibt trotzdem alle input0-Items weiter (append-Modus)\n//   - Wenn KEIN Dokument erfolgreich: input0 empfängt keine Items → Merge\n//     gibt trotzdem alle input1-Items weiter\n// → Alle 4 Fälle werden korrekt behandelt:\n//   (a) alle OK          → nur input0-Items\n//   (b) ein Downloadfehler → input0 (Erfolge) + input1 (der Fehler)\n//   (c) ein Uploadfehler   → input0 (Erfolge) + input1 (der Fehler)\n//   (d) nur Fehler          → nur input1-Items\n\nconst allItems = $input.all();\nconst groups   = {};\n\nif (allItems.length === 0) {\n  console.warn('[Aggregation] WARNUNG: Keine Items empfangen – Merge-Node hat nichts geliefert.');\n  return [];\n}\n\nfor (const item of allItems) {\n  const j   = item.json;\n  const key = j.vorgangKey || '_unbekannt_';\n\n  if (!groups[key]) {\n    groups[key] = {\n      vorgangKey:    j.vorgangKey,\n      title:         j.title          || '',\n      nc_pathVorg:   j.nc_pathVorg    || '',\n      nc_pathOrig:   j.nc_pathOrig    || '',\n      nc_pathYear:   j.nc_pathYear    || '',\n      documentCount: parseInt(j.documentCount || '0', 10),\n      allrisUrl:     j.allrisUrl      || '',\n      sourceUrl:     j.sourceUrl      || '',\n      documentsJson: j.documentsJson  || '[]',\n      firstseen:     j.firstseen      || '',\n      nextcloudRetryCount: parseInt(j.nextcloudRetryCount || '0', 10),\n      existingStatus: j.existingStatus || '',\n      uploaded:      0,\n      failed:        0,\n      errors:        []\n    };\n  }\n\n  if (j._uploadOk === true) {\n    groups[key].uploaded++;\n  } else {\n    groups[key].failed++;\n    const errMsg = j._uploadError\n      || `Dokument ${j.nc_docIndex ?? '?'} (${j.nc_fileName || '?'}) fehlgeschlagen`;\n    groups[key].errors.push(errMsg);\n  }\n}\n\nreturn Object.values(groups).map(g => {\n  const expected = g.documentCount;\n  // Streng: alle erwarteten Dokumente müssen erfolgreich hochgeladen sein\n  const allOk    = g.failed === 0 && g.uploaded === expected && expected > 0;\n\n  if (allOk) {\n    console.log(`[Aggregation] ✓ Vorgang ${g.vorgangKey}: alle ${expected} Dokumente hochgeladen`);\n  } else {\n    console.warn(\n      `[Aggregation] ✗ Vorgang ${g.vorgangKey}: ` +\n      `erwartet=${expected}, hochgeladen=${g.uploaded}, fehlgeschlagen=${g.failed}`\n    );\n  }\n\n  const maxRetries    = 3;\n  const newRetryCount = allOk ? g.nextcloudRetryCount : g.nextcloudRetryCount + 1;\n  const giveUp        = !allOk && newRetryCount >= maxRetries;\n\n  if (giveUp) {\n    console.warn(`[Aggregation] ⛔ Vorgang ${g.vorgangKey}: endgültig aufgegeben nach ${newRetryCount} Versuchen.`);\n  }\n\n  return {\n    json: {\n      vorgangKey:      g.vorgangKey,\n      title:           g.title,\n      allrisUrl:       g.allrisUrl,\n      sourceUrl:       g.sourceUrl,\n      documentsJson:   g.documentsJson,\n      nc_pathVorg:     g.nc_pathVorg,\n      nc_pathOrig:     g.nc_pathOrig,\n      nc_pathYear:     g.nc_pathYear,\n      documentCount:   g.documentCount,\n      firstseen:       g.firstseen,\n      _expectedCount:  expected,\n      _uploadedCount:  g.uploaded,\n      _failedCount:    g.failed,\n      _uploadErrors:   g.errors,\n      _allUploadsOk:   allOk,\n      nextcloudFolder: allOk ? g.nc_pathVorg : '',\n      nextcloudRetryCount: newRetryCount,\n      existingStatus:  g.existingStatus,\n      status:          allOk ? 'nextcloud_archived' : (giveUp ? 'nextcloud_failed_final' : 'nextcloud_failed')\n    }\n  };\n});\n"
+        "jsCode": "\n// Aggregiert Upload-Ergebnisse je Vorgang.\n// Input kommt aus dem nativen Merge-Node (mode: append).\n//\n// n8n Merge-Node (append): Feuert sobald EINER der Inputs Daten liefert\n// und der andere Input ebenfalls gefeuert hat oder leer ist.\n// Bei batchSize:1 pro Vorgang und Dokument-Loop:\n//   - Alle erfolgreichen Uploads kommen über Markiere Upload Erfolg → Merge input0\n//   - Alle Fehler kommen über Markiere Upload Fehler → Merge input1\n//   - Wenn ALLE Dokumente erfolgreich: input1 empfängt keine Items → Merge\n//     gibt trotzdem alle input0-Items weiter (append-Modus)\n//   - Wenn KEIN Dokument erfolgreich: input0 empfängt keine Items → Merge\n//     gibt trotzdem alle input1-Items weiter\n// → Alle 4 Fälle werden korrekt behandelt:\n//   (a) alle OK          → nur input0-Items\n//   (b) ein Downloadfehler → input0 (Erfolge) + input1 (der Fehler)\n//   (c) ein Uploadfehler   → input0 (Erfolge) + input1 (der Fehler)\n//   (d) nur Fehler          → nur input1-Items\n\nconst allItems = $input.all();\nconst groups   = {};\n\nif (allItems.length === 0) {\n  console.warn('[Aggregation] WARNUNG: Keine Items empfangen – Merge-Node hat nichts geliefert.');\n  return [];\n}\n\nfor (const item of allItems) {\n  const j   = item.json;\n  const key = j.vorgangKey || '_unbekannt_';\n\n  if (!groups[key]) {\n    groups[key] = {\n      vorgangKey:    j.vorgangKey,\n      title:         j.title          || '',\n      nc_pathVorg:   j.nc_pathVorg    || '',\n      nc_pathOrig:   j.nc_pathOrig    || '',\n      nc_pathYear:   j.nc_pathYear    || '',\n      documentCount: parseInt(j.documentCount || '0', 10),\n      allrisUrl:     j.allrisUrl      || '',\n      sourceUrl:     j.sourceUrl      || '',\n      documentsJson: j.documentsJson  || '[]',\n      firstseen:     j.firstseen      || '',\n      nextcloudRetryCount: parseInt(j.nextcloudRetryCount || '0', 10),\n      existingStatus: j.existingStatus || '',\n      wordpressPosted: j.wordpressPosted || '',\n      uploaded:      0,\n      failed:        0,\n      errors:        []\n    };\n  }\n\n  if (j._uploadOk === true) {\n    groups[key].uploaded++;\n  } else {\n    groups[key].failed++;\n    const errMsg = j._uploadError\n      || `Dokument ${j.nc_docIndex ?? '?'} (${j.nc_fileName || '?'}) fehlgeschlagen`;\n    groups[key].errors.push(errMsg);\n  }\n}\n\nreturn Object.values(groups).map(g => {\n  const expected = g.documentCount;\n  // Streng: alle erwarteten Dokumente müssen erfolgreich hochgeladen sein\n  const allOk    = g.failed === 0 && g.uploaded === expected && expected > 0;\n\n  if (allOk) {\n    console.log(`[Aggregation] ✓ Vorgang ${g.vorgangKey}: alle ${expected} Dokumente hochgeladen`);\n  } else {\n    console.warn(\n      `[Aggregation] ✗ Vorgang ${g.vorgangKey}: ` +\n      `erwartet=${expected}, hochgeladen=${g.uploaded}, fehlgeschlagen=${g.failed}`\n    );\n  }\n\n  const maxRetries    = 3;\n  const newRetryCount = allOk ? g.nextcloudRetryCount : g.nextcloudRetryCount + 1;\n  const giveUp        = !allOk && newRetryCount >= maxRetries;\n\n  if (giveUp) {\n    console.warn(`[Aggregation] ⛔ Vorgang ${g.vorgangKey}: endgültig aufgegeben nach ${newRetryCount} Versuchen.`);\n  }\n\n  // === Orchestrator-Migration Durchgang A: contentStage additiv mitschreiben ===\n  // Siehe ALLRIS_P1_Ingestion.json \"Check if known\" fuer dieselbe Mapping-Logik.\n  // ternaryStatus spiegelt exakt den status-Wert, den je nach allOk entweder\n  // \"Update Nextcloud Archive Status\" (existingStatus-Ternary) oder\n  // \"Markiere Fehler in DataTable\" ($json.status) tatsaechlich schreiben wird.\n  const CONTENT_ERROR = new Set(['detail_failed', 'metadata_error', 'analysis_error', 'summary_input_error', 'summary_parse_error', 'content_error']);\n  const CONTENT_DIRECT = { '': 'new', 'needs_summary': 'needs_summary', 'watching': 'watching', 'ignored': 'ignored', 'needs_content': 'needs_content', 'content_generated': 'content_generated', 'content_posted': 'content_posted', 'nextcloud_failed': 'needs_summary', 'nextcloud_failed_final': 'archiving_failed', 'nextcloud_archived': 'needs_summary' };\n  const IMAGE_VALUES = new Set(['image_composed', 'nextcloud_upload_failed', 'image_retrying', 'retry_required', 'image_qa_error', 'image_quality_failed', 'image_qa_approved', 'visual_concept_repairing', 'visual_concept_repair_failed', 'visual_prompt_ready', 'visual_topic_error_final', 'blocked_by_source_lock', 'image_qa_rechecking', 'force_image_refresh', 'force_image_reset', 'force_full_image_refresh', 'visual_prompt_failed_final', 'image_prompt_ready', 'image_retry_required', 'image_qa_retry_required', 'raw_generated', 'ready_for_composite']);\n  function mapContentStage(statusValue, wordpressPostedValue) {\n    const s = String(statusValue || '').trim();\n    if (CONTENT_ERROR.has(s)) return { stage: 'error', reason: s };\n    if (Object.prototype.hasOwnProperty.call(CONTENT_DIRECT, s)) return { stage: CONTENT_DIRECT[s], reason: '' };\n    if (IMAGE_VALUES.has(s)) {\n      const posted = wordpressPostedValue === 'true' || wordpressPostedValue === true;\n      return { stage: posted ? 'content_posted' : 'content_generated', reason: '' };\n    }\n    return { stage: 'unknown', reason: '' };\n  }\n  const ternaryStatus = allOk\n    ? (['', 'detail_failed', 'metadata_error', 'analysis_error', 'summary_input_error'].includes(g.existingStatus) ? 'needs_summary' : g.existingStatus)\n    : (giveUp ? 'nextcloud_failed_final' : 'nextcloud_failed');\n  const mappedContentStage = mapContentStage(ternaryStatus, g.wordpressPosted);\n  const contentStageToWrite = mappedContentStage.stage;\n  const contentErrorReasonToWrite = mappedContentStage.reason;\n\n  return {\n    json: {\n      vorgangKey:      g.vorgangKey,\n      title:           g.title,\n      allrisUrl:       g.allrisUrl,\n      sourceUrl:       g.sourceUrl,\n      documentsJson:   g.documentsJson,\n      nc_pathVorg:     g.nc_pathVorg,\n      nc_pathOrig:     g.nc_pathOrig,\n      nc_pathYear:     g.nc_pathYear,\n      documentCount:   g.documentCount,\n      firstseen:       g.firstseen,\n      _expectedCount:  expected,\n      _uploadedCount:  g.uploaded,\n      _failedCount:    g.failed,\n      _uploadErrors:   g.errors,\n      _allUploadsOk:   allOk,\n      nextcloudFolder: allOk ? g.nc_pathVorg : '',\n      nextcloudRetryCount: newRetryCount,\n      existingStatus:  g.existingStatus,\n      contentStageToWrite: contentStageToWrite,\n      contentErrorReasonToWrite: contentErrorReasonToWrite,\n      status:          allOk ? 'nextcloud_archived' : (giveUp ? 'nextcloud_failed_final' : 'nextcloud_failed')\n    }\n  };\n});\n"
       },
       "id": "ad7ddd85-e14b-4de3-b843-d41efe590a36",
       "name": "Aggregiere Upload Ergebnisse",
@@ -455,12 +477,34 @@
           "mappingMode": "defineBelow",
           "value": {
             "status": "={{ $json.status }}",
+            "contentStage": "={{ $json.contentStageToWrite }}",
+            "contentErrorReason": "={{ $json.contentErrorReasonToWrite }}",
             "nextcloudRetryCount": "={{ $json.nextcloudRetryCount }}"
           },
           "schema": [
             {
               "id": "status",
               "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "contentStage",
+              "displayName": "contentStage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "contentErrorReason",
+              "displayName": "contentErrorReason",
               "required": false,
               "defaultMatch": false,
               "display": true,
