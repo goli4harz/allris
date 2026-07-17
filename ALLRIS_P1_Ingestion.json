@@ -1856,7 +1856,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Check Detail Known – $runIndex-sicher\n// Prüft ob der aktuell fehlgeschlagene Vorgang bereits in der DataTable existiert.\n// Get Vorgaenge Detail Failed liefert nur Treffer für den aktuellen vorgangKey.\n\nconst failedItems = $('Insert fehlgeschlagener Vorgang').all(0, $runIndex);\n\nif (!failedItems || failedItems.length !== 1) {\n  throw new Error(\n    `[Check Detail Known] Erwartet 1 fehlgeschlagenen Vorgang, ` +\n    `erhalten: ${failedItems?.length ?? 0}, runIndex=${$runIndex}`\n  );\n}\n\nconst failed = failedItems[0].json || {};\n\n// DataTable-Einträge für diesen vorgangKey (gefiltert durch Get Vorgaenge Detail Failed)\nconst rows = $input.all(0, $runIndex)\n  .map(item => item.json || {})\n  .filter(row => !!row.vorgangKey);\n\nconst matchingRows = rows.filter(\n  row => String(row.vorgangKey || '').trim() === String(failed.vorgangKey || '').trim()\n);\n\nif (matchingRows.length > 1) {\n  console.warn(\n    `[Check Detail Known] Bereits vorhandene Duplikate: ` +\n    `key=${failed.vorgangKey}, count=${matchingRows.length}, runIndex=${$runIndex}`\n  );\n}\n\nconst old = matchingRows[0];\n\nconsole.log(\n  `[Check Detail Known] vorgangKey=${failed.vorgangKey} ` +\n  `alreadyInTable=${!!old} oldStatus=${old?.status || ''} runIndex=${$runIndex}`\n);\n\nreturn [{\n  json: {\n    ...failed,\n    alreadyInTable:  !!old,\n    oldStatus:       String(old?.status || '').trim(),\n    oldCombinedText: old?.combinedText  || '',\n    debug_loopPhase: 'check_detail_known',\n    debug_runIndex:  $runIndex\n  }\n}];\n"
+        "jsCode": "// Check Detail Known – $runIndex-sicher\n// Prüft ob der aktuell fehlgeschlagene Vorgang bereits in der DataTable existiert.\n// Get Vorgaenge Detail Failed liefert nur Treffer für den aktuellen vorgangKey.\n\nconst failedItems = $('Insert fehlgeschlagener Vorgang').all(0, $runIndex);\n\nif (!failedItems || failedItems.length !== 1) {\n  throw new Error(\n    `[Check Detail Known] Erwartet 1 fehlgeschlagenen Vorgang, ` +\n    `erhalten: ${failedItems?.length ?? 0}, runIndex=${$runIndex}`\n  );\n}\n\nconst failed = failedItems[0].json || {};\n\n// DataTable-Einträge für diesen vorgangKey (gefiltert durch Get Vorgaenge Detail Failed)\nconst rows = $input.all(0, $runIndex)\n  .map(item => item.json || {})\n  .filter(row => !!row.vorgangKey);\n\nconst matchingRows = rows.filter(\n  row => String(row.vorgangKey || '').trim() === String(failed.vorgangKey || '').trim()\n);\n\nif (matchingRows.length > 1) {\n  console.warn(\n    `[Check Detail Known] Bereits vorhandene Duplikate: ` +\n    `key=${failed.vorgangKey}, count=${matchingRows.length}, runIndex=${$runIndex}`\n  );\n}\n\nconst old = matchingRows[0];\n\nconsole.log(\n  `[Check Detail Known] vorgangKey=${failed.vorgangKey} ` +\n  `alreadyInTable=${!!old} oldStatus=${old?.status || ''} runIndex=${$runIndex}`\n);\n\nreturn [{\n  json: {\n    ...failed,\n    alreadyInTable:  !!old,\n    oldStatus:       String(old?.status || '').trim(),\n    oldContentStage: String(old?.contentStage || '').trim(),\n    oldContentErrorReason: String(old?.contentErrorReason || '').trim(),\n    oldCombinedText: old?.combinedText  || '',\n    debug_loopPhase: 'check_detail_known',\n    debug_runIndex:  $runIndex\n  }\n}];\n"
       },
       "id": "71f3fc40-4752-4b0b-9181-13d3ccb26745",
       "name": "Check Detail Known",
@@ -2035,8 +2035,8 @@
           "conditions": [
             {
               "id": "old-status-001",
-              "leftValue": "={{ $json.oldStatus }}",
-              "rightValue": "detail_failed",
+              "leftValue": "={{ ($json.oldContentStage ? ($json.oldContentStage === 'error' && $json.oldContentErrorReason === 'detail_failed') : ($json.oldStatus === 'detail_failed')) ? 'yes' : 'no' }}",
+              "rightValue": "yes",
               "operator": {
                 "type": "string",
                 "operation": "equals"
