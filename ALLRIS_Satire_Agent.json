@@ -76,7 +76,6 @@
       }
     }
   ],
-  "pinData": {},
   "connections": {
     "Execute Workflow Trigger": {
       "main": [
@@ -112,16 +111,9 @@
       ]
     }
   },
-  "active": true,
+  "pinData": {},
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
-  },
-  "versionId": "60627124-8725-4f01-bdef-e75fe8e9030a",
-  "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "3918cd7b1079333be95f7df5d1ce0c807af27c5d6c51c5bb061c962138165169"
-  },
-  "id": "NO17q38BeKyS25LY",
-  "tags": []
+  }
 }
