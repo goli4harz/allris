@@ -36,7 +36,7 @@
         "filters": {
           "conditions": [
             {
-              "keyName": "status",
+              "keyName": "contentStage",
               "keyValue": "needs_summary"
             }
           ]
@@ -1821,7 +1821,7 @@
         "filters": {
           "conditions": [
             {
-              "keyName": "status",
+              "keyName": "contentStage",
               "keyValue": "needs_content"
             }
           ]
@@ -1924,7 +1924,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// FIX 5: Filtert needs_content Datensätze die einen ungültigen Source-Lock haben\n// oder fehlende visualAnchors (wenn Bild nötig)\nconst items = $input.all();\n\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; } catch(e) { return {}; }\n}\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction asArr(v) {\n  if (Array.isArray(v)) return v.filter(Boolean).map(s => String(s).trim());\n  if (typeof v === 'string' && v.trim()) {\n    try { const p = JSON.parse(v); if (Array.isArray(p)) return p.filter(Boolean).map(s => String(s).trim()); } catch(e) {}\n  }\n  return [];\n}\nfunction robustBool(v) {\n  if (v === true || v === 1) return true;\n  if (typeof v === 'string') { const s = v.trim().toLowerCase(); return s === 'true' || s === '1'; }\n  return false;\n}\n\nreturn items.filter(item => {\n  const j = item.json || {};\n  if (safeStr(j.status) !== 'needs_content') return false;\n  // Korrekte Datensätze nicht reparieren\n  // Hinweis: analysis_error visualStatus kann bei needs_content vorkommen - diese reparieren wir\n  \n  const analysis = parseObj(j.analysisJson);\n  const sl = parseObj(analysis.sourceLock || {});\n  const va = parseObj(analysis.visualAnchors || {});\n  const slValidFlag = robustBool(analysis.sourceLockValid);\n  const vaValidFlag = robustBool(analysis.visualAnchorsValid);\n  \n  const slOk = !!(safeStr(sl.sourceTopic) && safeStr(sl.sourceConflict) &&\n    asArr(sl.requiredTerms).length >= 2 && asArr(sl.requiredObjects).length >= 2 &&\n    safeStr(sl.requiredAction) && slValidFlag);\n  const vaOk = !!(safeStr(va.satireThemaKonkret) && safeStr(va.satireKonfliktKonkret) &&\n    asArr(va.visualPflichtobjekte).length >= 2 && safeStr(va.visualPflichthandlung) &&\n    safeStr(va.visualErkennungssatz) && safeStr(va.visualUeberzeichnung) &&\n    asArr(va.visualVerboteneErsatzmotive).length >= 2 && vaValidFlag);\n  \n  const needsVisual = robustBool(j.visualNeeded) || robustBool(j.instagramSharepicNoetig);\n  const slRepairNeeded = !slOk;\n  const vaRepairNeeded = needsVisual && !vaOk;\n  return slRepairNeeded || vaRepairNeeded;\n});\n"
+        "jsCode": "// FIX 5: Filtert needs_content Datensätze die einen ungültigen Source-Lock haben\n// oder fehlende visualAnchors (wenn Bild nötig)\nconst items = $input.all();\n\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; } catch(e) { return {}; }\n}\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction asArr(v) {\n  if (Array.isArray(v)) return v.filter(Boolean).map(s => String(s).trim());\n  if (typeof v === 'string' && v.trim()) {\n    try { const p = JSON.parse(v); if (Array.isArray(p)) return p.filter(Boolean).map(s => String(s).trim()); } catch(e) {}\n  }\n  return [];\n}\nfunction robustBool(v) {\n  if (v === true || v === 1) return true;\n  if (typeof v === 'string') { const s = v.trim().toLowerCase(); return s === 'true' || s === '1'; }\n  return false;\n}\n\nreturn items.filter(item => {\n  const j = item.json || {};\n  const stageForGate = safeStr(j.contentStage) || safeStr(j.status);\n  if (stageForGate !== 'needs_content') return false;\n  // Korrekte Datensätze nicht reparieren\n  // Hinweis: analysis_error visualStatus kann bei needs_content vorkommen - diese reparieren wir\n  \n  const analysis = parseObj(j.analysisJson);\n  const sl = parseObj(analysis.sourceLock || {});\n  const va = parseObj(analysis.visualAnchors || {});\n  const slValidFlag = robustBool(analysis.sourceLockValid);\n  const vaValidFlag = robustBool(analysis.visualAnchorsValid);\n  \n  const slOk = !!(safeStr(sl.sourceTopic) && safeStr(sl.sourceConflict) &&\n    asArr(sl.requiredTerms).length >= 2 && asArr(sl.requiredObjects).length >= 2 &&\n    safeStr(sl.requiredAction) && slValidFlag);\n  const vaOk = !!(safeStr(va.satireThemaKonkret) && safeStr(va.satireKonfliktKonkret) &&\n    asArr(va.visualPflichtobjekte).length >= 2 && safeStr(va.visualPflichthandlung) &&\n    safeStr(va.visualErkennungssatz) && safeStr(va.visualUeberzeichnung) &&\n    asArr(va.visualVerboteneErsatzmotive).length >= 2 && vaValidFlag);\n  \n  const needsVisual = robustBool(j.visualNeeded) || robustBool(j.instagramSharepicNoetig);\n  const slRepairNeeded = !slOk;\n  const vaRepairNeeded = needsVisual && !vaOk;\n  return slRepairNeeded || vaRepairNeeded;\n});\n"
       },
       "id": "66008e01-2f4f-45a0-8d2a-2ced40a228ef",
       "name": "Filter Repair-Kandidaten",
