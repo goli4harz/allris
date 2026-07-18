@@ -1,1 +1,1385 @@
-{"name": "ALLRIS_P5_Visual_Prompt_Builder", "nodes": [{"parameters": {"rule": {"interval": [{"field": "hours", "hoursInterval": 5, "triggerAtMinute": 45}]}}, "id": "1be7696b-83b3-4a16-8df9-81cf17f9fc17", "name": "Schedule Trigger", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.1, "position": [0, 0]}, {"parameters": {"operation": "get", "dataTableId": {"__rl": true, "value": "hBLqpqeVEojPpOJl", "mode": "list", "cachedResultName": "allris_vorgaenge", "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"}, "filters": {"conditions": []}, "returnAll": true}, "id": "fb5ec274-8cf0-4f14-b685-7d561c95b54c", "name": "Hole needs_visual_prompt", "type": "n8n-nodes-base.dataTable", "typeVersion": 1.1, "position": [144, 0]}, {"parameters": {"jsCode": "// Filtert die breit gelesene Data Table auf die Ziel-Status des Visual\n// Prompt Builders. Die Data Table kann kein OR über mehrere Werte desselben\n// Feldes - deshalb wird hier gefiltert statt in der DB-Abfrage direkt\n// (siehe \"Hole needs_visual_prompt\", vorher AND-verknüpfte Bedingungen == 0 Treffer).\n// 'headline_selected' = Nutzer hat per Matrix-Antwort eine Headline/Subline-Variante\n// gewählt; für diese Zeilen wird nur noch der Bildprompt gebaut, keine neuen\n// Headline-Varianten mehr erzeugt (siehe \"IF Headline bereits gewählt?\").\nconst ZIEL_STAGE = ['needs_prompt', 'headline_selected', 'prompt_error'];\n\nreturn items.filter(item => {\n  const vStage = String(item.json.visualStage || '').trim();\n  return ZIEL_STAGE.includes(vStage);\n});\n"}, "id": "b7c9e2f1-6d4a-4c8e-9f1a-2e5d7c3b8a90", "name": "Filtere Visual-Status", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [304, 0]}, {"parameters": {"options": {}}, "id": "d92dbad7-bc31-48eb-bafa-a318e287b1f2", "name": "Loop Visual Vorgänge", "type": "n8n-nodes-base.splitInBatches", "typeVersion": 3, "position": [448, 0]}, {"parameters": {"jsCode": "// ============================================================\n// PREPARE VISUAL PROMPT INPUT  (v2 — visual anchor fields)\n// Übergibt alle Themenanker-Felder an die KI\n// ============================================================\n\nconst raw = $input.item.json || {};\n\nfunction safeStr(v) {\n  if (v === null || v === undefined) return '';\n  return String(v).trim();\n}\n\nfunction safeJson(v, fallback = '{}') {\n  if (!v) return fallback;\n  if (typeof v === 'string') return v.trim() || fallback;\n  try { return JSON.stringify(v); } catch (e) { return fallback; }\n}\n\nfunction parseObject(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try {\n    const parsed = JSON.parse(String(v));\n    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};\n  } catch (e) {\n    return {};\n  }\n}\n\nfunction firstValue(...values) {\n  for (const value of values) {\n    if (value === null || value === undefined) continue;\n    if (Array.isArray(value) && value.length > 0) return value;\n    if (typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0) return value;\n    if (String(value).trim() !== '') return value;\n  }\n  return '';\n}\n\n// Die bestehenden Tabellenspalten bleiben unverändert.\n// Detailfelder werden aus analysisJson bzw. visualJson.anchors gelesen.\nconst analysis = parseObject(raw.analysisJson);\nconst storedVisual = parseObject(raw.visualJson);\nconst storedAnchors = parseObject(storedVisual.anchors);\nconst analysisAnchors = parseObject(analysis.visualAnchors);\n\n// ============================================================\n// SOURCELOCK aus analysisJson extrahieren (hat Vorrang vor visualJson)\n// ============================================================\nconst sourceLockFromAnalysis = parseObject(analysis.sourceLock || {});\nconst storedSourceLock = parseObject(storedVisual.sourceLock || {});\nconst currentSourceLock = Object.keys(sourceLockFromAnalysis).length > 0\n  ? sourceLockFromAnalysis\n  : storedSourceLock;\n\n// FIX 3.4: Wenn canonical Source-Lock fehlt oder ungültig -> blockieren, kein Prompt\n// Keine Ableitung aus Titel, Thema oder satireThemaKonkret\n{\n  const slPresent = !!(currentSourceLock && currentSourceLock.sourceTopic && currentSourceLock.sourceConflict);\n  const slValid = slPresent && (() => {\n    try {\n      const rawAJ = raw.analysisJson;\n      let aj = {};\n      if (rawAJ && typeof rawAJ === 'object') aj = rawAJ;\n      else if (rawAJ) aj = JSON.parse(String(rawAJ));\n      return aj.sourceLockValid === true || String(aj.sourceLockValid||'').trim() === 'true';\n    } catch(e) { return false; }\n  })();\n  if (!slPresent || !slValid) {\n    const reason = !slPresent\n      ? 'blocked_by_source_lock: canonical Source-Lock fehlt (sourceTopic/sourceConflict)'\n      : 'blocked_by_source_lock: analysisJson.sourceLockValid ist nicht true';\n    return [{\n      json: {\n        ...raw,\n        visualParseError: false,\n        visualDebugReason: reason,\n        visualJson: '{}',\n        imagePrompt: '',\n        imageNegativePrompt: '',\n        imageHeadline: '',\n        imageSubline: '',\n        imageSmallNote: '',\n        altText: '',\n        imagePromptFound: false,\n        visualStage: 'blocked_source_lock',\n        imageStage: (raw.imageFinalPath ? 'composed' : 'not_started'),\n        visualPromptCreatedAt: new Date().toISOString()\n      }\n    }];\n  }\n}\n\n\nconst j = {\n  ...raw,\n\n  // Felder, für die keine eigenen Tabellenspalten existieren\n  kernbotschaft: firstValue(raw.kernbotschaft, analysis.kernbotschaft),\n  dieParteiReaktion: firstValue(raw.dieParteiReaktion, analysis.dieParteiReaktion),\n\n  satireThemaKonkret: firstValue(\n    analysisAnchors.satireThemaKonkret,\n    analysis.satireThemaKonkret,\n    raw.satireThemaKonkret,\n    storedAnchors.satireThemaKonkret\n  ),\n  satireKonfliktKonkret: firstValue(\n    analysisAnchors.satireKonfliktKonkret,\n    analysis.satireKonfliktKonkret,\n    raw.satireKonfliktKonkret,\n    storedAnchors.satireKonfliktKonkret\n  ),\n  visualPflichtobjekte: firstValue(\n    analysisAnchors.visualPflichtobjekte,\n    analysis.visualPflichtobjekte,\n    raw.visualPflichtobjekte,\n    storedAnchors.visualPflichtobjekte,\n    []\n  ),\n  visualPflichthandlung: firstValue(\n    analysisAnchors.visualPflichthandlung,\n    analysis.visualPflichthandlung,\n    raw.visualPflichthandlung,\n    storedAnchors.visualPflichthandlung\n  ),\n  visualBetroffene: firstValue(\n    analysisAnchors.visualBetroffene,\n    analysis.visualBetroffene,\n    raw.visualBetroffene,\n    storedAnchors.visualBetroffene,\n    []\n  ),\n  visualOrt: firstValue(\n    analysisAnchors.visualOrt,\n    analysis.visualOrt,\n    raw.visualOrt,\n    storedAnchors.visualOrt\n  ),\n  visualUeberzeichnung: firstValue(\n    analysisAnchors.visualUeberzeichnung,\n    analysis.visualUeberzeichnung,\n    raw.visualUeberzeichnung,\n    storedAnchors.visualUeberzeichnung\n  ),\n  visualErkennungssatz: firstValue(\n    analysisAnchors.visualErkennungssatz,\n    analysis.visualErkennungssatz,\n    raw.visualErkennungssatz,\n    storedAnchors.visualErkennungssatz\n  ),\n  visualVerboteneErsatzmotive: firstValue(\n    analysisAnchors.visualVerboteneErsatzmotive,\n    analysis.visualVerboteneErsatzmotive,\n    raw.visualVerboteneErsatzmotive,\n    storedAnchors.visualVerboteneErsatzmotive,\n    []\n  )\n};\n\nfunction isOldMaskPrompt(p) {\n  const lower = safeStr(p).toLowerCase();\n  return (\n    lower.includes('maske') ||\n    lower.includes('bearbeite ausschließlich') ||\n    lower.includes('editierbaren bereich') ||\n    lower.includes('setze die headline') ||\n    lower.includes('setze die parteireaktion') ||\n    lower.includes('verändere keinen rahmen') ||\n    lower.includes('qr-code')\n  );\n}\n\n// Skip-Prüfung: nur überspringen wenn ALLE neuen Ankerfelder vorhanden sind\nfunction hasValidExistingPrompt(j) {\n  const p = safeStr(j.imagePrompt);\n  const headline = safeStr(j.imageHeadline);\n  const subline = safeStr(j.imageSubline);\n\n  if (p.length < 80) return false;\n  if (!headline || !subline) return false;\n  if (isOldMaskPrompt(p)) return false;\n\n  // Neue Pflicht: visualJson muss topicPlain + mustShow enthalten\n  let vj = null;\n  try { vj = JSON.parse(j.visualJson || '{}'); } catch(e) { return false; }\n  if (!vj.topicPlain || !vj.conflictPlain) return false;\n  if (!Array.isArray(vj.mustShow) || vj.mustShow.length < 2) return false;\n  if (!vj.visibleAction || !vj.whyRecognizableWithoutText) return false;\n  if (!vj.recognitionSentence) return false;\n  if (!vj.forbiddenSubstitutes || !Array.isArray(vj.forbiddenSubstitutes)) return false;\n\n  // FIX 8: forbiddenSubstitutes muss alle aktuellen verbotenen Ersatzmotive abdecken\n  let baseVerboten = [];\n  try { baseVerboten = JSON.parse(j.visualVerboteneErsatzmotive || '[]'); } catch(e) {}\n  if (baseVerboten.length > 0) {\n    const notCovered = baseVerboten.filter(bv =>\n      !vj.forbiddenSubstitutes.some(fs => skipMatch(bv, fs))\n    );\n    if (notCovered.length > 0) return false; // verbotene Motive nicht abgedeckt\n  }\n\n  // Inhaltlicher Abgleich: mustShow muss visualPflichtobjekte berücksichtigen\n  function normSkip(s) {\n    return String(s || '').toLowerCase()\n      .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss');\n  }\n  function tokensSkip(s) {\n    return normSkip(s).split(/[\\W]+/).filter(w => w.length >= 4);\n  }\n  function skipMatch(a, b) {\n    const ta = tokensSkip(a), tb = tokensSkip(b);\n    if (ta.some(t => tb.includes(t))) return true;\n    const na = normSkip(a).replace(/\\s+/g,''), nb = normSkip(b).replace(/\\s+/g,'');\n    return (na.length >= 5 && nb.includes(na)) || (nb.length >= 5 && na.includes(nb));\n  }\n  \n  let basePflicht = [];\n  try { basePflicht = JSON.parse(j.visualPflichtobjekte || '[]'); } catch(e) {}\n  if (basePflicht.length >= 2) {\n    const matchedPflicht = basePflicht.filter(bp => vj.mustShow.some(ms => skipMatch(bp, ms)));\n    if (matchedPflicht.length < 2) return false; // mustShow stimmt nicht mit Pflichtobjekten überein\n  }\n\n  // visibleAction muss visualPflichthandlung entsprechen\n  const basePflichthandlung = safeStr(j.visualPflichthandlung);\n  if (basePflichthandlung && !skipMatch(vj.visibleAction, basePflichthandlung)) return false;\n\n  // recognitionSentence muss visualErkennungssatz entsprechen\n  const baseErkennungssatz = safeStr(j.visualErkennungssatz);\n  if (baseErkennungssatz && !skipMatch(vj.recognitionSentence, baseErkennungssatz)) return false;\n\n  // imagePrompt muss Pflichthandlung beschreiben\n  if (basePflichthandlung && !skipMatch(p, basePflichthandlung)) return false;\n\n  // imagePrompt muss mindestens 2 konkrete Pflichtobjekte enthalten\n  if (basePflicht.length >= 2) {\n    const promptObjekte = basePflicht.filter(bp => skipMatch(p, bp));\n    if (promptObjekte.length < 2) return false;\n  }\n\n  // SOURCELOCK-PRÜFUNG: Wenn analysisJson.sourceLock vorhanden, muss bestehendes visualJson damit übereinstimmen\n  if (currentSourceLock && currentSourceLock.sourceTopic) {\n    function normSL(s) {\n      return String(s || '').toLowerCase()\n        .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss')\n        .replace(/[\\W]+/g,' ').trim();\n    }\n    function matchSL(a, b) {\n      const ta = normSL(a).split(/\\s+/).filter(w => w.length >= 4);\n      const tb = normSL(b).split(/\\s+/).filter(w => w.length >= 4);\n      if (ta.length === 0 || tb.length === 0) return false;\n      return ta.some(t => tb.includes(t));\n    }\n    // topicPlain muss sourceTopic entsprechen\n    if (vj.topicPlain && !matchSL(vj.topicPlain, currentSourceLock.sourceTopic)) return false;\n    // conflictPlain muss sourceConflict entsprechen\n    if (currentSourceLock.sourceConflict && vj.conflictPlain && !matchSL(vj.conflictPlain, currentSourceLock.sourceConflict)) return false;\n    // imagePrompt muss mindestens einen konkreten requiredTerm enthalten\n    const GENERIC = new Set(['verwaltung','politik','buerokratie','goslar','rathaus','stadt']);\n    const reqTerms = (currentSourceLock.requiredTerms || []).filter(t => {\n      const tn = normSL(t).replace(/\\s/g,'');\n      return t.length >= 4 && !GENERIC.has(normSL(t));\n    });\n    if (reqTerms.length >= 2) {\n      const stem = t => normSL(t).substring(0, Math.max(4, Math.floor(normSL(t).length * 0.75)));\n      const pNorm = normSL(p);\n      const promptHasTerm = reqTerms.some(t => pNorm.includes(stem(t)));\n      if (!promptHasTerm) return false;\n    }\n    // Rein allgemeines topicPlain ist ungültig\n    const genericTopics = ['verwaltung','politik','buerokratie','goslar','rathaus','kommunalpolitik'];\n    if (genericTopics.includes(normSL(vj.topicPlain))) return false;\n  }\n\n  return true;\n}\n\nconst vorgangKey = safeStr(j.vorgangKey);\n\nif (!vorgangKey) {\n  throw new Error(\n    'Prepare Visual Prompt Input abgebrochen: vorgangKey fehlt im Eingangsdatenbestand.'\n  );\n}\n\n// Wenn bereits ein vollständig gültiger Motivprompt + visualJson vorhanden ist: überspringen\nif (j._forceVisualPromptReset !== true && hasValidExistingPrompt(j)) {\n  return [{\n    json: {\n      ...j,\n      _skipReason: 'valid new motif imagePrompt already exists (incl. visualJson anchor fields)',\n      visualStage: 'prompt_ready',\n      imageStage: (j.imageFinalPath ? 'composed' : 'not_started'),\n      imagePromptFound: true,\n      visualParseError: false\n    }\n  }];\n}\n\n// Neue Ankerfelder sicher lesen\nconst satireThemaKonkret       = safeStr(j.satireThemaKonkret);\nconst satireKonfliktKonkret    = safeStr(j.satireKonfliktKonkret);\nconst visualPflichtobjekte     = safeJson(j.visualPflichtobjekte, '[]');\nconst visualPflichthandlung    = safeStr(j.visualPflichthandlung);\nconst visualBetroffene         = safeJson(j.visualBetroffene, '[]');\nconst visualOrt                = safeStr(j.visualOrt);\nconst visualUeberzeichnung     = safeStr(j.visualUeberzeichnung);\nconst visualErkennungssatz     = safeStr(j.visualErkennungssatz);\nconst visualVerboteneErsatzmotive = safeJson(j.visualVerboteneErsatzmotive, '[]');\n\n// Sachliche Felder\nconst summaryText  = safeStr(j.summaryText);\nconst thema        = safeStr(j.thema);\nconst betroffene   = safeStr(j.betroffene);\nconst buergerwirkung = safeStr(j.buergerwirkung);\n\n// KI soll neuen Motivprompt erzeugen\n// FIX: imageHeadline/imageSubline aus raw übernehmen statt zu leeren - sonst\n// kann \"IF Headline bereits gewählt?\" weiter unten nie erkennen, dass für\n// headline_selected-Zeilen bereits eine Nutzer-Auswahl vorliegt.\nconst chosenImageHeadline = safeStr(raw.imageHeadline);\nconst chosenImageSubline  = safeStr(raw.imageSubline);\n\nreturn [{\n  json: {\n    vorgangKey,\n    vorgangsnummer:          safeStr(j.vorgangsnummer),\n    title:                   safeStr(j.title),\n    allrisUrl:               safeStr(j.allrisUrl),\n    sourceUrl:               safeStr(j.sourceUrl),\n    nextcloudFolder:         safeStr(j.nextcloudFolder),\n\n    sprengstoff:             safeStr(j.sprengstoff),\n    empfehlung:              safeStr(j.empfehlung),\n    relevantScore:           j.relevantScore || 0,\n    kommunikationspotenzial: j.kommunikationspotenzial || 0,\n    visualDecisionReason:    safeStr(j.visualDecisionReason),\n\n    // Sachliche Zusammenfassung (muss erhalten bleiben)\n    summaryText,\n    thema,\n    betroffene,\n    buergerwirkung,\n\n    kernbotschaft:           safeStr(j.kernbotschaft),\n    satireBrief:             safeStr(j.satireBrief),\n    satireAngle:             safeStr(j.satireAngle),\n    satirePunchlines:        safeJson(j.satirePunchlines, '[]'),\n    visualMetaphor:          safeStr(j.visualMetaphor),\n    satireTarget:            safeStr(j.satireTarget),\n    satireIntensity:         Number(j.satireIntensity || 0),\n    satireDoNotClaim:        safeJson(j.satireDoNotClaim, '[]'),\n    satireSafetyNote:        safeStr(j.satireSafetyNote),\n    dieParteiReaktion:       safeStr(j.dieParteiReaktion),\n    instagramCaption:        safeStr(j.instagramCaption),\n    headlines:               safeStr(j.headlines),\n    websiteHeadline:         safeStr(j.websiteHeadline),\n\n    belegbareFakten:         safeJson(j.belegbareFakten, '[]'),\n    kritischeNachfrage:      safeStr(j.kritischeNachfrage),\n    offenePunkte:            safeJson(j.offenePunkte, '[]'),\n    unsicherheitenSummary:   safeStr(j.unsicherheitenSummary),\n    analysisJson:            safeJson(j.analysisJson),\n    contentJson:             safeJson(j.contentJson),\n\n    // Visuelle Ankerfelder (Pflicht für KI-Prompt)\n    satireThemaKonkret,\n    satireKonfliktKonkret,\n    visualPflichtobjekte,\n    visualPflichthandlung,\n    visualBetroffene,\n    visualOrt,\n    visualUeberzeichnung,\n    visualErkennungssatz,\n    visualVerboteneErsatzmotive,\n\n    imagePrompt:             '',\n    imageNegativePrompt:     '',\n    imageHeadline:           chosenImageHeadline,\n    imageSubline:            chosenImageSubline,\n    imageSmallNote:          '',\n    altText:                 '',\n    visualJson:              '{}',\n\n    _skipReason:             '',\n    imagePromptFound:        false,\n    visualParseError:        false,\n    visualStage:             'needs_prompt',\n    imageStage:              (j.imageFinalPath ? 'composed' : 'not_started'),\n    _forceVisualPromptReset: j._forceVisualPromptReset === true,\n    _forceVisualPromptResetAt: safeStr(j._forceVisualPromptResetAt),\n    _forceVisualPromptResetReason: safeStr(j._forceVisualPromptResetReason),\n    sourceLockJson:          JSON.stringify(currentSourceLock || {})\n  }\n}];\n"}, "id": "8f5d5ba9-46d7-469e-9697-aa55516f71f4", "name": "Prepare Visual Prompt Input", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [1056, 0], "onError": "continueRegularOutput"}, {"parameters": {"conditions": {"options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2}, "conditions": [{"id": "check-headline-chosen", "leftValue": "={{ ($json.imageHeadline || '').trim().length > 0 && ($json.imageSubline || '').trim().length > 0 }}", "rightValue": true, "operator": {"type": "boolean", "operation": "equals"}}], "combinator": "and"}, "options": {}}, "id": "d4b1e5c6-5555-4aaa-8bbb-555555555555", "name": "IF Headline bereits gewählt?", "type": "n8n-nodes-base.if", "typeVersion": 2.2, "position": [-128, 160]}, {"parameters": {"modelId": {"__rl": true, "value": "gpt-5", "mode": "list", "cachedResultName": "GPT-5"}, "responses": {"values": [{"content": "=Du erstellst mehrere Vorschläge für Headline und Subline eines Instagram-Share-Pics für DIE PARTEI Kreisverband Goslar.\n\nWICHTIG:\nAntworte AUSSCHLIESSLICH mit einem validen JSON-Objekt.\nKein Markdown.\nKeine Codeblöcke.\nKeine Kommentare im JSON.\nKein Text vor oder nach dem JSON.\n\nIn diesem Schritt wird NUR Text erzeugt, KEIN Bildmotiv. Das Bildmotiv wird erst erzeugt, NACHDEM der Nutzer eine der Varianten ausgewählt hat.\n\nErzeuge genau 4 unterschiedliche Kandidaten (Sat1 bis Sat4). Sie müssen sich in Angriffswinkel, Pointe oder Tonfall spürbar unterscheiden, aber alle dasselbe konkrete Sachthema treffen — keine reinen Synonym-Varianten derselben Formulierung.\n\nJeder Kandidat besteht aus:\n- imageHeadline: maximal 6 Wörter — böse, absurd, plakatfähig, aber bei sensiblen Themen niemals auf Kosten betroffener Personen\n- imageSubline: maximal 9 Wörter — trockene DIE-PARTEI-Reaktion gegen Verwaltung, Haushalt, Verfahren, Zuständigkeit oder Umsetzung\n- imageHeadline und imageSubline müssen zusammen als EIN zusammenhängender Lesefluss funktionieren, nicht als zwei unabhängige Sätze mit eigenem Thema\n\nVorgangsnummer: {{$json.vorgangsnummer}}\nTitel: {{$json.title}}\nSprengstoff: {{$json.sprengstoff}}\nEmpfehlung: {{$json.empfehlung}}\nKommunikationspotenzial: {{$json.kommunikationspotenzial}}\n\nKernbotschaft: {{$json.kernbotschaft}}\nDIE-PARTEI-Reaktion: {{$json.dieParteiReaktion}}\nBelegbare Fakten: {{$json.belegbareFakten}}\nUnsicherheiten-Zusammenfassung: {{$json.unsicherheitenSummary}}\nKritische Nachfrage: {{$json.kritischeNachfrage}}\n\nSatire-Briefing: {{$json.satireBrief}}\nSatire-Angriffswinkel: {{$json.satireAngle}}\nSatire-Punchlines: {{$json.satirePunchlines}}\nVisuelle Metapher: {{$json.visualMetaphor}}\nZielscheibe der Satire: {{$json.satireTarget}}\nSatire-Intensität: {{$json.satireIntensity}}\nNicht behaupten: {{$json.satireDoNotClaim}}\nSatire-Sicherheitsnotiz: {{$json.satireSafetyNote}}\n\nKonkretes Thema (Pflicht): {{$json.satireThemaKonkret}}\nKonkreter Konflikt (Pflicht): {{$json.satireKonfliktKonkret}}\nErkennungssatz: {{$json.visualErkennungssatz}}\n\nSourceLock (unveränderliche Sachbasis, Pflicht): {{$json.sourceLockJson}}\n\nSOURCELOCK-PFLICHTREGELN:\n- Mindestens ein requiredTerm aus dem SourceLock MUSS in mindestens einer Headline oder Subline jedes Kandidaten vorkommen.\n- forbiddenDrift-Themen sind als Pointe VERBOTEN.\n\nSachliche Zusammenfassung: {{$json.summaryText}}\nThema: {{$json.thema}}\nBetroffene: {{$json.betroffene}}\nBürgerwirkung: {{$json.buergerwirkung}}\n\nNutze das Satire-Briefing als Pflichtgrundlage. Wenn es zu allgemein ist, nutze Titel, Kernbotschaft, belegbare Fakten und kritische Nachfrage, um das konkrete Thema zu bestimmen.\n\n==================================================\nSENSIBLE BETROFFENE / SCHUTZBEDUERFTIGE GRUPPEN\n==================================================\n\nDiese Regeln sind verbindlich und überschreiben alle anderen Regeln.\n\nWenn der Vorgang Kinder, Schüler, Menschen mit Behinderung, blinde oder sehbehinderte Menschen, kranke Menschen, alte Menschen, Unfallopfer, arme Menschen, wohnungslose Menschen, Geflüchtete oder andere schutzbedürftige Gruppen betrifft, gilt:\n\n1. Die Satire darf niemals gegen die betroffene Person oder Gruppe gerichtet sein.\n2. Die Satire darf niemals deren Einschränkung, Hilfsmittel, Schutzbedarf oder Lage lächerlich machen.\n3. Die satirische Zielscheibe muss Verwaltung, Haushalt, Verfahren, Zuständigkeit, verspätete Umsetzung, Prioritätensetzung oder Bürokratielogik sein.\n4. Keine Formulierung, die ein Bildmodell später als Gefahr, Hindernis, Demütigung oder Spott gegen Betroffene visualisieren könnte.\n5. Wenn eine Formulierung doppeldeutig ist, wähle die sicherere Variante.\n\nBei Blindheit oder Sehbehinderung sind als Pointe verboten:\nBlindflug, Augen zu und durch, im Dunkeln tappen, sieht ja keiner, Extrahürde, Stolperfalle, Hindernislauf, blind vertrauen, endlich sieht man es, Licht aus, Dunkelübung.\n\nGute Beispiele:\nimageHeadline: \\\"Barrierefreiheit per Haushaltsrest\\\" / imageSubline: \\\"Goslar rüstet die Ampel spät, aber überplanmäßig nach.\\\"\nimageHeadline: \\\"Ampel bekommt endlich Ton\\\" / imageSubline: \\\"35.000 Euro später entdeckt Goslar barrierefreie Wege.\\\"\n\nSchlechte Beispiele:\nimageHeadline: \\\"Lichtsignalanlage, jetzt mit Extrahürde\\\" (Problem: kann als echte Gefahr für Blinde gelesen werden)\nimageHeadline: \\\"Blindflug über die Berliner Allee\\\" (Problem: Pointe benutzt Blindheit selbst als Witzträger)\n\n==================================================\nHEADLINE/SUBLINE-REGELN\n==================================================\n\nDie Headline soll wie ein satirischer Schlag wirken, aber kurz bleiben. Die Subline soll die Pointe verstärken, nicht sachlich erklären.\n\n- Mindestens eines der beiden Textfelder MUSS ein klares Themenwort enthalten (z.B. Plakate, Wärme, Welterbe, Rathaus, Haushalt, Bürgerbüro, Baustelle, Denkmalschutz, Straße, Schule, Kita, Innenstadt, Verkehr, Parken, Feuerwehr, Goslar, Harz, Altstadt, Verwaltung, ÖPNV, Gebühren, Tourismus).\n- Verboten: brave Verwaltungssprache, neutrale Zusammenfassung, juristische Floskeln, neue Tatsachenbehauptungen ohne Faktengrundlage, Korruptionsvorwürfe, persönliche Angriffe auf echte Personen.\n- Zusätzlich verboten bei Blindheit, Sehbehinderung, Behinderung, Kindern oder anderen schutzbedürftigen Gruppen: Wortspiele über die Einschränkung selbst.\n\nQualitätsmaßstab:\nSchlecht: \\\"Faire Plakatverteilung prüfen\\\" — Besser: \\\"Demokratie nach Stückzahl\\\" — Sehr gut: \\\"Mehr Kandidaten, mehr Demokratie™\\\"\nSchlecht: \\\"Haushaltslage bleibt schwierig\\\" — Besser: \\\"Haushalt geht baden\\\" — Sehr gut: \\\"Kassenloch mit Altstadtblick\\\"\n\n==================================================\nECHTE UNTERSCHIEDLICHKEIT DER VIER KANDIDATEN\n==================================================\n\nNicht erlaubt:\n- dieselbe Pointe mit Synonymen\n- dieselbe Kernaussage in anderer Wortstellung\n- vier Varianten desselben Wortspiels\n- bloßer Austausch einzelner Nomen\n- identischer Satzbau mit minimal veränderten Wörtern (z.B. alle vier Sublines beginnen mit derselben Formulierung)\n\nJeder Kandidat braucht einen eigenen Angriffswinkel, eine eigene Pointe oder einen eigenen satirischen Mechanismus. Prüfe vor der Ausgabe: Unterscheiden sich die vier Kandidaten wirklich in der Pointe, oder nur im Wortlaut?\n\nPortabilitätstest: Würde eine Pointe fast unverändert auch auf viele andere kommunalpolitische Vorgänge passen? Dann ist sie zu allgemein - durch einen Themenanker aus diesem konkreten Vorgang ersetzen.\n\n==================================================\nKEIN ERZWUNGENER KONFLIKT\n==================================================\n\nEin fehlender Konflikt darf niemals durch eine unbelegte Vorgeschichte ersetzt werden. Insbesondere gilt:\n- neue Beteiligung ≠ früherer Ausschluss\n- neue Rolle ≠ frühere Inkompetenz\n- neue Regel ≠ vorheriges Chaos\n- neue Maßnahme ≠ vorheriges Versagen\n- neue Prüfung ≠ bisherige Ignoranz\n- neue Planung ≠ bisherige Planlosigkeit\n- offene Frage ≠ fehlende Existenz\n- Forderung ≠ bisheriges Fehlen\n- erwartete Wirkung ≠ sicheres Ergebnis\n\nWenn eine Pointe nur funktioniert, weil sie eine dieser unbelegten Vorgeschichten unterstellt: verwerfen und neu formulieren.\n\n==================================================\nSATIRE-SICHERHEIT\n==================================================\n\nDie Satire darf hart, böse und absurd sein, aber keine neuen Tatsachen behaupten, die nicht durch die Eingabedaten gedeckt sind. Keine Korruptions- oder Straftatvorwürfe, keine Schuldzuweisung an echte Personen, wenn Unsicherheiten bestehen.\n\n==================================================\nSELBSTPRÜFUNG VOR AUSGABE\n==================================================\n\nPrüfe für JEDEN Kandidaten:\n1. Erkennt man das Thema, wenn man Headline und Subline zusammen liest?\n2. Enthält mindestens eines der beiden Felder ein klares Themenwort?\n3. Kommt mindestens ein SourceLock-requiredTerm vor?\n4. Ist bei schutzbedürftigen Gruppen die Pointe eindeutig gegen Verwaltung/Haushalt/Verfahren gerichtet, nicht gegen Betroffene?\n5. Sind Headline und Subline zusammen EIN kohärenter Gedanke?\n6. Ist die Pointe frei von unbelegten Vorgeschichten-Unterstellungen (siehe KEIN ERZWUNGENER KONFLIKT)?\n7. Unterscheidet sich dieser Kandidat in Pointe und Angriffswinkel klar von den anderen drei (nicht nur im Wortlaut)?\n\nWenn eine dieser Fragen \\\"nein\\\" ergibt: Kandidat neu formulieren, bevor er ausgegeben wird.\n\nGib diese Prüfung NICHT aus. Gib nur das folgende JSON aus:\n\n{\n  \\\"candidates\\\": [\n    { \\\"code\\\": \\\"Sat1\\\", \\\"imageHeadline\\\": \\\"...\\\", \\\"imageSubline\\\": \\\"...\\\" },\n    { \\\"code\\\": \\\"Sat2\\\", \\\"imageHeadline\\\": \\\"...\\\", \\\"imageSubline\\\": \\\"...\\\" },\n    { \\\"code\\\": \\\"Sat3\\\", \\\"imageHeadline\\\": \\\"...\\\", \\\"imageSubline\\\": \\\"...\\\" },\n    { \\\"code\\\": \\\"Sat4\\\", \\\"imageHeadline\\\": \\\"...\\\", \\\"imageSubline\\\": \\\"...\\\" }\n  ]\n}"}]}, "builtInTools": {}, "options": {}}, "id": "a1b2c3d4-1111-4aaa-8bbb-111111111111", "name": "AI Headline Varianten", "type": "@n8n/n8n-nodes-langchain.openAi", "typeVersion": 2.3, "position": [48, 400], "retryOnFail": true, "credentials": {"openAiApi": {"id": "RiT1gwJpQWzSo6NO", "name": "OpenAI account"}}}, {"parameters": {"jsCode": "// ============================================================\n// PARSE HEADLINE VARIANTEN\n// Erwartet { candidates: [{code, imageHeadline, imageSubline}, ...] }\n// Speichert Kandidaten in visualJson.headlineCandidates (kein neues DB-Feld\n// nötig, gleiches Muster wie sourceLock/anchors) und baut die Matrix-Nachricht.\n// ============================================================\n\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nfunction extractJson(text) {\n  if (!text) return null;\n  const stripped = String(text).replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```\\s*$/i, '').trim();\n  const start = stripped.indexOf('{');\n  const end = stripped.lastIndexOf('}');\n  if (start === -1 || end === -1 || end <= start) return null;\n  return stripped.slice(start, end + 1);\n}\n\nfunction getAiText(item) {\n  const j = item.json || {};\n  if (j.output && Array.isArray(j.output) && j.output[0]?.content?.[0]?.text) return j.output[0].content[0].text;\n  if (j.message?.content) return j.message.content;\n  if (typeof j.text === 'string' && j.text) return j.text;\n  if (Array.isArray(j.choices) && j.choices[0]?.message?.content) return j.choices[0].message.content;\n  if (Array.isArray(j.content) && j.content[0]?.text) return j.content[0].text;\n  return '';\n}\n\nconst item = $input.item;\nconst base = $('Prepare Visual Prompt Input').itemMatching(0).json || {};\n\nconst rawText = getAiText(item);\nconst jsonStr = extractJson(rawText);\n\nlet parsed = null;\nlet parseError = false;\nlet debugReason = '';\n\nif (!jsonStr) {\n  parseError = true;\n  debugReason = 'Kein JSON-Block im AI-Output gefunden (Headline-Varianten)';\n} else {\n  try { parsed = JSON.parse(jsonStr); } catch (e) { parseError = true; debugReason = 'JSON.parse fehlgeschlagen (Headline-Varianten): ' + e.message; }\n}\n\nconst vnCode = safeStr(base.vorgangsnummer).replace(/[^0-9A-Za-z]+/g, '-').replace(/^-+|-+$/g, '');\nconst candidates = Array.isArray(parsed && parsed.candidates) ? parsed.candidates : [];\nconst validCandidates = candidates\n  .map(c => ({ code: (vnCode ? vnCode + '-' : '') + safeStr(c && c.code).replace(/^Sat/i, 'K'), imageHeadline: safeStr(c && c.imageHeadline), imageSubline: safeStr(c && c.imageSubline) }))\n  .filter(c => c.code && c.imageHeadline && c.imageSubline);\n\nif (!parseError && validCandidates.length < 2) {\n  parseError = true;\n  debugReason = 'Zu wenige gültige Headline-Kandidaten (' + validCandidates.length + ')';\n}\n\nif (!base.vorgangKey) {\n  throw new Error('Parse Headline Varianten abgebrochen: vorgangKey fehlt im Ursprungskontext.');\n}\n\nif (parseError) {\n  return [{\n    json: {\n      ...base,\n      visualParseError: true,\n      visualDebugReason: debugReason,\n      rawVisualText: (rawText || '(leer)').substring(0, 5000),\n      visualStage: 'prompt_error',\n      imageStage: (base.imageFinalPath ? 'composed' : 'not_started'),\n      visualPromptCreatedAt: new Date().toISOString()\n    }\n  }];\n}\n\nlet existingVisual = {};\ntry { existingVisual = typeof base.visualJson === 'string' ? JSON.parse(base.visualJson || '{}') : (base.visualJson || {}); } catch (e) { existingVisual = {}; }\n\nconst postedAt = new Date().toISOString();\n\nconst lines = [\n  '🎨 Bildvorschläge für ' + safeStr(base.vorgangsnummer) + ' – ' + safeStr(base.title),\n  ''\n];\nfor (const c of validCandidates) {\n  lines.push(c.code + ': ' + c.imageHeadline + ' – ' + c.imageSubline);\n}\nlines.push('');\nconst exampleCode = validCandidates.length > 0 ? validCandidates[0].code : ((vnCode ? vnCode + '-' : '') + 'K1');\nlines.push('Antworte mit dem gewünschten Code (z.B. \"' + exampleCode + '\"), um die Auswahl zu bestätigen, oder mit \"' + vnCode + '-X\" für komplett neue Vorschläge.');\n\nconst matrixMessage = lines.join('\\n');\nconst txnId = 'hdl_' + Date.now() + '_' + safeStr(base.vorgangKey).replace(/[^a-zA-Z0-9]/g, '').substring(0, 10);\n\nreturn [{\n  json: {\n    ...base,\n    visualJson: JSON.stringify({ ...existingVisual, headlineCandidates: validCandidates, candidatesPostedAt: postedAt }),\n    visualStage: 'awaiting_headline_choice',\n    imageStage: (base.imageFinalPath ? 'composed' : 'not_started'),\n    visualParseError: false,\n    visualDebugReason: '',\n    matrixMessage,\n    txnId\n  }\n}];\n"}, "id": "a1b2c3d4-2222-4aaa-8bbb-222222222222", "name": "Parse Headline Varianten", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [208, 400], "onError": "continueRegularOutput"}, {"parameters": {"conditions": {"options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2}, "conditions": [{"id": "check-headline-ok", "leftValue": "={{ $json.visualParseError }}", "rightValue": false, "operator": {"type": "boolean", "operation": "equals"}}], "combinator": "and"}, "options": {}}, "id": "a1b2c3d4-3333-4aaa-8bbb-333333333333", "name": "IF Headline-Varianten OK?", "type": "n8n-nodes-base.if", "typeVersion": 2.2, "position": [368, 400]}, {"parameters": {"method": "PUT", "url": "=https://matrix.org/_matrix/client/v3/rooms/!COxTeLJyPszYlaHbIx:matrix.golietz.de/send/m.room.message/{{ $json.txnId }}", "authentication": "genericCredentialType", "genericAuthType": "httpHeaderAuth", "sendHeaders": true, "headerParameters": {"parameters": [{"name": "Content-Type", "value": "application/json"}]}, "sendBody": true, "contentType": "raw", "rawContentType": "application/json", "body": "={{ JSON.stringify({ msgtype: 'm.text', body: $json.matrixMessage }) }}", "options": {"timeout": 30000}}, "id": "a1b2c3d4-4444-4aaa-8bbb-444444444444", "name": "Send Matrix Headline Vorschläge", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [528, 400], "credentials": {"httpHeaderAuth": {"id": "od1pN1F5wy2irSDs", "name": "Header Auth account"}}, "onError": "continueRegularOutput"}, {"parameters": {"jsCode": "// Stellt den Vorgangskontext nach dem Matrix-Versand wieder her.\n// \"Send Matrix Headline Vorschläge\" (HTTP Request) ersetzt das Item-JSON durch\n// die rohe Matrix-API-Antwort (nur event_id/error) und wirft dabei vorgangKey,\n// visualStatus, visualJson, imageHeadline usw. weg. Ohne diesen Node findet\n// \"Update allris_vorgaenge\" keine passende Zeile (vorgangKey=undefined) und\n// schreibt gar nichts - der ganze Headline-Auswahl-Fortschritt ging dadurch\n// bisher stillschweigend verloren. Gleiches Muster wie \"Check Matrix Status\" in P1.\n\nconst response = $input.item.json || {};\nconst base = $('Parse Headline Varianten').itemMatching(0).json || {};\n\nconst hasError = !!(\n  response.error ||\n  response.errcode ||\n  (response.statusCode && Number(response.statusCode) >= 400)\n);\nconst eventId = response.event_id || response.eventId || '';\n\nreturn [{\n  json: {\n    ...base,\n    visualStage: base.visualStage || 'not_applicable',\n    imageStage: base.imageFinalPath ? 'composed' : 'not_started',\n    matrixEventId: eventId,\n    matrixSentOk: !hasError && !!eventId,\n    matrixSendError: hasError ? (response.error || response.errcode || 'Matrix-Versand fehlgeschlagen') : ''\n  }\n}];"}, "id": "da1541e2-2377-432c-b3c8-fe68f7ea864f", "name": "Stelle Kontext nach Matrix wieder her", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [688, 400]}, {"parameters": {"modelId": {"__rl": true, "value": "gpt-5", "mode": "list", "cachedResultName": "GPT-5"}, "responses": {"values": [{"content": "=Du erstellst EIN Instagram-Share-Pic-Konzept für DIE PARTEI Kreisverband Goslar.\n\nWICHTIG:\nAntworte AUSSCHLIESSLICH mit einem validen JSON-Objekt.\nKein Markdown.\nKeine Codeblöcke.\nKeine Kommentare im JSON.\nKein Text vor oder nach dem JSON.\n\nErstelle genau EIN Instagram-Share-Pic-Konzept.\n\nWICHTIG ZU HEADLINE/SUBLINE:\nimageHeadline und imageSubline wurden bereits vom Nutzer aus mehreren KI-Vorschlägen final ausgewählt. Sie sind FIX und DÜRFEN NICHT verändert, umformuliert oder verbessert werden. Übernimm sie exakt wortwörtlich:\n\nAusgewählte imageHeadline (wortwörtlich übernehmen, NICHT ändern): {{$json.imageHeadline}}\nAusgewählte imageSubline (wortwörtlich übernehmen, NICHT ändern): {{$json.imageSubline}}\n\nDas Konzept besteht aus:\n\n- imageHeadline: EXAKT wie oben vorgegeben, keine Änderung\n- imageSubline: EXAKT wie oben vorgegeben, keine Änderung\n- imageSmallNote: immer leerer String: \"\"\n- altText: kurze Beschreibung für Screenreader\n- imagePrompt: NUR das satirische Bildmotiv ohne sichtbaren Text, inhaltlich passend zur vorgegebenen Headline/Subline\n- imageNegativePrompt: Ausschlüsse für das Bildmodell\n- visualJson: strukturierte Wiederholung und Begründung\n\nWICHTIG:\nimagePrompt beschreibt AUSSCHLIESSLICH das satirische Bildmotiv.\nimagePrompt verlangt KEINEN sichtbaren Text im Bild.\nimagePrompt verlangt KEINE Headline, KEINE Subline im Motiv.\nimagePrompt verlangt KEINE Small Note im Motiv.\nHeadline, Subline und Small Note werden als separate Textfelder ausgegeben.\nDas Bildmodell darf im Motivbereich keine Schrift, keine Buchstaben, keine Ziffern und keine Zahlen erzeugen.\n\nVorgangsnummer: {{$json.vorgangsnummer}}\nTitel: {{$json.title}}\nSprengstoff: {{$json.sprengstoff}}\nEmpfehlung: {{$json.empfehlung}}\nKommunikationspotenzial: {{$json.kommunikationspotenzial}}\nVisual-Entscheidungsgrund: {{$json.visualDecisionReason}}\n\nKernbotschaft: {{$json.kernbotschaft}}\nDIE-PARTEI-Reaktion: {{$json.dieParteiReaktion}}\nBelegbare Fakten: {{$json.belegbareFakten}}\nUnsicherheiten-Zusammenfassung: {{$json.unsicherheitenSummary}}\nKritische Nachfrage: {{$json.kritischeNachfrage}}\n\nSatire-Briefing: {{$json.satireBrief}}\nSatire-Angriffswinkel: {{$json.satireAngle}}\nSatire-Punchlines: {{$json.satirePunchlines}}\nVisuelle Metapher: {{$json.visualMetaphor}}\nZielscheibe der Satire: {{$json.satireTarget}}\nSatire-Intensität: {{$json.satireIntensity}}\nNicht behaupten: {{$json.satireDoNotClaim}}\nSatire-Sicherheitsnotiz: {{$json.satireSafetyNote}}\n\nKonkretes Thema (Pflicht): {{$json.satireThemaKonkret}}\nKonkreter Konflikt (Pflicht): {{$json.satireKonfliktKonkret}}\nPflichtobjekte (MÜSSEN im Bild sichtbar sein): {{$json.visualPflichtobjekte}}\nPflichthandlung (MUSS gezeigt werden): {{$json.visualPflichthandlung}}\nSichtbar Betroffene: {{$json.visualBetroffene}}\nRelevanter Ort: {{$json.visualOrt}}\nSatirische Überzeichnung: {{$json.visualUeberzeichnung}}\nErkennungssatz: {{$json.visualErkennungssatz}}\nVerbotene Ersatzmotive: {{$json.visualVerboteneErsatzmotive}}\n\nSourceLock (unveränderliche Sachbasis, Pflicht): {{$json.sourceLockJson}}\n\nSOURCELOCK-PFLICHTREGELN:\n- Das Bildkonzept MUSS sourceLock.sourceTopic als Sachgegenstand zeigen.\n- requiredTerms: Mindestens einer MUSS in imageHeadline oder imageSubline vorkommen.\n- requiredObjects: Mindestens zwei MÜSSEN im Bildmotiv sichtbar sein.\n- requiredAction: MUSS als sichtbare Szene dargestellt werden.\n- forbiddenDrift: Diese Themen sind als Hauptmotiv VERBOTEN.\n- Kein ausschließlich allgemeines Motiv wenn sourceLock vorhanden.\n\nSachliche Zusammenfassung: {{$json.summaryText}}\nThema: {{$json.thema}}\nBetroffene: {{$json.betroffene}}\nBürgerwirkung: {{$json.buergerwirkung}}\n\n\nNutze das Satire-Briefing als Pflichtgrundlage.\nNicht allgemein satirisch schreiben — das konkrete Briefing umsetzen.\n\nWenn das Satire-Briefing zu allgemein ist, nutze Titel, Kernbotschaft, belegbare Fakten und kritische Nachfrage, um das konkrete Thema zu bestimmen.\n\n\n==================================================\nVERBINDLICHE THEMENANKER-REGELN (Pflicht)\n==================================================\n\nDie folgenden Regeln sind NICHT optional. Sie überschreiben alle anderen Stilregeln.\n\n1. Das Bildmotiv MUSS alle visualPflichtobjekte sichtbar und zentral enthalten.\n   Kein Pflichtobjekt darf durch ein allgemeines Symbol ersetzt werden.\n\n2. Das Motiv MUSS visualPflichthandlung tatsächlich zeigen — nicht nur erwähnen.\n   Die Handlung muss als sichtbare Szene erkennbar sein.\n\n3. Die sichtbare Szene MUSS visualErkennungssatz erfüllen.\n   Eine außenstehende Person muss das Thema ohne Headline, Subline, Caption und\n   Vorlagenummer innerhalb von zwei Sekunden ungefähr erkennen können.\n\n4. Mindestens zwei der drei wichtigsten Motivanker müssen reale Gegenstände\n   aus visualPflichtobjekte sein.\n\n5. Ein abstraktes Symbol darf höchstens ein zusätzliches Nebenelement sein.\n   Es darf niemals das Hauptmotiv bilden.\n\n6. Keine Metapher als Hauptmotiv, wenn die reale Szene direkt darstellbar ist.\n\n7. Keine Gegenstände ergänzen, die einen anderen politischen Konflikt eröffnen.\n\n8. Die Satirefigur (Kommentatorfigur (falls eingesetzt)) ist nur Beobachter\n   oder Kommentator und zählt NICHT als Themenanker.\n\n9. Headline und Subline dürfen das Thema unterstützen, aber NICHT retten.\n\n10. Interne Selbstprüfung (Ergebnis NICHT ausgeben):\n    Das Sachthema muss aus der Gesamtwirkung von Headline, Subline und Motiv sofort erkennbar sein.\n    Das Motiv muss konkrete Pflichtobjekte und die reale Handlung sichtbar unterstützen.\n    Headline und Subline dürfen den konkreten Konflikt benennen.\n    Das Motiv darf nicht durch eine allgemeine oder sachfremde Metapher ersetzt werden.\n    Ein völlig austauschbares Motiv ist unzulässig.\n    Wenn Headline und Subline entfernt werden und das Thema völlig unerkennbar wäre → Motiv überarbeiten.\n\n11. Alle Elemente aus visualVerboteneErsatzmotive sind als Hauptmotiv VERBOTEN.\n\n==================================================\nFESTER BILDSTIL / STYLE LOCK\n============================\n\nAlle Share-Pic-Motive sollen im gleichen wiedererkennbaren satirischen Bildstil erzeugt werden.\n\nVerwende immer diesen Stil:\n\nGroteske kommunalpolitische Satire-Illustration im halb-realistischen Karikaturstil.\nSehr ausdrucksstarke überzeichnete Gesichter.\nGroße aufgerissene Augen, glubschige oder hervorquellende Augen, ratlose oder fassungslose Mimik bei allgemeinen Bürgerfiguren. Panische Mimik ist nur bei nicht schutzbedürftigen anonymen Bürgerfiguren erlaubt und niemals bei konkret betroffenen vulnerablen Personen.\nSelbstzufriedene, bequeme, überhebliche oder grotesk entspannte Amts-, Verwaltungs- oder Machtfiguren, wenn es zum Thema passt.\nLeicht überproportionierte Köpfe, Hände und Gesichtszüge.\nDramatische, aber klare Körpersprache.\nDetailreiche Goslar-/Harz-/Altstadt-Anmutung, wenn thematisch sinnvoll.\nRealistische Materialien und Umgebung, aber satirisch überhöhte Figuren.\nPlakativ, hochwertig, scharf, kontrastreich, politisches Share-Pic, bissige Lokalpolitik-Satire.\nKein flacher Cartoon.\nKein Kinderbuchstil.\nKein Anime.\nKein sauberes Corporate-Icon-Design.\nDer Stil soll wirken wie eine böse Lokalzeitungs-Karikatur als modernes Instagram-Sharepic.\n\nFigurenregeln:\n\n- Geschlechterverhältnis der anonymen Bürger-, Amts- und Verwaltungsfiguren muss ausgeglichen sein — mische gezielt weibliche und männliche Figuren über die verschiedenen Vorgänge hinweg, nicht durchgängig männlich\n- anonyme allgemeine Bürgerfiguren dürfen überzeichnet, ratlos oder fassungslos wirken\n- panische Bürgerfiguren sind nur erlaubt, wenn sie nicht zur konkret betroffenen oder schutzbedürftigen Gruppe gehören\n- Bürgerfiguren dürfen große, hervorquellende Augen und nervöse Mimik haben\n- schutzbedürftige oder konkret betroffene Personen dürfen nicht panisch, hilflos, lächerlich, grotesk verzerrt oder in akuter Gefahr dargestellt werden\n- Amts-, Verwaltungs- oder Machtfiguren dürfen selbstzufrieden, bequem, überheblich oder grotesk entspannt wirken\n- keine echten Personen\n- keine erkennbaren Politiker\n- keine realen Privatpersonen\n- keine Porträtähnlichkeit\n- keine beleidigende Darstellung einzelner realer Menschen\n- Figuren sind immer symbolische Typen, keine konkreten Personen\n\nWichtig:\nDer feste Stil darf die Themenklarheit nicht verdrängen.\nErst Thema und Motivanker, dann Stil.\nDas Bild muss weiterhin den konkreten Vorgang sofort verständlich machen.\n\n==================================================\nSENSIBLE BETROFFENE / SCHUTZBEDUERFTIGE GRUPPEN\n==================================================\n\nDiese Regeln sind verbindlich und überschreiben alle Stilregeln, Headline-Regeln, Figurenregeln und Bildprompt-Regeln.\n\nWenn der Vorgang Kinder, Schüler, Menschen mit Behinderung, blinde oder sehbehinderte Menschen, kranke Menschen, alte Menschen, Unfallopfer, arme Menschen, wohnungslose Menschen, Geflüchtete oder andere schutzbedürftige Gruppen betrifft, gilt:\n\n1. Die Satire darf niemals gegen die betroffene Person oder Gruppe gerichtet sein.\n2. Die Satire darf niemals deren Einschränkung, Hilfsmittel, Schutzbedarf oder Lage lächerlich machen.\n3. Die satirische Zielscheibe muss Verwaltung, Haushalt, Verfahren, Zuständigkeit, verspätete Umsetzung, Prioritätensetzung oder Bürokratielogik sein.\n4. Betroffene Personen dürfen nicht als panisch, lächerlich, hilflos, grotesk verzerrt oder in akuter Gefahr dargestellt werden.\n5. Betroffene Personen dürfen im Bild nur neutral, würdevoll, beobachtend oder ruhig wartend dargestellt werden.\n6. Wenn eine betroffene Person gezeigt wird, darf sie nicht der Träger der Pointe sein.\n7. Die Pointe muss durch Verwaltungsfiguren, Haushaltsreste, Aktenlogik, Baustellenlogik, Ampeltechnik, Stadtkasse oder andere sachliche Vorgangsanker entstehen.\n8. Keine offenen Gruben, Stolperfallen, gefährlichen Hindernisse oder körperlichen Gefahren direkt vor schutzbedürftigen Personen, wenn diese Gefahr nicht ausdrücklich belegbarer Gegenstand der Vorlage ist.\n9. Keine Formulierung in imageHeadline oder imageSubline, die ein Bildmodell als Gefahr, Hindernis, Demütigung oder Spott gegen Betroffene visualisieren könnte.\n10. Wenn eine Formulierung doppeldeutig ist, wähle die sicherere Variante.\n11. Wenn das Motiv ohne betroffene Person verständlich ist, ist die Variante ohne betroffene Person zu bevorzugen.\n12. Wenn eine betroffene Person im Motiv notwendig ist, muss die Person ruhig, würdevoll und nicht karikierend dargestellt werden.\n\nBei Blindheit oder Sehbehinderung sind in imageHeadline, imageSubline und imagePrompt als Pointe verboten:\n\n- Blindflug\n- Augen zu und durch\n- im Dunkeln tappen\n- sieht ja keiner\n- Extrahürde\n- Stolperfalle\n- Hindernislauf\n- blind vertrauen\n- endlich sieht man es\n- Licht aus\n- Dunkelübung\n- Grube vor blinder Person\n- Loch vor blinder Person\n- gefährliches Hindernis vor blinder Person\n\nBei Barrierefreiheit sind erlaubte satirische Ziele:\n\n- Barrierefreiheit als nachträgliche Verwaltungserkenntnis\n- überplanmäßige Mittelbereitstellung\n- Haushaltsreste\n- verspätete Umsetzung\n- Inklusion als Sonderfall statt als Standard\n- Ampeltechnik, akustische Signale, taktile Orientierung\n- Prioritätensetzung im Haushalt\n- Reaktion statt vorausschauender Planung\n\nGute Beispiele:\n\nimageHeadline:\n\"Barrierefreiheit per Haushaltsrest\"\n\nimageSubline:\n\"Goslar rüstet die Ampel spät, aber überplanmäßig nach.\"\n\nimageHeadline:\n\"Ampel bekommt endlich Ton\"\n\nimageSubline:\n\"35.000 Euro später entdeckt Goslar barrierefreie Wege.\"\n\nimageHeadline:\n\"Inklusion aus der Restekiste\"\n\nimageSubline:\n\"Die Ampel wird barrierefrei, weil Bedarf auffällt.\"\n\nSchlechte Beispiele:\n\nimageHeadline:\n\"Lichtsignalanlage, jetzt mit Extrahürde\"\n\nProblem:\n\"Extrahürde\" kann als echte zusätzliche Gefahr für eine blinde Person visualisiert werden.\n\nimageHeadline:\n\"Blindflug über die Berliner Allee\"\n\nProblem:\nDie Pointe benutzt Blindheit selbst als Witzträger.\n\nimageHeadline:\n\"Stolperfalle mit Signal\"\n\nProblem:\nDie Pointe macht Gefährdung betroffener Menschen zum Bildwitz.\n\n==================================================\nANPASSUNG FIGURENREGELN BEI SENSIBLEN THEMEN\n==================================================\n\nEs gelten weiterhin die Figurenregeln oben sowie die Regeln aus „SENSIBLE BETROFFENE / SCHUTZBEDUERFTIGE GRUPPEN“. Zusätzlich gilt: Bei Themen zu Behinderung, Barrierefreiheit, Kindern, Krankheit oder Schutzbedarf entsteht die Überzeichnung durch Verwaltung, Haushalt, Technik, Akten, Stadtkasse oder Bürokratielogik. Merksatz: Die betroffene Person ist niemals die Pointe, die Verwaltungssituation ist die Pointe.\n\n==================================================\nZUSATZREGEL FUER IMAGEPROMPT BEI SENSIBLEN THEMEN\n==================================================\n\nBei sensiblen Themen muss der imagePrompt ausdrücklich enthalten:\n\n- keine Verhöhnung betroffener Personen\n- keine betroffene Person in akuter Gefahr\n- keine panische Darstellung schutzbedürftiger Personen\n- keine körperlichen Hindernisse direkt vor blinden oder sehbehinderten Personen\n- Satire richtet sich sichtbar gegen Verwaltung, Haushalt, Verfahren oder verspätete Umsetzung\n\nWenn das Motiv eine betroffene Person zeigt, muss sie ruhig, würdevoll und nicht karikierend dargestellt werden.\n\nWenn das Motiv ohne betroffene Person verständlich ist, ist die Variante ohne betroffene Person zu bevorzugen.\n\n==================================================\nOBERSTE REGEL: THEMA MUSS SOFORT ERKENNBAR SEIN\n===============================================\n\nDie Grafik muss den konkreten Vorgang so zeigen, dass ein normaler Betrachter ohne Vorwissen innerhalb von zwei Sekunden ungefähr versteht, worum es geht.\n\nDie Satire darf stark überzeichnen.\nSie darf grotesk, böse, absurd und lächerlich sein.\n\nZusätzliche Pflichtprüfung für die spätere Bildkontrolle:\n- Das Motiv muss nicht nur das Thema zeigen, sondern eine sichtbare satirische Verdrehung dieses konkreten Konflikts.\n- Benenne in visualJson.satireMechanism genau, wodurch das Bild satirisch wird.\n- Benenne in visualJson.satireRecognitionSentence, was ein Außenstehender als satirische Aussage erkennen soll.\n- Begründe in visualJson.whySatiricalWithoutText, warum die Satire auch ohne Headline und Subline sichtbar bleibt.\n- Eine nur realistische Illustration des Sachthemas reicht nicht aus.\nAber die Überzeichnung muss das Thema klären, nicht verschleiern.\n\nGrundregel:\nDas Bild darf kein Rätsel sein.\n\nEine Person, die die Vorlage nicht kennt, soll beim Betrachten ungefähr sagen können:\n\n\"Ah, es geht um Haushalt.\"\n\"Ah, es geht um Wärmeplanung.\"\n\"Ah, es geht um Plakatverteilung.\"\n\"Ah, es geht um Bürgerbüro.\"\n\"Ah, es geht um Straßensperrung.\"\n\"Ah, es geht um Denkmalschutz.\"\n\"Ah, es geht um Schule oder Kita.\"\n\"Ah, es geht um Parken.\"\n\"Ah, es geht um Open Source / IT.\"\n\"Ah, es geht um Feuerwehr.\"\n\"Ah, es geht um Innenstadt.\"\n\"Ah, es geht um Spenden.\"\n\"Ah, es geht um Barrierefreiheit.\"\n\"Ah, es geht um Tourismus.\"\n\"Ah, es geht um Gebühren.\"\n\"Ah, es geht um Verkehr.\"\n\nWenn das Motiv nur sagt:\n\n\"Hier ist irgendwas Bedrohliches.\"\n\"Hier ist Verwaltungschaos.\"\n\"Hier ist eine Stadt in Gefahr.\"\n\"Hier ist Politik absurd.\"\n\"Hier ist ein allgemeines Problem.\"\n\ndann ist das Motiv schlecht.\n\nDie beste Grafik ist nicht die dramatischste Grafik.\nDie beste Grafik ist die, bei der Thema und Pointe sofort sitzen.\n\n==================================================\nTHEMEN-KERN INTERN BESTIMMEN\n============================\n\nBestimme intern zuerst den konkreten Themenkern der Vorlage.\n\nDer Themenkern darf nicht zu allgemein sein.\n\nSchlecht:\n\"Kommunalpolitik\"\n\"Verwaltung\"\n\"Rathaus\"\n\"Problem\"\n\"Beschluss\"\n\"Vorlage\"\n\nBesser:\n\"Haushalt\"\n\"Haushaltssicherung\"\n\"Plakatverteilung\"\n\"Wärmeplanung\"\n\"Denkmalschutz\"\n\"Bürgerbüro\"\n\"Straßensperrung\"\n\"Schulbau\"\n\"Kita-Plätze\"\n\"Open Source in der Verwaltung\"\n\"Digitalisierung\"\n\"Spendenannahme\"\n\"Parken\"\n\"Barrierefreiheit\"\n\"Innenstadtentwicklung\"\n\"Feuerwehr\"\n\"Gebühren\"\n\"ÖPNV\"\n\"Tourismus\"\n\"Baugebiet\"\n\"Gesundheit / Hausärzte\"\n\"Kulturförderung\"\n\nDer Themenkern muss in visualJson.topicCore ausgegeben werden.\n\n==================================================\nPFLICHT-MOTIVANKER\n==================\n\nWähle intern mindestens DREI sichtbare, konkrete Motivanker aus den Eingabedaten.\n\nDie Motivanker müssen aus dem konkreten Thema kommen.\n\nJeder Motivanker muss eine Funktion haben:\n\n- Er zeigt das Thema.\n- Er zeigt den Konflikt.\n- Er zeigt die Pointe.\n- Er macht den kommunalen Vorgang erkennbar.\n\nDer imagePrompt MUSS diese Motivanker sichtbar beschreiben.\n\nDie Motivanker müssen aus dem konkreten Vorgang stammen. Verwende ausschließlich Gegenstände, Handlungen und Orte aus den vorliegenden Eingabedaten.\n\n==================================================\nBÜRGER-TEST FÜR DAS MOTIV\n=========================\n\nGilt zusätzlich zur Regel oben: Headline und Subline dürfen die Pointe verschärfen, aber nicht retten müssen, was das Bild nicht zeigt. Weitere Beispiele:\n\nSchlecht:\n\"Eine düstere Stadt versinkt im Chaos.\"\n\nBesser:\n\"Eine gesperrte Harzstraße wird zu einem absurden Umleitungslabyrinth, Baustellenbaken stehen wie Dominosteine, Autos stecken zwischen leeren Umleitungspfeilen fest, grotesk überzeichnet.\"\n\nSchlecht:\n\"Ein Monster bedroht die Altstadt.\"\n\nBesser:\n\"Ein Fachwerkhaus steckt in einem goldenen Schutzkäfig, daneben liegen teure Sanierungswerkzeuge und ein leerer Geldbeutel, während ein übergroßer Stempel ohne Schrift über dem Dach schwebt, grotesk überzeichnet.\"\n\nSchlecht:\n\"Eine kalte Stadt im Winter.\"\n\nBesser:\n\"Frierende Fachwerkhäuser stehen vor vereisten Heizkörpern, daneben liegt ein großer Stadtplan mit ungenutzten Wärmerohren, während eine warme Welterbe-Vitrine hell leuchtet, grotesk überzeichnet.\"\n\nSchlecht:\n\"Eine Stadt steht im Wasser, umgeben von Gefahr.\"\n\nBesser:\n\"Ein leerer Stadtkassen-Tresor steht offen, Münzen rutschen durch ein großes Haushaltsloch im Boden, daneben liegt ein übergroßer Rotstift, während Fachwerkhäuser im Hintergrund symbolisch auf Sparflamme stehen.\"\n\n==================================================\nUNKLARE ZUSATZSYMBOLE VERBOTEN\n==============================\n\nNicht erlaubt sind unklare Zusatzsymbole, die zwar dramatisch aussehen, aber das konkrete Thema nicht erklären.\n\nEs geht nicht darum, einzelne Symbole pauschal zu verbieten.\nEs geht darum, Symbolik zu vermeiden, die erst erklärt werden müsste.\n\nUnklare Zusatzsymbole sind Symbole, die nur allgemein zeigen:\n\n- Gefahr\n- Chaos\n- Krise\n- Bedrohung\n- Bosheit\n- Untergang\n- Wut\n- Bürokratie\n- Katastrophe\n\nohne direkt aus dem Sachverhalt zu kommen.\n\nBeispiele für unklare Zusatzsymbole:\n\n- Tiere als allgemeine Gefahrensymbole\n- Monster\n- Schattenfiguren\n- Tentakel\n- Dämonen\n- Explosionen\n- Flammen ohne Sachbezug\n- Überschwemmungen ohne Sachbezug\n- Naturkatastrophen ohne Sachbezug\n- dunkle Bedrohungen im Hintergrund\n- allgemeine Katastrophenszenen\n- allgemeine Aktenberge\n- allgemeine Rathauskulissen\n- allgemeine wütende Bürgergruppen\n- allgemeine Politikerkarikaturen\n- allgemeines Chaos\n- allgemeine rote Stempel\n- allgemeine Geldverbrennung\n- allgemeine Stadt im Nebel\n\nDiese Symbole sind nur erlaubt, wenn sie direkt aus dem Thema, dem Titel, der Kernbotschaft, der visuellen Metapher oder der Pointe hervorgehen UND im Bild eindeutig verständlich machen, wofür sie stehen.\n\nWenn ein Symbol erklärt werden müsste, ist es falsch.\n\nBeispiel:\n\nSchlecht:\n\"Haie schwimmen um einen Bürgermeister mit leerer Geldbörse.\"\n\nWarum schlecht:\nDie Haie zeigen Gefahr, aber nicht eindeutig Haushalt. Man versteht nicht, wofür sie stehen.\n\nBesser:\n\"Ein leerer Stadtkassen-Tresor, Münzen im Abfluss, ein Haushaltsloch und ein übergroßer Rotstift.\"\n\nWarum besser:\nJedes Symbol zeigt direkt Haushalt, Geldmangel oder Sparzwang.\n\n==================================================\nEINE HAUPTMETAPHER, KEIN SYMBOLSALAT\n====================================\n\nDas Motiv darf nur EINE zentrale visuelle Hauptmetapher haben.\n\nDie Hauptmetapher muss direkt mit dem Thema verbunden sein.\n\nDaneben sind höchstens zwei bis drei unterstützende Motivanker erlaubt.\n\nSchlecht:\nEin Rathaus, Tiere, Wasser, Geldbörse, Gully, Nebel, Bürger, Akten, dunkle Wolken und Politikerfigur gleichzeitig.\n\nWarum schlecht:\nZu viele Symbole. Das Thema wird unklar. Der Betrachter sieht Gefahr, aber nicht den konkreten Vorgang.\n\nBesser:\nEin konkretes Hauptobjekt aus dem Thema steht im Mittelpunkt:\n\n- Stadtkasse\n- Heizkörper\n- Laternenmast\n- Amtsschalter\n- Baustelle\n- Schulgebäude\n- Parkplatz\n- Software-Kiste\n- Fachwerkhaus\n- Feuerwehrhelm\n- Bushaltestelle\n- Kita-Raum\n- leerer Ratstisch\n\nDaneben zwei bis drei Motivanker, die den Konflikt erklären.\n\n==================================================\nTHEMA VOR METAPHER\n==================\n\nDer imagePrompt muss immer zuerst das konkrete Thema sichtbar machen.\nErst danach darf die satirische Übertreibung kommen.\n\nReihenfolge im imagePrompt:\n\n1. Konkretes Thema sichtbar machen\n2. Hauptobjekt aus dem Vorgang zeigen\n3. Zwei bis drei klare Motivanker aus dem Sachverhalt ergänzen\n4. Konflikt oder Pointe sichtbar machen\n5. Erst dann satirisch überzeichnen\n6. Keine unklaren Zusatzsymbole hinzufügen\n\nNicht erlaubt:\nEin imagePrompt, der zuerst nur Atmosphäre, Monster, Chaos, Gefahr oder allgemeine Verwaltung beschreibt.\n\nSchlecht:\n\"Eine Stadt wird von einer absurden Gefahr bedroht.\"\n\nBesser:\n\"Vor einem Bürgerbüro mit geschlossenen Schaltern stehen anonyme Bürger in einer langen Warteschlange, ein Nummernautomat spuckt endlos leere Zettel aus, Aktenordner blockieren die Tür, grotesk überzeichnet.\"\n\nSchlecht:\n\"Eine dunkle Szene voller Bürokratie.\"\n\nBesser:\n\"Ein verschlossener Amtsschalter wird von Aktenordnern blockiert, davor warten anonyme Bürger, daneben steht ein Nummernautomat ohne Zahlen, grotesk überzeichnet.\"\n\n==================================================\nANTI-ABDRIFT-REGEL\n==================\n\nWenn das Motiv auch zu zehn anderen kommunalen Themen passen würde, ist es schlecht.\n\nDer imagePrompt muss so konkret sein, dass man das Thema ungefähr erkennt, ohne den Titel der Vorlage zu kennen.\n\nVermeide generische Motive wie:\n\n- allgemeines Verwaltungsmonster\n- allgemeiner Aktenstapel\n- allgemeines Rathaus\n- allgemeine wütende Bürger\n- allgemeine Geldverbrennung\n- allgemeine Baustelle\n- allgemeine Stadt im Nebel\n- allgemeine Politikerkarikatur\n- allgemeines Chaos\n- allgemeine rote Stempel\n- allgemeine Bürokratiehölle\n\nSolche Motive sind nur erlaubt, wenn sie mit mindestens drei konkreten Thema-Ankern kombiniert werden und dadurch eindeutig auf den konkreten Vorgang einzahlen.\n\n==================================================\nHEADLINE/SUBLINE (BEREITS FIXIERT)\n==================================================\n\nimageHeadline und imageSubline sind vom Nutzer final ausgewählt (siehe oben) und wurden bereits im Kandidaten-Schritt gegen die Sensible-Gruppen- und Stilregeln geprüft, bevor sie zur Auswahl gestellt wurden. Übernimm sie unverändert in die Ausgabe. Baue imagePrompt so, dass er inhaltlich zur vorgegebenen Headline/Subline passt.\n\n==================================================\nBILDPROMPT-REGELN\n=================\n\nDer imagePrompt MUSS:\n\n- NUR das satirische Bildmotiv beschreiben\n- mit dem konkreten Thema beginnen\n- das konkrete Thema bereits im ersten Satz sichtbar machen\n- mindestens drei sichtbare Motivanker enthalten\n- die visuelle Metapher aus dem Satire-Briefing verwenden, wenn sie zum Thema passt\n- das Thema eindeutig mit der Metapher verbinden\n- maximal eine zentrale visuelle Hauptmetapher verwenden\n- jedes wichtige Objekt muss Thema, Konflikt oder Pointe erklären\n- keine unklaren Zusatzsymbole verwenden\n- keine dekorativen Bedrohungssymbole ohne direkten Sachbezug verwenden\n- keine zweite konkurrierende Metapher einbauen\n- das Motiv muss auch ohne Headline und Subline verständlich bleiben\n- wenn ein Symbol erklärt werden müsste, darf es nicht verwendet werden\n- immer den festen Bildstil aus \"FESTER BILDSTIL / STYLE LOCK\" verwenden\n- Figuren immer als groteske, halb-realistische Karikatur darstellen\n- allgemeine Bürgerfiguren mit überzeichneter ratloser oder fassungsloser Mimik darstellen, wenn Menschen im Motiv vorkommen\n- schutzbedürftige oder konkret betroffene Personen niemals panisch, hilflos, lächerlich, grotesk verzerrt oder in akuter Gefahr darstellen\n- Amts- oder Machtfiguren selbstzufrieden, bequem oder grotesk entspannt darstellen, wenn es zur Pointe passt\n- keine realen Personen, keine Politikerähnlichkeit, keine Porträtähnlichkeit\n- der Stil darf nicht wichtiger werden als das Thema\n- kein sichtbarer Text im Motivbereich\n- keine Headline im Motiv\n- keine Subline im Motiv\n- keine Small Note im Motiv\n- keine Buchstaben\n- keine Ziffern\n- keine Zahlen\n- keine lesbaren Schilder\n- keine lesbaren Aktenbeschriftungen\n- keine lesbaren Plakate\n- keine lesbaren Stempel\n- keine echten Logos\n- keine echten Wappen\n- keine amtlichen Siegel\n- keine echten Personen\n- keine Politikergesichter\n- keine realen Privatpersonen\n- keine beleidigende Darstellung einzelner Privatpersonen\n- kein Inpainting\n- keine Masken\n- kein Overlay\n- 4:5 Hochformat\n- satirisch-symbolisches kommunalpolitisches Motiv\n- Goslar/Harz-Anmutung, wenn sinnvoll\n- politische Illustration, hochwertig, plakativ\n\nStruktur des imagePrompt:\n\n1. Konkretes Thema als Motiv beschreiben\n2. Drei sichtbare Motivanker nennen\n3. Konflikt oder Pointe sichtbar machen\n4. Satirische Übertreibung beschreiben\n5. Stil, Format und Verbote nennen\n\nDer imagePrompt DARF:\n\n- Symbole, Metaphern und absurde Situationen beschreiben\n- Überzeichnung und Karikaturhaftigkeit verlangen\n- Goslar-Stadtbild als Hintergrund einsetzen\n- anonyme Bürger-Silhouetten verwenden\n- kommunale Räume symbolisch zeigen\n- groteske Größenverhältnisse verwenden\n- Fachwerk, Harz-Anmutung, Altstadtatmosphäre nutzen, wenn es thematisch passt\n\nDer imagePrompt soll am Ende sinngemäß den Stil klar verankern, zum Beispiel:\n\n\"consistent grotesque semi-realistic political caricature style, exaggerated facial expressions, bulging eyes for general non-vulnerable citizen figures, calm dignified vulnerable people if shown, smug municipal authority figure when appropriate, detailed Goslar old-town atmosphere, high contrast, sharp, poster-like, satirical local politics illustration, 4:5 portrait format, no visible text, no letters, no numbers, no logos, no real people\"\n\nDer imagePrompt DARF NICHT (zusätzlich zu den MUSS-Verboten oben zu Text/Schrift/Zahlen/Wappen/echten Personen):\n\n- ein allgemeines Katastrophenbild erzeugen\n- ein Bild erzeugen, dessen Thema erst durch Erklärung verständlich wird\n\n==================================================\nMOTIVQUALITÄT\n=============\n\nDas Motiv soll nicht einfach dekorativ sein.\nEs soll die kommunalpolitische Pointe visuell verständlich machen.\n\nGute Motive haben:\n\n- ein klares Hauptobjekt\n- einen klaren Konflikt\n- eine erkennbare kommunale Situation\n- eine absurde Übertreibung\n- keine unnötigen Nebensymbole\n- keine Rätselsymbolik\n- keine Symbolüberladung\n\nSchlecht:\n\"Eine düstere Stadt mit Akten und Bürokratie.\"\n\nBesser:\n\"Vor einem Goslarer Fachwerkhaus steht ein vereister Heizkörper, daneben ein übergroßer Stadtplan mit ungenutzten Wärmerohren, während eine warme goldene Welterbe-Vitrine das Haus einschließt.\"\n\nSchlecht:\n\"Ein Monster aus Papier.\"\n\nBesser:\n\"Ein Papierberg verteilt riesige Plakatflächen an große Stapel und winzige leere Rahmen an kleine Stapel, daneben stehen Laternenmasten und Plakatständer als klarer Hinweis auf Wahlwerbung.\"\n\nSchlecht:\n\"Eine bedrohliche Finanzkrise mit dunklen Gestalten.\"\n\nBesser:\n\"Ein leerer Stadtkassen-Tresor steht offen, Münzen fallen in ein Haushaltsloch, ein übergroßer Rotstift liegt quer über kleinen öffentlichen Einrichtungen, grotesk überzeichnet.\"\n\nSchlecht:\n\"Eine Verwaltung versinkt im Chaos.\"\n\nBesser:\n\"Ein Bürgerbüro mit geschlossenen Schaltern, Warteschlange, Nummernautomat ohne Zahlen und Aktenordnern vor der Tür, grotesk überzeichnet.\"\n\n==================================================\nSYMBOLFILTER VOR AUSGABE\n========================\n\nPrüfe intern jedes wichtige Bildsymbol:\n\n1. Kommt dieses Symbol aus dem konkreten Thema?\n2. Erklärt es den Sachverhalt?\n3. Erklärt es den Konflikt?\n4. Verstärkt es die Pointe?\n5. Würde das Thema ohne dieses Symbol klarer werden?\n\nWenn ein Symbol keine der Fragen 1 bis 4 erfüllt:\nSymbol entfernen.\n\nWenn Frage 5 mit \"ja\" beantwortet wird:\nSymbol entfernen.\n\nWenn ein Symbol nur dramatisch aussieht, aber nichts erklärt:\nSymbol entfernen.\n\nWenn ein Symbol erst erklärt werden müsste:\nSymbol entfernen.\n\n==================================================\nSATIRE-SICHERHEIT\n=================\n\nDie Satire darf hart, böse und absurd sein.\nSie darf aber keine neuen Tatsachen behaupten, die nicht durch die Eingabedaten gedeckt sind.\n\nWenn Unsicherheiten vorhanden sind:\n\n- keine eindeutige Schuld behaupten\n- keine Korruption behaupten\n- keine Absicht behaupten\n- keine Straftaten behaupten\n- keine persönlichen Angriffe auf echte Personen\n- keine Tatsachen erfinden\n\nErlaubt:\n\n- symbolische Überzeichnung\n- Kritik an Verwaltungshandeln\n- Kritik an politischen Entscheidungen\n- Kritik an kommunalen Prioritäten\n- absurde Metaphern\n- trockene DIE-PARTEI-Pointe\n- groteske kommunalpolitische Bildsprache\n- harte satirische Zuspitzung\n\nNicht erlaubt:\n\n- \"Die Verwaltung betrügt\"\n- \"Die Stadt lügt\"\n- \"Person X ist schuld\"\n- \"Korruption\"\n- \"Skandal\", wenn nicht belegt\n- \"illegal\", wenn nicht belegt\n- Darstellung echter Personen als Täter\n- beleidigende Darstellung einzelner Privatpersonen\n\n==================================================\nVERBOTEN ÜBERALL\n================\n\n- Fakten erfinden\n- echte Personen oder Politikergesichter\n- Wappen, Siegel, amtliche Logos\n- echte Parteilogos im Bildmotiv\n- echte Stadtlogos im Bildmotiv\n- unbelegte Vorwürfe\n- diskriminierende Inhalte\n- Text im imagePrompt als sichtbares Bildelement\n- Buchstaben im Bildmotiv\n- Ziffern im Bildmotiv\n- Zahlen im Bildmotiv\n- sichtbare Schilder mit Schrift\n- lesbare Aktenbeschriftungen\n- lesbare Plakate\n- lesbare Stempel\n- QR-Codes oder andere Codes/Barcodes\n- Wahlaufrufe oder Wahlkampf-Slogans im Motiv\n- konkrete erkennbare Politiker\n- beleidigende Darstellung einzelner Privatpersonen\n- unklare Zusatzsymbole\n- mehrere konkurrierende Hauptmetaphern\n- dekorative Dramatik ohne Aussage\n- Rätselbilder\n\n==================================================\nSELBSTPRÜFUNG VOR AUSGABE\n=========================\n\nPrüfe vor der finalen JSON-Ausgabe intern:\n\n1. Erkennt man das Thema ohne Erklärung?\n2. Besteht das Motiv den Bürger-Test: Erkennt man nach zwei Sekunden ungefähr das Thema?\n3. Enthält imagePrompt mindestens drei konkrete Motivanker?\n4. Ist die Satire auf den konkreten Vorgang bezogen?\n5. Könnte das Bild zu vielen anderen Themen passen?\n6. Enthält mindestens eines der Textfelder ein klares Themenwort?\n7. Bleibt imagePrompt frei von sichtbarem Text, Buchstaben, Ziffern und Zahlen?\n8. Werden keine echten Personen, Wappen, Siegel oder amtlichen Logos erzeugt?\n9. Werden keine unbelegten Tatsachen behauptet?\n10. Gibt es unklare Zusatzsymbole, die nur dramatisch wirken?\n11. Gibt es mehr als eine Hauptmetapher?\n12. Erklärt jedes wichtige Objekt entweder Thema, Konflikt oder Pointe?\n13. Würde das Motiv ohne ein bestimmtes Symbol klarer werden?\n14. Ist der feste Stil sichtbar eingehalten?\n15. Sind die Figuren klar als symbolische Typen und nicht als reale Personen dargestellt?\n16. Betrifft der Vorgang eine schutzbedürftige Gruppe?\n17. Wenn ja: Ist die Pointe eindeutig gegen Verwaltung, Haushalt, Verfahren, Zuständigkeit oder Umsetzung gerichtet?\n18. Wenn ja: Wird keine betroffene Person panisch, lächerlich, hilflos oder in akuter Gefahr dargestellt?\n19. Enthalten imageHeadline oder imageSubline riskante Wörter wie Extrahürde, Stolperfalle, Blindflug oder ähnliche Doppeldeutigkeiten? (Headline/Subline sind fix — bei \"ja\" NICHT ändern, sondern in visualJson.sensitiveSafetyCheck dokumentieren und imagePrompt so wählen, dass keine Gefahrenszene entsteht)\n20. Könnte das Bildmodell aus Headline oder Subline eine Gefahrenszene gegen Betroffene bauen? (bei \"ja\": imagePrompt so gestalten, dass keine Gefahrenszene visualisiert wird)\n21. Ist die Grafik auch ohne betroffene Person verständlich?\n22. Wenn ja: Wird die Variante ohne betroffene Person bevorzugt?\n\nWenn Antwort 1 \"nein\" ist:\nErzeuge das Konzept neu und mache das Thema sichtbarer.\n\nWenn Antwort 2 \"nein\" ist:\nErzeuge das Konzept neu und wähle konkretere Motivanker.\n\nWenn Antwort 5 \"ja\" ist:\nErzeuge das Konzept neu und mache es thematisch konkreter.\n\nWenn Antwort 7 \"nein\" ist:\nErzeuge den imagePrompt neu und entferne jeden Hinweis auf sichtbaren Text, Buchstaben, Ziffern und Zahlen.\n\nWenn Antwort 10 \"ja\" ist:\nEntferne die unklaren Zusatzsymbole und ersetze sie durch konkrete Motivanker aus dem Sachverhalt.\n\nWenn Antwort 11 \"ja\" ist:\nReduziere das Motiv auf eine Hauptmetapher.\n\nWenn Antwort 12 \"nein\" ist:\nEntferne unnötige Objekte aus dem Motiv.\n\nWenn Antwort 13 \"ja\" ist:\nEntferne das Symbol.\n\nWenn Antwort 14 \"nein\" ist:\nErzeuge den imagePrompt neu und verankere den Style Lock klarer.\n\nWenn Antwort 15 \"nein\" ist:\nErzeuge das Konzept neu und anonymisiere die Figuren stärker.\n\nWenn Antwort 16 \"ja\" ist und Antwort 17 oder 18 negativ ausfällt:\nErzeuge nur den imagePrompt neu (Headline/Subline bleiben unverändert, sie sind fix). Die Pointe des Bildmotivs muss gegen Verwaltung, Haushalt, Verfahren, Zuständigkeit oder Umsetzung gerichtet sein, nicht gegen Betroffene.\n\nWenn Antwort 19 oder 20 \"ja\" ist:\nHeadline/Subline bleiben unverändert. Gestalte den imagePrompt so, dass er keine Gefahrenszene für Betroffene zeigt, und dokumentiere den Befund in visualJson.sensitiveSafetyCheck.\n\nWenn Antwort 21 \"ja\" ist:\nErzeuge das Motiv bevorzugt ohne betroffene Person und zeige stattdessen Verwaltung, Technik, Haushalt und konkrete Vorgangsanker.\n\nGib diese Prüfung NICHT aus.\nGib weiterhin nur das verlangte JSON aus.\n\nsatireWorkflowVersion: satire-chain-v7-sensitive-groups-buerger-test-style-lock-topic-clear\n\nAntworte NUR mit diesem JSON-Objekt:\n\n{\n  \"imageHeadline\": \"MUSS exakt und wortwörtlich {{ $json.imageHeadline }} sein, keine Änderung\",\n  \"imageSubline\": \"MUSS exakt und wortwörtlich {{ $json.imageSubline }} sein, keine Änderung\",\n  \"imageSmallNote\": \"\",\n  \"altText\": \"Beschreibung des Sharepics für Screenreader, 1-2 Sätze\",\n  \"imagePrompt\": \"Nur Motivbeschreibung, kein Text im Bild, keine Schrift, keine Buchstaben, keine Ziffern, keine Zahlen, 4:5 satirisches Hochformat...\",\n  \"imageNegativePrompt\": \"text, letters, words, typography, headline, subline, numbers, digits, signs, labels, captions, QR code, barcode, stamp, blurry, real people, politicians, coats of arms, seals, official logos, unclear symbols, symbolic clutter, random danger symbols, vulnerable person in danger, mocking disabled people, mocking blind people, humiliating vulnerable people, obstacle directly in front of blind person, open pit in front of blind person, mocking children, flat cartoon, anime, children book illustration, corporate vector style, generic mascot style, realistic portrait, celebrity likeness, politician likeness, real person likeness, neutral facial expressions, boring composition, unclear topic, NSFW\",\n  \"visualJson\": {\n    \"imageHeadline\": \"wie oben\",\n    \"imageSubline\": \"wie oben\",\n    \"imageSmallNote\": \"\",\n    \"altText\": \"wie oben\",\n    \"imagePrompt\": \"wie oben\",\n    \"imageNegativePrompt\": \"wie oben\",\n    \"concept\": \"kurze Beschreibung des visuellen Konzepts, 1-2 Sätze\",\n    \"topicCore\": \"konkreter Themenkern der Vorlage\",\n    \"topicPlain\": \"konkretes Thema in einem allgemeinverständlichen Satz\",\n    \"conflictPlain\": \"der eine belegbare Konflikt, der satirisch behandelt wird\",\n    \"recognitionSentence\": \"Eine außenstehende Person muss im Bild sofort erkennen, dass ...\",\n    \"mustShow\": [\"Pflichtobjekt 1\", \"Pflichtobjekt 2\", \"Pflichtobjekt 3\"],\n    \"visibleAction\": \"die konkrete sichtbare Handlung oder Folge, die im Bild gezeigt wird\",\n    \"affectedVisible\": [\"sichtbar betroffene Person/Gruppe 1\", \"sichtbar betroffene Person/Gruppe 2\"],\n    \"satiricalExaggeration\": \"die absurde satirische Steigerung des realen Konflikts\",\n    \"forbiddenSubstitutes\": [\"verbotenes Ersatzmotiv 1\", \"verbotenes Ersatzmotiv 2\"],\n    \"whyRecognizableWithoutText\": \"Begründung warum das Thema ohne Headline/Subline/Caption erkennbar ist\",\n    \"satireMechanism\": \"konkreter visueller Mechanismus der satirischen Überzeichnung\",\n    \"satireRecognitionSentence\": \"Eine außenstehende Person soll als satirische Aussage erkennen, dass ...\",\n    \"whySatiricalWithoutText\": \"Begründung warum die Satire ohne Headline/Subline/Caption sichtbar ist\",\n    \"topicKeywords\": [\"Keyword 1\", \"Keyword 2\", \"Keyword 3\"],\n    \"topicAnchors\": [\"Motivanker 1\", \"Motivanker 2\", \"Motivanker 3\"],\n    \"mainMetaphor\": \"eine zentrale visuelle Hauptmetapher\",\n    \"satireAngle\": \"verwendeter Angriffswinkel\",\n    \"visualMetaphor\": \"verwendete visuelle Metapher\",\n    \"satireTarget\": \"Zielscheibe der Satire\",\n    \"styleSignature\": \"grotesque-semi-realistic-local-politics-caricature-v1\",\n    \"figureStyle\": \"bulging eyes for general non-vulnerable citizen figures, calm dignified vulnerable people if shown, smug municipal authority figures, semi-realistic grotesque caricature\",\n    \"colorMood\": \"z.B. dark red, dramatic, high contrast\",\n    \"backgroundDescription\": \"Beschreibung des Motivs ohne Text\",\n    \"factAnchor\": \"belegbarer Fakt der als Basis dient\",\n    \"safetyBoundary\": \"warum die Satire rechtlich vertretbar bleibt\",\n    \"sensitiveTopicDetected\": \"true|false\",\n    \"sensitiveGroup\": \"betroffene schutzbedürftige Gruppe oder leerer String\",\n    \"satireNotTarget\": \"wer ausdrücklich nicht Ziel der Satire ist\",\n    \"sensitiveSafetyCheck\": \"kurze Begründung, warum keine betroffene Person verspottet oder gefährdet dargestellt wird\"\n  }\n}"}]}, "builtInTools": {}, "options": {}}, "id": "8848dbc4-6819-4e24-948d-b8d359bfd4d9", "name": "AI Visual JSON", "type": "@n8n/n8n-nodes-langchain.openAi", "typeVersion": 2.3, "position": [48, 240], "retryOnFail": true, "credentials": {"openAiApi": {"id": "RiT1gwJpQWzSo6NO", "name": "OpenAI account"}}}, {"parameters": {"jsCode": "// ============================================================\n// PARSE VISUAL JSON ROBUST  (v2 — visualJson anchor field validation)\n// Wichtig: Ursprungskontext aus Prepare Visual Prompt Input behalten\n// ============================================================\n\nfunction extractJson(text) {\n  if (!text) return null;\n  let s = String(text)\n    .replace(/^```(?:json)?\\s*/im, '')\n    .replace(/\\s*```\\s*$/m, '')\n    .trim();\n  const start = s.indexOf('{');\n  const end = s.lastIndexOf('}');\n  if (start === -1 || end === -1 || end < start) return null;\n  return s.slice(start, end + 1);\n}\n\nfunction getAiText(item) {\n  const j = item.json || {};\n  if (j.output && Array.isArray(j.output) && j.output[0]?.content?.[0]?.text) {\n    return j.output[0].content[0].text;\n  }\n  if (j.message?.content) return j.message.content;\n  if (typeof j.text === 'string' && j.text) return j.text;\n  if (Array.isArray(j.choices) && j.choices[0]?.message?.content) {\n    return j.choices[0].message.content;\n  }\n  if (Array.isArray(j.content) && j.content[0]?.text) {\n    return j.content[0].text;\n  }\n  return '';\n}\n\nfunction safeStr(v) {\n  if (v === null || v === undefined) return '';\n  return String(v).trim();\n}\n\nfunction isOldMaskPrompt(p) {\n  const lower = safeStr(p).toLowerCase();\n  return (\n    lower.includes('maske') ||\n    lower.includes('bearbeite ausschließlich') ||\n    lower.includes('editierbaren bereich') ||\n    lower.includes('setze die headline') ||\n    lower.includes('setze die parteireaktion') ||\n    lower.includes('verändere keinen rahmen') ||\n    lower.includes('qr-code')\n  );\n}\n\n// Prüft ob imagePrompt hauptsächlich aus allgemeinen Begriffen besteht\n// und dabei die konkreten Pflichtobjekte fehlen\nfunction isGenericPrompt(imagePrompt, pflichtobjekte) {\n  const lower = safeStr(imagePrompt).toLowerCase();\n  const genericTerms = ['satirisch', 'rathaus', 'akten', 'bürokratie', 'chaos',\n    'waage', 'labyrinth', 'politik', 'verwaltung', 'allgemein'];\n  \n  // Prüfe ob mindestens 2 Pflichtobjekte im Prompt vorkommen\n  if (!Array.isArray(pflichtobjekte) || pflichtobjekte.length === 0) return false;\n  const foundPflicht = pflichtobjekte.filter(obj =>\n    lower.includes(safeStr(obj).toLowerCase().substring(0, 5))\n  );\n  // Wenn weniger als 2 Pflichtobjekte im Prompt vorkommen UND\n  // mehr als 3 allgemeine Begriffe dominieren → als generisch markieren\n  const genericCount = genericTerms.filter(t => lower.includes(t)).length;\n  return foundPflicht.length < 2 && genericCount > 3;\n}\n\nconst item = $input.item;\nconst base = $('Prepare Visual Prompt Input').itemMatching(0).json || {};\n\nconst rawText = getAiText(item);\nconst jsonStr = extractJson(rawText);\n\nlet visual = null;\nlet parseError = false;\nlet debugReason = '';\n\nif (!jsonStr) {\n  parseError = true;\n  debugReason = 'Kein JSON-Block im AI-Output gefunden';\n} else {\n  try {\n    visual = JSON.parse(jsonStr);\n  } catch (e) {\n    parseError = true;\n    debugReason = 'JSON.parse fehlgeschlagen: ' + e.message;\n  }\n}\n\nif (!base.vorgangKey || !String(base.vorgangKey).trim()) {\n  throw new Error(\n    'Parse Visual JSON robust abgebrochen: vorgangKey fehlt im Ursprungskontext.'\n  );\n}\n\nif (parseError || !visual) {\n  return [{\n    json: {\n      ...base,\n      visualParseError: true,\n      visualDebugReason: debugReason || 'Unbekannter Parse-Fehler',\n      rawVisualText: (rawText || '(leer)').substring(0, 5000),\n      visualJson: '{}',\n      imagePrompt: '',\n      imageNegativePrompt: '',\n      imageHeadline: '',\n      imageSubline: '',\n      imageSmallNote: '',\n      altText: '',\n      imagePromptFound: false,\n      visualStage: 'prompt_error',\n      imageStage: (base.imageFinalPath ? 'composed' : 'not_started'),\n      visualPromptCreatedAt: new Date().toISOString()\n    }\n  }];\n}\n\n// FIX: Headline/Subline sind bereits vom Nutzer per Matrix-Antwort fixiert\n// (siehe \"Parse Headline Varianten\" / \"headline_selected\"). base.imageHeadline/\n// base.imageSubline haben deshalb Vorrang vor dem, was die KI hier zurückgibt -\n// so kann die KI die vom Nutzer gewählte Formulierung nicht versehentlich ändern.\nconst imageHeadline = safeStr(base.imageHeadline) || safeStr(visual.imageHeadline);\nconst imageSubline = safeStr(base.imageSubline) || safeStr(visual.imageSubline);\nconst imageSmallNote = ''; // imageSmallNote: leer – Headline und Subline werden als getrennte Textfelder übergeben\nconst altText = safeStr(visual.altText);\nconst imagePrompt = safeStr(visual.imagePrompt);\nlet imageNegativePrompt = safeStr(visual.imageNegativePrompt);\n\nlet visualJsonStr = '{}';\nlet vj = {};\ntry {\n  if (visual.visualJson && typeof visual.visualJson === 'object') {\n    vj = visual.visualJson;\n    visualJsonStr = JSON.stringify(vj);\n  } else {\n    vj = visual;\n    visualJsonStr = JSON.stringify(visual);\n  }\n} catch (e) {\n  visualJsonStr = '{}';\n}\n\n// ============================================================\n// FIX 3.1: CANONICAL SOURCE-LOCK – analysisJson.sourceLock hat IMMER Vorrang\n// KI-generierter sourceLock wird IMMER überschrieben\n// visualJson.sourceLock ist ausschließlich eine identische Kopie von analysisJson.sourceLock\n// ============================================================\n(function enforceCanonicalSourceLock() {\n  try {\n    // 1. Canonical Source-Lock aus analysisJson lesen\n    const rawAnalysis = base.analysisJson;\n    let aj = {};\n    if (rawAnalysis) {\n      if (typeof rawAnalysis === 'object' && !Array.isArray(rawAnalysis)) {\n        aj = rawAnalysis;\n      } else {\n        try { aj = JSON.parse(String(rawAnalysis)); } catch(e) {}\n      }\n    }\n    const canonicalSL = (aj.sourceLock && typeof aj.sourceLock === 'object') ? aj.sourceLock : null;\n    const slValid = aj.sourceLockValid === true || String(aj.sourceLockValid || '').trim() === 'true';\n    \n    if (!canonicalSL || !canonicalSL.sourceTopic) {\n      // Kein canonical Source-Lock: Fehler zurückgeben, KEIN KI-Source-Lock verwenden\n      // Das Fehler-Handling erfolgt im nächsten Schritt unten\n      vj._canonicalSourceLockMissing = true;\n      vj._canonicalSourceLockError = 'analysisJson.sourceLock fehlt oder enthält kein sourceTopic';\n      visualJsonStr = JSON.stringify(vj);\n      return;\n    }\n    \n    if (!slValid) {\n      vj._canonicalSourceLockMissing = true;\n      vj._canonicalSourceLockError = 'analysisJson.sourceLockValid ist nicht true';\n      visualJsonStr = JSON.stringify(vj);\n      return;\n    }\n    \n    // 2. KI-generierten sourceLock IMMER mit canonicalSL überschreiben\n    vj.sourceLock = canonicalSL;\n    visualJsonStr = JSON.stringify(vj);\n  } catch (err) {\n    vj._canonicalSourceLockError = 'Fehler beim Lesen von analysisJson.sourceLock: ' + String(err);\n    visualJsonStr = JSON.stringify(vj);\n  }\n})();\n\n// Wenn canonical Source-Lock fehlt oder ungültig: Fehler statt Freigabe\nif (vj._canonicalSourceLockMissing) {\n  return [{\n    json: {\n      ...base,\n      visualParseError: true,\n      visualDebugReason: vj._canonicalSourceLockError || 'canonical Source-Lock (analysisJson.sourceLock) fehlt',\n      rawVisualText: (rawText || '(leer)').substring(0, 5000),\n      visualJson: visualJsonStr,\n      imagePrompt: '',\n      imageNegativePrompt: '',\n      imageHeadline: '',\n      imageSubline: '',\n      imageSmallNote: '',\n      altText: '',\n      imagePromptFound: false,\n      // FIX 3.4: blocked_by_source_lock wenn canonical Source-Lock fehlt/ungueltig\n      visualStage: 'blocked_source_lock',\n      imageStage: (base.imageFinalPath ? 'composed' : 'not_started'),\n      visualPromptCreatedAt: new Date().toISOString()\n    }\n  }];\n}\n\n\nif (!imagePrompt || imagePrompt.length < 80) {\n  return [{\n    json: {\n      ...base,\n      visualParseError: true,\n      visualDebugReason: 'AI output parsed, but imagePrompt missing or too short',\n      rawVisualText: (rawText || '(leer)').substring(0, 5000),\n      visualJson: visualJsonStr,\n      imagePrompt: '',\n      imageNegativePrompt,\n      imageHeadline,\n      imageSubline,\n      imageSmallNote,\n      altText,\n      imagePromptFound: false,\n      visualStage: 'prompt_error',\n      imageStage: (base.imageFinalPath ? 'composed' : 'not_started'),\n      visualPromptCreatedAt: new Date().toISOString()\n    }\n  }];\n}\n\nif (isOldMaskPrompt(imagePrompt)) {\n  return [{\n    json: {\n      ...base,\n      visualParseError: true,\n      visualDebugReason: 'AI erzeugte alten Masken-/Inpainting-Prompt statt reiner Motivbeschreibung',\n      rawVisualText: (rawText || '(leer)').substring(0, 5000),\n      visualJson: visualJsonStr,\n      imagePrompt: '',\n      imageNegativePrompt,\n      imageHeadline,\n      imageSubline,\n      imageSmallNote,\n      altText,\n      imagePromptFound: false,\n      visualStage: 'prompt_error',\n      imageStage: (base.imageFinalPath ? 'composed' : 'not_started'),\n      visualPromptCreatedAt: new Date().toISOString()\n    }\n  }];\n}\n\nif (!imageHeadline || !imageSubline) {\n  return [{\n    json: {\n      ...base,\n      visualParseError: true,\n      visualDebugReason: 'imageHeadline oder imageSubline fehlt',\n      rawVisualText: (rawText || '(leer)').substring(0, 5000),\n      visualJson: visualJsonStr,\n      imagePrompt,\n      imageNegativePrompt,\n      imageHeadline,\n      imageSubline,\n      imageSmallNote,\n      altText,\n      imagePromptFound: false,\n      visualStage: 'prompt_error',\n      imageStage: (base.imageFinalPath ? 'composed' : 'not_started'),\n      visualPromptCreatedAt: new Date().toISOString()\n    }\n  }];\n}\n\n// ============================================================\n// NEUE VALIDIERUNG: visualJson Ankerfelder prüfen + Inhaltsabgleich\n// ============================================================\nconst vjErrors = [];\n\nif (!safeStr(vj.topicPlain)) vjErrors.push('visualJson.topicPlain fehlt');\nif (!safeStr(vj.conflictPlain)) vjErrors.push('visualJson.conflictPlain fehlt');\nif (!safeStr(vj.recognitionSentence)) vjErrors.push('visualJson.recognitionSentence fehlt');\nif (!safeStr(vj.visibleAction)) vjErrors.push('visualJson.visibleAction fehlt');\nif (!safeStr(vj.whyRecognizableWithoutText)) vjErrors.push('visualJson.whyRecognizableWithoutText fehlt');\nif (!safeStr(vj.satireMechanism)) vjErrors.push('visualJson.satireMechanism fehlt');\nif (!safeStr(vj.satireRecognitionSentence)) vjErrors.push('visualJson.satireRecognitionSentence fehlt');\nif (!safeStr(vj.whySatiricalWithoutText)) vjErrors.push('visualJson.whySatiricalWithoutText fehlt');\n\nconst mustShow = vj.mustShow;\nif (!Array.isArray(mustShow) || mustShow.length < 2) {\n  vjErrors.push('visualJson.mustShow muss mindestens 2 Elemente enthalten (hat: ' +\n    (Array.isArray(mustShow) ? mustShow.length : 0) + ')');\n}\n\n// Pflichtobjekte aus base\nlet basePflichtobjekte = [];\ntry { basePflichtobjekte = JSON.parse(base.visualPflichtobjekte || '[]'); } catch(e) {}\nconst basePflichthandlung = safeStr(base.visualPflichthandlung);\nconst baseErkennungssatz  = safeStr(base.visualErkennungssatz);\nlet baseVerbotene = [];\ntry { baseVerbotene = JSON.parse(base.visualVerboteneErsatzmotive || '[]'); } catch(e) {}\n\n// Fix 8 (überarbeitet): fehlende verbotene Ersatzmotive in forbiddenSubstitutes ergänzen statt harter\n// Ablehnung - die korrekte Liste kennen wir bereits aus der Bewertung, die KI muss sie nicht\n// fehlerfrei abschreiben (gleiches Muster wie bei imageNegativePrompt weiter unten).\nif (!Array.isArray(vj.forbiddenSubstitutes)) vj.forbiddenSubstitutes = [];\nif (baseVerbotene.length > 0) {\n  const missingForbidden = baseVerbotene.filter(bv =>\n    !vj.forbiddenSubstitutes.some(fs => tokenOverlap(bv, fs))\n  );\n  if (missingForbidden.length > 0) {\n    vj.forbiddenSubstitutes = [...vj.forbiddenSubstitutes, ...missingForbidden];\n    visualJsonStr = JSON.stringify(vj);\n  }\n}\n\n// imagePrompt darf verbotene Ersatzmotive nicht als Hauptelement enthalten\n// (Heuristik: Prüfe erste 200 Zeichen für das Hauptmotiv)\nconst promptStart = imagePrompt.toLowerCase().substring(0, 200);\nfor (const verboten of baseVerbotene) {\n  const vNorm = normalizeGerman(verboten);\n  if (vNorm.length >= 5 && normalizeGerman(promptStart).includes(vNorm)) {\n    vjErrors.push(\n      'imagePrompt verwendet verbotenes Ersatzmotiv als mögliches Hauptelement: \"' + verboten + '\"'\n    );\n    break; // nur erstes melden\n  }\n}\n\n// imageNegativePrompt soll verbotene Ersatzmotive ausdrücklich ausschließen\nconst negPrompt = safeStr(imageNegativePrompt).toLowerCase();\nconst missingInNegative = baseVerbotene.filter(bv =>\n  bv.length >= 5 && !negPrompt.includes(normalizeGerman(bv).substring(0, Math.min(bv.length, 10)))\n);\n// Keine harte Ablehnung, nur Ergänzung der negativen Prompt\nif (missingInNegative.length > 0) {\n  // Verbotene Motive zum negativen Prompt hinzufügen (wird im Rückgabewert ergänzt)\n  const additionalNegative = missingInNegative.slice(0, 5).join(', ');\n  imageNegativePrompt = safeStr(imageNegativePrompt) + (imageNegativePrompt ? ', ' : '') + additionalNegative;\n}\n\n// Inhaltsabgleich: mustShow muss die Pflichtobjekte berücksichtigen\n// (mind. 2 Überschneidungen zwischen mustShow und basePflichtobjekte)\nfunction normalizeGerman(s) {\n  // Umlautnormalisierung + Kleinschreibung\n  return safeStr(s).toLowerCase()\n    .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue')\n    .replace(/ß/g,'ss');\n}\n\nfunction stemLight(w) {\n  // Leichtes Stemming: häufige deutsche Endungen entfernen\n  return w\n    .replace(/(ungen|ierung|ierung|ungen|heit|keit|schaft|tion|ieren|iere|iert|ung|lich|lich|isch|ische|ischen|ischer|isches)$/, '')\n    .replace(/(en|er|em|es|e|n|s|t)$/, '');\n}\n\nfunction tokenOverlap(a, b) {\n  // Robuster Vergleich für deutsche Komposita:\n  // 1. Exakter Wortvergleich nach Normalisierung\n  // 2. Stemming\n  // 3. Teilwortvergleich (ab 5 Zeichen Mindestlänge)\n  const norm = (s) => normalizeGerman(s);\n  const tokensA = norm(a).split(/[\\W_]+/).filter(w => w.length >= 4).map(stemLight);\n  const tokensB = norm(b).split(/[\\W_]+/).filter(w => w.length >= 4).map(stemLight);\n  \n  // Exakter Treffer nach Normalisierung\n  if (tokensA.some(w => tokensB.includes(w))) return true;\n  \n  // Teilwortvergleich: Kompositum enthält den anderen Begriff?\n  const rawA = norm(a).replace(/[\\W_]+/g, '');\n  const rawB = norm(b).replace(/[\\W_]+/g, '');\n  \n  // Mindestens 5 Zeichen für Teilwortvergleich\n  for (const tok of tokensA) {\n    if (tok.length >= 5 && rawB.includes(tok)) return true;\n  }\n  for (const tok of tokensB) {\n    if (tok.length >= 5 && rawA.includes(tok)) return true;\n  }\n  \n  return false;\n}\n\nif (Array.isArray(mustShow) && mustShow.length >= 2 && basePflichtobjekte.length >= 2) {\n  const matches = mustShow.filter(ms =>\n    basePflichtobjekte.some(bp => tokenOverlap(ms, bp))\n  );\n  if (matches.length < 2) {\n    vjErrors.push(\n      'visualJson.mustShow stimmt nicht mit visualPflichtobjekte überein. ' +\n      'mustShow: [' + mustShow.slice(0,3).join(', ') + '] vs. ' +\n      'Pflicht: [' + basePflichtobjekte.slice(0,3).join(', ') + ']'\n    );\n  }\n}\n\n// visibleAction muss Pflichthandlung inhaltlich entsprechen\nif (safeStr(vj.visibleAction) && basePflichthandlung) {\n  if (!tokenOverlap(vj.visibleAction, basePflichthandlung)) {\n    vjErrors.push(\n      'visualJson.visibleAction stimmt nicht mit visualPflichthandlung überein. ' +\n      'visibleAction: \"' + safeStr(vj.visibleAction).substring(0,80) + '\" vs. ' +\n      'Pflicht: \"' + basePflichthandlung.substring(0,80) + '\"'\n    );\n  }\n}\n\n// recognitionSentence muss Erkennungssatz inhaltlich entsprechen\nif (safeStr(vj.recognitionSentence) && baseErkennungssatz) {\n  if (!tokenOverlap(vj.recognitionSentence, baseErkennungssatz)) {\n    vjErrors.push(\n      'visualJson.recognitionSentence stimmt nicht mit visualErkennungssatz überein'\n    );\n  }\n}\n\n// imagePrompt muss Pflichthandlung beschreiben\nif (basePflichthandlung && imagePrompt) {\n  if (!tokenOverlap(imagePrompt, basePflichthandlung)) {\n    vjErrors.push(\n      'imagePrompt beschreibt visualPflichthandlung nicht sichtbar. ' +\n      'Pflichthandlung: \"' + basePflichthandlung.substring(0,80) + '\"'\n    );\n  }\n}\n\n// imagePrompt darf keinen neuen politischen Nebenkriegsschauplatz eröffnen:\n// Prüfe auf politisch aufgeladene Begriffe die nicht aus den Ankerfeldern stammen\nconst POLITICAL_MARKERS = ['wahl','kandidat','partei','abgeordnete','bürgermeist','stadtrat'];\nconst anchorText = (basePflichtobjekte.join(' ') + ' ' + basePflichthandlung + ' ' + \n  safeStr(base.satireThemaKonkret)).toLowerCase();\nconst promptLower = imagePrompt.toLowerCase();\nfor (const marker of POLITICAL_MARKERS) {\n  if (promptLower.includes(marker) && !anchorText.includes(marker)) {\n    vjErrors.push('imagePrompt enthält politischen Begriff \"' + marker + '\" der nicht aus den Ankerfeldern stammt');\n    break; // nur erstes Problem melden\n  }\n}\n\n// Prüfe ob imagePrompt zu generisch ist\nif (isGenericPrompt(imagePrompt, basePflichtobjekte)) {\n  vjErrors.push('imagePrompt besteht hauptsächlich aus allgemeinen Begriffen; ' +\n    'konkrete Pflichtobjekte fehlen im Prompt');\n}\n\nif (vjErrors.length > 0) {\n  return [{\n    json: {\n      ...base,\n      visualParseError: true,\n      visualDebugReason: 'visualJson-Ankerfelder ungültig: ' + vjErrors.join(' | '),\n      rawVisualText: (rawText || '(leer)').substring(0, 5000),\n      visualJson: visualJsonStr,\n      imagePrompt: '',\n      imageNegativePrompt,\n      imageHeadline,\n      imageSubline,\n      imageSmallNote,\n      altText,\n      imagePromptFound: false,\n      visualStage: 'prompt_error',\n      imageStage: (base.imageFinalPath ? 'composed' : 'not_started'),\n      visualPromptCreatedAt: new Date().toISOString()\n    }\n  }];\n}\n\n// ============================================================\n// ALLES OK\n// ============================================================\nreturn [{\n  json: {\n    ...base,\n    imageHeadline,\n    imageSubline,\n    imageSmallNote,\n    altText,\n    imagePrompt,\n    imageNegativePrompt: imageNegativePrompt || 'text, letters, numbers, typography, logos, coats of arms, seals, QR codes, real people, politicians, fake documents, NSFW, blurry, low contrast, cluttered background',\n    visualJson: visualJsonStr,\n    imagePromptFound: true,\n    visualParseError: false,\n    rawVisualText: '',\n    visualDebugReason: '',\n    visualStage: 'prompt_ready',\n    imageStage: (base.imageFinalPath ? 'composed' : 'not_started'),\n    visualPromptCreatedAt: new Date().toISOString()\n  }\n}];\n"}, "id": "b658d175-1954-4805-92cd-d43334a9d526", "name": "Parse Visual JSON robust", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [320, 240], "onError": "continueRegularOutput"}, {"parameters": {"operation": "update", "dataTableId": {"__rl": true, "value": "hBLqpqeVEojPpOJl", "mode": "list", "cachedResultName": "allris_vorgaenge", "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"}, "filters": {"conditions": [{"keyName": "vorgangKey", "keyValue": "={{ $json.vorgangKey }}"}]}, "columns": {"mappingMode": "defineBelow", "value": {"imagePrompt": "={{ $json.imagePrompt}}", "imageNegativePrompt": "={{ $json.imageNegativePrompt || '' }}", "imageHeadline": "={{ $json.imageHeadline || '' }}", "imageSubline": "={{ $json.imageSubline || '' }}", "imageSmallNote": "", "visualJson": "={{ (() => {\n  let current = {};\n  try {\n    current = typeof $json.visualJson === 'string'\n      ? JSON.parse($json.visualJson || '{}')\n      : ($json.visualJson || {});\n  } catch (e) {\n    current = {};\n  }\n  const currentWorkflow = current.workflow && typeof current.workflow === 'object'\n    ? current.workflow\n    : {};\n  const parseArray = (v) => {\n    if (Array.isArray(v)) return v;\n    try {\n      const p = JSON.parse(v || '[]');\n      return Array.isArray(p) ? p : [];\n    } catch (e) {\n      return [];\n    }\n  };\n  return JSON.stringify({\n    ...current,\n    anchors: {\n      satireThemaKonkret: $json.satireThemaKonkret || '',\n      satireKonfliktKonkret: $json.satireKonfliktKonkret || '',\n      visualPflichtobjekte: parseArray($json.visualPflichtobjekte),\n      visualPflichthandlung: $json.visualPflichthandlung || '',\n      visualBetroffene: parseArray($json.visualBetroffene),\n      visualOrt: $json.visualOrt || '',\n      visualUeberzeichnung: $json.visualUeberzeichnung || '',\n      visualErkennungssatz: $json.visualErkennungssatz || '',\n      visualVerboteneErsatzmotive: parseArray($json.visualVerboteneErsatzmotive)\n    },\n    qualityGate: {\n      maxAttempts: 3,\n      minTopicClarity: 70,\n      minSatireStrength: 60,\n      minMustShowCoverage: 70,\n      minVisualCoherence: 65,\n      requireTopicRecognizable: true,\n      requireSatireRecognizable: true,\n      requireConflictRecognizable: true,\n      rejectForbiddenElements: true\n    },\n    workflow: {\n      ...currentWorkflow,\n      visualStage: $json.visualStage || 'prompt_error',\n      visualParseError: $json.visualParseError === true,\n      visualDebugReason: $json.visualDebugReason || '',\n      imagePromptFound: $json.imagePromptFound === true,\n      visualPromptCreatedAt: $json.visualPromptCreatedAt || $now.toISO(),\n      visualPromptWorkflowVersion: 'visual-prompt-v3.3-qa-ready'\n    }\n  });\n})() }}", "visualStage": "={{ $json.visualStage || 'prompt_error' }}", "imageStage": "={{ $json.imageStage }}", "altText": "={{ $json.altText || '' }}"}, "matchingColumns": [], "schema": [{"id": "vorgangKey", "displayName": "vorgangKey", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "volfdnr", "displayName": "volfdnr", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "title", "displayName": "title", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "sourceUrl", "displayName": "sourceUrl", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "allrisUrl", "displayName": "allrisUrl", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "vorgangsnummer", "displayName": "vorgangsnummer", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "firstseen", "displayName": "firstseen", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "lastseen", "displayName": "lastseen", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "status", "displayName": "status", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "relevantScore", "displayName": "relevantScore", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "themes", "displayName": "themes", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "vorfilterThemen", "displayName": "vorfilterThemen", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "vorfilterKeywords", "displayName": "vorfilterKeywords", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "vorfilterScore", "displayName": "vorfilterScore", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "matrixPosted", "displayName": "matrixPosted", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "nextcloudFolder", "displayName": "nextcloudFolder", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "documentsJson", "displayName": "documentsJson", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "documentCount", "displayName": "documentCount", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "combinedText", "displayName": "combinedText", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "summaryJson", "displayName": "summaryJson", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "summaryText", "displayName": "summaryText", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "summarySentences", "displayName": "summarySentences", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "summaryCreatedAt", "displayName": "summaryCreatedAt", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "summaryPosted", "displayName": "summaryPosted", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "summaryRoomPostedAt", "displayName": "summaryRoomPostedAt", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "thema", "displayName": "thema", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "betroffene", "displayName": "betroffene", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "kostenHaushalt", "displayName": "kostenHaushalt", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "buergerwirkung", "displayName": "buergerwirkung", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "offenePunkte", "displayName": "offenePunkte", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "unsicherheitenSummary", "displayName": "unsicherheitenSummary", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "analysisJson", "displayName": "analysisJson", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "contentJson", "displayName": "contentJson", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "visualJson", "displayName": "visualJson", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": false}, {"id": "sprengstoff", "displayName": "sprengstoff", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "empfehlung", "displayName": "empfehlung", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "kommunikationspotenzial", "displayName": "kommunikationspotenzial", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "matrixKurzbetreff", "displayName": "matrixKurzbetreff", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "ampel", "displayName": "ampel", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "kurzfassung", "displayName": "kurzfassung", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "kritischeNachfrage", "displayName": "kritischeNachfrage", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "begruendungBewertung", "displayName": "begruendungBewertung", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "werProfitiert", "displayName": "werProfitiert", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "werZahltOderTraegtNachteile", "displayName": "werZahltOderTraegtNachteile", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "warumRelevant", "displayName": "warumRelevant", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "belegbareFakten", "displayName": "belegbareFakten", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "unsicherheiten", "displayName": "unsicherheiten", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "warnsignale", "displayName": "warnsignale", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "instagramCarouselNoetig", "displayName": "instagramCarouselNoetig", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "lastAnalysisAt", "displayName": "lastAnalysisAt", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "rawAiText", "displayName": "rawAiText", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "instagramCaption", "displayName": "instagramCaption", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "instagramCarousel", "displayName": "instagramCarousel", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "imageMode", "displayName": "imageMode", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "imageHeadline", "displayName": "imageHeadline", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": false}, {"id": "imageSubline", "displayName": "imageSubline", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": false}, {"id": "imagePrompt", "displayName": "imagePrompt", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": false}, {"id": "imageNegativePrompt", "displayName": "imageNegativePrompt", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": false}, {"id": "imagePrompts", "displayName": "imagePrompts", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "recommendedSlides", "displayName": "recommendedSlides", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "carouselJson", "displayName": "carouselJson", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "websiteHeadline", "displayName": "websiteHeadline", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "websiteArticle", "displayName": "websiteArticle", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "facebookPost", "displayName": "facebookPost", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "pressStatement", "displayName": "pressStatement", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "contentCreatedAt", "displayName": "contentCreatedAt", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "reactionRoomPostedAt", "displayName": "reactionRoomPostedAt", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "textExtractionStatus", "displayName": "textExtractionStatus", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "textExtractionSource", "displayName": "textExtractionSource", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "textExtractedAt", "displayName": "textExtractedAt", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "documentsTextJson", "displayName": "documentsTextJson", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "extractedDocumentCount", "displayName": "extractedDocumentCount", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "failedExtractionCount", "displayName": "failedExtractionCount", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "textExtractionError", "displayName": "textExtractionError", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "visualDecisionReason", "displayName": "visualDecisionReason", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "visualNeeded", "displayName": "visualNeeded", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "visualStatus", "displayName": "visualStatus", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "instagramSharepicNoetig", "displayName": "instagramSharepicNoetig", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}, {"id": "imageSmallNote", "displayName": "imageSmallNote", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": false}, {"id": "altText", "displayName": "altText", "required": false, "defaultMatch": false, "display": true, "type": "string", "readOnly": false, "removed": true}], "attemptToConvertTypes": false, "convertFieldsToString": false}, "options": {}}, "id": "bae18c6a-4d77-427c-a9cf-1de231e2c26e", "name": "Update allris_vorgaenge", "type": "n8n-nodes-base.dataTable", "typeVersion": 1.1, "position": [688, 240], "alwaysOutputData": true}, {"parameters": {"jsCode": "return [{ json: $input.item.json }];"}, "id": "613dd5df-dbd5-4bc8-84d7-16181afa9c20", "name": "Nächster Vorgang", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [864, 240]}, {"parameters": {"jsCode": "function getRetryInfo(j) {\n  let vj = {};\n  try {\n    vj = JSON.parse(j.visualJson || '{}');\n    if (typeof vj !== 'object') vj = {};\n  } catch(e) {}\n  const wf = (typeof vj.workflow === 'object' && vj.workflow) ? vj.workflow : {};\n  const attempt = Math.max(1, Number(wf.visualPromptAttempt || j.visualPromptAttempt || 1));\n  const maxAttempts = Math.max(2, Number(wf.visualPromptMaxAttempts || j.visualPromptMaxAttempts || 2));\n  return { attempt, maxAttempts, canRetry: attempt < maxAttempts, vj, wf };\n}\n\nconst j = $input.first().json || {};\n\nfunction safeStr(v) {\n  if (v === null || v === undefined) return \"\";\n  return String(v).trim();\n}\n\nfunction parseMaybeJson(v) {\n  if (!v) return {};\n  if (typeof v === \"object\") return v;\n  try { return JSON.parse(v); } catch (e) { return {}; }\n}\n\n// FIX 1.4: blocked_by_source_lock pass-through — kein KI-Aufruf, keine Pflichtfelder\nif (safeStr(j.visualStage) === 'blocked_source_lock') {\n  return [{\n    json: {\n      ...j,\n      visualStage: 'blocked_source_lock',\n      imageStage: (safeStr(j.imageFinalPath) ? 'composed' : 'not_started')\n    }\n  }];\n}\n\n// FIX 1.1: Retry-Zähler hier erhöhen, BEVOR Update allris_vorgaenge läuft\nconst errorStages = new Set(['prompt_error']);\nif (errorStages.has(safeStr(j.visualStage))) {\n  const { attempt, maxAttempts, vj, wf } = getRetryInfo(j);\n  const newAttempt = attempt + 1;\n  if (newAttempt > maxAttempts) {\n    vj.workflow = { ...wf, visualPromptAttempt: newAttempt, visualPromptMaxAttempts: maxAttempts, visualPromptFinalStatus: 'visual_prompt_failed_final' };\n    return [{\n      json: {\n        ...j,\n        visualJson: JSON.stringify(vj),\n        visualPromptAttempt: newAttempt,\n        visualPromptMaxAttempts: maxAttempts,\n        visualStage: 'prompt_failed_final',\n        imageStage: (safeStr(j.imageFinalPath) ? 'composed' : 'not_started')\n      }\n    }];\n  } else {\n    vj.workflow = { ...wf, visualPromptAttempt: newAttempt, visualPromptMaxAttempts: maxAttempts };\n    return [{\n      json: {\n        ...j,\n        visualJson: JSON.stringify(vj),\n        visualStage: safeStr(j.visualStage),\n        imageStage: (safeStr(j.imageFinalPath) ? 'composed' : 'not_started'),\n        visualPromptAttempt: newAttempt,\n        visualPromptMaxAttempts: maxAttempts\n      }\n    }];\n  }\n}\n\n// Fehler-Pass-Through: Bei visualParseError nicht werfen\nif (j.visualParseError === true) {\n  return [{\n    json: {\n      ...j,\n      visualStage: j.visualStage || 'prompt_error',\n      imageStage: (safeStr(j.imageFinalPath) ? 'composed' : 'not_started')\n    }\n  }];\n}\n\nconst visualJson = parseMaybeJson(j.visualJson);\n\nconst imageHeadline =\n  safeStr(j.imageHeadline) ||\n  safeStr(visualJson.imageHeadline);\n\nconst imageSubline =\n  safeStr(j.imageSubline) ||\n  safeStr(visualJson.imageSubline);\n\nconst imageSmallNote = '';\n\nconst imagePrompt =\n  safeStr(j.imagePrompt) ||\n  safeStr(visualJson.imagePrompt);\n\nconst imageNegativePrompt =\n  safeStr(j.imageNegativePrompt) ||\n  safeStr(visualJson.imageNegativePrompt);\n\nif (!imageHeadline) {\n  throw new Error(\"imageHeadline fehlt.\");\n}\nif (!imageSubline) {\n  throw new Error(\"imageSubline fehlt.\");\n}\nif (!imagePrompt) {\n  throw new Error(\n    \"imagePrompt fehlt. Vorhandene Felder: \" + Object.keys(j).join(\", \")\n  );\n}\n\nreturn [\n  {\n    json: {\n      ...j,\n      imageHeadline,\n      imageSubline,\n      imageSmallNote,\n      imagePrompt,\n      imageNegativePrompt,\n      visualStage: safeStr(j.visualStage) || 'prompt_ready',\n      imageStage: (safeStr(j.imageFinalPath) ? 'composed' : 'not_started')\n    }\n  }\n];\n"}, "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [496, 240], "id": "173a680f-c1cb-4e60-b0bd-50f5dafd10bf", "name": "Code in JavaScript", "onError": "continueRegularOutput"}, {"parameters": {"conditions": {"options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2}, "conditions": [{"id": "check-skip", "leftValue": "={{ $json.imagePromptFound }}", "rightValue": true, "operator": {"type": "boolean", "operation": "equals"}}, {"id": "check-blocked", "leftValue": "={{ ($json.visualStage === 'blocked_source_lock') ? 'yes' : 'no' }}", "rightValue": "yes", "operator": {"type": "string", "operation": "equals"}}], "combinator": "or"}, "options": {}}, "id": "618a20bc-6d75-4b09-a099-19cd8d62d9d8", "name": "IF Skip (Prompt vorhanden)?", "type": "n8n-nodes-base.if", "typeVersion": 2.2, "position": [1216, 0]}, {"parameters": {"jsCode": "// FIX 10: Prüfe Content-Abschluss - vollständige Prüfung (V3_11)\nconst j = $input.item.json || {};\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; } catch(e) { return {}; }\n}\nfunction asArr(v) {\n  if (Array.isArray(v)) return v.filter(Boolean).map(s => String(s).trim());\n  if (typeof v === 'string' && v.trim()) {\n    try { const p = JSON.parse(v); if (Array.isArray(p)) return p.filter(Boolean).map(s => String(s).trim()); } catch(e) {}\n  }\n  return [];\n}\nfunction robustBool(v) {\n  if (v === true || v === 1) return true;\n  if (typeof v === 'string') { const s = v.trim().toLowerCase(); return s === 'true' || s === '1'; }\n  return false;\n}\n\nconst forceVisualPromptReset = j._forceVisualPromptReset === true || j.visualForceReset === true;\n\nconst errors = [];\n\n// 1. contentStage muss content_generated oder content_posted sein\nconst contentStage = safeStr(j.contentStage);\nconst contentStageOk = contentStage === 'content_generated' || contentStage === 'content_posted';\nconst contentStatusOk = contentStageOk || forceVisualPromptReset;\nif (!contentStatusOk) errors.push('contentStage nicht content_generated/content_posted und kein Force-Reset (ist: ' + contentStage + ')');\n\n// 2. contentJson muss vorhanden sein\nconst contentJson = parseObj(j.contentJson);\nconst contentPresent = !!(safeStr(j.websiteHeadline) || Object.keys(contentJson).length > 0);\nif (!contentPresent) errors.push('contentJson fehlt oder leer');\n\n// 3. sourceLockValid\nconst analysis = parseObj(j.analysisJson);\nconst slValidFlag = robustBool(analysis.sourceLockValid);\nif (!slValidFlag) errors.push('sourceLockValid nicht true');\n\n// 4. sourceLock vollständig (FIX 10: inkl. requiredObjects + requiredAction)\nconst sl = parseObj(analysis.sourceLock || {});\nconst slComplete = !!(\n  safeStr(sl.sourceTopic) && safeStr(sl.sourceConflict) &&\n  asArr(sl.requiredTerms).length >= 2 &&\n  asArr(sl.requiredObjects).length >= 2 &&\n  safeStr(sl.requiredAction) &&\n  slValidFlag\n);\nif (!slComplete) errors.push('sourceLock unvollständig (requiredObjects/requiredAction prüfen)');\n\n// 5. visualAnchors vollständig (FIX 10: inkl. visualVerboteneErsatzmotive >= 2 + visualAnchorsValid)\nconst vaValidFlag = robustBool(analysis.visualAnchorsValid);\nconst va = parseObj(analysis.visualAnchors || {});\nconst vaComplete = !!(\n  safeStr(va.satireThemaKonkret) && safeStr(va.satireKonfliktKonkret) &&\n  asArr(va.visualPflichtobjekte).length >= 2 &&\n  safeStr(va.visualPflichthandlung) && safeStr(va.visualErkennungssatz) &&\n  safeStr(va.visualUeberzeichnung) &&\n  asArr(va.visualVerboteneErsatzmotive).length >= 2 &&\n  vaValidFlag\n);\nif (!vaComplete) errors.push('visualAnchors unvollständig (visualVerboteneErsatzmotive/visualAnchorsValid prüfen)');\n\nconst contentGateOk = errors.length === 0;\n\nreturn [{\n  json: {\n    ...j,\n    _contentGateOk: contentGateOk,\n    _contentGateErrors: errors,\n    _contentGateForceReset: forceVisualPromptReset\n  }\n}];\n"}, "id": "91547714-3029-44e7-bf94-4964f6bc61f1", "name": "Prüfe Content-Abschluss", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [752, 16]}, {"parameters": {"conditions": {"options": {"caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 1}, "conditions": [{"id": "cg-check", "leftValue": "={{ $json._contentGateOk }}", "rightValue": true, "operator": {"type": "boolean", "operation": "equals"}}], "combinator": "and"}, "options": {}}, "id": "47b0affe-8a53-4c70-b4d7-7d23b2e9bf4a", "name": "IF Content-Gate ok?", "type": "n8n-nodes-base.if", "typeVersion": 2, "position": [896, 16]}, {"parameters": {"jsCode": "// Sortierung: 1. firstseen aufsteigend, 2. volfdnr numerisch, 3. vorgangKey lexikografisch\nfunction parseDate(v) {\n  if (!v) return 0;\n  const t = Date.parse(String(v));\n  return Number.isFinite(t) ? t : 0;\n}\nfunction parseVolfdnr(v) {\n  if (!v) return Infinity;\n  const n = parseInt(String(v).replace(/[^0-9]/g, ''), 10);\n  return Number.isFinite(n) ? n : Infinity;\n}\nconst items = $input.all();\nitems.sort((a, b) => {\n  const ja = a.json || {}, jb = b.json || {};\n  const fa = parseDate(ja.firstseen), fb = parseDate(jb.firstseen);\n  if (fa !== fb) return fa - fb;\n  const va = parseVolfdnr(ja.volfdnr), vb = parseVolfdnr(jb.volfdnr);\n  if (va !== vb) return va - vb;\n  return String(ja.vorgangKey || '').localeCompare(String(jb.vorgangKey || ''));\n});\nreturn items;\n"}, "id": "d3607203-0ca6-4acd-b9c7-a39c97a6b0d2", "name": "Sortiere Visual-Vorgänge", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [288, 0]}, {"parameters": {"jsCode": "// ============================================================\n// FORCE VISUAL PROMPT RESET SCHALTER\n// Setzt alte Bildprompt-Felder vor der Content-Gate-Prüfung zurück.\n// Standard: AUS. Sicherste Nutzung: In der DataTable visualStatus = \"force_visual_reset\" setzen.\n// Optional: FORCE_RESET_VISUAL_PROMPT auf true setzen und mit VorgangKey/Vorgangsnummer begrenzen.\n// ============================================================\n\nconst FORCE_RESET_VISUAL_PROMPT = false;      // nur kurzzeitig auf true setzen\nconst FORCE_ONLY_VORGANG_KEY = '';             // z.B. 'vol_10742' oder leer\nconst FORCE_ONLY_VORGANGSNUMMER = '';          // z.B. '2026/197' oder leer\n\nconst j = $input.item.json || {};\n\nfunction safeStr(v) {\n  if (v === null || v === undefined) return '';\n  return String(v).trim();\n}\n\nfunction norm(v) {\n  return safeStr(v).toLowerCase();\n}\n\nconst vorgangKey = safeStr(j.vorgangKey);\nconst vorgangsnummer = safeStr(j.vorgangsnummer);\n\nconst resetByStatus = j.visualForceReset === true;\nconst hasTarget = !!(safeStr(FORCE_ONLY_VORGANG_KEY) || safeStr(FORCE_ONLY_VORGANGSNUMMER));\nconst targetMatches =\n  (!safeStr(FORCE_ONLY_VORGANG_KEY) || vorgangKey === safeStr(FORCE_ONLY_VORGANG_KEY)) &&\n  (!safeStr(FORCE_ONLY_VORGANGSNUMMER) || vorgangsnummer === safeStr(FORCE_ONLY_VORGANGSNUMMER));\n\n// Sicherheitslogik:\n// - visualStatus=force_visual_reset setzt immer genau diesen Datensatz zurück.\n// - FORCE_RESET_VISUAL_PROMPT=true ohne Ziel setzt nur bereits geholte Kandidaten zurück.\n// - Für gezieltes Zurücksetzen per Variable immer FORCE_ONLY_* setzen.\nconst resetByVariable = FORCE_RESET_VISUAL_PROMPT === true && (!hasTarget || targetMatches);\nconst doReset = resetByStatus || resetByVariable;\n\nif (!doReset) {\n  return [{ json: { ...j, _forceVisualPromptReset: false } }];\n}\n\nreturn [{\n  json: {\n    ...j,\n    _forceVisualPromptReset: true,\n    _forceVisualPromptResetAt: new Date().toISOString(),\n    _forceVisualPromptResetReason: resetByStatus\n      ? 'visualForceReset flag'\n      : 'FORCE_RESET_VISUAL_PROMPT=true',\n\n    // Wichtig: Status des Visual Prompt Builders wieder öffnen\n    visualStage: 'needs_prompt',\n    imageStage: 'not_started',\n\n    // Alte Visual-Prompt-Artefakte entfernen, damit kein Skip greifen kann\n    imagePrompt: '',\n    imageNegativePrompt: '',\n    imageHeadline: '',\n    imageSubline: '',\n    imageSmallNote: '',\n    altText: '',\n    visualJson: '{}',\n    visualParseError: false,\n    visualDebugReason: '',\n    rawVisualText: '',\n\n    // Nachgelagerte Bildartefakte entkoppeln, falls Spalten existieren\n    imageFinalPath: '',\n    imageCreatedAt: '',\n    imageWorkflowVersion: '',\n\n    // Interne Hinweise, falls Felder nicht als Spalten existieren: unschädlich im Laufzeit-JSON\n    imagePromptFound: false,\n    _skipReason: ''\n  }\n}];\n"}, "id": "0e2cf61d-60bd-4471-bc37-3260941f464a", "name": "Force Visual Reset Schalter", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [608, 16]}], "pinData": {}, "connections": {"Schedule Trigger": {"main": [[{"node": "Hole needs_visual_prompt", "type": "main", "index": 0}]]}, "Hole needs_visual_prompt": {"main": [[{"node": "Filtere Visual-Status", "type": "main", "index": 0}]]}, "Filtere Visual-Status": {"main": [[{"node": "Sortiere Visual-Vorgänge", "type": "main", "index": 0}]]}, "Loop Visual Vorgänge": {"main": [[], [{"node": "Force Visual Reset Schalter", "type": "main", "index": 0}]]}, "Prepare Visual Prompt Input": {"main": [[{"node": "IF Skip (Prompt vorhanden)?", "type": "main", "index": 0}]]}, "AI Visual JSON": {"main": [[{"node": "Parse Visual JSON robust", "type": "main", "index": 0}]]}, "Parse Visual JSON robust": {"main": [[{"node": "Code in JavaScript", "type": "main", "index": 0}]]}, "Update allris_vorgaenge": {"main": [[{"node": "Nächster Vorgang", "type": "main", "index": 0}]]}, "Nächster Vorgang": {"main": [[{"node": "Loop Visual Vorgänge", "type": "main", "index": 0}]]}, "Code in JavaScript": {"main": [[{"node": "Update allris_vorgaenge", "type": "main", "index": 0}]]}, "IF Skip (Prompt vorhanden)?": {"main": [[{"node": "Code in JavaScript", "type": "main", "index": 0}], [{"node": "IF Headline bereits gewählt?", "type": "main", "index": 0}]]}, "IF Headline bereits gewählt?": {"main": [[{"node": "AI Visual JSON", "type": "main", "index": 0}], [{"node": "AI Headline Varianten", "type": "main", "index": 0}]]}, "AI Headline Varianten": {"main": [[{"node": "Parse Headline Varianten", "type": "main", "index": 0}]]}, "Parse Headline Varianten": {"main": [[{"node": "IF Headline-Varianten OK?", "type": "main", "index": 0}]]}, "IF Headline-Varianten OK?": {"main": [[{"node": "Send Matrix Headline Vorschläge", "type": "main", "index": 0}], [{"node": "Code in JavaScript", "type": "main", "index": 0}]]}, "Send Matrix Headline Vorschläge": {"main": [[{"node": "Stelle Kontext nach Matrix wieder her", "type": "main", "index": 0}]]}, "Prüfe Content-Abschluss": {"main": [[{"node": "IF Content-Gate ok?", "type": "main", "index": 0}]]}, "IF Content-Gate ok?": {"main": [[{"node": "Prepare Visual Prompt Input", "type": "main", "index": 0}], [{"node": "Nächster Vorgang", "type": "main", "index": 0}]]}, "Sortiere Visual-Vorgänge": {"main": [[{"node": "Loop Visual Vorgänge", "type": "main", "index": 0}]]}, "Force Visual Reset Schalter": {"main": [[{"node": "Prüfe Content-Abschluss", "type": "main", "index": 0}]]}, "Stelle Kontext nach Matrix wieder her": {"main": [[{"node": "Update allris_vorgaenge", "type": "main", "index": 0}]]}}, "active": false, "settings": {"executionOrder": "v1", "binaryMode": "separate"}, "versionId": "4111bfd4-d51c-40c8-8177-d91b4a93a175", "meta": {"instanceId": "3918cd7b1079333be95f7df5d1ce0c807af27c5d6c51c5bb061c962138165169"}, "id": "XysMdSRGFGFNFAFy", "tags": []}
+{
+  "active": true,
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hole needs_visual_prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole needs_visual_prompt": {
+      "main": [
+        [
+          {
+            "node": "Filtere Visual-Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtere Visual-Status": {
+      "main": [
+        [
+          {
+            "node": "Sortiere Visual-Vorgänge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Visual Vorgänge": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Force Visual Reset Schalter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Visual Prompt Input": {
+      "main": [
+        [
+          {
+            "node": "IF Skip (Prompt vorhanden)?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update allris_vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Nächster Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nächster Vorgang": {
+      "main": [
+        [
+          {
+            "node": "Loop Visual Vorgänge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Update allris_vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Skip (Prompt vorhanden)?": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF Headline bereits gewählt?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Headline bereits gewählt?": {
+      "main": [
+        [
+          {
+            "node": "Bild-Agent: Baue Eingabe",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Nächster Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prüfe Content-Abschluss": {
+      "main": [
+        [
+          {
+            "node": "IF Content-Gate ok?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Content-Gate ok?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Visual Prompt Input",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Nächster Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sortiere Visual-Vorgänge": {
+      "main": [
+        [
+          {
+            "node": "Loop Visual Vorgänge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Force Visual Reset Schalter": {
+      "main": [
+        [
+          {
+            "node": "Prüfe Content-Abschluss",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bild-Agent: Baue Eingabe": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow Bild-Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow Bild-Agent": {
+      "main": [
+        [
+          {
+            "node": "Stelle Kontext nach Bild-Agent wieder her",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stelle Kontext nach Bild-Agent wieder her": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "WIg40QYXmouRoYjq",
+  "meta": null,
+  "name": "ALLRIS_P5_Visual_Prompt_Builder",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 5,
+              "triggerAtMinute": 45
+            }
+          ]
+        }
+      },
+      "id": "1be7696b-83b3-4a16-8df9-81cf17f9fc17",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": []
+        },
+        "returnAll": true
+      },
+      "id": "fb5ec274-8cf0-4f14-b685-7d561c95b54c",
+      "name": "Hole needs_visual_prompt",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        144,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Filtert die breit gelesene Data Table auf die Ziel-Status des Visual\n// Prompt Builders. Die Data Table kann kein OR über mehrere Werte desselben\n// Feldes - deshalb wird hier gefiltert statt in der DB-Abfrage direkt\n// (siehe \"Hole needs_visual_prompt\", vorher AND-verknüpfte Bedingungen == 0 Treffer).\n// 'headline_selected' = Nutzer hat per Matrix-Antwort eine Headline/Subline-Variante\n// gewählt; für diese Zeilen wird nur noch der Bildprompt gebaut, keine neuen\n// Headline-Varianten mehr erzeugt (siehe \"IF Headline bereits gewählt?\").\nconst ZIEL_STAGE = ['needs_prompt', 'headline_selected', 'prompt_error'];\n\nreturn items.filter(item => {\n  const vStage = String(item.json.visualStage || '').trim();\n  return ZIEL_STAGE.includes(vStage);\n});\n"
+      },
+      "id": "b7c9e2f1-6d4a-4c8e-9f1a-2e5d7c3b8a90",
+      "name": "Filtere Visual-Status",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        304,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "d92dbad7-bc31-48eb-bafa-a318e287b1f2",
+      "name": "Loop Visual Vorgänge",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// PREPARE VISUAL PROMPT INPUT  (v2 — visual anchor fields)\n// Übergibt alle Themenanker-Felder an die KI\n// ============================================================\n\nconst raw = $input.item.json || {};\n\nfunction safeStr(v) {\n  if (v === null || v === undefined) return '';\n  return String(v).trim();\n}\n\nfunction safeJson(v, fallback = '{}') {\n  if (!v) return fallback;\n  if (typeof v === 'string') return v.trim() || fallback;\n  try { return JSON.stringify(v); } catch (e) { return fallback; }\n}\n\nfunction parseObject(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try {\n    const parsed = JSON.parse(String(v));\n    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};\n  } catch (e) {\n    return {};\n  }\n}\n\nfunction firstValue(...values) {\n  for (const value of values) {\n    if (value === null || value === undefined) continue;\n    if (Array.isArray(value) && value.length > 0) return value;\n    if (typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0) return value;\n    if (String(value).trim() !== '') return value;\n  }\n  return '';\n}\n\n// Die bestehenden Tabellenspalten bleiben unverändert.\n// Detailfelder werden aus analysisJson bzw. visualJson.anchors gelesen.\nconst analysis = parseObject(raw.analysisJson);\nconst storedVisual = parseObject(raw.visualJson);\nconst storedAnchors = parseObject(storedVisual.anchors);\nconst analysisAnchors = parseObject(analysis.visualAnchors);\n\n// ============================================================\n// SOURCELOCK aus analysisJson extrahieren (hat Vorrang vor visualJson)\n// ============================================================\nconst sourceLockFromAnalysis = parseObject(analysis.sourceLock || {});\nconst storedSourceLock = parseObject(storedVisual.sourceLock || {});\nconst currentSourceLock = Object.keys(sourceLockFromAnalysis).length > 0\n  ? sourceLockFromAnalysis\n  : storedSourceLock;\n\n// FIX 3.4: Wenn canonical Source-Lock fehlt oder ungültig -> blockieren, kein Prompt\n// Keine Ableitung aus Titel, Thema oder satireThemaKonkret\n{\n  const slPresent = !!(currentSourceLock && currentSourceLock.sourceTopic && currentSourceLock.sourceConflict);\n  const slValid = slPresent && (() => {\n    try {\n      const rawAJ = raw.analysisJson;\n      let aj = {};\n      if (rawAJ && typeof rawAJ === 'object') aj = rawAJ;\n      else if (rawAJ) aj = JSON.parse(String(rawAJ));\n      return aj.sourceLockValid === true || String(aj.sourceLockValid||'').trim() === 'true';\n    } catch(e) { return false; }\n  })();\n  if (!slPresent || !slValid) {\n    const reason = !slPresent\n      ? 'blocked_by_source_lock: canonical Source-Lock fehlt (sourceTopic/sourceConflict)'\n      : 'blocked_by_source_lock: analysisJson.sourceLockValid ist nicht true';\n    return [{\n      json: {\n        ...raw,\n        visualParseError: false,\n        visualDebugReason: reason,\n        visualJson: '{}',\n        imagePrompt: '',\n        imageNegativePrompt: '',\n        imageHeadline: '',\n        imageSubline: '',\n        imageSmallNote: '',\n        altText: '',\n        imagePromptFound: false,\n        visualStage: 'blocked_source_lock',\n        imageStage: (raw.imageFinalPath ? 'composed' : 'not_started'),\n        visualPromptCreatedAt: new Date().toISOString()\n      }\n    }];\n  }\n}\n\n\nconst j = {\n  ...raw,\n\n  // Felder, für die keine eigenen Tabellenspalten existieren\n  kernbotschaft: firstValue(raw.kernbotschaft, analysis.kernbotschaft),\n  dieParteiReaktion: firstValue(raw.dieParteiReaktion, analysis.dieParteiReaktion),\n\n  satireThemaKonkret: firstValue(\n    analysisAnchors.satireThemaKonkret,\n    analysis.satireThemaKonkret,\n    raw.satireThemaKonkret,\n    storedAnchors.satireThemaKonkret\n  ),\n  satireKonfliktKonkret: firstValue(\n    analysisAnchors.satireKonfliktKonkret,\n    analysis.satireKonfliktKonkret,\n    raw.satireKonfliktKonkret,\n    storedAnchors.satireKonfliktKonkret\n  ),\n  visualPflichtobjekte: firstValue(\n    analysisAnchors.visualPflichtobjekte,\n    analysis.visualPflichtobjekte,\n    raw.visualPflichtobjekte,\n    storedAnchors.visualPflichtobjekte,\n    []\n  ),\n  visualPflichthandlung: firstValue(\n    analysisAnchors.visualPflichthandlung,\n    analysis.visualPflichthandlung,\n    raw.visualPflichthandlung,\n    storedAnchors.visualPflichthandlung\n  ),\n  visualBetroffene: firstValue(\n    analysisAnchors.visualBetroffene,\n    analysis.visualBetroffene,\n    raw.visualBetroffene,\n    storedAnchors.visualBetroffene,\n    []\n  ),\n  visualOrt: firstValue(\n    analysisAnchors.visualOrt,\n    analysis.visualOrt,\n    raw.visualOrt,\n    storedAnchors.visualOrt\n  ),\n  visualUeberzeichnung: firstValue(\n    analysisAnchors.visualUeberzeichnung,\n    analysis.visualUeberzeichnung,\n    raw.visualUeberzeichnung,\n    storedAnchors.visualUeberzeichnung\n  ),\n  visualErkennungssatz: firstValue(\n    analysisAnchors.visualErkennungssatz,\n    analysis.visualErkennungssatz,\n    raw.visualErkennungssatz,\n    storedAnchors.visualErkennungssatz\n  ),\n  visualVerboteneErsatzmotive: firstValue(\n    analysisAnchors.visualVerboteneErsatzmotive,\n    analysis.visualVerboteneErsatzmotive,\n    raw.visualVerboteneErsatzmotive,\n    storedAnchors.visualVerboteneErsatzmotive,\n    []\n  )\n};\n\nfunction isOldMaskPrompt(p) {\n  const lower = safeStr(p).toLowerCase();\n  return (\n    lower.includes('maske') ||\n    lower.includes('bearbeite ausschließlich') ||\n    lower.includes('editierbaren bereich') ||\n    lower.includes('setze die headline') ||\n    lower.includes('setze die parteireaktion') ||\n    lower.includes('verändere keinen rahmen') ||\n    lower.includes('qr-code')\n  );\n}\n\n// Skip-Prüfung: nur überspringen wenn ALLE neuen Ankerfelder vorhanden sind\nfunction hasValidExistingPrompt(j) {\n  const p = safeStr(j.imagePrompt);\n  const headline = safeStr(j.imageHeadline);\n  const subline = safeStr(j.imageSubline);\n\n  if (p.length < 80) return false;\n  if (!headline || !subline) return false;\n  if (isOldMaskPrompt(p)) return false;\n\n  // Neue Pflicht: visualJson muss topicPlain + mustShow enthalten\n  let vj = null;\n  try { vj = JSON.parse(j.visualJson || '{}'); } catch(e) { return false; }\n  if (!vj.topicPlain || !vj.conflictPlain) return false;\n  if (!Array.isArray(vj.mustShow) || vj.mustShow.length < 2) return false;\n  if (!vj.visibleAction || !vj.whyRecognizableWithoutText) return false;\n  if (!vj.recognitionSentence) return false;\n  if (!vj.forbiddenSubstitutes || !Array.isArray(vj.forbiddenSubstitutes)) return false;\n\n  // FIX 8: forbiddenSubstitutes muss alle aktuellen verbotenen Ersatzmotive abdecken\n  let baseVerboten = [];\n  try { baseVerboten = JSON.parse(j.visualVerboteneErsatzmotive || '[]'); } catch(e) {}\n  if (baseVerboten.length > 0) {\n    const notCovered = baseVerboten.filter(bv =>\n      !vj.forbiddenSubstitutes.some(fs => skipMatch(bv, fs))\n    );\n    if (notCovered.length > 0) return false; // verbotene Motive nicht abgedeckt\n  }\n\n  // Inhaltlicher Abgleich: mustShow muss visualPflichtobjekte berücksichtigen\n  function normSkip(s) {\n    return String(s || '').toLowerCase()\n      .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss');\n  }\n  function tokensSkip(s) {\n    return normSkip(s).split(/[\\W]+/).filter(w => w.length >= 4);\n  }\n  function skipMatch(a, b) {\n    const ta = tokensSkip(a), tb = tokensSkip(b);\n    if (ta.some(t => tb.includes(t))) return true;\n    const na = normSkip(a).replace(/\\s+/g,''), nb = normSkip(b).replace(/\\s+/g,'');\n    return (na.length >= 5 && nb.includes(na)) || (nb.length >= 5 && na.includes(nb));\n  }\n  \n  let basePflicht = [];\n  try { basePflicht = JSON.parse(j.visualPflichtobjekte || '[]'); } catch(e) {}\n  if (basePflicht.length >= 2) {\n    const matchedPflicht = basePflicht.filter(bp => vj.mustShow.some(ms => skipMatch(bp, ms)));\n    if (matchedPflicht.length < 2) return false; // mustShow stimmt nicht mit Pflichtobjekten überein\n  }\n\n  // visibleAction muss visualPflichthandlung entsprechen\n  const basePflichthandlung = safeStr(j.visualPflichthandlung);\n  if (basePflichthandlung && !skipMatch(vj.visibleAction, basePflichthandlung)) return false;\n\n  // recognitionSentence muss visualErkennungssatz entsprechen\n  const baseErkennungssatz = safeStr(j.visualErkennungssatz);\n  if (baseErkennungssatz && !skipMatch(vj.recognitionSentence, baseErkennungssatz)) return false;\n\n  // imagePrompt muss Pflichthandlung beschreiben\n  if (basePflichthandlung && !skipMatch(p, basePflichthandlung)) return false;\n\n  // imagePrompt muss mindestens 2 konkrete Pflichtobjekte enthalten\n  if (basePflicht.length >= 2) {\n    const promptObjekte = basePflicht.filter(bp => skipMatch(p, bp));\n    if (promptObjekte.length < 2) return false;\n  }\n\n  // SOURCELOCK-PRÜFUNG: Wenn analysisJson.sourceLock vorhanden, muss bestehendes visualJson damit übereinstimmen\n  if (currentSourceLock && currentSourceLock.sourceTopic) {\n    function normSL(s) {\n      return String(s || '').toLowerCase()\n        .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss')\n        .replace(/[\\W]+/g,' ').trim();\n    }\n    function matchSL(a, b) {\n      const ta = normSL(a).split(/\\s+/).filter(w => w.length >= 4);\n      const tb = normSL(b).split(/\\s+/).filter(w => w.length >= 4);\n      if (ta.length === 0 || tb.length === 0) return false;\n      return ta.some(t => tb.includes(t));\n    }\n    // topicPlain muss sourceTopic entsprechen\n    if (vj.topicPlain && !matchSL(vj.topicPlain, currentSourceLock.sourceTopic)) return false;\n    // conflictPlain muss sourceConflict entsprechen\n    if (currentSourceLock.sourceConflict && vj.conflictPlain && !matchSL(vj.conflictPlain, currentSourceLock.sourceConflict)) return false;\n    // imagePrompt muss mindestens einen konkreten requiredTerm enthalten\n    const GENERIC = new Set(['verwaltung','politik','buerokratie','goslar','rathaus','stadt']);\n    const reqTerms = (currentSourceLock.requiredTerms || []).filter(t => {\n      const tn = normSL(t).replace(/\\s/g,'');\n      return t.length >= 4 && !GENERIC.has(normSL(t));\n    });\n    if (reqTerms.length >= 2) {\n      const stem = t => normSL(t).substring(0, Math.max(4, Math.floor(normSL(t).length * 0.75)));\n      const pNorm = normSL(p);\n      const promptHasTerm = reqTerms.some(t => pNorm.includes(stem(t)));\n      if (!promptHasTerm) return false;\n    }\n    // Rein allgemeines topicPlain ist ungültig\n    const genericTopics = ['verwaltung','politik','buerokratie','goslar','rathaus','kommunalpolitik'];\n    if (genericTopics.includes(normSL(vj.topicPlain))) return false;\n  }\n\n  return true;\n}\n\nconst vorgangKey = safeStr(j.vorgangKey);\n\nif (!vorgangKey) {\n  throw new Error(\n    'Prepare Visual Prompt Input abgebrochen: vorgangKey fehlt im Eingangsdatenbestand.'\n  );\n}\n\n// Wenn bereits ein vollständig gültiger Motivprompt + visualJson vorhanden ist: überspringen\nif (j._forceVisualPromptReset !== true && hasValidExistingPrompt(j)) {\n  return [{\n    json: {\n      ...j,\n      _skipReason: 'valid new motif imagePrompt already exists (incl. visualJson anchor fields)',\n      visualStage: 'prompt_ready',\n      imageStage: (j.imageFinalPath ? 'composed' : 'not_started'),\n      imagePromptFound: true,\n      visualParseError: false\n    }\n  }];\n}\n\n// Neue Ankerfelder sicher lesen\nconst satireThemaKonkret       = safeStr(j.satireThemaKonkret);\nconst satireKonfliktKonkret    = safeStr(j.satireKonfliktKonkret);\nconst visualPflichtobjekte     = safeJson(j.visualPflichtobjekte, '[]');\nconst visualPflichthandlung    = safeStr(j.visualPflichthandlung);\nconst visualBetroffene         = safeJson(j.visualBetroffene, '[]');\nconst visualOrt                = safeStr(j.visualOrt);\nconst visualUeberzeichnung     = safeStr(j.visualUeberzeichnung);\nconst visualErkennungssatz     = safeStr(j.visualErkennungssatz);\nconst visualVerboteneErsatzmotive = safeJson(j.visualVerboteneErsatzmotive, '[]');\n\n// Sachliche Felder\nconst summaryText  = safeStr(j.summaryText);\nconst thema        = safeStr(j.thema);\nconst betroffene   = safeStr(j.betroffene);\nconst buergerwirkung = safeStr(j.buergerwirkung);\n\n// KI soll neuen Motivprompt erzeugen\n// FIX: imageHeadline/imageSubline aus raw übernehmen statt zu leeren - sonst\n// kann \"IF Headline bereits gewählt?\" weiter unten nie erkennen, dass für\n// headline_selected-Zeilen bereits eine Nutzer-Auswahl vorliegt.\nconst chosenImageHeadline = safeStr(raw.imageHeadline);\nconst chosenImageSubline  = safeStr(raw.imageSubline);\n\nreturn [{\n  json: {\n    vorgangKey,\n    vorgangsnummer:          safeStr(j.vorgangsnummer),\n    title:                   safeStr(j.title),\n    allrisUrl:               safeStr(j.allrisUrl),\n    sourceUrl:               safeStr(j.sourceUrl),\n    nextcloudFolder:         safeStr(j.nextcloudFolder),\n\n    sprengstoff:             safeStr(j.sprengstoff),\n    empfehlung:              safeStr(j.empfehlung),\n    relevantScore:           j.relevantScore || 0,\n    kommunikationspotenzial: j.kommunikationspotenzial || 0,\n    visualDecisionReason:    safeStr(j.visualDecisionReason),\n\n    // Sachliche Zusammenfassung (muss erhalten bleiben)\n    summaryText,\n    thema,\n    betroffene,\n    buergerwirkung,\n\n    kernbotschaft:           safeStr(j.kernbotschaft),\n    satireBrief:             safeStr(j.satireBrief),\n    satireAngle:             safeStr(j.satireAngle),\n    satirePunchlines:        safeJson(j.satirePunchlines, '[]'),\n    visualMetaphor:          safeStr(j.visualMetaphor),\n    satireTarget:            safeStr(j.satireTarget),\n    satireIntensity:         Number(j.satireIntensity || 0),\n    satireDoNotClaim:        safeJson(j.satireDoNotClaim, '[]'),\n    satireSafetyNote:        safeStr(j.satireSafetyNote),\n    dieParteiReaktion:       safeStr(j.dieParteiReaktion),\n    instagramCaption:        safeStr(j.instagramCaption),\n    headlines:               safeStr(j.headlines),\n    websiteHeadline:         safeStr(j.websiteHeadline),\n\n    belegbareFakten:         safeJson(j.belegbareFakten, '[]'),\n    kritischeNachfrage:      safeStr(j.kritischeNachfrage),\n    offenePunkte:            safeJson(j.offenePunkte, '[]'),\n    unsicherheitenSummary:   safeStr(j.unsicherheitenSummary),\n    analysisJson:            safeJson(j.analysisJson),\n    contentJson:             safeJson(j.contentJson),\n\n    // Visuelle Ankerfelder (Pflicht für KI-Prompt)\n    satireThemaKonkret,\n    satireKonfliktKonkret,\n    visualPflichtobjekte,\n    visualPflichthandlung,\n    visualBetroffene,\n    visualOrt,\n    visualUeberzeichnung,\n    visualErkennungssatz,\n    visualVerboteneErsatzmotive,\n\n    imagePrompt:             '',\n    imageNegativePrompt:     '',\n    imageHeadline:           chosenImageHeadline,\n    imageSubline:            chosenImageSubline,\n    imageSmallNote:          '',\n    altText:                 '',\n    visualJson:              '{}',\n\n    _skipReason:             '',\n    imagePromptFound:        false,\n    visualParseError:        false,\n    visualStage:             'needs_prompt',\n    imageStage:              (j.imageFinalPath ? 'composed' : 'not_started'),\n    _forceVisualPromptReset: j._forceVisualPromptReset === true,\n    _forceVisualPromptResetAt: safeStr(j._forceVisualPromptResetAt),\n    _forceVisualPromptResetReason: safeStr(j._forceVisualPromptResetReason),\n    sourceLockJson:          JSON.stringify(currentSourceLock || {})\n  }\n}];\n"
+      },
+      "id": "8f5d5ba9-46d7-469e-9697-aa55516f71f4",
+      "name": "Prepare Visual Prompt Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1056,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "check-headline-chosen",
+              "leftValue": "={{ ($json.imageHeadline || '').trim().length > 0 && ($json.imageSubline || '').trim().length > 0 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d4b1e5c6-5555-4aaa-8bbb-555555555555",
+      "name": "IF Headline bereits gewählt?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -128,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "imagePrompt": "={{ $json.imagePrompt}}",
+            "imageNegativePrompt": "={{ $json.imageNegativePrompt || '' }}",
+            "imageHeadline": "={{ $json.imageHeadline || '' }}",
+            "imageSubline": "={{ $json.imageSubline || '' }}",
+            "imageSmallNote": "",
+            "visualJson": "={{ (() => {\n  let current = {};\n  try {\n    current = typeof $json.visualJson === 'string'\n      ? JSON.parse($json.visualJson || '{}')\n      : ($json.visualJson || {});\n  } catch (e) {\n    current = {};\n  }\n  const currentWorkflow = current.workflow && typeof current.workflow === 'object'\n    ? current.workflow\n    : {};\n  const parseArray = (v) => {\n    if (Array.isArray(v)) return v;\n    try {\n      const p = JSON.parse(v || '[]');\n      return Array.isArray(p) ? p : [];\n    } catch (e) {\n      return [];\n    }\n  };\n  return JSON.stringify({\n    ...current,\n    anchors: {\n      satireThemaKonkret: $json.satireThemaKonkret || '',\n      satireKonfliktKonkret: $json.satireKonfliktKonkret || '',\n      visualPflichtobjekte: parseArray($json.visualPflichtobjekte),\n      visualPflichthandlung: $json.visualPflichthandlung || '',\n      visualBetroffene: parseArray($json.visualBetroffene),\n      visualOrt: $json.visualOrt || '',\n      visualUeberzeichnung: $json.visualUeberzeichnung || '',\n      visualErkennungssatz: $json.visualErkennungssatz || '',\n      visualVerboteneErsatzmotive: parseArray($json.visualVerboteneErsatzmotive)\n    },\n    qualityGate: {\n      maxAttempts: 3,\n      minTopicClarity: 70,\n      minSatireStrength: 60,\n      minMustShowCoverage: 70,\n      minVisualCoherence: 65,\n      requireTopicRecognizable: true,\n      requireSatireRecognizable: true,\n      requireConflictRecognizable: true,\n      rejectForbiddenElements: true\n    },\n    workflow: {\n      ...currentWorkflow,\n      visualStage: $json.visualStage || 'prompt_error',\n      visualParseError: $json.visualParseError === true,\n      visualDebugReason: $json.visualDebugReason || '',\n      imagePromptFound: $json.imagePromptFound === true,\n      visualPromptCreatedAt: $json.visualPromptCreatedAt || $now.toISO(),\n      visualPromptWorkflowVersion: 'visual-prompt-v3.3-qa-ready'\n    }\n  });\n})() }}",
+            "visualStage": "={{ $json.visualStage || 'prompt_error' }}",
+            "imageStage": "={{ $json.imageStage }}",
+            "altText": "={{ $json.altText || '' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "vorgangKey",
+              "displayName": "vorgangKey",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "volfdnr",
+              "displayName": "volfdnr",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "sourceUrl",
+              "displayName": "sourceUrl",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "allrisUrl",
+              "displayName": "allrisUrl",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "vorgangsnummer",
+              "displayName": "vorgangsnummer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "firstseen",
+              "displayName": "firstseen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "lastseen",
+              "displayName": "lastseen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "relevantScore",
+              "displayName": "relevantScore",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "themes",
+              "displayName": "themes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "vorfilterThemen",
+              "displayName": "vorfilterThemen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "vorfilterKeywords",
+              "displayName": "vorfilterKeywords",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "vorfilterScore",
+              "displayName": "vorfilterScore",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "matrixPosted",
+              "displayName": "matrixPosted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "nextcloudFolder",
+              "displayName": "nextcloudFolder",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "documentsJson",
+              "displayName": "documentsJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "documentCount",
+              "displayName": "documentCount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "combinedText",
+              "displayName": "combinedText",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "summaryJson",
+              "displayName": "summaryJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "summaryText",
+              "displayName": "summaryText",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "summarySentences",
+              "displayName": "summarySentences",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "summaryCreatedAt",
+              "displayName": "summaryCreatedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "summaryPosted",
+              "displayName": "summaryPosted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "summaryRoomPostedAt",
+              "displayName": "summaryRoomPostedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "thema",
+              "displayName": "thema",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "betroffene",
+              "displayName": "betroffene",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "kostenHaushalt",
+              "displayName": "kostenHaushalt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "buergerwirkung",
+              "displayName": "buergerwirkung",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "offenePunkte",
+              "displayName": "offenePunkte",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "unsicherheitenSummary",
+              "displayName": "unsicherheitenSummary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "analysisJson",
+              "displayName": "analysisJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "contentJson",
+              "displayName": "contentJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "visualJson",
+              "displayName": "visualJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "sprengstoff",
+              "displayName": "sprengstoff",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "empfehlung",
+              "displayName": "empfehlung",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "kommunikationspotenzial",
+              "displayName": "kommunikationspotenzial",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "matrixKurzbetreff",
+              "displayName": "matrixKurzbetreff",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "ampel",
+              "displayName": "ampel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "kurzfassung",
+              "displayName": "kurzfassung",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "kritischeNachfrage",
+              "displayName": "kritischeNachfrage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "begruendungBewertung",
+              "displayName": "begruendungBewertung",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "werProfitiert",
+              "displayName": "werProfitiert",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "werZahltOderTraegtNachteile",
+              "displayName": "werZahltOderTraegtNachteile",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "warumRelevant",
+              "displayName": "warumRelevant",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "belegbareFakten",
+              "displayName": "belegbareFakten",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "unsicherheiten",
+              "displayName": "unsicherheiten",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "warnsignale",
+              "displayName": "warnsignale",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "instagramCarouselNoetig",
+              "displayName": "instagramCarouselNoetig",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "lastAnalysisAt",
+              "displayName": "lastAnalysisAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "rawAiText",
+              "displayName": "rawAiText",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "instagramCaption",
+              "displayName": "instagramCaption",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "instagramCarousel",
+              "displayName": "instagramCarousel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "imageMode",
+              "displayName": "imageMode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "imageHeadline",
+              "displayName": "imageHeadline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imageSubline",
+              "displayName": "imageSubline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imagePrompt",
+              "displayName": "imagePrompt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imageNegativePrompt",
+              "displayName": "imageNegativePrompt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imagePrompts",
+              "displayName": "imagePrompts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "recommendedSlides",
+              "displayName": "recommendedSlides",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "carouselJson",
+              "displayName": "carouselJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "websiteHeadline",
+              "displayName": "websiteHeadline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "websiteArticle",
+              "displayName": "websiteArticle",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "facebookPost",
+              "displayName": "facebookPost",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "pressStatement",
+              "displayName": "pressStatement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "contentCreatedAt",
+              "displayName": "contentCreatedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "reactionRoomPostedAt",
+              "displayName": "reactionRoomPostedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "textExtractionStatus",
+              "displayName": "textExtractionStatus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "textExtractionSource",
+              "displayName": "textExtractionSource",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "textExtractedAt",
+              "displayName": "textExtractedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "documentsTextJson",
+              "displayName": "documentsTextJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "extractedDocumentCount",
+              "displayName": "extractedDocumentCount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "failedExtractionCount",
+              "displayName": "failedExtractionCount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "textExtractionError",
+              "displayName": "textExtractionError",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "visualDecisionReason",
+              "displayName": "visualDecisionReason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "visualNeeded",
+              "displayName": "visualNeeded",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "visualStatus",
+              "displayName": "visualStatus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "instagramSharepicNoetig",
+              "displayName": "instagramSharepicNoetig",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "imageSmallNote",
+              "displayName": "imageSmallNote",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "altText",
+              "displayName": "altText",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "bae18c6a-4d77-427c-a9cf-1de231e2c26e",
+      "name": "Update allris_vorgaenge",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        688,
+        240
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $input.item.json }];"
+      },
+      "id": "613dd5df-dbd5-4bc8-84d7-16181afa9c20",
+      "name": "Nächster Vorgang",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        864,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function getRetryInfo(j) {\n  let vj = {};\n  try {\n    vj = JSON.parse(j.visualJson || '{}');\n    if (typeof vj !== 'object') vj = {};\n  } catch(e) {}\n  const wf = (typeof vj.workflow === 'object' && vj.workflow) ? vj.workflow : {};\n  const attempt = Math.max(1, Number(wf.visualPromptAttempt || j.visualPromptAttempt || 1));\n  const maxAttempts = Math.max(2, Number(wf.visualPromptMaxAttempts || j.visualPromptMaxAttempts || 2));\n  return { attempt, maxAttempts, canRetry: attempt < maxAttempts, vj, wf };\n}\n\nconst j = $input.first().json || {};\n\nfunction safeStr(v) {\n  if (v === null || v === undefined) return \"\";\n  return String(v).trim();\n}\n\nfunction parseMaybeJson(v) {\n  if (!v) return {};\n  if (typeof v === \"object\") return v;\n  try { return JSON.parse(v); } catch (e) { return {}; }\n}\n\n// FIX 1.4: blocked_by_source_lock pass-through — kein KI-Aufruf, keine Pflichtfelder\nif (safeStr(j.visualStage) === 'blocked_source_lock') {\n  return [{\n    json: {\n      ...j,\n      visualStage: 'blocked_source_lock',\n      imageStage: (safeStr(j.imageFinalPath) ? 'composed' : 'not_started')\n    }\n  }];\n}\n\n// FIX 1.1: Retry-Zähler hier erhöhen, BEVOR Update allris_vorgaenge läuft\nconst errorStages = new Set(['prompt_error']);\nif (errorStages.has(safeStr(j.visualStage))) {\n  const { attempt, maxAttempts, vj, wf } = getRetryInfo(j);\n  const newAttempt = attempt + 1;\n  if (newAttempt > maxAttempts) {\n    vj.workflow = { ...wf, visualPromptAttempt: newAttempt, visualPromptMaxAttempts: maxAttempts, visualPromptFinalStatus: 'visual_prompt_failed_final' };\n    return [{\n      json: {\n        ...j,\n        visualJson: JSON.stringify(vj),\n        visualPromptAttempt: newAttempt,\n        visualPromptMaxAttempts: maxAttempts,\n        visualStage: 'prompt_failed_final',\n        imageStage: (safeStr(j.imageFinalPath) ? 'composed' : 'not_started')\n      }\n    }];\n  } else {\n    vj.workflow = { ...wf, visualPromptAttempt: newAttempt, visualPromptMaxAttempts: maxAttempts };\n    return [{\n      json: {\n        ...j,\n        visualJson: JSON.stringify(vj),\n        visualStage: safeStr(j.visualStage),\n        imageStage: (safeStr(j.imageFinalPath) ? 'composed' : 'not_started'),\n        visualPromptAttempt: newAttempt,\n        visualPromptMaxAttempts: maxAttempts\n      }\n    }];\n  }\n}\n\n// Fehler-Pass-Through: Bei visualParseError nicht werfen\nif (j.visualParseError === true) {\n  return [{\n    json: {\n      ...j,\n      visualStage: j.visualStage || 'prompt_error',\n      imageStage: (safeStr(j.imageFinalPath) ? 'composed' : 'not_started')\n    }\n  }];\n}\n\nconst visualJson = parseMaybeJson(j.visualJson);\n\nconst imageHeadline =\n  safeStr(j.imageHeadline) ||\n  safeStr(visualJson.imageHeadline);\n\nconst imageSubline =\n  safeStr(j.imageSubline) ||\n  safeStr(visualJson.imageSubline);\n\nconst imageSmallNote = '';\n\nconst imagePrompt =\n  safeStr(j.imagePrompt) ||\n  safeStr(visualJson.imagePrompt);\n\nconst imageNegativePrompt =\n  safeStr(j.imageNegativePrompt) ||\n  safeStr(visualJson.imageNegativePrompt);\n\nif (!imageHeadline) {\n  throw new Error(\"imageHeadline fehlt.\");\n}\nif (!imageSubline) {\n  throw new Error(\"imageSubline fehlt.\");\n}\nif (!imagePrompt) {\n  throw new Error(\n    \"imagePrompt fehlt. Vorhandene Felder: \" + Object.keys(j).join(\", \")\n  );\n}\n\nreturn [\n  {\n    json: {\n      ...j,\n      imageHeadline,\n      imageSubline,\n      imageSmallNote,\n      imagePrompt,\n      imageNegativePrompt,\n      visualStage: safeStr(j.visualStage) || 'prompt_ready',\n      imageStage: (safeStr(j.imageFinalPath) ? 'composed' : 'not_started')\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        496,
+        240
+      ],
+      "id": "173a680f-c1cb-4e60-b0bd-50f5dafd10bf",
+      "name": "Code in JavaScript",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "check-skip",
+              "leftValue": "={{ $json.imagePromptFound }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "check-blocked",
+              "leftValue": "={{ ($json.visualStage === 'blocked_source_lock') ? 'yes' : 'no' }}",
+              "rightValue": "yes",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "618a20bc-6d75-4b09-a099-19cd8d62d9d8",
+      "name": "IF Skip (Prompt vorhanden)?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1216,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// FIX 10: Prüfe Content-Abschluss - vollständige Prüfung (V3_11)\nconst j = $input.item.json || {};\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; } catch(e) { return {}; }\n}\nfunction asArr(v) {\n  if (Array.isArray(v)) return v.filter(Boolean).map(s => String(s).trim());\n  if (typeof v === 'string' && v.trim()) {\n    try { const p = JSON.parse(v); if (Array.isArray(p)) return p.filter(Boolean).map(s => String(s).trim()); } catch(e) {}\n  }\n  return [];\n}\nfunction robustBool(v) {\n  if (v === true || v === 1) return true;\n  if (typeof v === 'string') { const s = v.trim().toLowerCase(); return s === 'true' || s === '1'; }\n  return false;\n}\n\nconst forceVisualPromptReset = j._forceVisualPromptReset === true || j.visualForceReset === true;\n\nconst errors = [];\n\n// 1. contentStage muss content_generated oder content_posted sein\nconst contentStage = safeStr(j.contentStage);\nconst contentStageOk = contentStage === 'content_generated' || contentStage === 'content_posted';\nconst contentStatusOk = contentStageOk || forceVisualPromptReset;\nif (!contentStatusOk) errors.push('contentStage nicht content_generated/content_posted und kein Force-Reset (ist: ' + contentStage + ')');\n\n// 2. contentJson muss vorhanden sein\nconst contentJson = parseObj(j.contentJson);\nconst contentPresent = !!(safeStr(j.websiteHeadline) || Object.keys(contentJson).length > 0);\nif (!contentPresent) errors.push('contentJson fehlt oder leer');\n\n// 3. sourceLockValid\nconst analysis = parseObj(j.analysisJson);\nconst slValidFlag = robustBool(analysis.sourceLockValid);\nif (!slValidFlag) errors.push('sourceLockValid nicht true');\n\n// 4. sourceLock vollständig (FIX 10: inkl. requiredObjects + requiredAction)\nconst sl = parseObj(analysis.sourceLock || {});\nconst slComplete = !!(\n  safeStr(sl.sourceTopic) && safeStr(sl.sourceConflict) &&\n  asArr(sl.requiredTerms).length >= 2 &&\n  asArr(sl.requiredObjects).length >= 2 &&\n  safeStr(sl.requiredAction) &&\n  slValidFlag\n);\nif (!slComplete) errors.push('sourceLock unvollständig (requiredObjects/requiredAction prüfen)');\n\n// 5. visualAnchors vollständig (FIX 10: inkl. visualVerboteneErsatzmotive >= 2 + visualAnchorsValid)\nconst vaValidFlag = robustBool(analysis.visualAnchorsValid);\nconst va = parseObj(analysis.visualAnchors || {});\nconst vaComplete = !!(\n  safeStr(va.satireThemaKonkret) && safeStr(va.satireKonfliktKonkret) &&\n  asArr(va.visualPflichtobjekte).length >= 2 &&\n  safeStr(va.visualPflichthandlung) && safeStr(va.visualErkennungssatz) &&\n  safeStr(va.visualUeberzeichnung) &&\n  asArr(va.visualVerboteneErsatzmotive).length >= 2 &&\n  vaValidFlag\n);\nif (!vaComplete) errors.push('visualAnchors unvollständig (visualVerboteneErsatzmotive/visualAnchorsValid prüfen)');\n\nconst contentGateOk = errors.length === 0;\n\nreturn [{\n  json: {\n    ...j,\n    _contentGateOk: contentGateOk,\n    _contentGateErrors: errors,\n    _contentGateForceReset: forceVisualPromptReset\n  }\n}];\n"
+      },
+      "id": "91547714-3029-44e7-bf94-4964f6bc61f1",
+      "name": "Prüfe Content-Abschluss",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "cg-check",
+              "leftValue": "={{ $json._contentGateOk }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "47b0affe-8a53-4c70-b4d7-7d23b2e9bf4a",
+      "name": "IF Content-Gate ok?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        896,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sortierung: 1. firstseen aufsteigend, 2. volfdnr numerisch, 3. vorgangKey lexikografisch\nfunction parseDate(v) {\n  if (!v) return 0;\n  const t = Date.parse(String(v));\n  return Number.isFinite(t) ? t : 0;\n}\nfunction parseVolfdnr(v) {\n  if (!v) return Infinity;\n  const n = parseInt(String(v).replace(/[^0-9]/g, ''), 10);\n  return Number.isFinite(n) ? n : Infinity;\n}\nconst items = $input.all();\nitems.sort((a, b) => {\n  const ja = a.json || {}, jb = b.json || {};\n  const fa = parseDate(ja.firstseen), fb = parseDate(jb.firstseen);\n  if (fa !== fb) return fa - fb;\n  const va = parseVolfdnr(ja.volfdnr), vb = parseVolfdnr(jb.volfdnr);\n  if (va !== vb) return va - vb;\n  return String(ja.vorgangKey || '').localeCompare(String(jb.vorgangKey || ''));\n});\nreturn items;\n"
+      },
+      "id": "d3607203-0ca6-4acd-b9c7-a39c97a6b0d2",
+      "name": "Sortiere Visual-Vorgänge",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        288,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// FORCE VISUAL PROMPT RESET SCHALTER\n// Setzt alte Bildprompt-Felder vor der Content-Gate-Prüfung zurück.\n// Standard: AUS. Sicherste Nutzung: In der DataTable visualStatus = \"force_visual_reset\" setzen.\n// Optional: FORCE_RESET_VISUAL_PROMPT auf true setzen und mit VorgangKey/Vorgangsnummer begrenzen.\n// ============================================================\n\nconst FORCE_RESET_VISUAL_PROMPT = false;      // nur kurzzeitig auf true setzen\nconst FORCE_ONLY_VORGANG_KEY = '';             // z.B. 'vol_10742' oder leer\nconst FORCE_ONLY_VORGANGSNUMMER = '';          // z.B. '2026/197' oder leer\n\nconst j = $input.item.json || {};\n\nfunction safeStr(v) {\n  if (v === null || v === undefined) return '';\n  return String(v).trim();\n}\n\nfunction norm(v) {\n  return safeStr(v).toLowerCase();\n}\n\nconst vorgangKey = safeStr(j.vorgangKey);\nconst vorgangsnummer = safeStr(j.vorgangsnummer);\n\nconst resetByStatus = j.visualForceReset === true;\nconst hasTarget = !!(safeStr(FORCE_ONLY_VORGANG_KEY) || safeStr(FORCE_ONLY_VORGANGSNUMMER));\nconst targetMatches =\n  (!safeStr(FORCE_ONLY_VORGANG_KEY) || vorgangKey === safeStr(FORCE_ONLY_VORGANG_KEY)) &&\n  (!safeStr(FORCE_ONLY_VORGANGSNUMMER) || vorgangsnummer === safeStr(FORCE_ONLY_VORGANGSNUMMER));\n\n// Sicherheitslogik:\n// - visualStatus=force_visual_reset setzt immer genau diesen Datensatz zurück.\n// - FORCE_RESET_VISUAL_PROMPT=true ohne Ziel setzt nur bereits geholte Kandidaten zurück.\n// - Für gezieltes Zurücksetzen per Variable immer FORCE_ONLY_* setzen.\nconst resetByVariable = FORCE_RESET_VISUAL_PROMPT === true && (!hasTarget || targetMatches);\nconst doReset = resetByStatus || resetByVariable;\n\nif (!doReset) {\n  return [{ json: { ...j, _forceVisualPromptReset: false } }];\n}\n\nreturn [{\n  json: {\n    ...j,\n    _forceVisualPromptReset: true,\n    _forceVisualPromptResetAt: new Date().toISOString(),\n    _forceVisualPromptResetReason: resetByStatus\n      ? 'visualForceReset flag'\n      : 'FORCE_RESET_VISUAL_PROMPT=true',\n\n    // Wichtig: Status des Visual Prompt Builders wieder öffnen\n    visualStage: 'needs_prompt',\n    imageStage: 'not_started',\n\n    // Alte Visual-Prompt-Artefakte entfernen, damit kein Skip greifen kann\n    imagePrompt: '',\n    imageNegativePrompt: '',\n    imageHeadline: '',\n    imageSubline: '',\n    imageSmallNote: '',\n    altText: '',\n    visualJson: '{}',\n    visualParseError: false,\n    visualDebugReason: '',\n    rawVisualText: '',\n\n    // Nachgelagerte Bildartefakte entkoppeln, falls Spalten existieren\n    imageFinalPath: '',\n    imageCreatedAt: '',\n    imageWorkflowVersion: '',\n\n    // Interne Hinweise, falls Felder nicht als Spalten existieren: unschädlich im Laufzeit-JSON\n    imagePromptFound: false,\n    _skipReason: ''\n  }\n}];\n"
+      },
+      "id": "0e2cf61d-60bd-4471-bc37-3260941f464a",
+      "name": "Force Visual Reset Schalter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        608,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Cutover 2026-07-18: baut die Eingabe fuer den echten Bild-Agent-Aufruf, ersetzt P5s\n// eigene 'AI Visual JSON'-Generierung. sourceTopic/requiredObjects/requiredAction/\n// affectedGroups werden nirgends als eigene DB-Spalte persistiert - sie stecken im\n// bereits gespeicherten faktenAgentJson (siehe P3-Cutover), deshalb hier von dort lesen.\n// satireBrief/imageHeadline/imageSubline usw. sind bereits echte Top-Level-Spalten\n// (Auto-Wahl aus P3 fuer den Text, ggf. durch P5bs Matrix-Umfrage fuers Bild ueberschrieben).\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction asArr(v) {\n  if (Array.isArray(v)) return v.filter(Boolean).map(safeStr);\n  if (typeof v === 'string' && v.trim()) { try { const p = JSON.parse(v); if (Array.isArray(p)) return p.filter(Boolean).map(safeStr); } catch (e) {} }\n  return [];\n}\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; }\n  catch (e) { return {}; }\n}\n\nconst row = $json;\nconst fakten = parseObj(row.faktenAgentJson);\n\nreturn {\n  json: {\n    ...row,\n    vorgangKey: safeStr(row.vorgangKey),\n    vorgangsnummer: safeStr(row.vorgangsnummer),\n    sourceTopic: safeStr(fakten.sourceTopic),\n    requiredObjects: asArr(fakten.requiredObjects),\n    requiredAction: safeStr(fakten.requiredAction),\n    affectedGroups: asArr(fakten.affectedGroups),\n    satireBrief: safeStr(row.satireBrief),\n    satireAngle: safeStr(row.satireAngle),\n    satirePunchlines: asArr(row.satirePunchlines),\n    satireTarget: safeStr(row.satireTarget),\n    satireIntensity: row.satireIntensity,\n    satireDoNotClaim: asArr(row.satireDoNotClaim),\n    satireSafetyNote: safeStr(row.satireSafetyNote),\n    imageHeadline: safeStr(row.imageHeadline),\n    imageSubline: safeStr(row.imageSubline)\n  }\n};"
+      },
+      "id": "82e07b70-abbc-4ec3-acfa-aa956f947ce8",
+      "name": "Bild-Agent: Baue Eingabe",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "WR1xVNo4AjcsKlMv",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Bild_Agent"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "e91ed786-ca99-43a8-9ebf-048a124da45f",
+      "name": "Execute Workflow Bild-Agent",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        416,
+        40
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Stellt den Vorgangskontext nach dem Bild-Agent-Aufruf wieder her (gleiches Muster wie\n// die anderen 'Stelle Kontext nach ... Agent wieder her'-Nodes in P3) - Execute Workflow\n// ersetzt das Item-JSON durch die reine Sub-Workflow-Antwort.\n// Bei Parse-Fehler: visualParseError=true setzen, damit 'Code in JavaScript' den\n// bestehenden, unveraenderten Fehler-/Retry-Pfad nimmt (visualStage='prompt_error'),\n// statt beim fehlenden imagePrompt zu werfen.\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst response = $json || {};\nconst base = $('Bild-Agent: Baue Eingabe').itemMatching($itemIndex).json || {};\nconst hasParseError = response.parseError === true || typeof response.imagePrompt !== 'string';\n\nif (hasParseError) {\n  return {\n    json: {\n      ...base,\n      visualParseError: true,\n      visualDebugReason: 'Bild-Agent Parse-Fehler oder Aufruf fehlgeschlagen',\n      visualStage: 'prompt_error',\n      imageStage: (safeStr(base.imageFinalPath) ? 'composed' : 'not_started'),\n      visualPromptCreatedAt: new Date().toISOString()\n    }\n  };\n}\n\nreturn {\n  json: {\n    ...base,\n    imageHeadline: safeStr(response.imageHeadline) || safeStr(base.imageHeadline),\n    imageSubline: safeStr(response.imageSubline) || safeStr(base.imageSubline),\n    imagePrompt: safeStr(response.imagePrompt),\n    imageNegativePrompt: safeStr(response.imageNegativePrompt),\n    altText: safeStr(response.altText),\n    visualMetaphor: safeStr(response.visualMetaphor),\n    visualParseError: false,\n    visualDebugReason: '',\n    visualStage: 'prompt_ready',\n    imageStage: (safeStr(base.imageFinalPath) ? 'composed' : 'not_started'),\n    visualPromptCreatedAt: new Date().toISOString()\n  }\n};"
+      },
+      "id": "ae898110-8038-4899-ac88-5ce86962b08d",
+      "name": "Stelle Kontext nach Bild-Agent wieder her",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        40
+      ]
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "tags": [],
+  "versionId": "c2c5fd97-22c1-4235-99ac-e5e9ecc9c121"
+}
