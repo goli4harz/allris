@@ -1,4 +1,490 @@
 {
+  "active": false,
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hole needs_content",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Hole blockierte Visual-Status",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Hole blocked_by_source_lock (Alert)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Hole visual_topic_error (Alert)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole blocked_by_source_lock (Alert)": {
+      "main": [
+        [
+          {
+            "node": "Merge Blockierte Vorgänge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole visual_topic_error (Alert)": {
+      "main": [
+        [
+          {
+            "node": "Merge Blockierte Vorgänge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Blockierte Vorgänge": {
+      "main": [
+        [
+          {
+            "node": "Baue Blockiert-Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue Blockiert-Alert": {
+      "main": [
+        [
+          {
+            "node": "Send Matrix Blockiert-Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole needs_content": {
+      "main": [
+        [
+          {
+            "node": "Sortiere Reaktions-Vorgänge nach Vorgangsnummer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Reaktions-Vorgänge": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Prüfe Content-Freigabe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Content JSON": {
+      "main": [
+        [
+          {
+            "node": "Parse Content JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Content JSON": {
+      "main": [
+        [
+          {
+            "node": "Prüfe Content vollständig",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Visual Decision": {
+      "main": [
+        [
+          {
+            "node": "Build Reaction Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Reaction Message": {
+      "main": [
+        [
+          {
+            "node": "Speichere Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Speichere Content": {
+      "main": [
+        [
+          {
+            "node": "Build Reaktion NC Path",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Matrix Raum B": {
+      "main": [
+        [
+          {
+            "node": "Check Matrix Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Matrix Status": {
+      "main": [
+        [
+          {
+            "node": "Update Final Status",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Nächster Reaktions-Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Final Status": {
+      "main": [
+        [
+          {
+            "node": "Nächster Reaktions-Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nächster Reaktions-Vorgang": {
+      "main": [
+        [
+          {
+            "node": "Loop Reaktions-Vorgänge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Reaktion NC Path": {
+      "main": [
+        [
+          {
+            "node": "NC Erstelle Reaktion Ordner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Erstelle Reaktion Ordner": {
+      "main": [
+        [
+          {
+            "node": "Build Reaktion Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Reaktion Markdown": {
+      "main": [
+        [
+          {
+            "node": "NC Upload Reaktion MD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Upload Reaktion MD": {
+      "main": [
+        [
+          {
+            "node": "Send Matrix Raum B",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Originale NC Path": {
+      "main": [
+        [
+          {
+            "node": "NC Liste Originaldokumente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Liste Originaldokumente": {
+      "main": [
+        [
+          {
+            "node": "Filter Originaldokumente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Originaldokumente": {
+      "main": [
+        [
+          {
+            "node": "NC Download Originaldokument",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Download Originaldokument": {
+      "main": [
+        [
+          {
+            "node": "Tika Text extrahieren",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sammle Dokumenttexte pro Vorgang": {
+      "main": [
+        [
+          {
+            "node": "Prepare AI Content Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare AI Content Input": {
+      "main": [
+        [
+          {
+            "node": "Prüfe Source-Lock (Content)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tika Text extrahieren": {
+      "main": [
+        [
+          {
+            "node": "Normalize Extracted Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Extracted Text": {
+      "main": [
+        [
+          {
+            "node": "Sammle Dokumenttexte pro Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prüfe Content vollständig": {
+      "main": [
+        [
+          {
+            "node": "IF Content vollständig?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Content vollständig?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Visual Decision",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Speichere Content-Fehler",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Nächster Reaktions-Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Speichere Content-Fehler": {
+      "main": [
+        [
+          {
+            "node": "Nächster Reaktions-Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prüfe Source-Lock (Content)": {
+      "main": [
+        [
+          {
+            "node": "IF Source-Lock gültig?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Source-Lock gültig?": {
+      "main": [
+        [
+          {
+            "node": "AI Content JSON",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Source-Lock blockiert Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Source-Lock blockiert Content": {
+      "main": [
+        [
+          {
+            "node": "Speichere Content-Fehler",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Nächster Reaktions-Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prüfe Content-Freigabe": {
+      "main": [
+        [
+          {
+            "node": "IF Content freigegeben?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Content freigegeben?": {
+      "main": [
+        [
+          {
+            "node": "Build Originale NC Path",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Nächster Reaktions-Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sortiere Reaktions-Vorgänge nach Vorgangsnummer": {
+      "main": [
+        [
+          {
+            "node": "Loop Reaktions-Vorgänge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole blockierte Visual-Status": {
+      "main": [
+        [
+          {
+            "node": "Repariere blockierte Visual-Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Repariere blockierte Visual-Status": {
+      "main": [
+        [
+          {
+            "node": "DB Repair Visual-Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "wGLMrDnSavNIprzu",
+  "meta": null,
   "name": "ALLRIS_P4_Content_Reaktion",
   "nodes": [
     {
@@ -2341,7 +2827,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "// V25.7: Content-Freigabe mit positiver Whitelist\n// WICHTIG: Dieser Node läuft im Modus \"Run Once for Each Item\" und muss ein einzelnes Item-Objekt zurückgeben, kein Array.\nconst j = $input.item.json || {};\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst contentStage = safeStr(j.contentStage);\n\n// Positive Whitelist - NUR diese exakten Werte sind erlaubt.\n// blocked_content_error bleibt ein Fehlerstatus und wird nicht normal weiterverarbeitet.\n// Bereits falsch hängende Datensätze werden separat durch den Reparaturzweig geheilt.\n// topic_error blockiert bewusst nur das Sharepic (P2/P3), nicht die Text-Content-\n// Erstellung hier - sonst bleiben sachlich unbedenkliche Vorgänge (z.B. weil das Bild-Motiv\n// sensible Betroffene zeigen würde) für immer bei needs_content haengen, ohne dass je ein\n// Website-/Facebook-/Pressetext entsteht.\nconst ALLOWED_VISUAL_STAGE = new Set(['waiting_for_content', 'not_applicable', 'topic_error', 'topic_ok']);\n\nconst visualStage = safeStr(j.visualStage);\nconst visualAllowed = ALLOWED_VISUAL_STAGE.has(visualStage);\nconst isAllowed = contentStage === 'needs_content' && visualAllowed;\n\nreturn {\n  json: {\n    ...j,\n    _contentFreigabe: isAllowed,\n    _contentFreigabeReason: isAllowed\n      ? 'freigegeben (contentStage=' + contentStage + ', visualStage=' + visualStage + ')'\n      : ('nicht freigegeben: contentStage=' + contentStage + ', visualStage=' + (visualStage || '(leer)'))\n  }\n};"
+        "jsCode": "// V25.7: Content-Freigabe mit positiver Whitelist\n// WICHTIG: Dieser Node läuft im Modus \"Run Once for Each Item\" und muss ein einzelnes Item-Objekt zurückgeben, kein Array.\nconst j = $input.item.json || {};\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst contentStage = safeStr(j.contentStage);\n\n// Positive Whitelist - NUR diese exakten Werte sind erlaubt.\n// blocked_content_error bleibt ein Fehlerstatus und wird nicht normal weiterverarbeitet.\n// Bereits falsch hängende Datensätze werden separat durch den Reparaturzweig geheilt.\n// topic_error blockiert bewusst nur das Sharepic (P2/P3), nicht die Text-Content-\n// Erstellung hier - sonst bleiben sachlich unbedenkliche Vorgänge (z.B. weil das Bild-Motiv\n// sensible Betroffene zeigen würde) für immer bei needs_content haengen, ohne dass je ein\n// Website-/Facebook-/Pressetext entsteht.\nconst ALLOWED_VISUAL_STAGE = new Set(['waiting_for_content', 'not_applicable', 'topic_error', 'topic_ok', 'awaiting_headline_choice', 'headline_selected']);\n\nconst visualStage = safeStr(j.visualStage);\nconst visualAllowed = ALLOWED_VISUAL_STAGE.has(visualStage);\nconst isAllowed = contentStage === 'needs_content' && visualAllowed;\n\nreturn {\n  json: {\n    ...j,\n    _contentFreigabe: isAllowed,\n    _contentFreigabeReason: isAllowed\n      ? 'freigegeben (contentStage=' + contentStage + ', visualStage=' + visualStage + ')'\n      : ('nicht freigegeben: contentStage=' + contentStage + ', visualStage=' + (visualStage || '(leer)'))\n  }\n};"
       },
       "id": "11c7b806-d763-44b9-a6f6-ab1ece700e2b",
       "name": "Prüfe Content-Freigabe",
@@ -2359,7 +2845,7 @@
             "caseSensitive": true,
             "leftValue": "",
             "typeValidation": "strict",
-            "version": 2
+            "version": 1
           },
           "conditions": [
             {
@@ -2689,498 +3175,10 @@
     }
   ],
   "pinData": {},
-  "connections": {
-    "Schedule Trigger": {
-      "main": [
-        [
-          {
-            "node": "Hole needs_content",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Hole blockierte Visual-Status",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Hole blocked_by_source_lock (Alert)",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Hole visual_topic_error (Alert)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Hole blocked_by_source_lock (Alert)": {
-      "main": [
-        [
-          {
-            "node": "Merge Blockierte Vorgänge",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Hole visual_topic_error (Alert)": {
-      "main": [
-        [
-          {
-            "node": "Merge Blockierte Vorgänge",
-            "type": "main",
-            "index": 1
-          }
-        ]
-      ]
-    },
-    "Merge Blockierte Vorgänge": {
-      "main": [
-        [
-          {
-            "node": "Baue Blockiert-Alert",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Baue Blockiert-Alert": {
-      "main": [
-        [
-          {
-            "node": "Send Matrix Blockiert-Alert",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Hole needs_content": {
-      "main": [
-        [
-          {
-            "node": "Sortiere Reaktions-Vorgänge nach Vorgangsnummer",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Loop Reaktions-Vorgänge": {
-      "main": [
-        [],
-        [
-          {
-            "node": "Prüfe Content-Freigabe",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "AI Content JSON": {
-      "main": [
-        [
-          {
-            "node": "Parse Content JSON",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Parse Content JSON": {
-      "main": [
-        [
-          {
-            "node": "Prüfe Content vollständig",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Prepare Visual Decision": {
-      "main": [
-        [
-          {
-            "node": "Build Reaction Message",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Build Reaction Message": {
-      "main": [
-        [
-          {
-            "node": "Speichere Content",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Speichere Content": {
-      "main": [
-        [
-          {
-            "node": "Build Reaktion NC Path",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Send Matrix Raum B": {
-      "main": [
-        [
-          {
-            "node": "Check Matrix Status",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Check Matrix Status": {
-      "main": [
-        [
-          {
-            "node": "Update Final Status",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Nächster Reaktions-Vorgang",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Update Final Status": {
-      "main": [
-        [
-          {
-            "node": "Nächster Reaktions-Vorgang",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Nächster Reaktions-Vorgang": {
-      "main": [
-        [
-          {
-            "node": "Loop Reaktions-Vorgänge",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Build Reaktion NC Path": {
-      "main": [
-        [
-          {
-            "node": "NC Erstelle Reaktion Ordner",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NC Erstelle Reaktion Ordner": {
-      "main": [
-        [
-          {
-            "node": "Build Reaktion Markdown",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Build Reaktion Markdown": {
-      "main": [
-        [
-          {
-            "node": "NC Upload Reaktion MD",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NC Upload Reaktion MD": {
-      "main": [
-        [
-          {
-            "node": "Send Matrix Raum B",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Build Originale NC Path": {
-      "main": [
-        [
-          {
-            "node": "NC Liste Originaldokumente",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NC Liste Originaldokumente": {
-      "main": [
-        [
-          {
-            "node": "Filter Originaldokumente",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Filter Originaldokumente": {
-      "main": [
-        [
-          {
-            "node": "NC Download Originaldokument",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NC Download Originaldokument": {
-      "main": [
-        [
-          {
-            "node": "Tika Text extrahieren",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Sammle Dokumenttexte pro Vorgang": {
-      "main": [
-        [
-          {
-            "node": "Prepare AI Content Input",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Prepare AI Content Input": {
-      "main": [
-        [
-          {
-            "node": "Prüfe Source-Lock (Content)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Tika Text extrahieren": {
-      "main": [
-        [
-          {
-            "node": "Normalize Extracted Text",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Normalize Extracted Text": {
-      "main": [
-        [
-          {
-            "node": "Sammle Dokumenttexte pro Vorgang",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Prüfe Content vollständig": {
-      "main": [
-        [
-          {
-            "node": "IF Content vollständig?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF Content vollständig?": {
-      "main": [
-        [
-          {
-            "node": "Prepare Visual Decision",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Speichere Content-Fehler",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Nächster Reaktions-Vorgang",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Speichere Content-Fehler": {
-      "main": [
-        [
-          {
-            "node": "Nächster Reaktions-Vorgang",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Prüfe Source-Lock (Content)": {
-      "main": [
-        [
-          {
-            "node": "IF Source-Lock gültig?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF Source-Lock gültig?": {
-      "main": [
-        [
-          {
-            "node": "AI Content JSON",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Source-Lock blockiert Content",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Source-Lock blockiert Content": {
-      "main": [
-        [
-          {
-            "node": "Speichere Content-Fehler",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Nächster Reaktions-Vorgang",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Prüfe Content-Freigabe": {
-      "main": [
-        [
-          {
-            "node": "IF Content freigegeben?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF Content freigegeben?": {
-      "main": [
-        [
-          {
-            "node": "Build Originale NC Path",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Nächster Reaktions-Vorgang",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Sortiere Reaktions-Vorgänge nach Vorgangsnummer": {
-      "main": [
-        [
-          {
-            "node": "Loop Reaktions-Vorgänge",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Hole blockierte Visual-Status": {
-      "main": [
-        [
-          {
-            "node": "Repariere blockierte Visual-Status",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Repariere blockierte Visual-Status": {
-      "main": [
-        [
-          {
-            "node": "DB Repair Visual-Status",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
-  "active": true,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "ccec20b9-ef06-4696-a20a-22c5402e8dff",
-  "meta": {
-    "instanceId": "3918cd7b1079333be95f7df5d1ce0c807af27c5d6c51c5bb061c962138165169"
-  },
-  "id": "wGLMrDnSavNIprzu",
-  "tags": []
+  "tags": [],
+  "versionId": "dc2631bc-8058-4992-9f32-b5fdca220bfc"
 }
