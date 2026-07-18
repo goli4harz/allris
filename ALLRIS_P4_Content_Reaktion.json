@@ -3022,7 +3022,6 @@
           "mappingMode": "defineBelow",
           "value": {
             "contentJson": "={{ typeof $json.contentJson === 'string' ? ($json.contentJson || '{}') : JSON.stringify($json.contentJson || {}) }}",
-            "visualStatus": "={{ $json.visualStatus || 'needs_visual_prompt' }}",
             "visualStage": "={{ $json.visualStage || 'needs_prompt' }}",
             "imageStage": "={{ $json.imageStage }}",
             "visualNeeded": "={{ $json.visualNeeded === true || String($json.visualNeeded).toLowerCase() === 'true' ? 'true' : 'false' }}",
