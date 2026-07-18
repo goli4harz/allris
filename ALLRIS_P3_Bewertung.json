@@ -2571,6 +2571,257 @@
         }
       },
       "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Cutover 2026-07-18: Satire-Agent liefert 3 echte Varianten (unterschiedliche Angriffswinkel,\n// nicht nur Formulierungen). Text (P4) bekommt SOFORT eine automatische Wahl (variants[1],\n// gleiche Default-Logik wie im Schattenbetrieb), damit P4 nicht auf die Matrix-Umfrage warten\n// muss. Das Bild (P5/Bild-Agent) bekommt seine Variante spaeter unabhaengig ueber die\n// Matrix-Umfrage unten - deshalb bleiben imageHeadline/imageSubline hier bewusst LEER, damit\n// P5s bestehendes Gate (IF Headline bereits gewaehlt?) korrekt weiter auf die Umfrage wartet.\n// Um zu vermeiden, dass Bild und Text unterschiedliche Satire-Winkel zeigen, markiert die\n// Umfrage-Nachricht sichtbar, welcher Kandidat zum bereits gewaehlten Text passt.\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; }\n  catch (e) { return {}; }\n}\nfunction asArr(v) {\n  if (Array.isArray(v)) return v.filter(Boolean).map(safeStr);\n  if (typeof v === 'string' && v.trim()) { try { const p = JSON.parse(v); if (Array.isArray(p)) return p.filter(Boolean).map(safeStr); } catch (e) {} }\n  return [];\n}\n\nconst satire = parseObj($json.satireAgentJson);\nconst variants = Array.isArray(satire.variants) ? satire.variants : [];\nconst faktenBase = $('Fakten-Shadow: Baue Eingabe').itemMatching($itemIndex).json || {};\nconst vorgangKey = safeStr($json.vorgangKey);\nconst vorgangsnummer = safeStr($json.vorgangsnummer);\nconst title = safeStr(faktenBase.title);\nconst vnCode = vorgangsnummer.replace(/[^0-9A-Za-z]+/g, '-').replace(/^-+|-+$/g, '');\n\nconst autoIdx = variants.length >= 2 ? 1 : (variants.length === 1 ? 0 : -1);\nconst textVariant = autoIdx >= 0 ? variants[autoIdx] : {};\n\nconst satireBrief = safeStr(textVariant.satireBrief);\nconst satireAngle = safeStr(textVariant.satireAngle);\nconst satirePunchlines = asArr(textVariant.satirePunchlines);\nconst satireTarget = safeStr(textVariant.satireTarget);\nconst satireIntensity = Number(textVariant.satireIntensity) || 0;\nconst satireDoNotClaim = asArr(textVariant.satireDoNotClaim);\nconst satireSafetyNote = safeStr(textVariant.satireSafetyNote);\n\nconst candidates = variants.slice(0, 4).map((v, i) => ({\n  code: (vnCode ? vnCode + '-' : '') + 'K' + (i + 1),\n  imageHeadline: safeStr(v.imageHeadline),\n  imageSubline: safeStr(v.imageSubline),\n  satireBrief: safeStr(v.satireBrief),\n  satireAngle: safeStr(v.satireAngle),\n  satirePunchlines: asArr(v.satirePunchlines),\n  satireTarget: safeStr(v.satireTarget),\n  satireIntensity: Number(v.satireIntensity) || 0,\n  satireDoNotClaim: asArr(v.satireDoNotClaim),\n  satireSafetyNote: safeStr(v.satireSafetyNote),\n  isTextMatch: i === autoIdx\n})).filter(c => c.imageHeadline && c.imageSubline);\n\nconst postedAt = new Date().toISOString();\nconst visualJson = JSON.stringify({ headlineCandidates: candidates, candidatesPostedAt: postedAt });\n\nlet matrixMessage = '';\nlet txnId = '';\nlet shouldPost = candidates.length >= 2;\n\nif (shouldPost) {\n  const lines = ['🎨 Bildvorschläge für ' + vorgangsnummer + ' – ' + title, ''];\n  for (const c of candidates) {\n    lines.push(c.code + ': ' + c.imageHeadline + ' – ' + c.imageSubline + (c.isTextMatch ? ' (passt zum veröffentlichten Text)' : ''));\n  }\n  lines.push('');\n  const exampleCode = candidates[0].code;\n  lines.push('Antworte mit dem gewünschten Code (z.B. \"' + exampleCode + '\"), um die Auswahl zu bestätigen, oder mit \"' + vnCode + '-X\" für komplett neue Vorschläge.');\n  matrixMessage = lines.join('\\n');\n  txnId = 'satire_hdl_' + Date.now() + '_' + vorgangKey.replace(/[^a-zA-Z0-9]/g, '').substring(0, 10);\n}\n\nreturn {\n  json: {\n    vorgangKey,\n    vorgangsnummer,\n    satireBrief,\n    satireAngle,\n    satirePunchlines: JSON.stringify(satirePunchlines),\n    satireTarget,\n    satireIntensity,\n    satireDoNotClaim: JSON.stringify(satireDoNotClaim),\n    satireSafetyNote,\n    visualJson,\n    visualStage: shouldPost ? 'awaiting_headline_choice' : 'not_applicable',\n    imageStage: 'not_started',\n    shouldPost,\n    matrixMessage,\n    txnId\n  }\n};"
+      },
+      "id": "7be127cf-f097-4669-8239-5b9421fd1e24",
+      "name": "Satire-Ergebnis: Baue Text-Auswahl + Umfrage",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        24592,
+        8208
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "should-post-check",
+              "leftValue": "={{ $json.shouldPost }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b1e56023-6721-434e-b58e-4414006cc408",
+      "name": "IF Umfrage noetig? (>=2 Varianten)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        24816,
+        8208
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://matrix.org/_matrix/client/v3/rooms/!COxTeLJyPszYlaHbIx:matrix.golietz.de/send/m.room.message/{{ $json.txnId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ msgtype: 'm.text', body: $json.matrixMessage }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "7a2c372d-c6a8-48c0-9aef-c40ba5fb5797",
+      "name": "Sende Satire-Varianten Matrix-Umfrage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        25040,
+        8148
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "od1pN1F5wy2irSDs",
+          "name": "Header Auth account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Stellt den Vorgangskontext nach dem Matrix-Versand wieder her (gleiches Muster wie\n// 'Stelle Kontext nach Matrix wieder her' in P5) - der HTTP-Node ersetzt das Item-JSON\n// durch die rohe Matrix-API-Antwort und wuerde sonst vorgangKey/satireBrief/visualJson usw. verlieren.\nconst response = $json || {};\nconst base = $('Satire-Ergebnis: Baue Text-Auswahl + Umfrage').itemMatching($itemIndex).json || {};\n\nconst hasError = !!(\n  response.error ||\n  response.errcode ||\n  (response.statusCode && Number(response.statusCode) >= 400)\n);\nconst eventId = response.event_id || response.eventId || '';\n\nreturn {\n  json: {\n    ...base,\n    matrixSentOk: !hasError && !!eventId,\n    matrixSendError: hasError ? (response.error || response.errcode || 'Matrix-Versand fehlgeschlagen') : ''\n  }\n};"
+      },
+      "id": "c0ab8536-dd0d-4b08-acef-da7215300906",
+      "name": "Stelle Kontext nach Satire-Umfrage wieder her",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        25264,
+        8148
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "satireBrief": "={{ $json.satireBrief }}",
+            "satireAngle": "={{ $json.satireAngle }}",
+            "satirePunchlines": "={{ $json.satirePunchlines }}",
+            "satireTarget": "={{ $json.satireTarget }}",
+            "satireIntensity": "={{ $json.satireIntensity }}",
+            "satireDoNotClaim": "={{ $json.satireDoNotClaim }}",
+            "satireSafetyNote": "={{ $json.satireSafetyNote }}",
+            "visualJson": "={{ $json.visualJson }}",
+            "visualStage": "={{ $json.visualStage }}",
+            "imageStage": "={{ $json.imageStage }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "satireBrief",
+              "displayName": "satireBrief",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "satireAngle",
+              "displayName": "satireAngle",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "satirePunchlines",
+              "displayName": "satirePunchlines",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "satireTarget",
+              "displayName": "satireTarget",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "satireIntensity",
+              "displayName": "satireIntensity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "satireDoNotClaim",
+              "displayName": "satireDoNotClaim",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "satireSafetyNote",
+              "displayName": "satireSafetyNote",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "visualJson",
+              "displayName": "visualJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "visualStage",
+              "displayName": "visualStage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imageStage",
+              "displayName": "imageStage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "9b6ea9b6-d251-4715-a704-77831c226993",
+      "name": "Schreibe Satire-Ergebnis",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        25488,
+        8208
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
     }
   ],
   "pinData": {},
@@ -3440,6 +3691,11 @@
             "node": "QA-Shadow: Baue QA-Eingabe",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Satire-Ergebnis: Baue Text-Auswahl + Umfrage",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -3472,6 +3728,57 @@
         [
           {
             "node": "Sende QA-Block Matrix-Meldung",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Satire-Ergebnis: Baue Text-Auswahl + Umfrage": {
+      "main": [
+        [
+          {
+            "node": "IF Umfrage noetig? (>=2 Varianten)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Umfrage noetig? (>=2 Varianten)": {
+      "main": [
+        [
+          {
+            "node": "Sende Satire-Varianten Matrix-Umfrage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Schreibe Satire-Ergebnis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sende Satire-Varianten Matrix-Umfrage": {
+      "main": [
+        [
+          {
+            "node": "Stelle Kontext nach Satire-Umfrage wieder her",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stelle Kontext nach Satire-Umfrage wieder her": {
+      "main": [
+        [
+          {
+            "node": "Schreibe Satire-Ergebnis",
             "type": "main",
             "index": 0
           }
