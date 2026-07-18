@@ -2047,7 +2047,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "return {\n  json: {\n    qaStage: 'analyse',\n    vorgangKey: $json.vorgangKey,\n    vorgangsnummer: $json.vorgangsnummer,\n    title: $json.title,\n    analysisJson: $json.analysisJson,\n    summaryText: $json.summaryText,\n    combinedText: $json.combinedText,\n    skipAdversarialCheck: false\n  }\n};"
+        "jsCode": "// Cutover 2026-07-18: laeuft jetzt nach Fakten+Satire (nicht mehr parallel zu Fakten),\n// prueft echten Fakten-Agent-SourceLock statt P3s alter Extraktion.\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return p && typeof p === 'object' && !Array.isArray(p) ? p : {}; }\n  catch (e) { return {}; }\n}\nfunction asArr(v) {\n  if (Array.isArray(v)) return v.filter(Boolean).map(safeStr);\n  if (typeof v === 'string' && v.trim()) { try { const p = JSON.parse(v); if (Array.isArray(p)) return p.filter(Boolean).map(safeStr); } catch (e) {} }\n  return [];\n}\n\nconst base = $('Fakten-Shadow: Baue Eingabe').item.json || {};\nconst rawAnalysisJson = ($('Parse Analyse JSON').item.json || {}).analysisJson || '{}';\nconst analysis = parseObj(rawAnalysisJson);\nconst fakten = parseObj($('Stelle Kontext nach Fakten-Agent wieder her').item.json.faktenAgentJson);\n\nconst sourceLock = {\n  sourceTopic: safeStr(fakten.sourceTopic),\n  sourceConflict: safeStr(fakten.sourceConflict),\n  requiredTerms: asArr(fakten.requiredTerms),\n  requiredObjects: asArr(fakten.requiredObjects),\n  requiredAction: safeStr(fakten.requiredAction)\n};\nconst sourceLockValid = !!(sourceLock.sourceTopic && sourceLock.sourceConflict && sourceLock.requiredTerms.length >= 2 && fakten.parseError !== true);\nconst mergedAnalysisJson = JSON.stringify({ ...analysis, sourceLock, sourceLockValid });\n\nreturn {\n  json: {\n    qaStage: 'analyse',\n    vorgangKey: safeStr(base.vorgangKey),\n    vorgangsnummer: safeStr(base.vorgangsnummer),\n    title: safeStr(base.title),\n    analysisJson: mergedAnalysisJson,\n    summaryText: safeStr(base.summaryText),\n    combinedText: safeStr(base.combinedText),\n    skipAdversarialCheck: false\n  }\n};"
       },
       "id": "5316ed61-4875-4899-ae7e-75d53991275b",
       "name": "QA-Shadow: Baue QA-Eingabe",
@@ -2425,62 +2425,49 @@
     },
     {
       "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; }\n  catch (e) { return {}; }\n}\nfunction asArray(v) { return Array.isArray(v) ? v.filter(Boolean).map(safeStr) : []; }\n\nconst satire = parseObj($json.satireAgentJson);\nconst variants = Array.isArray(satire.variants) ? satire.variants : [];\nconst chosen = variants.length > 1 ? variants[1] : (variants[0] || {});\n\nreturn {\n  json: {\n    vorgangKey: $json.vorgangKey,\n    vorgangsnummer: safeStr($json.vorgangsnummer),\n    sourceTopic: safeStr($json.sourceTopic),\n    requiredObjects: asArray($json.requiredObjects),\n    requiredAction: safeStr($json.requiredAction),\n    affectedGroups: asArray($json.affectedGroups),\n    satireBrief: safeStr(chosen.satireBrief),\n    satireAngle: safeStr(chosen.satireAngle),\n    satirePunchlines: asArray(chosen.satirePunchlines),\n    satireTarget: safeStr(chosen.satireTarget),\n    satireIntensity: chosen.satireIntensity,\n    satireDoNotClaim: asArray(chosen.satireDoNotClaim),\n    satireSafetyNote: safeStr(chosen.satireSafetyNote),\n    imageHeadline: safeStr(chosen.imageHeadline),\n    imageSubline: safeStr(chosen.imageSubline)\n  }\n};"
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "qa-passed-check",
+              "leftValue": "={{ $json.qaPassed }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
       },
-      "id": "b7b2a24e-9255-4691-aa55-b97bf2b0a1ec",
-      "name": "Bild-Shadow: Baue Eingabe",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "id": "1878a823-84ff-4de1-9aaf-d51bbb3d6355",
+      "name": "IF QA bestanden?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
       "position": [
-        24816,
-        7888
+        24224,
+        7872
       ]
     },
     {
       "parameters": {
-        "workflowId": {
-          "__rl": true,
-          "value": "WR1xVNo4AjcsKlMv",
-          "mode": "list",
-          "cachedResultUrl": "/workflow/WR1xVNo4AjcsKlMv",
-          "cachedResultName": "ALLRIS_Bild_Agent"
-        },
-        "workflowInputs": {
-          "mappingMode": "defineBelow",
-          "value": {},
-          "matchingColumns": [],
-          "schema": [],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": true
-        },
-        "options": {
-          "waitForSubWorkflow": true
-        }
-      },
-      "id": "5ceaaacc-abee-4c4e-a9db-240aedd1e19c",
-      "name": "Execute Workflow Bild-Agent (Shadow)",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.2,
-      "position": [
-        25040,
-        7888
-      ],
-      "alwaysOutputData": true,
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst response = $json || {};\nconst original = $('Bild-Shadow: Baue Eingabe').itemMatching($itemIndex).json || {};\nconst hasPrompt = typeof response.imagePrompt === 'string' && response.imagePrompt.length > 0;\n\nconst result = hasPrompt ? response : {\n  vorgangKey: safeStr(original.vorgangKey),\n  parseError: true,\n  callFailed: true\n};\n\nreturn {\n  json: {\n    vorgangKey: safeStr(original.vorgangKey) || safeStr(response.vorgangKey),\n    bildAgentJson: JSON.stringify(result)\n  }\n};"
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction asArr(v) { return Array.isArray(v) ? v : []; }\n\nconst j = $json;\nconst violations = asArr(j.violations).map(v => safeStr(v && v.message)).filter(Boolean);\nconst hallucinations = asArr(j.hallucinationSuspects).map(h => safeStr(h && h.claim)).filter(Boolean);\nconst reasons = [...violations, ...hallucinations];\n\nconst lines = [\n  '⚠️ QA-Block: Vorgang ' + safeStr(j.vorgangsnummer) + ' (' + safeStr(j.vorgangKey) + ')',\n  reasons.length ? 'Grund: ' + reasons.join(' | ') : 'Grund: unbekannt (QA-Agent-Aufruf evtl. fehlgeschlagen)',\n  'Bitte in der Data Table pruefen und contentStage/visualStage nach Korrektur manuell zuruecksetzen.'\n];\n\nreturn {\n  json: {\n    ...j,\n    txnId: 'qa-block-' + Date.now() + '-' + Math.random().toString(36).slice(2),\n    summaryMessage: lines.join('\\n')\n  }\n};"
       },
-      "id": "302ce25a-d4f2-41b9-8d6c-b97a608be01b",
-      "name": "Stelle Kontext nach Bild-Agent wieder her",
+      "id": "bf763522-ea1a-4a69-ab72-b689087f3203",
+      "name": "Baue QA-Block Nachricht",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        25264,
-        7888
+        24448,
+        7792
       ]
     },
     {
@@ -2504,13 +2491,24 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "bildAgentJson": "={{ $json.bildAgentJson }}"
+            "contentStage": "error",
+            "contentErrorReason": "qa_blocked"
           },
           "matchingColumns": [],
           "schema": [
             {
-              "id": "bildAgentJson",
-              "displayName": "bildAgentJson",
+              "id": "contentStage",
+              "displayName": "contentStage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "contentErrorReason",
+              "displayName": "contentErrorReason",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -2524,15 +2522,54 @@
         },
         "options": {}
       },
-      "id": "cf4a0fa0-8f22-4386-8210-3fc5b136d2b6",
-      "name": "Speichere Bild-Agent Shadow",
+      "id": "45ab3814-175e-40c8-b5cb-011656aa561c",
+      "name": "Schreibe QA-Block Status",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        25488,
-        7888
+        24672,
+        7792
       ],
       "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://matrix.org/_matrix/client/v3/rooms/!COxTeLJyPszYlaHbIx:matrix.golietz.de/send/m.room.message/{{ $json.txnId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ msgtype: 'm.text', body: $json.summaryMessage }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "c65430b2-d269-4284-a049-ab19eb72b863",
+      "name": "Sende QA-Block Matrix-Meldung",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        24896,
+        7792
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "od1pN1F5wy2irSDs",
+          "name": "Header Auth account"
+        }
+      },
       "onError": "continueRegularOutput"
     }
   ],
@@ -2664,11 +2701,6 @@
         [
           {
             "node": "Execute Workflow Repair (neu)",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "QA-Shadow: Baue QA-Eingabe",
             "type": "main",
             "index": 0
           },
@@ -3316,6 +3348,11 @@
             "node": "Lern-Shadow: Baue Record-Eingabe",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "IF QA bestanden?",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -3400,40 +3437,41 @@
             "index": 0
           },
           {
-            "node": "Bild-Shadow: Baue Eingabe",
+            "node": "QA-Shadow: Baue QA-Eingabe",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Bild-Shadow: Baue Eingabe": {
+    "IF QA bestanden?": {
       "main": [
+        [],
         [
           {
-            "node": "Execute Workflow Bild-Agent (Shadow)",
+            "node": "Baue QA-Block Nachricht",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Execute Workflow Bild-Agent (Shadow)": {
+    "Baue QA-Block Nachricht": {
       "main": [
         [
           {
-            "node": "Stelle Kontext nach Bild-Agent wieder her",
+            "node": "Schreibe QA-Block Status",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Stelle Kontext nach Bild-Agent wieder her": {
+    "Schreibe QA-Block Status": {
       "main": [
         [
           {
-            "node": "Speichere Bild-Agent Shadow",
+            "node": "Sende QA-Block Matrix-Meldung",
             "type": "main",
             "index": 0
           }
