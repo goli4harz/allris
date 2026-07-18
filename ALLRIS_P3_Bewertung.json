@@ -1,4 +1,1059 @@
 {
+  "active": true,
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hole needs_summary",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Hole needs_content visual_topic_error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole needs_summary": {
+      "main": [
+        [
+          {
+            "node": "Guard Bereits verarbeitet (Idempotenz)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Vorgänge": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Normalisiere Vorgangsbeziehung",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Zusammenfassung": {
+      "main": [
+        [
+          {
+            "node": "Parse Summary JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Summary JSON": {
+      "main": [
+        [
+          {
+            "node": "IF Summary JSON gültig?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Speichere Summary": {
+      "main": [
+        [
+          {
+            "node": "Build Summary Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Summary Message": {
+      "main": [
+        [
+          {
+            "node": "Send Matrix Raum A",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Analyse Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Matrix Raum A": {
+      "main": [
+        [
+          {
+            "node": "Prüfe Matrix Raum A Erfolg",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Analyse JSON": {
+      "main": [
+        [
+          {
+            "node": "Parse Analyse JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Analyse JSON": {
+      "main": [
+        [
+          {
+            "node": "Speichere Analyse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Speichere Analyse": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow Repair (neu)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fakten-Shadow: Baue Eingabe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nächster Vorgang": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgänge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Vorgang Abschluss": {
+      "main": [
+        [
+          {
+            "node": "Nächster Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Analyse Input": {
+      "main": [
+        [
+          {
+            "node": "AI Analyse JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build NC Originale Path": {
+      "main": [
+        [
+          {
+            "node": "NC Liste Dokumente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Liste Dokumente": {
+      "main": [
+        [
+          {
+            "node": "NC Split Dateien",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Aggregiere Texte": {
+      "main": [
+        [
+          {
+            "node": "Prüfe Summary Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prüfe Summary Input": {
+      "main": [
+        [
+          {
+            "node": "Prüfe vorhandene Summary",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Speichere Fehler Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Speichere Fehler Status": {
+      "main": [
+        [
+          {
+            "node": "Nächster Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Summary Markdown": {
+      "main": [
+        [
+          {
+            "node": "NC Erstelle Summary Ordner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Erstelle Summary Ordner": {
+      "main": [
+        [
+          {
+            "node": "NC Upload Summary MD",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "NC Upload Summary MD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Upload Summary MD": {
+      "main": [
+        [
+          {
+            "node": "Merge Vorgang Abschluss",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Prüfe vorhandenen combinedText": {
+      "main": [
+        [
+          {
+            "node": "IF combinedText vorhanden?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF combinedText vorhanden?": {
+      "main": [
+        [
+          {
+            "node": "Prüfe Summary Input",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prüfe Nextcloud-Vollständigkeit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgänge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ist Folgevorgang?": {
+      "main": [
+        [
+          {
+            "node": "Hole Vorgangskette",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Bereite Vorgangskette vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Summary Input": {
+      "main": [
+        [
+          {
+            "node": "Prüfe vorhandenen combinedText",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalisiere Vorgangsbeziehung": {
+      "main": [
+        [
+          {
+            "node": "Prüfe Metadaten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Split Dateien": {
+      "main": [
+        [
+          {
+            "node": "IF NC Datei vorhanden?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF NC Datei vorhanden?": {
+      "main": [
+        [
+          {
+            "node": "NC Loop Dateien",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "NC Aggregiere Texte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Loop Dateien": {
+      "main": [
+        [
+          {
+            "node": "NC Aggregiere Texte",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "NC Lade Datei",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Lade Datei": {
+      "main": [
+        [
+          {
+            "node": "NC Prüfe Binary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Prüfe Binary": {
+      "main": [
+        [
+          {
+            "node": "NC IF sendToTika?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC IF sendToTika?": {
+      "main": [
+        [
+          {
+            "node": "NC Tika",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "NC Handle PDF Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Tika": {
+      "main": [
+        [
+          {
+            "node": "NC Metadaten nach Tika",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Metadaten nach Tika": {
+      "main": [
+        [
+          {
+            "node": "NC Handle PDF Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Handle PDF Text": {
+      "main": [
+        [
+          {
+            "node": "NC Loop Dateien",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prüfe Metadaten": {
+      "main": [
+        [
+          {
+            "node": "IF Metadaten gültig?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Metadaten gültig?": {
+      "main": [
+        [
+          {
+            "node": "Ist Folgevorgang?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Speichere Metadatenfehler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Speichere Metadatenfehler": {
+      "main": [
+        [
+          {
+            "node": "Nächster Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole Vorgangskette": {
+      "main": [
+        [
+          {
+            "node": "Bereite Vorgangskette vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereite Vorgangskette vor": {
+      "main": [
+        [
+          {
+            "node": "Prepare Summary Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Summary JSON gültig?": {
+      "main": [
+        [
+          {
+            "node": "Speichere Summary",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Speichere Summary Parsefehler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Speichere Summary Parsefehler": {
+      "main": [
+        [
+          {
+            "node": "Nächster Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prüfe vorhandene Summary": {
+      "main": [
+        [
+          {
+            "node": "IF Vorhandene Summary nutzbar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Vorhandene Summary nutzbar?": {
+      "main": [
+        [
+          {
+            "node": "Build Summary Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Zusammenfassung",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole needs_content visual_topic_error": {
+      "main": [
+        [
+          {
+            "node": "Filter Repair-Kandidaten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sortiere Repair-Vorgänge": {
+      "main": [
+        [
+          {
+            "node": "Loop Repair-Vorgänge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Repair-Vorgänge": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Execute Workflow Repair (existing)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nächster Repair-Vorgang": {
+      "main": [
+        [
+          {
+            "node": "Loop Repair-Vorgänge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prüfe Matrix Raum A Erfolg": {
+      "main": [
+        [
+          {
+            "node": "IF Matrix Raum A ok?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Matrix Raum A ok?": {
+      "main": [
+        [
+          {
+            "node": "Mark Summary Posted",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge Vorgang Abschluss",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Summary Posted": {
+      "main": [
+        [
+          {
+            "node": "Merge Vorgang Abschluss",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Repair-Kandidaten": {
+      "main": [
+        [
+          {
+            "node": "Sortiere Repair-Vorgänge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guard Bereits verarbeitet (Idempotenz)": {
+      "main": [
+        [
+          {
+            "node": "IF Bereits verarbeitet? (Guard)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Bereits verarbeitet? (Guard)": {
+      "main": [
+        [
+          {
+            "node": "Repariere Status (Guard)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow Repair (neu)": {
+      "main": [
+        [
+          {
+            "node": "Build Summary Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow Repair (existing)": {
+      "main": [
+        [
+          {
+            "node": "Nächster Repair-Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "QA-Shadow: Baue QA-Eingabe": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow QA-Agent (Shadow)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow QA-Agent (Shadow)": {
+      "main": [
+        [
+          {
+            "node": "Stelle Kontext nach QA-Agent wieder her",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stelle Kontext nach QA-Agent wieder her": {
+      "main": [
+        [
+          {
+            "node": "Speichere QA Verdict (Shadow)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Lern-Shadow: Baue Record-Eingabe",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "IF QA bestanden?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lern-Shadow: Baue Record-Eingabe": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow Lern-Agent (Record)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fakten-Shadow: Baue Eingabe": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow Fakten-Agent (Shadow)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow Fakten-Agent (Shadow)": {
+      "main": [
+        [
+          {
+            "node": "Stelle Kontext nach Fakten-Agent wieder her",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stelle Kontext nach Fakten-Agent wieder her": {
+      "main": [
+        [
+          {
+            "node": "Speichere Fakten-Agent Shadow",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Satire-Shadow: Baue Eingabe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Satire-Shadow: Baue Eingabe": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow Satire-Agent (Shadow)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow Satire-Agent (Shadow)": {
+      "main": [
+        [
+          {
+            "node": "Stelle Kontext nach Satire-Agent wieder her",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stelle Kontext nach Satire-Agent wieder her": {
+      "main": [
+        [
+          {
+            "node": "Speichere Satire-Agent Shadow",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "QA-Shadow: Baue QA-Eingabe",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Satire-Ergebnis: Baue Text-Auswahl + Umfrage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF QA bestanden?": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Baue QA-Block Nachricht",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue QA-Block Nachricht": {
+      "main": [
+        [
+          {
+            "node": "Schreibe QA-Block Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schreibe QA-Block Status": {
+      "main": [
+        [
+          {
+            "node": "Sende QA-Block Matrix-Meldung",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Satire-Ergebnis: Baue Text-Auswahl + Umfrage": {
+      "main": [
+        [
+          {
+            "node": "IF Umfrage noetig? (>=2 Varianten)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Umfrage noetig? (>=2 Varianten)": {
+      "main": [
+        [
+          {
+            "node": "Sende Satire-Varianten Matrix-Umfrage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Baue Satire-Fehler Nachricht",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sende Satire-Varianten Matrix-Umfrage": {
+      "main": [
+        [
+          {
+            "node": "Stelle Kontext nach Satire-Umfrage wieder her",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stelle Kontext nach Satire-Umfrage wieder her": {
+      "main": [
+        [
+          {
+            "node": "Schreibe Satire-Ergebnis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue Satire-Fehler Nachricht": {
+      "main": [
+        [
+          {
+            "node": "Sende Satire-Fehler Matrix-Meldung",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sende Satire-Fehler Matrix-Meldung": {
+      "main": [
+        [
+          {
+            "node": "Schreibe Satire-Ergebnis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prüfe Nextcloud-Vollständigkeit": {
+      "main": [
+        [
+          {
+            "node": "IF Nextcloud vollständig?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Nextcloud vollständig?": {
+      "main": [
+        [
+          {
+            "node": "Build NC Originale Path",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF Nextcloud endgültig fehlgeschlagen?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Nextcloud endgültig fehlgeschlagen?": {
+      "main": [
+        [
+          {
+            "node": "Baue Nextcloud-Fehler Nachricht",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Nächster Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue Nextcloud-Fehler Nachricht": {
+      "main": [
+        [
+          {
+            "node": "Schreibe Nextcloud-Fehler Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schreibe Nextcloud-Fehler Status": {
+      "main": [
+        [
+          {
+            "node": "Sende Nextcloud-Fehler Matrix-Meldung",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "cAjWIjnZ8BCt3dFX",
+  "meta": null,
   "name": "ALLRIS_P3_Bewertung",
   "nodes": [
     {
@@ -2575,7 +3630,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "// Cutover 2026-07-18: Satire-Agent liefert 3 echte Varianten (unterschiedliche Angriffswinkel,\n// nicht nur Formulierungen). Text (P4) bekommt SOFORT eine automatische Wahl (variants[1],\n// gleiche Default-Logik wie im Schattenbetrieb), damit P4 nicht auf die Matrix-Umfrage warten\n// muss. Das Bild (P5/Bild-Agent) bekommt seine Variante spaeter unabhaengig ueber die\n// Matrix-Umfrage unten - deshalb bleiben imageHeadline/imageSubline hier bewusst LEER, damit\n// P5s bestehendes Gate (IF Headline bereits gewaehlt?) korrekt weiter auf die Umfrage wartet.\n// Um zu vermeiden, dass Bild und Text unterschiedliche Satire-Winkel zeigen, markiert die\n// Umfrage-Nachricht sichtbar, welcher Kandidat zum bereits gewaehlten Text passt.\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; }\n  catch (e) { return {}; }\n}\nfunction asArr(v) {\n  if (Array.isArray(v)) return v.filter(Boolean).map(safeStr);\n  if (typeof v === 'string' && v.trim()) { try { const p = JSON.parse(v); if (Array.isArray(p)) return p.filter(Boolean).map(safeStr); } catch (e) {} }\n  return [];\n}\n\nconst satire = parseObj($json.satireAgentJson);\nconst variants = Array.isArray(satire.variants) ? satire.variants : [];\nconst faktenBase = $('Fakten-Shadow: Baue Eingabe').itemMatching($itemIndex).json || {};\nconst vorgangKey = safeStr($json.vorgangKey);\nconst vorgangsnummer = safeStr($json.vorgangsnummer);\nconst title = safeStr(faktenBase.title);\nconst vnCode = vorgangsnummer.replace(/[^0-9A-Za-z]+/g, '-').replace(/^-+|-+$/g, '');\n\nconst autoIdx = variants.length >= 2 ? 1 : (variants.length === 1 ? 0 : -1);\nconst textVariant = autoIdx >= 0 ? variants[autoIdx] : {};\n\nconst satireBrief = safeStr(textVariant.satireBrief);\nconst satireAngle = safeStr(textVariant.satireAngle);\nconst satirePunchlines = asArr(textVariant.satirePunchlines);\nconst satireTarget = safeStr(textVariant.satireTarget);\nconst satireIntensity = Number(textVariant.satireIntensity) || 0;\nconst satireDoNotClaim = asArr(textVariant.satireDoNotClaim);\nconst satireSafetyNote = safeStr(textVariant.satireSafetyNote);\n\nconst candidates = variants.slice(0, 4).map((v, i) => ({\n  code: (vnCode ? vnCode + '-' : '') + 'K' + (i + 1),\n  imageHeadline: safeStr(v.imageHeadline),\n  imageSubline: safeStr(v.imageSubline),\n  satireBrief: safeStr(v.satireBrief),\n  satireAngle: safeStr(v.satireAngle),\n  satirePunchlines: asArr(v.satirePunchlines),\n  satireTarget: safeStr(v.satireTarget),\n  satireIntensity: Number(v.satireIntensity) || 0,\n  satireDoNotClaim: asArr(v.satireDoNotClaim),\n  satireSafetyNote: safeStr(v.satireSafetyNote),\n  isTextMatch: i === autoIdx\n})).filter(c => c.imageHeadline && c.imageSubline);\n\nconst postedAt = new Date().toISOString();\nconst visualJson = JSON.stringify({ headlineCandidates: candidates, candidatesPostedAt: postedAt });\n\nlet matrixMessage = '';\nlet txnId = '';\nlet shouldPost = candidates.length >= 2;\n\nif (shouldPost) {\n  const lines = ['🎨 Bildvorschläge für ' + vorgangsnummer + ' – ' + title, ''];\n  for (const c of candidates) {\n    lines.push(c.code + ': ' + c.imageHeadline + ' – ' + c.imageSubline + (c.isTextMatch ? ' (passt zum veröffentlichten Text)' : ''));\n    if (c.satireBrief) lines.push('   Idee: ' + c.satireBrief);\n  }\n  lines.push('');\n  const exampleCode = candidates[0].code;\n  lines.push('Antworte mit dem gewünschten Code (z.B. \"' + exampleCode + '\"), um die Auswahl zu bestätigen, oder mit \"' + vnCode + '-X\" für komplett neue Vorschläge.');\n  matrixMessage = lines.join('\\n');\n  txnId = 'satire_hdl_' + Date.now() + '_' + vorgangKey.replace(/[^a-zA-Z0-9]/g, '').substring(0, 10);\n}\n\nreturn {\n  json: {\n    vorgangKey,\n    vorgangsnummer,\n    satireBrief,\n    satireAngle,\n    satirePunchlines: JSON.stringify(satirePunchlines),\n    satireTarget,\n    satireIntensity,\n    satireDoNotClaim: JSON.stringify(satireDoNotClaim),\n    satireSafetyNote,\n    visualJson,\n    visualStage: shouldPost ? 'awaiting_headline_choice' : 'satire_agent_failed',\n    imageStage: 'not_started',\n    shouldPost,\n    matrixMessage,\n    txnId\n  }\n};"
+        "jsCode": "// Cutover 2026-07-18: Satire-Agent liefert 3 echte Varianten (unterschiedliche Angriffswinkel,\n// nicht nur Formulierungen). Text (P4) bekommt SOFORT eine automatische Wahl (variants[1],\n// gleiche Default-Logik wie im Schattenbetrieb), damit P4 nicht auf die Matrix-Umfrage warten\n// muss. Das Bild (P5/Bild-Agent) bekommt seine Variante spaeter unabhaengig ueber die\n// Matrix-Umfrage unten - deshalb bleiben imageHeadline/imageSubline hier bewusst LEER, damit\n// P5s bestehendes Gate (IF Headline bereits gewaehlt?) korrekt weiter auf die Umfrage wartet.\n// Um zu vermeiden, dass Bild und Text unterschiedliche Satire-Winkel zeigen, markiert die\n// Umfrage-Nachricht sichtbar, welcher Kandidat zum bereits gewaehlten Text passt.\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; }\n  catch (e) { return {}; }\n}\nfunction asArr(v) {\n  if (Array.isArray(v)) return v.filter(Boolean).map(safeStr);\n  if (typeof v === 'string' && v.trim()) { try { const p = JSON.parse(v); if (Array.isArray(p)) return p.filter(Boolean).map(safeStr); } catch (e) {} }\n  return [];\n}\n\nconst satire = parseObj($json.satireAgentJson);\nconst variants = Array.isArray(satire.variants) ? satire.variants : [];\nconst faktenBase = $('Fakten-Shadow: Baue Eingabe').itemMatching($itemIndex).json || {};\nconst vorgangKey = safeStr($json.vorgangKey);\nconst vorgangsnummer = safeStr($json.vorgangsnummer);\nconst title = safeStr(faktenBase.title);\nconst vnCode = vorgangsnummer.replace(/[^0-9A-Za-z]+/g, '-').replace(/^-+|-+$/g, '');\n\nconst autoIdx = variants.length >= 2 ? 1 : (variants.length === 1 ? 0 : -1);\nconst textVariant = autoIdx >= 0 ? variants[autoIdx] : {};\n\nconst satireBrief = safeStr(textVariant.satireBrief);\nconst satireAngle = safeStr(textVariant.satireAngle);\nconst satirePunchlines = asArr(textVariant.satirePunchlines);\nconst satireTarget = safeStr(textVariant.satireTarget);\nconst satireIntensity = Number(textVariant.satireIntensity) || 0;\nconst satireDoNotClaim = asArr(textVariant.satireDoNotClaim);\nconst satireSafetyNote = safeStr(textVariant.satireSafetyNote);\n\nconst candidates = variants.slice(0, 4).map((v, i) => ({\n  code: (vnCode ? vnCode + '-' : '') + 'K' + (i + 1),\n  imageHeadline: safeStr(v.imageHeadline),\n  imageSubline: safeStr(v.imageSubline),\n  satireBrief: safeStr(v.satireBrief),\n  satireAngle: safeStr(v.satireAngle),\n  satirePunchlines: asArr(v.satirePunchlines),\n  satireTarget: safeStr(v.satireTarget),\n  satireIntensity: Number(v.satireIntensity) || 0,\n  satireDoNotClaim: asArr(v.satireDoNotClaim),\n  satireSafetyNote: safeStr(v.satireSafetyNote),\n  isTextMatch: i === autoIdx\n})).filter(c => c.imageHeadline && c.imageSubline);\n\nconst postedAt = new Date().toISOString();\nconst visualJson = JSON.stringify({ headlineCandidates: candidates, candidatesPostedAt: postedAt });\n\nlet matrixMessage = '';\nlet txnId = '';\nlet shouldPost = candidates.length >= 2;\n\nif (shouldPost) {\n  const lines = ['🎨 Bildvorschläge für ' + vorgangsnummer + ' – ' + title, ''];\n  for (const c of candidates) {\n    lines.push(c.code + ': ' + c.imageHeadline + ' – ' + c.imageSubline + (c.isTextMatch ? ' (passt zum veröffentlichten Text)' : ''));\n    if (c.satireBrief) lines.push('   Idee: ' + c.satireBrief);\n  }\n  lines.push('');\n  const exampleCode = candidates[0].code;\n  lines.push('Antworte mit dem gewünschten Code (z.B. \"' + exampleCode + '\"), um die Auswahl zu bestätigen, oder mit \"' + vnCode + '-X\" für komplett neue Vorschläge.');\n  matrixMessage = lines.join('\\n');\n  txnId = 'satire_hdl_' + Date.now() + '_' + vorgangKey.replace(/[^a-zA-Z0-9]/g, '').substring(0, 10);\n}\n\nreturn {\n  json: {\n    vorgangKey,\n    vorgangsnummer,\n    satireBrief,\n    satireAngle,\n    satirePunchlines: JSON.stringify(satirePunchlines),\n    satireTarget,\n    satireIntensity,\n    satireDoNotClaim: JSON.stringify(satireDoNotClaim),\n    satireSafetyNote,\n    visualJson,\n    visualStage: shouldPost ? 'awaiting_headline_choice' : 'satire_agent_failed',\n    imageStage: 'not_started',\n    shouldPost,\n    matrixMessage,\n    txnId,\n    matrixSentOk: false,\n    matrixSendError: ''\n  }\n};"
       },
       "id": "7be127cf-f097-4669-8239-5b9421fd1e24",
       "name": "Satire-Ergebnis: Baue Text-Auswahl + Umfrage",
@@ -2702,7 +3757,9 @@
             "satireSafetyNote": "={{ $json.satireSafetyNote }}",
             "visualJson": "={{ $json.visualJson }}",
             "visualStage": "={{ $json.visualStage }}",
-            "imageStage": "={{ $json.imageStage }}"
+            "imageStage": "={{ $json.imageStage }}",
+            "matrixSentOk": "={{ $json.matrixSentOk }}",
+            "matrixSendError": "={{ $json.matrixSendError || '' }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -2799,6 +3856,26 @@
             {
               "id": "imageStage",
               "displayName": "imageStage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "matrixSentOk",
+              "displayName": "matrixSentOk",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "matrixSendError",
+              "displayName": "matrixSendError",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -3074,1067 +4151,10 @@
     }
   ],
   "pinData": {},
-  "connections": {
-    "Schedule Trigger": {
-      "main": [
-        [
-          {
-            "node": "Hole needs_summary",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Hole needs_content visual_topic_error",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Hole needs_summary": {
-      "main": [
-        [
-          {
-            "node": "Guard Bereits verarbeitet (Idempotenz)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Loop Vorgänge": {
-      "main": [
-        [],
-        [
-          {
-            "node": "Normalisiere Vorgangsbeziehung",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "AI Zusammenfassung": {
-      "main": [
-        [
-          {
-            "node": "Parse Summary JSON",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Parse Summary JSON": {
-      "main": [
-        [
-          {
-            "node": "IF Summary JSON gültig?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Speichere Summary": {
-      "main": [
-        [
-          {
-            "node": "Build Summary Message",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Build Summary Message": {
-      "main": [
-        [
-          {
-            "node": "Send Matrix Raum A",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Prepare Analyse Input",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Send Matrix Raum A": {
-      "main": [
-        [
-          {
-            "node": "Prüfe Matrix Raum A Erfolg",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "AI Analyse JSON": {
-      "main": [
-        [
-          {
-            "node": "Parse Analyse JSON",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Parse Analyse JSON": {
-      "main": [
-        [
-          {
-            "node": "Speichere Analyse",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Speichere Analyse": {
-      "main": [
-        [
-          {
-            "node": "Execute Workflow Repair (neu)",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Fakten-Shadow: Baue Eingabe",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Nächster Vorgang": {
-      "main": [
-        [
-          {
-            "node": "Loop Vorgänge",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Merge Vorgang Abschluss": {
-      "main": [
-        [
-          {
-            "node": "Nächster Vorgang",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Prepare Analyse Input": {
-      "main": [
-        [
-          {
-            "node": "AI Analyse JSON",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Build NC Originale Path": {
-      "main": [
-        [
-          {
-            "node": "NC Liste Dokumente",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NC Liste Dokumente": {
-      "main": [
-        [
-          {
-            "node": "NC Split Dateien",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NC Aggregiere Texte": {
-      "main": [
-        [
-          {
-            "node": "Prüfe Summary Input",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Prüfe Summary Input": {
-      "main": [
-        [
-          {
-            "node": "Prüfe vorhandene Summary",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Speichere Fehler Status",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Speichere Fehler Status": {
-      "main": [
-        [
-          {
-            "node": "Nächster Vorgang",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Build Summary Markdown": {
-      "main": [
-        [
-          {
-            "node": "NC Erstelle Summary Ordner",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NC Erstelle Summary Ordner": {
-      "main": [
-        [
-          {
-            "node": "NC Upload Summary MD",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "NC Upload Summary MD",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NC Upload Summary MD": {
-      "main": [
-        [
-          {
-            "node": "Merge Vorgang Abschluss",
-            "type": "main",
-            "index": 1
-          }
-        ]
-      ]
-    },
-    "Prüfe vorhandenen combinedText": {
-      "main": [
-        [
-          {
-            "node": "IF combinedText vorhanden?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF combinedText vorhanden?": {
-      "main": [
-        [
-          {
-            "node": "Prüfe Summary Input",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Prüfe Nextcloud-Vollständigkeit",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Code in JavaScript1": {
-      "main": [
-        [
-          {
-            "node": "Loop Vorgänge",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Ist Folgevorgang?": {
-      "main": [
-        [
-          {
-            "node": "Hole Vorgangskette",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Bereite Vorgangskette vor",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Prepare Summary Input": {
-      "main": [
-        [
-          {
-            "node": "Prüfe vorhandenen combinedText",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Normalisiere Vorgangsbeziehung": {
-      "main": [
-        [
-          {
-            "node": "Prüfe Metadaten",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NC Split Dateien": {
-      "main": [
-        [
-          {
-            "node": "IF NC Datei vorhanden?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF NC Datei vorhanden?": {
-      "main": [
-        [
-          {
-            "node": "NC Loop Dateien",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "NC Aggregiere Texte",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NC Loop Dateien": {
-      "main": [
-        [
-          {
-            "node": "NC Aggregiere Texte",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "NC Lade Datei",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NC Lade Datei": {
-      "main": [
-        [
-          {
-            "node": "NC Prüfe Binary",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NC Prüfe Binary": {
-      "main": [
-        [
-          {
-            "node": "NC IF sendToTika?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NC IF sendToTika?": {
-      "main": [
-        [
-          {
-            "node": "NC Tika",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "NC Handle PDF Text",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NC Tika": {
-      "main": [
-        [
-          {
-            "node": "NC Metadaten nach Tika",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NC Metadaten nach Tika": {
-      "main": [
-        [
-          {
-            "node": "NC Handle PDF Text",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NC Handle PDF Text": {
-      "main": [
-        [
-          {
-            "node": "NC Loop Dateien",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Prüfe Metadaten": {
-      "main": [
-        [
-          {
-            "node": "IF Metadaten gültig?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF Metadaten gültig?": {
-      "main": [
-        [
-          {
-            "node": "Ist Folgevorgang?",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Speichere Metadatenfehler",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Speichere Metadatenfehler": {
-      "main": [
-        [
-          {
-            "node": "Nächster Vorgang",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Hole Vorgangskette": {
-      "main": [
-        [
-          {
-            "node": "Bereite Vorgangskette vor",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Bereite Vorgangskette vor": {
-      "main": [
-        [
-          {
-            "node": "Prepare Summary Input",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF Summary JSON gültig?": {
-      "main": [
-        [
-          {
-            "node": "Speichere Summary",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Speichere Summary Parsefehler",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Speichere Summary Parsefehler": {
-      "main": [
-        [
-          {
-            "node": "Nächster Vorgang",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Prüfe vorhandene Summary": {
-      "main": [
-        [
-          {
-            "node": "IF Vorhandene Summary nutzbar?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF Vorhandene Summary nutzbar?": {
-      "main": [
-        [
-          {
-            "node": "Build Summary Message",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "AI Zusammenfassung",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Hole needs_content visual_topic_error": {
-      "main": [
-        [
-          {
-            "node": "Filter Repair-Kandidaten",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Sortiere Repair-Vorgänge": {
-      "main": [
-        [
-          {
-            "node": "Loop Repair-Vorgänge",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Loop Repair-Vorgänge": {
-      "main": [
-        [],
-        [
-          {
-            "node": "Execute Workflow Repair (existing)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Nächster Repair-Vorgang": {
-      "main": [
-        [
-          {
-            "node": "Loop Repair-Vorgänge",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Prüfe Matrix Raum A Erfolg": {
-      "main": [
-        [
-          {
-            "node": "IF Matrix Raum A ok?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF Matrix Raum A ok?": {
-      "main": [
-        [
-          {
-            "node": "Mark Summary Posted",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Merge Vorgang Abschluss",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Mark Summary Posted": {
-      "main": [
-        [
-          {
-            "node": "Merge Vorgang Abschluss",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Filter Repair-Kandidaten": {
-      "main": [
-        [
-          {
-            "node": "Sortiere Repair-Vorgänge",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Guard Bereits verarbeitet (Idempotenz)": {
-      "main": [
-        [
-          {
-            "node": "IF Bereits verarbeitet? (Guard)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF Bereits verarbeitet? (Guard)": {
-      "main": [
-        [
-          {
-            "node": "Repariere Status (Guard)",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Code in JavaScript1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Execute Workflow Repair (neu)": {
-      "main": [
-        [
-          {
-            "node": "Build Summary Markdown",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Execute Workflow Repair (existing)": {
-      "main": [
-        [
-          {
-            "node": "Nächster Repair-Vorgang",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "QA-Shadow: Baue QA-Eingabe": {
-      "main": [
-        [
-          {
-            "node": "Execute Workflow QA-Agent (Shadow)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Execute Workflow QA-Agent (Shadow)": {
-      "main": [
-        [
-          {
-            "node": "Stelle Kontext nach QA-Agent wieder her",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Stelle Kontext nach QA-Agent wieder her": {
-      "main": [
-        [
-          {
-            "node": "Speichere QA Verdict (Shadow)",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Lern-Shadow: Baue Record-Eingabe",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "IF QA bestanden?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Lern-Shadow: Baue Record-Eingabe": {
-      "main": [
-        [
-          {
-            "node": "Execute Workflow Lern-Agent (Record)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Fakten-Shadow: Baue Eingabe": {
-      "main": [
-        [
-          {
-            "node": "Execute Workflow Fakten-Agent (Shadow)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Execute Workflow Fakten-Agent (Shadow)": {
-      "main": [
-        [
-          {
-            "node": "Stelle Kontext nach Fakten-Agent wieder her",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Stelle Kontext nach Fakten-Agent wieder her": {
-      "main": [
-        [
-          {
-            "node": "Speichere Fakten-Agent Shadow",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Satire-Shadow: Baue Eingabe",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Satire-Shadow: Baue Eingabe": {
-      "main": [
-        [
-          {
-            "node": "Execute Workflow Satire-Agent (Shadow)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Execute Workflow Satire-Agent (Shadow)": {
-      "main": [
-        [
-          {
-            "node": "Stelle Kontext nach Satire-Agent wieder her",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Stelle Kontext nach Satire-Agent wieder her": {
-      "main": [
-        [
-          {
-            "node": "Speichere Satire-Agent Shadow",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "QA-Shadow: Baue QA-Eingabe",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Satire-Ergebnis: Baue Text-Auswahl + Umfrage",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF QA bestanden?": {
-      "main": [
-        [],
-        [
-          {
-            "node": "Baue QA-Block Nachricht",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Baue QA-Block Nachricht": {
-      "main": [
-        [
-          {
-            "node": "Schreibe QA-Block Status",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Schreibe QA-Block Status": {
-      "main": [
-        [
-          {
-            "node": "Sende QA-Block Matrix-Meldung",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Satire-Ergebnis: Baue Text-Auswahl + Umfrage": {
-      "main": [
-        [
-          {
-            "node": "IF Umfrage noetig? (>=2 Varianten)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF Umfrage noetig? (>=2 Varianten)": {
-      "main": [
-        [
-          {
-            "node": "Sende Satire-Varianten Matrix-Umfrage",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Baue Satire-Fehler Nachricht",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Sende Satire-Varianten Matrix-Umfrage": {
-      "main": [
-        [
-          {
-            "node": "Stelle Kontext nach Satire-Umfrage wieder her",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Stelle Kontext nach Satire-Umfrage wieder her": {
-      "main": [
-        [
-          {
-            "node": "Schreibe Satire-Ergebnis",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Baue Satire-Fehler Nachricht": {
-      "main": [
-        [
-          {
-            "node": "Sende Satire-Fehler Matrix-Meldung",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Sende Satire-Fehler Matrix-Meldung": {
-      "main": [
-        [
-          {
-            "node": "Schreibe Satire-Ergebnis",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Prüfe Nextcloud-Vollständigkeit": {
-      "main": [
-        [
-          {
-            "node": "IF Nextcloud vollständig?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF Nextcloud vollständig?": {
-      "main": [
-        [
-          {
-            "node": "Build NC Originale Path",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "IF Nextcloud endgültig fehlgeschlagen?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF Nextcloud endgültig fehlgeschlagen?": {
-      "main": [
-        [
-          {
-            "node": "Baue Nextcloud-Fehler Nachricht",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Nächster Vorgang",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Baue Nextcloud-Fehler Nachricht": {
-      "main": [
-        [
-          {
-            "node": "Schreibe Nextcloud-Fehler Status",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Schreibe Nextcloud-Fehler Status": {
-      "main": [
-        [
-          {
-            "node": "Sende Nextcloud-Fehler Matrix-Meldung",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
-  "active": true,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "230f7864-8b69-430d-ba0f-beb78f26b3c4",
-  "meta": {
-    "instanceId": "3918cd7b1079333be95f7df5d1ce0c807af27c5d6c51c5bb061c962138165169"
-  },
-  "id": "cAjWIjnZ8BCt3dFX",
-  "tags": []
+  "tags": [],
+  "versionId": "27e93c82-f8ba-4f3e-ad3a-d78ed791918a"
 }
