@@ -382,109 +382,7 @@
         ],
         [
           {
-            "node": "Hat Dokument URL?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Hat Dokument URL?": {
-      "main": [
-        [
-          {
-            "node": "HTTP Dokument laden",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Markiere kein Dokument",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Markiere kein Dokument": {
-      "main": [
-        [
-          {
-            "node": "Handle Extract",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "HTTP Dokument laden": {
-      "main": [
-        [
-          {
-            "node": "Prüfe Binary",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Prüfe Binary": {
-      "main": [
-        [
-          {
-            "node": "IF sendToTika?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF sendToTika?": {
-      "main": [
-        [
-          {
-            "node": "Tika",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Handle Extract",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Tika": {
-      "main": [
-        [
-          {
-            "node": "Metadaten nach Tika",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Metadaten nach Tika": {
-      "main": [
-        [
-          {
-            "node": "Handle Extract",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Handle Extract": {
-      "main": [
-        [
-          {
-            "node": "Loop Dokumente",
+            "node": "Dokument-Extraktion übersprungen (siehe P3 NC-Fallback)",
             "type": "main",
             "index": 0
           }
@@ -547,6 +445,17 @@
         [
           {
             "node": "HTTP ALLRIS Übersicht",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dokument-Extraktion übersprungen (siehe P3 NC-Fallback)": {
+      "main": [
+        [
+          {
+            "node": "Loop Dokumente",
             "type": "main",
             "index": 0
           }
@@ -938,66 +847,7 @@
     },
     {
       "parameters": {
-        "url": "={{$json.url}}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Referer",
-              "value": "={{ $json.referer }}"
-            },
-            {
-              "name": "User-Agent",
-              "value": "Mozilla/5.0"
-            },
-            {
-              "name": "Accept",
-              "value": "application/pdf,*/*"
-            }
-          ]
-        },
-        "options": {
-          "batching": {
-            "batch": {
-              "batchSize": 1,
-              "batchInterval": 2500
-            }
-          },
-          "response": {
-            "response": {
-              "neverError": true,
-              "responseFormat": "file"
-            }
-          },
-          "proxy": "172.16.1.5:3128"
-        }
-      },
-      "id": "e9d36196-901f-46cb-abdb-790dfa279658",
-      "name": "HTTP Dokument laden",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        5840,
-        940
-      ]
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "// Handle Extract – normalisiert genau ein Dokument-Ergebnis.\n// Wird einmal pro Dokument im Dokument-Loop aufgerufen.\n// Mögliche Eingangsquellen:\n//   a) Markiere kein Dokument → type='none'\n//   b) IF sendToTika? false-Zweig → sendToTika=false\n//   c) Metadaten nach Tika → tikaText vorhanden\n\nconst item = {\n  json: $json,\n  binary: $binary\n};\n\nconst base = {\n  vorgangKey:        item.json.vorgangKey        || '',\n  volfdnr:           item.json.volfdnr           || '',\n  title:             item.json.title             || '',\n  vorgangsnummer:    item.json.vorgangsnummer     || '',\n  sourceUrl:         item.json.sourceUrl          || '',\n  allrisUrl:         item.json.allrisUrl          || '',\n  documentCount:     item.json.documentCount      || 0,\n  documentsJson:     item.json.documentsJson      || '[]',\n  vorfilterThemen:   item.json.vorfilterThemen    || [],\n  vorfilterKeywords: item.json.vorfilterKeywords  || [],\n  vorfilterScore:    item.json.vorfilterScore     || 0,\n  isKnown:           item.json.isKnown            || false,\n  needsRefresh:      item.json.needsRefresh       !== false,\n  oldContentStage:   item.json.oldContentStage    || '',\n  oldContentErrorReason: item.json.oldContentErrorReason || '',\n  documentsChanged:  item.json.documentsChanged   === true,\n  stammVorgangsnummer: item.json.stammVorgangsnummer || '',\n  folgeNummer:         item.json.folgeNummer        || '',\n  istFolgevorgang:     item.json.istFolgevorgang    === true,\n  url:               item.json.url               || '',\n  type:              item.json.type              || '',\n  docKey:            item.json.docKey            || '',\n  label:             item.json.label             || '',\n  docRunKey:         item.json.docRunKey         || ''\n};\n\n// ── Fall a) Vorgang ohne Dokument ─────────────────────────────────────────\nif (item.json.type === 'none' || item.json.textExtractionMethod === 'no_document') {\n  return {\n    json: {\n      ...base,\n      text:                   '',\n      textExtractionSuccess:  false,\n      textLength:             0,\n      textExtractionMethod:   'no_document',\n      textExtractionError:    ''\n    }\n  };\n}\n\n// ── Fall b) Binary-Fehler / ZIP (sendToTika === false) ────────────────────\nif (item.json.sendToTika === false) {\n  return {\n    json: {\n      ...base,\n      text:                   '',\n      textExtractionSuccess:  item.json.textExtractionSuccess || false,\n      textLength:             item.json.textLength            || 0,\n      textExtractionMethod:   item.json.textExtractionMethod  || 'download_failed',\n      textExtractionError:    item.json.textExtractionError   || 'Download fehlgeschlagen'\n    }\n  };\n}\n\n// ── Fall c) Tika-Ergebnis ─────────────────────────────────────────────────\nconst tikaError = item.json.tikaError || item.json.error?.message || '';\n\nlet rawText =\n  typeof item.json.tikaText  === 'string' ? item.json.tikaText  :\n  typeof item.json.data      === 'string' ? item.json.data      :\n  typeof item.json.body      === 'string' ? item.json.body      :\n  null;\n\nconst text = typeof rawText === 'string' ? rawText.trim() : '';\n\nlet textExtractionSuccess, textExtractionMethod, textExtractionError;\n\nif (text.length > 0) {\n  textExtractionSuccess = true;\n  textExtractionMethod  = 'tika';\n  textExtractionError   = '';\n} else if (tikaError) {\n  textExtractionSuccess = false;\n  textExtractionMethod  = 'tika_error';\n  textExtractionError   = tikaError;\n} else {\n  textExtractionSuccess = false;\n  textExtractionMethod  = 'tika_empty';\n  textExtractionError   = 'Tika lieferte keinen Dokumenttext';\n}\n\nreturn {\n  json: {\n    ...base,\n    text,\n    textExtractionSuccess,\n    textLength:  text.length,\n    textExtractionMethod,\n    textExtractionError\n  }\n};\n"
-      },
-      "id": "432d0c68-bad8-468f-bac0-3f60e495fdf7",
-      "name": "Handle Extract",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        7040,
-        940
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Vorgangs-Metadaten robust über \"Expand Documents\" holen (1:1 pro Vorgang).\n// \"Loop Dokumente\" hat (alwaysOutputData) schon mehrfach einen Phantom-Aufruf\n// ausgelöst, bei dem der runIndex nicht zu \"Expand Documents\" passt. Ein\n// einzelner solcher Ausreißer darf NIE die gesamte Ausführung abbrechen –\n// deshalb hier überspringen (kein Ergebnis) statt werfen; der Vorgang bleibt\n// als needsRefresh stehen und wird beim nächsten geplanten Lauf erneut versucht.\nlet expandItems = [];\ntry {\n  expandItems = $('Expand Documents').all(0, $runIndex);\n} catch (e) {\n  expandItems = [];\n}\n\n// Sicherer Platzhalter, falls dieser Vorgang übersprungen werden muss:\n// vorgangKey bleibt leer, isKnown:true routet auf \"Update bekannter Vorgang\",\n// dessen Filter (keyValue={{$json.vorgangKey}}) dann keine Zeile trifft –\n// also ein No-Op-Update statt eines falschen Inserts. Wichtig ist nur, dass\n// die Kette weiterläuft und \"Loop Vorgangsseiten\" wieder getriggert wird.\nconst skipResult = [{ json: { vorgangKey: '', isKnown: true, needsRefresh: false, _skippedPhantomAggregate: true } }];\n\nif (!expandItems || expandItems.length === 0) {\n  console.warn(\n    `[Aggregate Texts] Keine Vorgangsdaten von \"Expand Documents\" bei runIndex=${$runIndex} ` +\n    `(vermutlich Phantom-Aufruf von \"Loop Dokumente\") – Vorgang wird übersprungen.`\n  );\n  return skipResult;\n}\n\nconst vorgangMeta = expandItems[0].json || {};\nconst currentVorgangKey = String(vorgangMeta.vorgangKey || '').trim();\n\nif (!currentVorgangKey) {\n  console.warn(\n    `[Aggregate Texts] \"Expand Documents\"-Item besitzt keinen vorgangKey bei runIndex=${$runIndex} – Vorgang wird übersprungen.`\n  );\n  return skipResult;\n}\n\n// $input (der \"done\"-Ausgang von \"Loop Dokumente\") liefert die Loop-Ergebnisse\n// nicht zuverlässig. Stattdessen alle bisher von \"Handle Extract\" produzierten\n// Items holen (über die gesamte Ausführung hinweg) und auf den aktuellen\n// vorgangKey filtern. Wurde \"Handle Extract\" in diesem Lauf noch gar nicht\n// ausgeführt (z.B. weil kein Dokument verarbeitet wurde), gilt das als 0 Dokumente.\nlet handleExtractItems = [];\ntry {\n  handleExtractItems = $('Handle Extract').all();\n} catch (e) {\n  handleExtractItems = [];\n}\n\nconst filteredItems = handleExtractItems.filter(item =>\n  String(item?.json?.vorgangKey || '').trim() === currentVorgangKey\n);\n\n// Innerhalb des Vorgangs Dokumente noch einmal absichern,\n// damit ein Dokument nicht doppelt aggregiert wird.\nconst uniqueItemsMap = new Map();\n\nfor (const item of filteredItems) {\n  const json = item.json || {};\n\n  const uniqueKey =\n    String(json.docRunKey || '').trim() ||\n    String(json.docKey || '').trim() ||\n    String(json.url || '').trim() ||\n    `${currentVorgangKey}::__none__`;\n\n  if (!uniqueItemsMap.has(uniqueKey)) {\n    uniqueItemsMap.set(uniqueKey, item);\n  }\n}\n\nconst allItems = [...uniqueItemsMap.values()];\n\nconsole.log(\n  `[Aggregate Texts] aktuell=${currentVorgangKey}; ` +\n  `HandleExtractGesamt=${handleExtractItems.length}; ` +\n  `gefiltert=${filteredItems.length}; ` +\n  `eindeutig=${allItems.length}; ` +\n  `runIndex=${$runIndex}`\n);\n\nconst group = {\n  vorgangKey: currentVorgangKey,\n  volfdnr: vorgangMeta.volfdnr || '',\n  title: vorgangMeta.title || '',\n  vorgangsnummer: vorgangMeta.vorgangsnummer || '',\n  sourceUrl: vorgangMeta.sourceUrl || '',\n  allrisUrl: vorgangMeta.allrisUrl || '',\n  documentCount: Number(vorgangMeta.documentCount || 0),\n  documentsJson: vorgangMeta.documentsJson || '[]',\n  vorfilterThemen: vorgangMeta.vorfilterThemen || [],\n  vorfilterKeywords: vorgangMeta.vorfilterKeywords || [],\n  vorfilterScore: vorgangMeta.vorfilterScore || 0,\n  isKnown: vorgangMeta.isKnown === true,\n  needsRefresh: vorgangMeta.needsRefresh !== false,\n  oldContentStage: vorgangMeta.oldContentStage || '',\n  oldContentErrorReason: vorgangMeta.oldContentErrorReason || '',\n  documentsChanged: vorgangMeta.documentsChanged === true,\n  stammVorgangsnummer: vorgangMeta.stammVorgangsnummer || vorgangMeta.vorgangsnummer || '',\n  folgeNummer: String(vorgangMeta.folgeNummer || ''),\n  istFolgevorgang: vorgangMeta.istFolgevorgang === true,\n  texts: [],\n  extractedCount: 0,\n  failedCount: 0\n};\n\nfor (const item of allItems) {\n  const json = item.json || {};\n\n  const text = String(json.text || '').trim();\n  const method = String(json.textExtractionMethod || '');\n  const success = json.textExtractionSuccess === true;\n  const isPlaceholder =\n    method === 'no_document' ||\n    json.type === 'none' ||\n    !json.url;\n\n  if (isPlaceholder) {\n    continue;\n  }\n\n  if (success && text) {\n    group.extractedCount++;\n\n    const docLabel = json.label || json.docKey || `Dokument ${group.extractedCount}`;\n\n    group.texts.push(\n      `--- Dokument ${group.extractedCount}: ${docLabel} ---\\n${text}`\n    );\n  } else {\n    group.failedCount++;\n\n    const docLabel = json.label || json.docKey || 'Dokument';\n\n    console.warn(\n      `[Aggregate Texts] Extraktion fehlgeschlagen: ${currentVorgangKey}/${docLabel}; ` +\n      `method=${method}; error=\"${json.textExtractionError || ''}\"`\n    );\n  }\n}\n\nconst combinedText =\n  group.texts.length > 0\n    ? group.texts.join('\\n\\n')\n    : Number(group.documentCount || 0) > 0\n      ? '(Dokumentlinks gefunden, aber kein Dokumenttext extrahierbar)'\n      : '(Keine Dokumentlinks gefunden)';\n\nreturn [{\n  json: {\n    vorgangKey: group.vorgangKey,\n    volfdnr: group.volfdnr,\n    title: group.title,\n    vorgangsnummer: group.vorgangsnummer,\n    stammVorgangsnummer: group.stammVorgangsnummer || group.vorgangsnummer || '',\n    folgeNummer: String(group.folgeNummer || ''),\n    istFolgevorgang: group.istFolgevorgang === true,\n    sourceUrl: group.sourceUrl,\n    allrisUrl: group.allrisUrl,\n    documentCount: group.documentCount,\n    documentsJson: group.documentsJson,\n    vorfilterThemen: group.vorfilterThemen,\n    vorfilterKeywords: group.vorfilterKeywords,\n    vorfilterScore: group.vorfilterScore,\n    isKnown: group.isKnown,\n    needsRefresh: group.needsRefresh,\n    oldContentStage: group.oldContentStage || '',\n    oldContentErrorReason: group.oldContentErrorReason || '',\n    documentsChanged: group.documentsChanged === true,\n    extractedDocumentCount: group.extractedCount,\n    failedDocumentCount: group.failedCount,\n    combinedTextLength: combinedText.length,\n    combinedText\n  }\n}];"
+        "jsCode": "// Vorgangs-Metadaten robust über \"Expand Documents\" holen (1:1 pro Vorgang).\n// \"Loop Dokumente\" hat (alwaysOutputData) schon mehrfach einen Phantom-Aufruf\n// ausgelöst, bei dem der runIndex nicht zu \"Expand Documents\" passt. Ein\n// einzelner solcher Ausreißer darf NIE die gesamte Ausführung abbrechen –\n// deshalb hier überspringen (kein Ergebnis) statt werfen; der Vorgang bleibt\n// als needsRefresh stehen und wird beim nächsten geplanten Lauf erneut versucht.\nlet expandItems = [];\ntry {\n  expandItems = $('Expand Documents').all(0, $runIndex);\n} catch (e) {\n  expandItems = [];\n}\n\n// Sicherer Platzhalter, falls dieser Vorgang übersprungen werden muss:\n// vorgangKey bleibt leer, isKnown:true routet auf \"Update bekannter Vorgang\",\n// dessen Filter (keyValue={{$json.vorgangKey}}) dann keine Zeile trifft –\n// also ein No-Op-Update statt eines falschen Inserts. Wichtig ist nur, dass\n// die Kette weiterläuft und \"Loop Vorgangsseiten\" wieder getriggert wird.\nconst skipResult = [{ json: { vorgangKey: '', isKnown: true, needsRefresh: false, _skippedPhantomAggregate: true } }];\n\nif (!expandItems || expandItems.length === 0) {\n  console.warn(\n    `[Aggregate Texts] Keine Vorgangsdaten von \"Expand Documents\" bei runIndex=${$runIndex} ` +\n    `(vermutlich Phantom-Aufruf von \"Loop Dokumente\") – Vorgang wird übersprungen.`\n  );\n  return skipResult;\n}\n\nconst vorgangMeta = expandItems[0].json || {};\nconst currentVorgangKey = String(vorgangMeta.vorgangKey || '').trim();\n\nif (!currentVorgangKey) {\n  console.warn(\n    `[Aggregate Texts] \"Expand Documents\"-Item besitzt keinen vorgangKey bei runIndex=${$runIndex} – Vorgang wird übersprungen.`\n  );\n  return skipResult;\n}\n\n// Dokument-Text-Extraktion laeuft seit 2026-07-18 nicht mehr in P1 - siehe 'Dokument-\n// Extraktion uebersprungen (siehe P3 NC-Fallback)'. P3s Nextcloud/Tika-Fallback ist die\n// alleinige Extraktionsquelle. combinedText ist deshalb hier immer der technische\n// Platzhalter, den P3s 'Pruefe vorhandenen combinedText' erkennt und auf den NC-Fallback\n// umleitet.\nconst documentCount = Number(vorgangMeta.documentCount || 0);\nconst combinedText = documentCount > 0\n  ? '(Dokumentlinks gefunden, aber kein Dokumenttext extrahierbar)'\n  : '(Keine Dokumentlinks gefunden)';\n\nconst group = {\n  vorgangKey: currentVorgangKey,\n  volfdnr: vorgangMeta.volfdnr || '',\n  title: vorgangMeta.title || '',\n  vorgangsnummer: vorgangMeta.vorgangsnummer || '',\n  sourceUrl: vorgangMeta.sourceUrl || '',\n  allrisUrl: vorgangMeta.allrisUrl || '',\n  documentCount,\n  documentsJson: vorgangMeta.documentsJson || '[]',\n  vorfilterThemen: vorgangMeta.vorfilterThemen || [],\n  vorfilterKeywords: vorgangMeta.vorfilterKeywords || [],\n  vorfilterScore: vorgangMeta.vorfilterScore || 0,\n  isKnown: vorgangMeta.isKnown === true,\n  needsRefresh: vorgangMeta.needsRefresh !== false,\n  oldContentStage: vorgangMeta.oldContentStage || '',\n  oldContentErrorReason: vorgangMeta.oldContentErrorReason || '',\n  documentsChanged: vorgangMeta.documentsChanged === true,\n  stammVorgangsnummer: vorgangMeta.stammVorgangsnummer || vorgangMeta.vorgangsnummer || '',\n  folgeNummer: String(vorgangMeta.folgeNummer || ''),\n  istFolgevorgang: vorgangMeta.istFolgevorgang === true,\n  extractedCount: 0,\n  failedCount: 0\n};\n\nreturn [{\n  json: {\n    vorgangKey: group.vorgangKey,\n    volfdnr: group.volfdnr,\n    title: group.title,\n    vorgangsnummer: group.vorgangsnummer,\n    stammVorgangsnummer: group.stammVorgangsnummer || group.vorgangsnummer || '',\n    folgeNummer: String(group.folgeNummer || ''),\n    istFolgevorgang: group.istFolgevorgang === true,\n    sourceUrl: group.sourceUrl,\n    allrisUrl: group.allrisUrl,\n    documentCount: group.documentCount,\n    documentsJson: group.documentsJson,\n    vorfilterThemen: group.vorfilterThemen,\n    vorfilterKeywords: group.vorfilterKeywords,\n    vorfilterScore: group.vorfilterScore,\n    isKnown: group.isKnown,\n    needsRefresh: group.needsRefresh,\n    oldContentStage: group.oldContentStage || '',\n    oldContentErrorReason: group.oldContentErrorReason || '',\n    documentsChanged: group.documentsChanged === true,\n    extractedDocumentCount: group.extractedCount,\n    failedDocumentCount: group.failedCount,\n    combinedTextLength: combinedText.length,\n    combinedText\n  }\n}];"
       },
       "id": "ef945f6c-2758-463d-9b74-b0c0a1ac9d21",
       "name": "Aggregate Texts",
@@ -1775,54 +1625,6 @@
       ],
       "id": "1fe4bf97-6603-4f29-ab58-4bf103d3759e",
       "name": "Cookie Refresh"
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "id": "url-check-001",
-              "leftValue": "={{ '' }}",
-              "rightValue": "",
-              "operator": {
-                "type": "string",
-                "operation": "notEmpty",
-                "singleValue": true
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "0cc7ee02-7b88-415f-84aa-f71c07bd24bc",
-      "name": "Hat Dokument URL?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "notes": "ABSICHTLICH deaktiviert (2026-07-02): Ingestion lädt Dokumente direkt von ALLRIS über kurzlebige Session-URLs und kann Nextcloud noch nicht als Quelle nutzen (läuft zeitlich vor dem Nextcloud-Workflow). Bewertung prüft combinedText und holt Dokumente zuverlässig aus der bereits verifizierten Nextcloud-Kopie nach - der Download+Tika-Versuch hier war strukturell fast immer zum Scheitern verurteilt und hat nur Ressourcen (RAM/CPU) verbraucht. leftValue ist hart auf '' gesetzt, damit IMMER der 'kein Dokument'-Zweig läuft. Zum Reaktivieren: leftValue zurück auf {{ $json.url }} setzen.",
-      "position": [
-        5600,
-        940
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Platzhalter-Item: Vorgang hat keine Dokumente.\n// Alle Vorgangsmetadaten direkt aus dem Item übernehmen.\nconst currentItems = $input.all(0, $runIndex);\n\nif (currentItems.length !== 1) {\n  throw new Error(\n    `[Markiere kein Dokument] Erwartet genau 1 Item, ` +\n    `erhalten: ${currentItems.length}, runIndex=${$runIndex}`\n  );\n}\n\nconst item = currentItems[0];\nreturn [{\n  json: {\n    vorgangKey:             item.json.vorgangKey,\n    volfdnr:                item.json.volfdnr           || '',\n    title:                  item.json.title             || '',\n    vorgangsnummer:         item.json.vorgangsnummer    || '',\n    stammVorgangsnummer:    item.json.stammVorgangsnummer || item.json.vorgangsnummer || '',\n    folgeNummer:            String(item.json.folgeNummer || ''),\n    istFolgevorgang:        item.json.istFolgevorgang === true ||\n                            String(item.json.istFolgevorgang || '').trim().toLowerCase() === 'true',\n    sourceUrl:              item.json.sourceUrl          || '',\n    allrisUrl:              item.json.allrisUrl         || '',\n    documentCount:          Number(item.json.documentCount || 0),\n    documentsJson:          item.json.documentsJson      || '[]',\n    vorfilterThemen:        item.json.vorfilterThemen   || [],\n    vorfilterKeywords:      item.json.vorfilterKeywords || [],\n    vorfilterScore:         item.json.vorfilterScore    || 0,\n    isKnown:                item.json.isKnown           || false,\n    needsRefresh:           item.json.needsRefresh      !== false,\n    oldContentStage:        item.json.oldContentStage   || '',\n    oldContentErrorReason:  item.json.oldContentErrorReason || '',\n    documentsChanged:       item.json.documentsChanged  === true,\n    url:                    '',\n    type:                   'none',\n    docKey:                 '',\n    label:                  '',\n    docRunKey:              `${item.json.vorgangKey}::__none__`,\n    text:                   '',\n    textExtractionSuccess:  false,\n    textLength:             0,\n    textExtractionMethod:   'no_document',\n    textExtractionError:    ''\n  }\n}];\n"
-      },
-      "id": "41aa404f-c248-4e65-a3e9-8b2a257b00bf",
-      "name": "Markiere kein Dokument",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        5840,
-        1120
-      ]
     },
     {
       "parameters": {
@@ -2645,118 +2447,6 @@
     },
     {
       "parameters": {
-        "method": "PUT",
-        "url": "http://tika:9998/tika",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Accept",
-              "value": "text/plain"
-            },
-            {
-              "name": "Content-Type",
-              "value": "={{ $binary.data.mimeType || 'application/octet-stream' }}"
-            },
-            {
-              "name": "X-Tika-PDFOcrStrategy",
-              "value": "auto"
-            },
-            {
-              "name": "X-Tika-OCRLanguage",
-              "value": "deu"
-            }
-          ]
-        },
-        "sendBody": true,
-        "contentType": "binaryData",
-        "inputDataFieldName": "data",
-        "options": {
-          "response": {
-            "response": {
-              "responseFormat": "text",
-              "outputPropertyName": "tikaText"
-            }
-          },
-          "timeout": 300000
-        }
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.4,
-      "position": [
-        6560,
-        940
-      ],
-      "id": "e2ab4f0f-0ce6-4794-a5a0-c06d039da954",
-      "name": "Tika",
-      "retryOnFail": true,
-      "maxTries": 2,
-      "waitBetweenTries": 5000,
-      "continueOnFail": true
-    },
-    {
-      "parameters": {
-        "jsCode": "// Prüft das heruntergeladene Binary auf Gültigkeit.\n// Setzt sendToTika: true/false für die nachfolgende IF-Node.\n// Hat nur einen Ausgang – die Verzweigung erfolgt durch eine separate IF-Node.\n\nconst item = items[0];\n\nasync function checkItem(item, index) {\n  const binData  = item.binary?.data;\n  const mimeType = (binData?.mimeType || '').toLowerCase();\n  const docUrl   = (item.json.url || '').toLowerCase();\n\n  // ── 1. Binary-Feld vorhanden? ─────────────────────────────────────────────\n  if (!binData) {\n    return {\n      ...item.json,\n      sendToTika:            false,\n      textExtractionSuccess: false,\n      textLength:            0,\n      textExtractionMethod:  'download_failed',\n      textExtractionError:   'Kein Binary-Feld im HTTP-Response vorhanden'\n    };\n  }\n\n  // ── 2. Buffer lesen (robust, kein Verlass auf fileSize-String) ────────────\n  let buffer;\n  try {\n    buffer = await this.helpers.getBinaryDataBuffer(index, 'data');\n  } catch(e) {\n    return {\n      ...item.json,\n      sendToTika:            false,\n      textExtractionSuccess: false,\n      textLength:            0,\n      textExtractionMethod:  'download_failed',\n      textExtractionError:   `Binary-Buffer nicht lesbar: ${e.message}`\n    };\n  }\n\n  if (!buffer || buffer.length === 0) {\n    return {\n      ...item.json,\n      sendToTika:            false,\n      textExtractionSuccess: false,\n      textLength:            0,\n      textExtractionMethod:  'download_failed',\n      textExtractionError:   'Heruntergeladene Datei ist leer (0 Byte)'\n    };\n  }\n\n  // ── 3. ZIP erkennen: Magic-Bytes PK (0x50 0x4B), MIME-Type, Endung ────────\n  const isPkZip = buffer[0] === 0x50 && buffer[1] === 0x4B;\n  const isZipMime = mimeType.includes('application/zip') || mimeType.includes('application/x-zip');\n  const isZipExt  = docUrl.endsWith('.zip');\n\n  if (isPkZip || isZipMime || isZipExt) {\n    console.warn(`[Prüfe Binary] ZIP erkannt. docRunKey=${item.json.docRunKey} mimeType=${mimeType}`);\n    return {\n      ...item.json,\n      sendToTika:            false,\n      textExtractionSuccess: false,\n      textLength:            0,\n      textExtractionMethod:  'zip_skipped',\n      textExtractionError:   `ZIP-Datei wird nicht als Dokumenttext verarbeitet (mimeType=${mimeType})`\n    };\n  }\n\n  // ── 4. HTML-Fehlerseite erkennen – anhand Dateiinhalt, nicht nur MIME ─────\n  // Prüfe die ersten 512 Byte als ASCII/Latin1\n  const head = buffer.slice(0, 512).toString('latin1').trimStart().toLowerCase();\n  const isHtml = head.startsWith('<!doctype html') ||\n                 head.startsWith('<html')           ||\n                 head.startsWith('<head')           ||\n                 head.startsWith('<body')           ||\n                 // gelegentlich BOM vorangestellt\n                 head.replace(/^\\ufeff/, '').startsWith('<!doctype');\n\n  if (isHtml) {\n    console.warn(`[Prüfe Binary] HTML-Inhalt erkannt statt Dokument. docRunKey=${item.json.docRunKey} mimeType=${mimeType}`);\n    return {\n      ...item.json,\n      sendToTika:            false,\n      textExtractionSuccess: false,\n      textLength:            0,\n      textExtractionMethod:  'download_failed',\n      textExtractionError:   `HTML-Fehlerseite empfangen statt Dokument (mimeType=${mimeType})`\n    };\n  }\n\n  // ── 5. Binary ist gültig ──────────────────────────────────────────────────\n  console.log(`[Prüfe Binary] OK. docRunKey=${item.json.docRunKey} size=${buffer.length} mimeType=${mimeType}`);\n  return {\n    ...item.json,\n    sendToTika: true\n  };\n}\n\nconst results = [];\nfor (let i = 0; i < items.length; i++) {\n  try {\n    const result = await checkItem.call(this, items[i], i);\n    results.push({ json: result, binary: items[i].binary });\n  } catch(e) {\n    console.error(`[Prüfe Binary] Unerwarteter Fehler bei Item ${i}: ${e.message}`);\n    results.push({ json: {\n      ...items[i].json,\n      sendToTika:            false,\n      textExtractionSuccess: false,\n      textLength:            0,\n      textExtractionMethod:  'download_failed',\n      textExtractionError:   `Unerwarteter Fehler: ${e.message}`\n    }, binary: items[i].binary });\n  }\n}\nreturn results;\n"
-      },
-      "id": "8d9d920e-3eb2-4a82-b31f-17f542d88e92",
-      "name": "Prüfe Binary",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        6080,
-        940
-      ]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "id": "sendtotika-001",
-              "leftValue": "={{ $json.sendToTika }}",
-              "rightValue": "",
-              "operator": {
-                "type": "boolean",
-                "operation": "true",
-                "singleValue": true
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "7f4b4607-307a-417c-b802-6b3dc8ba63b9",
-      "name": "IF sendToTika?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [
-        6320,
-        940
-      ]
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "// Metadaten nach Tika – Modus: Run Once for Each Item\n// Stellt Vorgangs- und Dokumentmetadaten nach dem Tika-HTTP-Aufruf wieder her.\n// Das aktuelle Item ist die Tika-HTTP-Antwort.\n// Die ursprünglichen Metadaten kommen aus dem verknüpften Eingangsitem\n// des True-Zweigs der IF-Node \"IF sendToTika?\".\n\n// Metadaten aus dem verknüpften Item vor Tika holen (item-linking)\nconst meta = $('IF sendToTika?').item.json;\n\n// Tika-Text: responseFormat=text legt den Text in json.data oder json.body ab.\n// tikaText ist gesetzt wenn die HTTP-Node \"Put Output in Field\" verwendet.\nconst tikaText =\n  typeof $json.tikaText === 'string' ? $json.tikaText :\n  typeof $json.data     === 'string' ? $json.data     :\n  typeof $json.body     === 'string' ? $json.body     :\n  '';\n\n// Tika-Fehler\nconst tikaError =\n  $json.error?.message ||\n  $json.message        ||\n  '';\n\nreturn {\n  json: {\n    vorgangKey:        meta.vorgangKey        || '',\n    volfdnr:           meta.volfdnr           || '',\n    title:             meta.title             || '',\n    vorgangsnummer:    meta.vorgangsnummer     || '',\n    sourceUrl:         meta.sourceUrl          || '',\n    allrisUrl:         meta.allrisUrl          || '',\n    documentCount:     meta.documentCount      || 0,\n    documentsJson:     meta.documentsJson      || '[]',\n    vorfilterThemen:   meta.vorfilterThemen    || [],\n    vorfilterKeywords: meta.vorfilterKeywords  || [],\n    vorfilterScore:    meta.vorfilterScore     || 0,\n    isKnown:           meta.isKnown            || false,\n    needsRefresh:      meta.needsRefresh       !== false,\n    url:               meta.url               || '',\n    type:              meta.type              || '',\n    docKey:            meta.docKey            || '',\n    label:             meta.label             || '',\n    docRunKey:         meta.docRunKey         || '',\n    referer:           meta.referer           || '',\n    stammVorgangsnummer: meta.stammVorgangsnummer || meta.vorgangsnummer || '',\n    folgeNummer:         String(meta.folgeNummer || ''),\n    istFolgevorgang:     meta.istFolgevorgang === true ||\n                         String(meta.istFolgevorgang || '').trim().toLowerCase() === 'true',\n    sendToTika:        true,\n    tikaText,\n    tikaError\n  }\n};\n"
-      },
-      "id": "c9972a70-7483-41eb-8601-f405322b0f5b",
-      "name": "Metadaten nach Tika",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        6800,
-        940
-      ]
-    },
-    {
-      "parameters": {
         "options": {
           "reset": "={{ $json._docLoopInit === true }}"
         }
@@ -2794,6 +2484,20 @@
         304,
         40
       ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Dokument-Text-Extraktion laeuft seit 2026-07-18 nicht mehr in P1 (HTTP-Download +\n// Tika direkt von der ALLRIS-Quelle). P3s Nextcloud/Tika-Fallback (siehe 'Pruefe\n// vorhandenen combinedText' in ALLRIS_P3_Bewertung) ist die alleinige Extraktionsquelle\n// geworden, nachdem P1s direkter Download beim End-to-End-Test zuverlaessig fehlschlug\n// (vermutlich Session-/Cookie-Problem, nie abschliessend geklaert) - P3 zieht die\n// Dokumente ohnehin nochmal aus Nextcloud (von P2 hochgeladen), P1s eigener Versuch war\n// nur ein nutzloser HTTP/Tika-Roundtrip. Dieser Node ersetzt die gesamte alte\n// Download/Tika-Kette als reiner Durchlaufposten, damit 'Loop Dokumente' weiterhin\n// korrekt durch alle Dokumente eines Vorgangs iteriert (fuer documentCount/documentsJson\n// in 'Aggregate Texts'), ohne pro Dokument einen Netzwerk-Request auszufuehren.\nreturn items;"
+      },
+      "id": "c2b2fc21-1a24-4a00-af3a-afced691e6bd",
+      "name": "Dokument-Extraktion übersprungen (siehe P3 NC-Fallback)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5344,
+        960
+      ]
     }
   ],
   "pinData": {},
@@ -2802,5 +2506,5 @@
     "binaryMode": "separate"
   },
   "tags": [],
-  "versionId": "7b4f6c4b-6347-479a-b524-30ea7e789065"
+  "versionId": "0f3329dc-d6cc-4511-b5a0-da70379a6f7b"
 }
