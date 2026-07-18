@@ -126,7 +126,7 @@
       "main": [
         [
           {
-            "node": "HTTP Vorgangsseite Warmup",
+            "node": "Warte vor Vorgangsseite Warmup",
             "type": "main",
             "index": 0
           }
@@ -390,6 +390,17 @@
         [
           {
             "node": "Expand Documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Warte vor Vorgangsseite Warmup": {
+      "main": [
+        [
+          {
+            "node": "HTTP Vorgangsseite Warmup",
             "type": "main",
             "index": 0
           }
@@ -1192,6 +1203,21 @@
       ],
       "id": "a110c85e-e59c-4384-8e4f-0a45d4f849b6",
       "name": "Aktualisiere Dokumentlinks aus Warmup"
+    },
+    {
+      "parameters": {
+        "amount": 12,
+        "unit": "seconds"
+      },
+      "id": "197ec035-40af-42d0-aacc-d8f5aceda570",
+      "name": "Warte vor Vorgangsseite Warmup",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        23872,
+        6832
+      ],
+      "webhookId": "0e6e3787-0fd6-4e1e-a3aa-2aa0b68d83b9"
     }
   ],
   "pinData": {},
@@ -1200,5 +1226,5 @@
     "binaryMode": "separate"
   },
   "tags": [],
-  "versionId": "b4a567b5-b12a-41cd-a8e6-ae21bcbbb2a8"
+  "versionId": "dc872527-a0ce-49e0-8b82-59ae08d0d6c1"
 }
