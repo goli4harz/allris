@@ -23,6 +23,16 @@
             "node": "Hole visual_topic_error (Alert)",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Hole topic_error für Repair",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Hole blocked_source_lock für Repair",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -476,6 +486,50 @@
         [
           {
             "node": "DB Repair Visual-Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole topic_error für Repair": {
+      "main": [
+        [
+          {
+            "node": "Merge Legacy Visual-Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole blocked_source_lock für Repair": {
+      "main": [
+        [
+          {
+            "node": "Merge Legacy Visual-Status",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Legacy Visual-Status": {
+      "main": [
+        [
+          {
+            "node": "Repariere Legacy Visual-Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Repariere Legacy Visual-Status": {
+      "main": [
+        [
+          {
+            "node": "DB Repair Legacy Visual-Status",
             "type": "main",
             "index": 0
           }
@@ -3172,6 +3226,237 @@
         }
       },
       "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "visualStage",
+              "keyValue": "topic_error"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "9cd40b20-a0c2-4a42-a4d0-a4fef290e148",
+      "name": "Hole topic_error für Repair",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        8272,
+        2624
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "visualStage",
+              "keyValue": "blocked_source_lock"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "84264e19-d86e-430c-8d68-67f650bc861c",
+      "name": "Hole blocked_source_lock für Repair",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        8272,
+        2752
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "022132fc-e868-48d5-af3d-507433bbb52d",
+      "name": "Merge Legacy Visual-Status",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        8496,
+        2688
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// REPARIERE LEGACY VISUAL-STATUS – V1\n// Rechnet visualStage für Zeilen neu, die bei 'topic_error' oder\n// 'blocked_source_lock' haengen - fuer diese beiden Zustaende gibt es\n// (anders als blocked_content_error/waiting_for_content) keinen\n// automatischen Repair, siehe \"Baue Blockiert-Alert\". Manche dieser\n// Zeilen tragen aber nur noch ein veraltetes Label aus einer aelteren\n// Workflow-Version (Grundtext existiert im aktuellen Code gar nicht mehr),\n// obwohl eine Neuberechnung mit der HEUTIGEN Prepare-Visual-Decision-Logik\n// zu einem anderen Ergebnis kaeme - z.B. weil relevantScore/kommunikations-\n// potenzial/sprengstoff heute gar kein Bild mehr verlangen wuerden\n// (visualRequested=false -> not_applicable) oder weil sourceLock/anchors\n// inzwischen valide sind (-> needs_prompt, endlich freigegeben).\n//\n// WICHTIG: Das ist KEIN Auto-Fix, der Blockaden wegschummelt. Eine Zeile,\n// die nach heutiger Logik weiterhin blockiert ist, bleibt blockiert -\n// sie bekommt nur ein aktuelles, korrektes Label/Grund statt eines\n// Alttexts. Nur echte \"nicht mehr noetig\"- oder \"jetzt valide\"-Faelle\n// werden tatsaechlich freigegeben/entlastet.\n// ============================================================\n\nfunction safe(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction norm(v) { return safe(v).toUpperCase(); }\nfunction num(v) {\n  const n = parseFloat(safe(v).replace(',', '.'));\n  return Number.isFinite(n) ? n : 0;\n}\nfunction bool(v) {\n  if (v === true || v === 1) return true;\n  if (v === false || v === 0 || v === null || v === undefined) return false;\n  const s = safe(v).toLowerCase();\n  return s === 'true' || s === '1' || s === 'yes';\n}\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try {\n    const p = JSON.parse(String(v));\n    return p && typeof p === 'object' && !Array.isArray(p) ? p : {};\n  } catch (e) { return {}; }\n}\nfunction asArr(v) {\n  if (Array.isArray(v)) return v.filter(Boolean).map(x => safe(x)).filter(Boolean);\n  if (typeof v === 'string' && v.trim()) {\n    try {\n      const p = JSON.parse(v);\n      if (Array.isArray(p)) return p.filter(Boolean).map(x => safe(x)).filter(Boolean);\n    } catch (e) {}\n    return String(v).split(/\\s*\\|\\s*|\\s*;\\s*/).map(x => safe(x)).filter(Boolean);\n  }\n  return [];\n}\nfunction firstValue(...values) {\n  for (const value of values) {\n    if (value === null || value === undefined) continue;\n    if (Array.isArray(value) && value.length > 0) return value;\n    if (typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0) return value;\n    if (safe(value) !== '') return value;\n  }\n  return '';\n}\n\nconst repaired = [];\n\nfor (const item of $input.all()) {\n  const j = item.json || {};\n  const oldVisualStage = safe(j.visualStage);\n  if (!['topic_error', 'blocked_source_lock'].includes(oldVisualStage)) continue;\n\n  const analysis = parseObj(j.analysisJson);\n  const sourceLock = parseObj(analysis.sourceLock);\n  const visualAnchors = parseObj(analysis.visualAnchors);\n\n  // Schritt 1: Source-Lock heute gueltig?\n  const sourceLockValid = bool(analysis.sourceLockValid);\n  const sourceLockErrors = [];\n  if (!sourceLockValid) sourceLockErrors.push('analysisJson.sourceLockValid ist nicht true');\n  if (!safe(sourceLock.sourceTopic)) sourceLockErrors.push('sourceLock.sourceTopic fehlt');\n  if (!safe(sourceLock.sourceConflict)) sourceLockErrors.push('sourceLock.sourceConflict fehlt');\n  const requiredTerms = asArr(sourceLock.requiredTerms);\n  if (requiredTerms.length < 2) sourceLockErrors.push('sourceLock.requiredTerms enthält weniger als 2 konkrete Begriffe');\n  if (!safe(sourceLock.requiredAction)) sourceLockErrors.push('sourceLock.requiredAction fehlt');\n  const requiredObjects = asArr(sourceLock.requiredObjects);\n  if (requiredObjects.length < 2) sourceLockErrors.push('sourceLock.requiredObjects enthält weniger als zwei Objekte');\n\n  let newVisualStage;\n  let newReason;\n  let newVisualNeeded;\n  let resetImageFields = false;\n\n  if (sourceLockErrors.length > 0) {\n    // Weiterhin blockiert - aber korrekt als blocked_source_lock gelabelt statt Alttext.\n    newVisualStage = 'blocked_source_lock';\n    newReason = 'Source-Lock ungültig: ' + sourceLockErrors.join(' | ');\n    newVisualNeeded = false;\n  } else {\n    // Schritt 2: Sharepic ueberhaupt noch angefragt? (gleiche Schwellwerte wie Prepare Visual Decision)\n    const sprengstoff = norm(firstValue(j.sprengstoff, analysis.sprengstoff));\n    const empfehlung = norm(firstValue(j.empfehlung, analysis.empfehlung));\n    const relevantScore = num(firstValue(j.relevantScore, analysis.relevantScore, analysis.relevanz));\n    const kommunikationspotenzial = num(firstValue(j.kommunikationspotenzial, analysis.kommunikationspotenzial));\n    const instagramCarouselNoetig = bool(j.instagramCarouselNoetig) || bool(analysis.instagramCarouselNoetig);\n    const instagramSharepicAngefragt = bool(j.instagramSharepicNoetig) || bool(analysis.instagramSharepicNoetig);\n\n    const reasons = [];\n    if (instagramCarouselNoetig) reasons.push('instagramCarouselNoetig=true');\n    if (instagramSharepicAngefragt) reasons.push('instagramSharepicNoetig=true');\n    if (empfehlung === 'REAGIEREN' && ['MITTEL', 'HOCH'].includes(sprengstoff)) {\n      reasons.push('empfehlung=REAGIEREN+sprengstoff=' + sprengstoff);\n    }\n    if (relevantScore >= 8) reasons.push('relevantScore=' + relevantScore);\n    if (kommunikationspotenzial >= 8) reasons.push('kommunikationspotenzial=' + kommunikationspotenzial);\n    const visualRequested = reasons.length > 0;\n\n    if (!visualRequested) {\n      // Nach heutigen Schwellwerten wird gar kein Bild mehr verlangt.\n      newVisualStage = 'not_applicable';\n      newReason = 'Keine Bildbedingung erfüllt (Neuberechnung Legacy-Reparatur)';\n      newVisualNeeded = false;\n    } else {\n      // Schritt 3: Sind die Bild-Anker heute vollstaendig?\n      const anchorErrors = [];\n      if (!safe(visualAnchors.satireThemaKonkret)) anchorErrors.push('satireThemaKonkret fehlt');\n      if (!safe(visualAnchors.satireKonfliktKonkret)) anchorErrors.push('satireKonfliktKonkret fehlt');\n      if (asArr(visualAnchors.visualPflichtobjekte).length < 2) anchorErrors.push('mindestens zwei visualPflichtobjekte fehlen');\n      if (!safe(visualAnchors.visualPflichthandlung)) anchorErrors.push('visualPflichthandlung fehlt');\n      if (!safe(visualAnchors.visualErkennungssatz)) anchorErrors.push('visualErkennungssatz fehlt');\n      if (!safe(visualAnchors.visualUeberzeichnung)) anchorErrors.push('visualUeberzeichnung fehlt');\n      if (asArr(visualAnchors.visualVerboteneErsatzmotive).length < 2) anchorErrors.push('mindestens zwei visualVerboteneErsatzmotive fehlen');\n      if (!bool(analysis.visualAnchorsValid)) anchorErrors.push('analysisJson.visualAnchorsValid ist nicht true');\n      const anchorsValid = anchorErrors.length === 0;\n\n      if (anchorsValid) {\n        newVisualStage = 'needs_prompt';\n        newReason = reasons.join(' | ') + ' (Legacy-Reparatur: jetzt freigegeben)';\n        newVisualNeeded = true;\n        resetImageFields = true;\n      } else {\n        newVisualStage = 'topic_error';\n        newReason = 'Bildfreigabe blockiert: ' + anchorErrors.join(' | ');\n        newVisualNeeded = false;\n      }\n    }\n  }\n\n  // Unnoetige Schreibvorgaenge vermeiden, wenn sich am Ergebnis nichts geaendert hat.\n  if (newVisualStage === oldVisualStage && newReason === safe(j.visualDecisionReason)) continue;\n\n  // imagePrompt/imageHeadline/imageSubline/imageNegativePrompt/visualJson werden IMMER\n  // explizit gesetzt (erhalten oder zurückgesetzt), nie nur bedingt gespreadet - der\n  // nachgelagerte DB-Write-Node mappt diese Spalten fuer jede Zeile gleich, ein fehlendes\n  // Feld wuerde dort sonst zu einem stillen Leerstring-Overwrite fuehren.\n  repaired.push({\n    json: {\n      ...j,\n      visualStage: newVisualStage,\n      visualDecisionReason: newReason,\n      visualNeeded: newVisualNeeded,\n      instagramSharepicNoetig: newVisualNeeded,\n      imageStage: resetImageFields ? (safe(j.imageFinalPath) ? 'composed' : 'not_started') : safe(j.imageStage),\n      imagePrompt: resetImageFields ? '' : safe(j.imagePrompt),\n      imageHeadline: resetImageFields ? '' : safe(j.imageHeadline),\n      imageSubline: resetImageFields ? '' : safe(j.imageSubline),\n      imageNegativePrompt: resetImageFields ? '' : safe(j.imageNegativePrompt),\n      visualJson: resetImageFields\n        ? '{}'\n        : (typeof j.visualJson === 'string' ? (j.visualJson || '{}') : JSON.stringify(j.visualJson || {})),\n      visualStatusLegacyRepairedAt: new Date().toISOString(),\n      visualStatusLegacyRepairFrom: oldVisualStage\n    }\n  });\n}\n\nreturn repaired;\n"
+      },
+      "id": "0b12b1aa-29ae-4f2c-9b2e-04eb5f13fe9a",
+      "name": "Repariere Legacy Visual-Status",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8720,
+        2688
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "visualStage": "={{ $json.visualStage }}",
+            "visualDecisionReason": "={{ $json.visualDecisionReason || '' }}",
+            "visualNeeded": "={{ $json.visualNeeded === true ? 'true' : 'false' }}",
+            "instagramSharepicNoetig": "={{ $json.instagramSharepicNoetig === true ? 'true' : 'false' }}",
+            "imageStage": "={{ $json.imageStage || 'not_started' }}",
+            "imagePrompt": "={{ $json.imagePrompt || '' }}",
+            "imageHeadline": "={{ $json.imageHeadline || '' }}",
+            "imageSubline": "={{ $json.imageSubline || '' }}",
+            "imageNegativePrompt": "={{ $json.imageNegativePrompt || '' }}",
+            "visualJson": "={{ typeof $json.visualJson === 'string' ? ($json.visualJson || '{}') : JSON.stringify($json.visualJson || {}) }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "visualStage",
+              "displayName": "visualStage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "visualDecisionReason",
+              "displayName": "visualDecisionReason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "visualNeeded",
+              "displayName": "visualNeeded",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "instagramSharepicNoetig",
+              "displayName": "instagramSharepicNoetig",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imageStage",
+              "displayName": "imageStage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imagePrompt",
+              "displayName": "imagePrompt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imageHeadline",
+              "displayName": "imageHeadline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imageSubline",
+              "displayName": "imageSubline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imageNegativePrompt",
+              "displayName": "imageNegativePrompt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "visualJson",
+              "displayName": "visualJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "cc8fcf47-1eb9-4afb-8114-3394882e7e5c",
+      "name": "DB Repair Legacy Visual-Status",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        8944,
+        2688
+      ]
     }
   ],
   "pinData": {},
