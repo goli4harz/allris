@@ -1,4 +1,144 @@
 {
+  "active": true,
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Prüfe Repair-Bedarf",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prüfe Repair-Bedarf": {
+      "main": [
+        [
+          {
+            "node": "IF Repair nötig?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Repair nötig?": {
+      "main": [
+        [
+          {
+            "node": "AI Reparatur SourceLock+Anchors",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prüfe Guard-Repair-Bedarf",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Reparatur SourceLock+Anchors": {
+      "main": [
+        [
+          {
+            "node": "Parse Reparatur JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Reparatur JSON": {
+      "main": [
+        [
+          {
+            "node": "Speichere Reparatur",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Speichere Reparatur": {
+      "main": [
+        [
+          {
+            "node": "Prüfe Guard-Repair-Bedarf",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prüfe Guard-Repair-Bedarf": {
+      "main": [
+        [
+          {
+            "node": "IF Guard-Reparatur nötig?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Guard-Reparatur nötig?": {
+      "main": [
+        [
+          {
+            "node": "AI Reparatur Visual Guard",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Repair Abschluss",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Reparatur Visual Guard": {
+      "main": [
+        [
+          {
+            "node": "Parse Guard-Reparatur JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Guard-Reparatur JSON": {
+      "main": [
+        [
+          {
+            "node": "Speichere Guard-Reparatur",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Speichere Guard-Reparatur": {
+      "main": [
+        [
+          {
+            "node": "Repair Abschluss",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "KfPtfJfOe39LTJzR",
+  "meta": null,
   "name": "ALLRIS_P3b_Repair_SourceLock_VisualGuard",
   "nodes": [
     {
@@ -390,152 +530,10 @@
     }
   ],
   "pinData": {},
-  "connections": {
-    "Execute Workflow Trigger": {
-      "main": [
-        [
-          {
-            "node": "Prüfe Repair-Bedarf",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Prüfe Repair-Bedarf": {
-      "main": [
-        [
-          {
-            "node": "IF Repair nötig?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF Repair nötig?": {
-      "main": [
-        [
-          {
-            "node": "AI Reparatur SourceLock+Anchors",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Prüfe Guard-Repair-Bedarf",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "AI Reparatur SourceLock+Anchors": {
-      "main": [
-        [
-          {
-            "node": "Parse Reparatur JSON",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Parse Reparatur JSON": {
-      "main": [
-        [
-          {
-            "node": "Speichere Reparatur",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Speichere Reparatur": {
-      "main": [
-        [
-          {
-            "node": "Prüfe Guard-Repair-Bedarf",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Prüfe Guard-Repair-Bedarf": {
-      "main": [
-        [
-          {
-            "node": "IF Guard-Reparatur nötig?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF Guard-Reparatur nötig?": {
-      "main": [
-        [
-          {
-            "node": "AI Reparatur Visual Guard",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Repair Abschluss",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "AI Reparatur Visual Guard": {
-      "main": [
-        [
-          {
-            "node": "Parse Guard-Reparatur JSON",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Parse Guard-Reparatur JSON": {
-      "main": [
-        [
-          {
-            "node": "Speichere Guard-Reparatur",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Speichere Guard-Reparatur": {
-      "main": [
-        [
-          {
-            "node": "Repair Abschluss",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
-  "active": true,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "19329534-0821-48da-b9d0-d57b9d14b48f",
-  "meta": {
-    "instanceId": "3918cd7b1079333be95f7df5d1ce0c807af27c5d6c51c5bb061c962138165169"
-  },
-  "id": "KfPtfJfOe39LTJzR",
-  "tags": []
+  "tags": [],
+  "versionId": "3ee1cb19-3e56-47d8-afa9-5aab64804186"
 }
