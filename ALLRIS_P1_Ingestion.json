@@ -485,7 +485,7 @@
       "typeVersion": 1.1,
       "position": [
         80,
-        40
+        48
       ]
     },
     {
@@ -523,8 +523,8 @@
               "responseFormat": "file"
             }
           },
-          "timeout": 30000,
-          "proxy": "172.16.1.5:3128"
+          "proxy": "172.16.1.5:3128",
+          "timeout": 30000
         }
       },
       "id": "4ddbfc76-f66e-4eea-a88d-cdeb93973849",
@@ -532,8 +532,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        320,
-        40
+        384,
+        48
       ],
       "retryOnFail": true,
       "waitBetweenTries": 5000
@@ -548,7 +548,7 @@
       "typeVersion": 2,
       "position": [
         800,
-        40
+        48
       ]
     },
     {
@@ -592,8 +592,8 @@
               "responseFormat": "file"
             }
           },
-          "timeout": 90000,
-          "proxy": "172.16.1.5:3128"
+          "proxy": "172.16.1.5:3128",
+          "timeout": 90000
         }
       },
       "id": "afc95caa-3484-4237-a79f-3703f72d00e2",
@@ -602,7 +602,7 @@
       "typeVersion": 4.2,
       "position": [
         2000,
-        40
+        48
       ],
       "retryOnFail": true,
       "waitBetweenTries": 5000,
@@ -618,8 +618,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2960,
-        40
+        336,
+        400
       ]
     },
     {
@@ -631,8 +631,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3200,
-        40
+        576,
+        400
       ]
     },
     {
@@ -644,8 +644,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3440,
-        40
+        816,
+        400
       ]
     },
     {
@@ -657,8 +657,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3680,
-        40
+        1056,
+        400
       ]
     },
     {
@@ -670,8 +670,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3920,
-        40
+        1296,
+        400
       ]
     },
     {
@@ -699,8 +699,8 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        4160,
-        40
+        1536,
+        400
       ],
       "alwaysOutputData": true
     },
@@ -713,8 +713,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4400,
-        40
+        1776,
+        400
       ]
     },
     {
@@ -747,8 +747,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        4640,
-        40
+        2016,
+        400
       ]
     },
     {
@@ -827,8 +827,8 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        4880,
-        40
+        2256,
+        400
       ],
       "alwaysOutputData": true
     },
@@ -841,8 +841,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4880,
-        760
+        112,
+        816
       ]
     },
     {
@@ -854,8 +854,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5360,
-        760
+        592,
+        816
       ]
     },
     {
@@ -1582,8 +1582,8 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        5840,
-        760
+        1072,
+        816
       ],
       "alwaysOutputData": true
     },
@@ -1595,7 +1595,7 @@
       "typeVersion": 2,
       "position": [
         560,
-        40
+        48
       ],
       "id": "7eda05d7-ccf9-4642-9d24-1d42e3601cb4",
       "name": "codepage"
@@ -1609,8 +1609,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        680,
-        220
+        688,
+        224
       ]
     },
     {
@@ -1621,7 +1621,7 @@
       "typeVersion": 2,
       "position": [
         2240,
-        40
+        48
       ],
       "id": "1fe4bf97-6603-4f29-ab58-4bf103d3759e",
       "name": "Cookie Refresh"
@@ -1656,8 +1656,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        5600,
-        760
+        832,
+        816
       ]
     },
     {
@@ -1882,8 +1882,8 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        5840,
-        1300
+        1072,
+        1360
       ],
       "alwaysOutputData": true
     },
@@ -1897,7 +1897,7 @@
       "typeVersion": 3,
       "position": [
         1280,
-        40
+        48
       ]
     },
     {
@@ -1911,7 +1911,7 @@
       "typeVersion": 1,
       "position": [
         1520,
-        40
+        48
       ],
       "webhookId": "44123091-8d4c-4460-83c6-95cea978c95b"
     },
@@ -1925,7 +1925,7 @@
       "typeVersion": 2,
       "position": [
         2480,
-        40
+        48
       ]
     },
     {
@@ -1957,8 +1957,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        2720,
-        40
+        96,
+        400
       ]
     },
     {
@@ -1970,8 +1970,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2960,
-        220
+        336,
+        576
       ]
     },
     {
@@ -2175,8 +2175,8 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        3920,
-        220
+        1296,
+        576
       ],
       "alwaysOutputData": true
     },
@@ -2189,8 +2189,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3440,
-        220
+        816,
+        576
       ]
     },
     {
@@ -2223,8 +2223,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        3680,
-        220
+        1056,
+        576
       ]
     },
     {
@@ -2303,8 +2303,8 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        4160,
-        400
+        1536,
+        752
       ],
       "alwaysOutputData": true
     },
@@ -2333,8 +2333,8 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        3200,
-        220
+        576,
+        576
       ],
       "alwaysOutputData": true
     },
@@ -2367,8 +2367,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        3920,
-        400
+        1296,
+        752
       ]
     },
     {
@@ -2414,8 +2414,8 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        4160,
-        580
+        1536,
+        944
       ],
       "alwaysOutputData": true
     },
@@ -2429,7 +2429,7 @@
       "typeVersion": 2,
       "position": [
         1760,
-        40
+        48
       ]
     },
     {
@@ -2440,7 +2440,7 @@
       "typeVersion": 2,
       "position": [
         1040,
-        40
+        48
       ],
       "id": "b6194ac0-4512-4ad5-9854-dc72b0d50955",
       "name": "Einfacher Testfilter"
@@ -2456,8 +2456,8 @@
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        5120,
-        760
+        352,
+        816
       ],
       "alwaysOutputData": true
     },
@@ -2481,13 +2481,13 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        304,
-        40
-      ]
+        240,
+        48
+      ],
+      "alwaysOutputData": true
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
         "jsCode": "// Dokument-Text-Extraktion laeuft seit 2026-07-18 nicht mehr in P1 (HTTP-Download +\n// Tika direkt von der ALLRIS-Quelle). P3s Nextcloud/Tika-Fallback (siehe 'Pruefe\n// vorhandenen combinedText' in ALLRIS_P3_Bewertung) ist die alleinige Extraktionsquelle\n// geworden, nachdem P1s direkter Download beim End-to-End-Test zuverlaessig fehlschlug\n// (vermutlich Session-/Cookie-Problem, nie abschliessend geklaert) - P3 zieht die\n// Dokumente ohnehin nochmal aus Nextcloud (von P2 hochgeladen), P1s eigener Versuch war\n// nur ein nutzloser HTTP/Tika-Roundtrip. Dieser Node ersetzt die gesamte alte\n// Download/Tika-Kette als reiner Durchlaufposten, damit 'Loop Dokumente' weiterhin\n// korrekt durch alle Dokumente eines Vorgangs iteriert (fuer documentCount/documentsJson\n// in 'Aggregate Texts'), ohne pro Dokument einen Netzwerk-Request auszufuehren.\nreturn items;"
       },
       "id": "c2b2fc21-1a24-4a00-af3a-afced691e6bd",
@@ -2495,8 +2495,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5344,
-        960
+        576,
+        1008
       ]
     }
   ],
@@ -2506,5 +2506,5 @@
     "binaryMode": "separate"
   },
   "tags": [],
-  "versionId": "0f3329dc-d6cc-4511-b5a0-da70379a6f7b"
+  "versionId": "db613c64-c4b6-4e95-87ac-aed9a21fb0fb"
 }
