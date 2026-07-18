@@ -2875,6 +2875,202 @@
         }
       },
       "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Verhindert, dass eine Bewertung auf unvollstaendigen Dokumenten laeuft: der\n// Nextcloud/Tika-Fallback (Build NC Originale Path ff.) extrahiert sonst aus\n// welchen Dokumenten auch immer gerade im Ordner liegen, ohne zu pruefen, ob P2\n// ueberhaupt schon ALLE Dokumente hochgeladen hat. nextcloudFolder wird von P2\n// (Update Nextcloud Archive Status) nur bei vollstaendigem Erfolg gesetzt - leer\n// heisst entweder 'noch nicht dran' (P2 versucht es weiter, aktuell bis zu 10x)\n// oder 'endgueltig aufgegeben' (contentStage='archiving_failed').\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst j = $json;\nconst nextcloudComplete = safeStr(j.nextcloudFolder).length > 0;\nconst nextcloudGivenUp = safeStr(j.contentStage) === 'archiving_failed';\n\nreturn {\n  json: {\n    ...j,\n    _nextcloudComplete: nextcloudComplete,\n    _nextcloudGivenUp: nextcloudGivenUp\n  }\n};"
+      },
+      "id": "93d86776-150b-453a-9585-6a240fbc77d1",
+      "name": "Prüfe Nextcloud-Vollständigkeit",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        26480,
+        6708
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "nc-complete-check",
+              "leftValue": "={{ $json._nextcloudComplete }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "3ecb08d9-0284-4267-9b89-bc3ead10e737",
+      "name": "IF Nextcloud vollständig?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        26704,
+        6708
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "nc-givenup-check",
+              "leftValue": "={{ $json._nextcloudGivenUp }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c126a155-db0f-437c-a4eb-d0da7638f121",
+      "name": "IF Nextcloud endgültig fehlgeschlagen?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        26704,
+        6868
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst j = $json;\nreturn {\n  json: {\n    ...j,\n    txnId: 'nc-fail-' + Date.now() + '-' + Math.random().toString(36).slice(2),\n    summaryMessage: '⚠️ Nextcloud-Archivierung endgültig fehlgeschlagen: Vorgang ' + safeStr(j.vorgangsnummer) + ' (' + safeStr(j.vorgangKey) + ')\\n' +\n      'Grund: Dokument-Upload nach mehreren Versuchen nicht vollstaendig gelungen.\\n' +\n      'Bewertung wird NICHT auf unvollstaendigen Dokumenten durchgefuehrt. Bitte in der Data Table pruefen und ggf. contentStage manuell zuruecksetzen, um einen erneuten Versuch auszuloesen.'\n  }\n};"
+      },
+      "id": "225565dd-0da0-4c66-84a8-8670b8b2154c",
+      "name": "Baue Nextcloud-Fehler Nachricht",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        26928,
+        6908
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "contentStage": "error",
+            "contentErrorReason": "archiving_failed"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "contentStage",
+              "displayName": "contentStage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "contentErrorReason",
+              "displayName": "contentErrorReason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "3f521e6e-c862-4e29-9ada-f2589f79206d",
+      "name": "Schreibe Nextcloud-Fehler Status",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        27152,
+        6908
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://matrix.org/_matrix/client/v3/rooms/!COxTeLJyPszYlaHbIx:matrix.golietz.de/send/m.room.message/{{ $json.txnId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ msgtype: 'm.text', body: $json.summaryMessage }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "444a02a0-0c82-4977-8e36-d5019519b4b5",
+      "name": "Sende Nextcloud-Fehler Matrix-Meldung",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        27376,
+        6908
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "od1pN1F5wy2irSDs",
+          "name": "Header Auth account"
+        }
+      },
+      "onError": "continueRegularOutput"
     }
   ],
   "pinData": {},
@@ -3173,7 +3369,7 @@
         ],
         [
           {
-            "node": "Build NC Originale Path",
+            "node": "Prüfe Nextcloud-Vollständigkeit",
             "type": "main",
             "index": 0
           }
@@ -3854,6 +4050,75 @@
         [
           {
             "node": "Schreibe Satire-Ergebnis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prüfe Nextcloud-Vollständigkeit": {
+      "main": [
+        [
+          {
+            "node": "IF Nextcloud vollständig?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Nextcloud vollständig?": {
+      "main": [
+        [
+          {
+            "node": "Build NC Originale Path",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF Nextcloud endgültig fehlgeschlagen?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Nextcloud endgültig fehlgeschlagen?": {
+      "main": [
+        [
+          {
+            "node": "Baue Nextcloud-Fehler Nachricht",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Nächster Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue Nextcloud-Fehler Nachricht": {
+      "main": [
+        [
+          {
+            "node": "Schreibe Nextcloud-Fehler Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schreibe Nextcloud-Fehler Status": {
+      "main": [
+        [
+          {
+            "node": "Sende Nextcloud-Fehler Matrix-Meldung",
             "type": "main",
             "index": 0
           }
