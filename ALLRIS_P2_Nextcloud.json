@@ -456,7 +456,8 @@
               "responseFormat": "text"
             }
           },
-          "timeout": 90000
+          "timeout": 90000,
+          "proxy": "172.16.1.5:3128"
         }
       },
       "id": "c9b6fe04-73b5-4dd1-818a-dec8d36122e4",
@@ -536,7 +537,8 @@
               "responseFormat": "file"
             }
           },
-          "timeout": 90000
+          "timeout": 90000,
+          "proxy": "172.16.1.5:3128"
         }
       },
       "id": "552772ed-a338-4bf7-8770-d1cb97da9cce",
@@ -956,7 +958,8 @@
               "responseFormat": "text"
             }
           },
-          "timeout": 90000
+          "timeout": 90000,
+          "proxy": "172.16.1.5:3128"
         }
       },
       "id": "eea9d26e-7844-4316-8fd9-5ff6466fda05",
@@ -1197,5 +1200,5 @@
     "binaryMode": "separate"
   },
   "tags": [],
-  "versionId": "27ebcc29-242b-4970-82b1-6e15a1be5a12"
+  "versionId": "b4a567b5-b12a-41cd-a8e6-ae21bcbbb2a8"
 }
