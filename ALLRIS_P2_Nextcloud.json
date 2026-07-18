@@ -406,6 +406,17 @@
           }
         ]
       ]
+    },
+    "Webhook von P1 (neue Vorgaenge)": {
+      "main": [
+        [
+          {
+            "node": "HTTP ALLRIS Übersicht",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "id": "Bg1wSuj202RnkrLB",
@@ -1218,6 +1229,23 @@
         6832
       ],
       "webhookId": "0e6e3787-0fd6-4e1e-a3aa-2aa0b68d83b9"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "allris-p2-trigger",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "baef7b28-488c-4179-8890-fcb5bd3cb774",
+      "name": "Webhook von P1 (neue Vorgaenge)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        23632,
+        6800
+      ],
+      "webhookId": "588fe10f-e614-424d-b694-6e9ca7b440b4"
     }
   ],
   "pinData": {},

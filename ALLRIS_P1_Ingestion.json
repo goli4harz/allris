@@ -175,7 +175,13 @@
     },
     "Loop Vorgangsseiten": {
       "main": [
-        [],
+        [
+          {
+            "node": "Ping P2 (neue Vorgaenge)",
+            "type": "main",
+            "index": 0
+          }
+        ],
         [
           {
             "node": "Warte zwischen Vorgangsseiten",
@@ -2498,6 +2504,29 @@
         576,
         1008
       ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://172.16.1.14:5678/webhook/allris-p2-trigger",
+        "options": {
+          "timeout": 5000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "b44e8c04-52d5-4d65-8102-fa22bda2063d",
+      "name": "Ping P2 (neue Vorgaenge)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1280,
+        250
+      ],
+      "onError": "continueRegularOutput"
     }
   ],
   "pinData": {},
