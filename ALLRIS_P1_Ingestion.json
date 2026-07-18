@@ -1,4 +1,550 @@
 {
+  "active": true,
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP ALLRIS Übersicht",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP ALLRIS Übersicht": {
+      "main": [
+        [
+          {
+            "node": "codepage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrahiere Vorgangslinks": {
+      "main": [
+        [
+          {
+            "node": "Einfacher Testfilter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Vorgangsseiten": {
+      "main": [
+        [
+          {
+            "node": "Cookie Refresh",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrahiere Dokumentlinks": {
+      "main": [
+        [
+          {
+            "node": "Dedup Dokumentlinks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dedup Dokumentlinks": {
+      "main": [
+        [
+          {
+            "node": "Vorfilter annotieren",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vorfilter annotieren": {
+      "main": [
+        [
+          {
+            "node": "docKey",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "docKey": {
+      "main": [
+        [
+          {
+            "node": "Gruppierung nach Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gruppierung nach Vorgang": {
+      "main": [
+        [
+          {
+            "node": "Get all Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get all Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Check if known",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if known": {
+      "main": [
+        [
+          {
+            "node": "IF bekannt?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF bekannt?": {
+      "main": [
+        [
+          {
+            "node": "Update lastseen",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Expand Documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "codepage": {
+      "main": [
+        [
+          {
+            "node": "Weitere Übersichtsseiten laden",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weitere Übersichtsseiten laden": {
+      "main": [
+        [
+          {
+            "node": "Extrahiere Vorgangslinks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cookie Refresh": {
+      "main": [
+        [
+          {
+            "node": "Vorgangsseite Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Vorgangsseiten": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Warte zwischen Vorgangsseiten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Warte zwischen Vorgangsseiten": {
+      "main": [
+        [
+          {
+            "node": "Normalisiere Vorgangsseiten URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vorgangsseite Fallback": {
+      "main": [
+        [
+          {
+            "node": "Detail geladen?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detail geladen?": {
+      "main": [
+        [
+          {
+            "node": "Extrahiere Dokumentlinks",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert fehlgeschlagener Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert fehlgeschlagener Vorgang": {
+      "main": [
+        [
+          {
+            "node": "Get Vorgaenge Detail Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Detail Failed": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgangsseiten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update lastseen": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgangsseiten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Detail Known": {
+      "main": [
+        [
+          {
+            "node": "Detail Insert oder Update?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detail Insert oder Update?": {
+      "main": [
+        [
+          {
+            "node": "Insert Detail Failed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alter Status detail_failed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Detail Failed": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgangsseiten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Vorgaenge Detail Failed": {
+      "main": [
+        [
+          {
+            "node": "Check Detail Known",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alter Status detail_failed?": {
+      "main": [
+        [
+          {
+            "node": "Update Detail Failed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Detail Lastseen Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Detail Lastseen Only": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgangsseiten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalisiere Vorgangsseiten URL": {
+      "main": [
+        [
+          {
+            "node": "HTTP Vorgangsseiten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Einfacher Testfilter": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgangsseiten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Expand Documents": {
+      "main": [
+        [
+          {
+            "node": "Loop Dokumente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Dokumente": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Texts",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Hat Dokument URL?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hat Dokument URL?": {
+      "main": [
+        [
+          {
+            "node": "HTTP Dokument laden",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Markiere kein Dokument",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Markiere kein Dokument": {
+      "main": [
+        [
+          {
+            "node": "Handle Extract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Dokument laden": {
+      "main": [
+        [
+          {
+            "node": "Prüfe Binary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prüfe Binary": {
+      "main": [
+        [
+          {
+            "node": "IF sendToTika?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF sendToTika?": {
+      "main": [
+        [
+          {
+            "node": "Tika",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Handle Extract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tika": {
+      "main": [
+        [
+          {
+            "node": "Metadaten nach Tika",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Metadaten nach Tika": {
+      "main": [
+        [
+          {
+            "node": "Handle Extract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Extract": {
+      "main": [
+        [
+          {
+            "node": "Loop Dokumente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Texts": {
+      "main": [
+        [
+          {
+            "node": "Insert oder Update?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert oder Update?": {
+      "main": [
+        [
+          {
+            "node": "Insert neuer Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update bekannter Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert neuer Vorgang": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgangsseiten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update bekannter Vorgang": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgangsseiten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "9YDd8kZJxcoX3aDg",
+  "meta": null,
   "name": "ALLRIS_P1_Ingestion",
   "nodes": [
     {
@@ -2216,558 +2762,10 @@
     }
   ],
   "pinData": {},
-  "connections": {
-    "Schedule Trigger": {
-      "main": [
-        [
-          {
-            "node": "HTTP ALLRIS Übersicht",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "HTTP ALLRIS Übersicht": {
-      "main": [
-        [
-          {
-            "node": "codepage",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Extrahiere Vorgangslinks": {
-      "main": [
-        [
-          {
-            "node": "Einfacher Testfilter",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "HTTP Vorgangsseiten": {
-      "main": [
-        [
-          {
-            "node": "Cookie Refresh",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Extrahiere Dokumentlinks": {
-      "main": [
-        [
-          {
-            "node": "Dedup Dokumentlinks",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Dedup Dokumentlinks": {
-      "main": [
-        [
-          {
-            "node": "Vorfilter annotieren",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Vorfilter annotieren": {
-      "main": [
-        [
-          {
-            "node": "docKey",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "docKey": {
-      "main": [
-        [
-          {
-            "node": "Gruppierung nach Vorgang",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Gruppierung nach Vorgang": {
-      "main": [
-        [
-          {
-            "node": "Get all Vorgaenge",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get all Vorgaenge": {
-      "main": [
-        [
-          {
-            "node": "Check if known",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Check if known": {
-      "main": [
-        [
-          {
-            "node": "IF bekannt?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF bekannt?": {
-      "main": [
-        [
-          {
-            "node": "Update lastseen",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Expand Documents",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "codepage": {
-      "main": [
-        [
-          {
-            "node": "Weitere Übersichtsseiten laden",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Weitere Übersichtsseiten laden": {
-      "main": [
-        [
-          {
-            "node": "Extrahiere Vorgangslinks",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Cookie Refresh": {
-      "main": [
-        [
-          {
-            "node": "Vorgangsseite Fallback",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Loop Vorgangsseiten": {
-      "main": [
-        [],
-        [
-          {
-            "node": "Warte zwischen Vorgangsseiten",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Warte zwischen Vorgangsseiten": {
-      "main": [
-        [
-          {
-            "node": "Normalisiere Vorgangsseiten URL",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Vorgangsseite Fallback": {
-      "main": [
-        [
-          {
-            "node": "Detail geladen?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Detail geladen?": {
-      "main": [
-        [
-          {
-            "node": "Extrahiere Dokumentlinks",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Insert fehlgeschlagener Vorgang",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Insert fehlgeschlagener Vorgang": {
-      "main": [
-        [
-          {
-            "node": "Get Vorgaenge Detail Failed",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Insert Detail Failed": {
-      "main": [
-        [
-          {
-            "node": "Loop Vorgangsseiten",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Update lastseen": {
-      "main": [
-        [
-          {
-            "node": "Loop Vorgangsseiten",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Check Detail Known": {
-      "main": [
-        [
-          {
-            "node": "Detail Insert oder Update?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Detail Insert oder Update?": {
-      "main": [
-        [
-          {
-            "node": "Insert Detail Failed",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Alter Status detail_failed?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Update Detail Failed": {
-      "main": [
-        [
-          {
-            "node": "Loop Vorgangsseiten",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get Vorgaenge Detail Failed": {
-      "main": [
-        [
-          {
-            "node": "Check Detail Known",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Alter Status detail_failed?": {
-      "main": [
-        [
-          {
-            "node": "Update Detail Failed",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Update Detail Lastseen Only",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Update Detail Lastseen Only": {
-      "main": [
-        [
-          {
-            "node": "Loop Vorgangsseiten",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Normalisiere Vorgangsseiten URL": {
-      "main": [
-        [
-          {
-            "node": "HTTP Vorgangsseiten",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Einfacher Testfilter": {
-      "main": [
-        [
-          {
-            "node": "Loop Vorgangsseiten",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Expand Documents": {
-      "main": [
-        [
-          {
-            "node": "Loop Dokumente",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Loop Dokumente": {
-      "main": [
-        [
-          {
-            "node": "Aggregate Texts",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Hat Dokument URL?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Hat Dokument URL?": {
-      "main": [
-        [
-          {
-            "node": "HTTP Dokument laden",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Markiere kein Dokument",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Markiere kein Dokument": {
-      "main": [
-        [
-          {
-            "node": "Handle Extract",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "HTTP Dokument laden": {
-      "main": [
-        [
-          {
-            "node": "Prüfe Binary",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Prüfe Binary": {
-      "main": [
-        [
-          {
-            "node": "IF sendToTika?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF sendToTika?": {
-      "main": [
-        [
-          {
-            "node": "Tika",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Handle Extract",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Tika": {
-      "main": [
-        [
-          {
-            "node": "Metadaten nach Tika",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Metadaten nach Tika": {
-      "main": [
-        [
-          {
-            "node": "Handle Extract",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Handle Extract": {
-      "main": [
-        [
-          {
-            "node": "Loop Dokumente",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Aggregate Texts": {
-      "main": [
-        [
-          {
-            "node": "Insert oder Update?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Insert oder Update?": {
-      "main": [
-        [
-          {
-            "node": "Insert neuer Vorgang",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Update bekannter Vorgang",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Insert neuer Vorgang": {
-      "main": [
-        [
-          {
-            "node": "Loop Vorgangsseiten",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Update bekannter Vorgang": {
-      "main": [
-        [
-          {
-            "node": "Loop Vorgangsseiten",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
-  "active": false,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "31d05a5a-58c4-4ea7-8cbc-b155ed9c4694",
-  "meta": {
-    "instanceId": "3918cd7b1079333be95f7df5d1ce0c807af27c5d6c51c5bb061c962138165169"
-  },
-  "id": "Wq60bqSxSZ5CdQyh",
-  "tags": []
+  "tags": [],
+  "versionId": "7b4f6c4b-6347-479a-b524-30ea7e789065"
 }
