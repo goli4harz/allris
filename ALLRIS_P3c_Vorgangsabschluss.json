@@ -1,0 +1,533 @@
+{
+  "name": "ALLRIS_P3c_Vorgangsabschluss",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 5,
+              "triggerAtMinute": 30
+            }
+          ]
+        }
+      },
+      "id": "22c89e6f-e4c8-44df-b72c-c9eba10235b2",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        200,
+        6700
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "contentStage",
+              "keyValue": "needs_content"
+            }
+          ]
+        }
+      },
+      "id": "1b40200e-fece-45bb-9f8a-e82f70077243",
+      "name": "Hole needs_content",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        440,
+        6700
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Filtert needs_content Datensaetze die entweder Repair brauchen (ungueltiger Source-Lock\n// oder fehlende visualAnchors wenn Bild noetig) und/oder noch kein Summary-Markdown hochgeladen haben.\n// FIX: sourceConflict ist laut Fakten-Agent-Spec optional (leerer String bei fehlendem Konflikt) -\n// wurde hier absichtlich NICHT als Pflichtfeld gewertet (gleicher Bug wie im QA-Agent, dort am\n// 2026-07-19 behoben).\nconst items = $input.all();\n\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; } catch(e) { return {}; }\n}\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction asArr(v) {\n  if (Array.isArray(v)) return v.filter(Boolean).map(s => String(s).trim());\n  if (typeof v === 'string' && v.trim()) {\n    try { const p = JSON.parse(v); if (Array.isArray(p)) return p.filter(Boolean).map(s => String(s).trim()); } catch(e) {}\n  }\n  return [];\n}\nfunction robustBool(v) {\n  if (v === true || v === 1) return true;\n  if (typeof v === 'string') { const s = v.trim().toLowerCase(); return s === 'true' || s === '1'; }\n  return false;\n}\n\nconst out = [];\nfor (const item of items) {\n  const j = item.json || {};\n  if (safeStr(j.contentStage) !== 'needs_content') continue;\n\n  const analysis = parseObj(j.analysisJson);\n  const sl = parseObj(analysis.sourceLock || {});\n  const va = parseObj(analysis.visualAnchors || {});\n  const slValidFlag = robustBool(analysis.sourceLockValid);\n  const vaValidFlag = robustBool(analysis.visualAnchorsValid);\n\n  const slOk = !!(safeStr(sl.sourceTopic) &&\n    asArr(sl.requiredTerms).length >= 2 && asArr(sl.requiredObjects).length >= 2 &&\n    safeStr(sl.requiredAction) && slValidFlag);\n  const vaOk = !!(safeStr(va.satireThemaKonkret) && safeStr(va.satireKonfliktKonkret) &&\n    asArr(va.visualPflichtobjekte).length >= 2 && safeStr(va.visualPflichthandlung) &&\n    safeStr(va.visualErkennungssatz) && safeStr(va.visualUeberzeichnung) &&\n    asArr(va.visualVerboteneErsatzmotive).length >= 2 && vaValidFlag);\n\n  const needsVisual = robustBool(j.visualNeeded) || robustBool(j.instagramSharepicNoetig);\n  const repairNeeded = !slOk || (needsVisual && !vaOk);\n  const markdownNeeded = !safeStr(j.summaryMarkdownUploadedAt);\n\n  if (!repairNeeded && !markdownNeeded) continue;\n\n  out.push({ json: { ...j, _repairNeeded: repairNeeded, _markdownNeeded: markdownNeeded } });\n}\nreturn out;\n"
+      },
+      "id": "4a33cb9c-190f-4e33-b13a-6db735446d1e",
+      "name": "Filter Abschluss-Kandidaten",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        6700
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sortierung: 1. firstseen aufsteigend, 2. volfdnr numerisch, 3. vorgangKey lexikografisch\nfunction parseDate(v) {\n  if (!v) return 0;\n  const t = Date.parse(String(v));\n  return Number.isFinite(t) ? t : 0;\n}\nfunction parseVolfdnr(v) {\n  if (!v) return Infinity;\n  const n = parseInt(String(v).replace(/[^0-9]/g, ''), 10);\n  return Number.isFinite(n) ? n : Infinity;\n}\nconst items = $input.all();\nitems.sort((a, b) => {\n  const ja = a.json || {}, jb = b.json || {};\n  const fa = parseDate(ja.firstseen), fb = parseDate(jb.firstseen);\n  if (fa !== fb) return fa - fb;\n  const va = parseVolfdnr(ja.volfdnr), vb = parseVolfdnr(jb.volfdnr);\n  if (va !== vb) return va - vb;\n  return String(ja.vorgangKey || '').localeCompare(String(jb.vorgangKey || ''));\n});\nreturn items;\n"
+      },
+      "id": "a50f7fec-84d1-45ea-ac3f-d2ec37326af0",
+      "name": "Sortiere Vorgaenge",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        920,
+        6700
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "604c3b3a-8d76-421e-b6f7-98f01dfaf147",
+      "name": "Loop Vorgaenge",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1160,
+        6700
+      ]
+    },
+    {
+      "id": "0074f583-dec2-4e5f-a5a8-373f703f9f71",
+      "name": "IF Repair noetig?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        6700
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "repair-needed",
+              "leftValue": "={{ $json._repairNeeded }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "KfPtfJfOe39LTJzR",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/KfPtfJfOe39LTJzR",
+          "cachedResultName": "ALLRIS_P3b_Repair_SourceLock_VisualGuard"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "ece43ff8-cad6-4dc1-a3f2-7f52a5780729",
+      "name": "Execute Workflow Repair",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1640,
+        6580
+      ],
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "0361a9fc-1764-4f06-be84-1fda65c8567c",
+      "name": "Stelle Kontext nach Repair wieder her",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1880,
+        6580
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Stellt die urspruengliche Zeile wieder her (P3b's Rueckgabeform nicht vertrauenswuerdig fuer\n// Downstream-Felder wie nextcloudFolder/vorgangKey - gleiches Muster wie die Agent-Restore-Nodes).\nconst idx = $itemIndex;\nconst original = $('Filter Abschluss-Kandidaten').itemMatching(idx).json;\nreturn { json: { ...original, _repairAttempted: true } };\n"
+      }
+    },
+    {
+      "id": "ac7ea420-80d1-42ea-b334-c3fb083072da",
+      "name": "IF Markdown noetig?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2120,
+        6700
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "markdown-needed",
+              "leftValue": "={{ $json._markdownNeeded }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const raw = $input.item.json;\nconst s = Array.isArray(raw) ? (raw[0] || {}) : (raw || {});\nconst now = new Date().toLocaleString('de-DE', { timeZone: 'Europe/Berlin' });\n\nlet summary = {};\ntry { summary = JSON.parse(s.summaryJson || '{}'); } catch(e) {}\nlet analyse = {};\ntry { analyse = JSON.parse(s.analysisJson || '{}'); } catch(e) {}\n\nfunction toList(val) {\n  if (Array.isArray(val)) return val.map(v => '- ' + v).join('\\n');\n  if (typeof val === 'string' && val) return val.split(/\\s*\\|\\s*/).map(v => '- ' + v).join('\\n');\n  return '';\n}\n\n// Pfad berechnen\nfunction extractYear(val) {\n  const m = String(val || '').match(/\\b(20\\d{2})\\b/);\n  return m ? m[1] : new Date().getFullYear().toString();\n}\nconst year = extractYear(s.firstseen || s.lastseen);\nlet base = (s.nextcloudFolder || '')\n  .trim().replace(/\\/+$/, '').replace(/\\/01_originale$/, '');\n\nlet nc_base_path;\nif (base.startsWith('/DiePARTEI/Allris/')) {\n  nc_base_path = base;\n} else if (base) {\n  nc_base_path = '/DiePARTEI/Allris/' + year + '/' + base;\n} else {\n  nc_base_path = '/DiePARTEI/Allris/' + year + '/' + (s.vorgangKey || 'unbekannt').replace(/\\//g, '_');\n}\nnc_base_path = nc_base_path.replace(/\\/+/g, '/');\nconst nc_summary_path = nc_base_path + '/03_zusammenfassung';\nconst fileName = (s.vorgangKey || 'zusammenfassung').replace(/[\\/\\s]/g, '_') + '_zusammenfassung.md';\n\n\n// ── Vorgangskette-Abschnitt (nur bei Folgevorgängen) ────────────────────────\nlet vorgangsketteMd = '';\n\nif (s.istFolgevorgang === true || String(s.istFolgevorgang || '').trim() === 'true') {\n  const details = Array.isArray(s.vorgangsketteDetails) ? s.vorgangsketteDetails : [];\n  const fehlend = Array.isArray(s.fehlendeVorherigeVorgaenge) ? s.fehlendeVorherigeVorgaenge : [];\n  const vollstaendig = s.vorgangsketteVollstaendig === true;\n\n  const mdLines = [\n    '',\n    '## Bezug zu vorherigen Vorgängen',\n    '',\n    `**Stammvorgang:** ${s.stammVorgangsnummer || ''}`,\n    `**Vorgangskette vollständig:** ${vollstaendig ? 'Ja' : 'Nein'}`,\n    ''\n  ];\n\n  const mitKontext    = details.filter(d => d.gefunden && d.kontextVerwendet);\n  const ohneKontext   = details.filter(d => d.gefunden && !d.kontextVerwendet);\n\n  if (mitKontext.length > 0) {\n    mdLines.push('### Berücksichtigte Vorgänge', '');\n    for (const d of mitKontext) {\n      const quelleText = d.kontextQuelle === 'summary'\n        ? 'vorhandene Zusammenfassung'\n        : 'Dokumenttext als Fallback';\n      const link = d.allrisUrl ? `[${d.vorgangsnummer}](${d.allrisUrl})` : d.vorgangsnummer;\n      mdLines.push(`* ${link} – ${quelleText}`);\n    }\n    mdLines.push('');\n  }\n\n  if (ohneKontext.length > 0) {\n    mdLines.push('### Gefunden, aber in diesem Lauf nicht als Kontext verfügbar', '');\n    for (const d of ohneKontext) {\n      mdLines.push(`* ${d.vorgangsnummer}`);\n    }\n    mdLines.push('');\n  }\n\n  if (fehlend.length > 0) {\n    mdLines.push('### Fehlende Vorgänge', '');\n    for (const vn of fehlend) {\n      mdLines.push(`* ${vn}`);\n    }\n    mdLines.push('');\n  }\n\n  vorgangsketteMd = mdLines.join('\\n');\n}\n\nconst md = [\n  '# ' + (s.title || s.vorgangKey || ''),\n  '',\n  '| | |',\n  '|---|---|',\n  '| **Vorgangsnummer** | ' + (s.vorgangsnummer || '') + ' |',\n  '| **ALLRIS-Link** | ' + (s.allrisUrl || '') + ' |',\n  '| **Erstellt** | ' + now + ' |',\n  '| **Ampel** | ' + (s.ampel || analyse.ampel || '') + ' |',\n  '| **Sprengstoff** | ' + (s.sprengstoff || analyse.sprengstoff || '') + ' |',\n  '| **Empfehlung** | ' + (s.empfehlung || analyse.empfehlung || '') + ' |',\n  '| **Relevanz** | ' + (s.relevantScore || analyse.relevanz || '') + ' |',\n  '',\n  '---',\n  '',\n  ...(vorgangsketteMd ? [vorgangsketteMd, '---', ''] : []),\n  '## Zusammenfassung',\n  '',\n  s.summaryText || summary.summaryText || '',\n  '',\n  '---',\n  '',\n  '## Thema',\n  '',\n  s.thema || summary.thema || '',\n  '',\n  '## Betroffene',\n  '',\n  toList(summary.betroffene || s.betroffene),\n  '',\n  '## Kosten / Haushalt',\n  '',\n  s.kostenHaushalt || summary.kostenHaushalt || '',\n  '',\n  '## Bürgerwirkung',\n  '',\n  s.buergerwirkung || summary.buergerwirkung || '',\n  '',\n  '## Offene Punkte',\n  '',\n  toList(summary.offenePunkte),\n  '',\n  '## Unsicherheiten',\n  '',\n  toList(summary.unsicherheiten || s.unsicherheitenSummary),\n  '',\n  '---',\n  '',\n  '## Bewertung',\n  '',\n  '**Kurzfassung:** ' + (s.kurzfassung || analyse.kurzfassung || ''),\n  '',\n  '**Kritische Nachfrage:** ' + (s.kritischeNachfrage || analyse.kritischeNachfrage || ''),\n  '',\n  '**Begründung:** ' + (s.begruendungBewertung || analyse.begruendungBewertung || ''),\n  '',\n  '**Wer profitiert:** ' + (s.werProfitiert || analyse.werProfitiert || ''),\n  '',\n  '**Wer trägt Nachteile:** ' + (s.werZahltOderTraegtNachteile || analyse.werZahltOderTraegtNachteile || ''),\n].join('\\n');\n\nreturn { json: { ...s, _mdContent: md, _mdFileName: fileName, nc_summary_path } };\n"
+      },
+      "id": "cd29b230-0870-43e3-9aa4-788015ccfc8c",
+      "name": "Build Summary Markdown",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2360,
+        6580
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "path": "={{ $json.nc_summary_path }}"
+      },
+      "id": "353b3a94-74db-4947-8c12-028fc19a081d",
+      "name": "NC Erstelle Summary Ordner",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [
+        2600,
+        6580
+      ],
+      "retryOnFail": true,
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "path": "={{ $json.nc_summary_path + '/' + $json._mdFileName }}",
+        "fileContent": "={{ $json._mdContent }}"
+      },
+      "id": "5fa01c6b-d240-4ce3-84ce-3b1c93880499",
+      "name": "NC Upload Summary MD",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [
+        2840,
+        6580
+      ],
+      "retryOnFail": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "1d652d20-5380-435f-aad5-00716e7e506e",
+      "name": "Schreibe Markdown-Status",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3080,
+        6580
+      ],
+      "alwaysOutputData": true,
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "summaryMarkdownUploadedAt": "={{ $now.toISO() }}"
+          },
+          "schema": [
+            {
+              "id": "summaryMarkdownUploadedAt",
+              "displayName": "summaryMarkdownUploadedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Nächster Repair-Vorgang (V12_7)\nconst items = $input.all();\nconst rawItem = items && items[0];\nconst j = (rawItem && rawItem.json && typeof rawItem.json === 'object' && !Array.isArray(rawItem.json))\n  ? rawItem.json\n  : {};\nreturn [{ json: j }];\n"
+      },
+      "id": "53d9d0f3-332e-4427-ad9e-7c4b456f3153",
+      "name": "Naechster Vorgang",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3320,
+        6700
+      ]
+    },
+    {
+      "id": "d2854a01-f552-418d-9796-2751f3b3d316",
+      "name": "Stelle Kontext nach NC-Upload wieder her",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3040,
+        6580
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Stellt die urspruengliche Zeile wieder her - NC Upload Summary MD (Nextcloud-API-Node) ersetzt\n// die Item-Daten durch die Nextcloud-Antwort (kein vorgangKey mehr enthalten), gleiche Bugklasse\n// wie in P2 (siehe allris_p2_matrix_context_loss_bug) - Schreibe Markdown-Status braucht vorgangKey.\nconst idx = $itemIndex;\nconst original = $('Filter Abschluss-Kandidaten').itemMatching(idx).json;\nreturn { json: { ...original, _markdownUploaded: true } };\n"
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hole needs_content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole needs_content": {
+      "main": [
+        [
+          {
+            "node": "Filter Abschluss-Kandidaten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Abschluss-Kandidaten": {
+      "main": [
+        [
+          {
+            "node": "Sortiere Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sortiere Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Vorgaenge": {
+      "main": [
+        [],
+        [
+          {
+            "node": "IF Repair noetig?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Repair noetig?": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow Repair",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF Markdown noetig?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow Repair": {
+      "main": [
+        [
+          {
+            "node": "Stelle Kontext nach Repair wieder her",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stelle Kontext nach Repair wieder her": {
+      "main": [
+        [
+          {
+            "node": "IF Markdown noetig?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Markdown noetig?": {
+      "main": [
+        [
+          {
+            "node": "Build Summary Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Naechster Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Summary Markdown": {
+      "main": [
+        [
+          {
+            "node": "NC Erstelle Summary Ordner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Erstelle Summary Ordner": {
+      "main": [
+        [
+          {
+            "node": "NC Upload Summary MD",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "NC Upload Summary MD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Upload Summary MD": {
+      "main": [
+        [
+          {
+            "node": "Stelle Kontext nach NC-Upload wieder her",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schreibe Markdown-Status": {
+      "main": [
+        [
+          {
+            "node": "Naechster Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Naechster Vorgang": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stelle Kontext nach NC-Upload wieder her": {
+      "main": [
+        [
+          {
+            "node": "Schreibe Markdown-Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
