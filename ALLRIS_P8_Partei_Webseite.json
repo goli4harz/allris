@@ -1,0 +1,613 @@
+{
+  "active": false,
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hole alle fuer Partei-Webseite",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole alle fuer Partei-Webseite": {
+      "main": [
+        [
+          {
+            "node": "Filter Partei-Webseite-Kandidaten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Partei-Webseite-Kandidaten": {
+      "main": [
+        [
+          {
+            "node": "Sortiere Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sortiere Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Vorgaenge": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Baue Post-Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue Post-Body": {
+      "main": [
+        [
+          {
+            "node": "IF Bild vorhanden?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Bild vorhanden?": {
+      "main": [
+        [
+          {
+            "node": "NC Lade finales Bild",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create a post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Lade finales Bild": {
+      "main": [
+        [
+          {
+            "node": "Upload Media zu Partei-Webseite",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stelle Kontext nach Post-Erstellung wieder her": {
+      "main": [
+        [
+          {
+            "node": "IF Post erfolgreich?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Post erfolgreich?": {
+      "main": [
+        [
+          {
+            "node": "Speichere Erfolg (Partei-Webseite)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Speichere Fehler (Partei-Webseite)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Speichere Erfolg (Partei-Webseite)": {
+      "main": [
+        [
+          {
+            "node": "Naechster Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Speichere Fehler (Partei-Webseite)": {
+      "main": [
+        [
+          {
+            "node": "Naechster Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Naechster Vorgang": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a post": {
+      "main": [
+        [
+          {
+            "node": "Stelle Kontext nach Post-Erstellung wieder her",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Media zu Partei-Webseite": {
+      "main": [
+        [
+          {
+            "node": "Stelle Kontext nach Media-Upload wieder her",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stelle Kontext nach Media-Upload wieder her": {
+      "main": [
+        [
+          {
+            "node": "Create a post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "3pAntGoWcG2uAig4",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "name": "ALLRIS_P8_Partei_Webseite",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 5,
+              "triggerAtMinute": 59
+            }
+          ]
+        }
+      },
+      "id": "d186cd58-db56-41d1-879f-31b0b8d9e779",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        208,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "returnAll": true
+      },
+      "id": "a7bc70dd-23e9-46a4-90d9-32192c4a0c53",
+      "name": "Hole alle fuer Partei-Webseite",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        448,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction safeBool(v) {\n  if (v === true) return true;\n  if (typeof v === 'string') return v.trim().toLowerCase() === 'true';\n  return false;\n}\nconst items = $input.all();\nreturn items.filter(item => {\n  const j = item.json || {};\n  if (!safeStr(j.websiteArticle)) return false;\n  if (safeBool(j.wordpressGoslarPosted)) return false;\n  if (!safeStr(j.vorgangKey)) return false;\n  return true;\n});\n"
+      },
+      "id": "4948afa1-ba9c-4bdc-956b-70253ae8eb9a",
+      "name": "Filter Partei-Webseite-Kandidaten",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function parseDate(v) { if (!v) return 0; const t = Date.parse(String(v)); return Number.isFinite(t) ? t : 0; }\nconst items = $input.all();\nitems.sort((a, b) => parseDate((a.json||{}).firstseen) - parseDate((b.json||{}).firstseen));\nreturn items;\n"
+      },
+      "id": "897b540b-3532-464c-be85-9fb659323b72",
+      "name": "Sortiere Vorgaenge",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        928,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "756b20a6-ed77-4a66-9622-1f317d441cb0",
+      "name": "Loop Vorgaenge",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1168,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction esc(v) { return safeStr(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }\nfunction slugify(v) {\n  return safeStr(v).toLowerCase()\n    .replace(/[ä]/g,'ae').replace(/[ö]/g,'oe').replace(/[ü]/g,'ue').replace(/[ß]/g,'ss')\n    .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').substring(0,80);\n}\nconst j = $json;\nconst title = safeStr(j.websiteHeadline) || (safeStr(j.vorgangsnummer) + ' - ' + safeStr(j.title));\nconst paragraphs = safeStr(j.websiteArticle).split(/\\n\\s*\\n/).filter(Boolean).map(p => '<p>' + esc(p).replace(/\\n/g, '<br>') + '</p>').join('\\n');\nconst footer = '<p><em>Vorgangsnummer: ' + esc(j.vorgangsnummer) + ' | <a href=\"' + esc(j.allrisUrl) + '\">Original bei ALLRIS</a></em></p>';\nconst content = paragraphs + '\\n' + footer;\nconst slug = slugify(safeStr(j.vorgangsnummer) + ' ' + title);\nconst hasImage = !!safeStr(j.imageFinalPath);\nreturn {\n  json: {\n    ...j,\n    wpTitle: title,\n    wpContent: content,\n    wpSlug: slug,\n    hasImage: hasImage\n  }\n};\n"
+      },
+      "id": "c10eb5d2-9d82-4fae-95e6-e16a8615c260",
+      "name": "Baue Post-Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1408,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "has-image",
+              "leftValue": "={{ $json.hasImage }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "7880303b-bd9c-403e-9303-a460f49970e0",
+      "name": "IF Bild vorhanden?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1584,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "path": "={{ $json.imageFinalPath }}"
+      },
+      "id": "8e08d679-18de-4980-95b0-19cb8ac9eeff",
+      "name": "NC Lade finales Bild",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [
+        1808,
+        1184
+      ],
+      "retryOnFail": true,
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const idx = $itemIndex;\nconst original = $('Baue Post-Body').itemMatching(idx).json;\nconst resp = $json;\nconst postId = resp && resp.id ? resp.id : null;\nconst postLink = resp && resp.link ? resp.link : '';\nreturn { json: { ...original, wpPostId: postId, wpPostLink: postLink, wpPostSuccess: !!postId } };\n"
+      },
+      "id": "072107c1-af05-45ab-b8e8-20478131591f",
+      "name": "Stelle Kontext nach Post-Erstellung wieder her",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        1424
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "wp-success",
+              "leftValue": "={{ $json.wpPostSuccess }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "741a17f1-4674-4162-9546-62cb006a5e2c",
+      "name": "IF Post erfolgreich?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        736,
+        1424
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "wordpressGoslarPosted": "={{ true }}",
+            "wordpressGoslarPostedAt": "={{ $now.toISO() }}",
+            "wordpressGoslarPostId": "={{ $json.wpPostId }}"
+          },
+          "schema": [
+            {
+              "id": "wordpressGoslarPosted",
+              "displayName": "wordpressGoslarPosted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wordpressGoslarPostedAt",
+              "displayName": "wordpressGoslarPostedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wordpressGoslarPostId",
+              "displayName": "wordpressGoslarPostId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "68a4f229-8971-4357-936b-76c6824f31db",
+      "name": "Speichere Erfolg (Partei-Webseite)",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        976,
+        1424
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "wordpressGoslarError": "={{ JSON.stringify($json).substring(0, 500) }}"
+          },
+          "schema": [
+            {
+              "id": "wordpressGoslarError",
+              "displayName": "wordpressGoslarError",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f5f722e4-6acd-4ed1-93d0-447bd4b1d961",
+      "name": "Speichere Fehler (Partei-Webseite)",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        976,
+        1600
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $input.item.json }];\n"
+      },
+      "id": "d3ea4066-3278-4649-ac34-6ca18444acdb",
+      "name": "Naechster Vorgang",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1184,
+        1456
+      ]
+    },
+    {
+      "parameters": {
+        "title": "={{ $json.wpTitle }}",
+        "additionalFields": {
+          "content": "={{ $json.wpContent }}",
+          "slug": "={{ $json.wpSlug }}",
+          "status": "publish"
+        }
+      },
+      "type": "n8n-nodes-base.wordpress",
+      "typeVersion": 1,
+      "position": [
+        288,
+        1408
+      ],
+      "id": "0baf7385-9ef7-4720-8280-7549b10e9bbc",
+      "name": "Create a post",
+      "alwaysOutputData": true,
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://die-partei.net/goslar/wp-json/wp/v2/media",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Disposition",
+              "value": "={{ 'attachment; filename=\"' + ($json.vorgangKey || 'sharepic') + '.png\"' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "data",
+        "options": {}
+      },
+      "id": "76d0b178-845a-448c-9599-386206c3a033",
+      "name": "Upload Media zu Partei-Webseite",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2016,
+        1184
+      ],
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const idx = $itemIndex;\nconst original = $('Baue Post-Body').itemMatching(idx).json;\nconst uploadResult = $json;\nconst mediaId = uploadResult && uploadResult.id ? uploadResult.id : null;\nreturn { json: { ...original, wpFeaturedMediaId: mediaId } };\n"
+      },
+      "id": "7dc1edea-1e5e-4cc0-9f84-6590475964b3",
+      "name": "Stelle Kontext nach Media-Upload wieder her",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2208,
+        1184
+      ]
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "tags": [],
+  "versionId": "be05f34e-b09f-4273-bb57-2d13e51a257a"
+}
