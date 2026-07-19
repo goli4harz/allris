@@ -4596,7 +4596,7 @@
       ],
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nconst j = $json;\nreturn {\n  json: {\n    vorgangKey: safeStr(j.vorgangKey),\n    vorgangsnummer: safeStr(j.vorgangsnummer),\n    title: safeStr(j.title),\n    sprengstoff: safeStr(j.sprengstoff),\n    satireBrief: safeStr(j.satireBrief),\n    satireAngle: safeStr(j.satireAngle),\n    satirePunchlines: safeStr(j.satirePunchlines),\n    imageHeadline: safeStr(j.imageHeadline),\n    imageSubline: safeStr(j.imageSubline),\n    pressStatementBisher: safeStr(j.pressStatement)\n  }\n};\n"
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nconst j = $json;\nreturn {\n  json: {\n    vorgangKey: safeStr(j.vorgangKey),\n    vorgangsnummer: safeStr(j.vorgangsnummer),\n    title: safeStr(j.title),\n    sprengstoff: safeStr(j.sprengstoff),\n    satireBrief: safeStr(j.satireBrief),\n    satireAngle: safeStr(j.satireAngle),\n    satirePunchlines: safeStr(j.satirePunchlines),\n    imageHeadline: safeStr(j.imageHeadline),\n    imageSubline: safeStr(j.imageSubline),\n    pressStatementBisher: safeStr(j.pressStatement),\n    absurdeForderung: safeStr(j.absurdeForderung)\n  }\n};\n"
       }
     },
     {
@@ -4627,7 +4627,7 @@
         "responses": {
           "values": [
             {
-              "content": "=Du schreibst ein finales Pressestatement fuer DIE PARTEI Kreisverband Goslar zu einem kommunalpolitischen Vorgang, passend zu einem bereits fertigen Sharepic-Bild.\n\nWICHTIG: Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt {\"pressStatement\": \"...\"}. Kein Markdown, kein Text davor oder danach.\n\nKONTEXT (das fertige Bild zeigt genau diese Schlagzeile/Variante - der Text MUSS dazu passen, nicht zu einer anderen Zuspitzung):\nVorgangsnummer: {{ $json.vorgangsnummer }}\nTitel: {{ $json.title }}\nBild-Headline: {{ $json.imageHeadline }}\nBild-Subline: {{ $json.imageSubline }}\nSatire-Brief: {{ $json.satireBrief }}\nSatire-Winkel: {{ $json.satireAngle }}\nPointen: {{ $json.satirePunchlines }}\nSprengstoff: {{ $json.sprengstoff }}\n\nANFORDERUNGEN an pressStatement:\n* 2 bis 4 Saetze.\n* Witzig-satirisch, im Duktus der Partei-Kommunikation - deutlich pointierter/humorvoller als eine gewoehnliche serioese Pressemitteilung.\n* Nicht zynisch, nicht verstoerend: soll amuesieren, niemanden abschrecken oder vor den Kopf stossen.\n* Muss inhaltlich zur Bild-Headline/Subline oben passen (gleiche Zuspitzung, gleicher Winkel), nicht zu einer anderen Variante.\n* Muss die Vorgangsnummer nennen, sofern vorhanden.\n* Muss das konkrete Hauptthema nennen.\n* Muss ohne weiteren Kontext verstaendlich sein.\n* Keine erfundenen Sprecherinnen oder Sprecher, kein direktes Personen-Zitat.\n* Formuliere allgemein, zum Beispiel: „DIE PARTEI Goslar sieht darin ...“\n* Wenn sprengstoff = KEINER, sehr mild.\n"
+              "content": "=Du schreibst ein finales Pressestatement fuer DIE PARTEI Kreisverband Goslar zu einem kommunalpolitischen Vorgang, passend zu einem bereits fertigen Sharepic-Bild.\n\nWICHTIG: Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt {\"pressStatement\": \"...\"}. Kein Markdown, kein Text davor oder danach.\n\nKONTEXT (das fertige Bild zeigt genau diese Schlagzeile/Variante - der Text MUSS dazu passen, nicht zu einer anderen Zuspitzung):\nVorgangsnummer: {{ $json.vorgangsnummer }}\nTitel: {{ $json.title }}\nBild-Headline: {{ $json.imageHeadline }}\nBild-Subline: {{ $json.imageSubline }}\nSatire-Brief: {{ $json.satireBrief }}\nSatire-Winkel: {{ $json.satireAngle }}\nPointen: {{ $json.satirePunchlines }}\nAbsurde Forderung: {{ $json.absurdeForderung }}\nSprengstoff: {{ $json.sprengstoff }}\n\nANFORDERUNGEN an pressStatement:\n* 2 bis 4 Saetze.\n* Witzig-satirisch, im Duktus der Partei-Kommunikation - deutlich pointierter/humorvoller als eine gewoehnliche serioese Pressemitteilung.\n* Nicht zynisch, nicht verstoerend: soll amuesieren, niemanden abschrecken oder vor den Kopf stossen.\n* Muss inhaltlich zur Bild-Headline/Subline oben passen (gleiche Zuspitzung, gleicher Winkel), nicht zu einer anderen Variante.\n* Muss die oben genannte absurde Forderung sinngemaess aufgreifen, sofern vorhanden - nicht zwingend wortgleich zitieren.\n* Muss die Vorgangsnummer nennen, sofern vorhanden.\n* Muss das konkrete Hauptthema nennen.\n* Muss ohne weiteren Kontext verstaendlich sein.\n* Keine erfundenen Sprecherinnen oder Sprecher, kein direktes Personen-Zitat.\n* Formuliere allgemein, zum Beispiel: „DIE PARTEI Goslar sieht darin ...“\n* Wenn sprengstoff = KEINER, sehr mild.\n"
             }
           ]
         },
@@ -4756,5 +4756,5 @@
       "name": "instagram"
     }
   ],
-  "versionId": "3b70af48-06d3-427f-8eef-5a633732d25d"
+  "versionId": "c1d03abf-1bea-4023-adf4-cbc878adbde1"
 }
