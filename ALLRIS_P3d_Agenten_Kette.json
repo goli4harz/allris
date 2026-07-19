@@ -1,1219 +1,4 @@
 {
-  "name": "ALLRIS_P3d_Agenten_Kette",
-  "nodes": [
-    {
-      "parameters": {
-        "rule": {
-          "interval": [
-            {
-              "field": "hours",
-              "hoursInterval": 5,
-              "triggerAtMinute": 40
-            }
-          ]
-        }
-      },
-      "id": "9658c593-7268-42e9-a1f4-3e7529db8b16",
-      "name": "Schedule Trigger",
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.1,
-      "position": [
-        200,
-        6700
-      ]
-    },
-    {
-      "id": "a51087d4-ec17-497e-bf2f-71505bb20b00",
-      "name": "Hole alle Vorgaenge",
-      "type": "n8n-nodes-base.dataTable",
-      "typeVersion": 1,
-      "position": [
-        440,
-        6700
-      ],
-      "parameters": {
-        "operation": "get",
-        "dataTableId": {
-          "__rl": true,
-          "value": "hBLqpqeVEojPpOJl",
-          "mode": "list",
-          "cachedResultName": "allris_vorgaenge",
-          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
-        },
-        "returnAll": true
-      }
-    },
-    {
-      "id": "bd3e9243-5e82-4d7a-8846-4f09e804db7e",
-      "name": "Filter Agenten-Kandidaten",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        680,
-        6700
-      ],
-      "parameters": {
-        "jsCode": "// Kandidaten fuer die Agenten-Kette (Eignung/Fakten/QA/Lern/Satire):\n// Analyse muss abgeschlossen sein (lastAnalysisAt gesetzt) und die Kette darf fuer diese\n// Zeile noch nicht gelaufen sein (judgmentChainProcessedAt leer). Bewusst kein contentStage-Filter:\n// die Kette lief im urspruenglichen P3 unconditional fuer jede analysierte Zeile, unabhaengig vom\n// abgeleiteten contentStage (watching/ignored/needs_content).\nconst items = $input.all();\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nreturn items.filter(item => {\n  const j = item.json || {};\n  return !!safeStr(j.lastAnalysisAt) && !safeStr(j.judgmentChainProcessedAt);\n});\n"
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "// Sortierung: 1. firstseen aufsteigend, 2. volfdnr numerisch, 3. vorgangKey lexikografisch\nfunction parseDate(v) {\n  if (!v) return 0;\n  const t = Date.parse(String(v));\n  return Number.isFinite(t) ? t : 0;\n}\nfunction parseVolfdnr(v) {\n  if (!v) return Infinity;\n  const n = parseInt(String(v).replace(/[^0-9]/g, ''), 10);\n  return Number.isFinite(n) ? n : Infinity;\n}\nconst items = $input.all();\nitems.sort((a, b) => {\n  const ja = a.json || {}, jb = b.json || {};\n  const fa = parseDate(ja.firstseen), fb = parseDate(jb.firstseen);\n  if (fa !== fb) return fa - fb;\n  const va = parseVolfdnr(ja.volfdnr), vb = parseVolfdnr(jb.volfdnr);\n  if (va !== vb) return va - vb;\n  return String(ja.vorgangKey || '').localeCompare(String(jb.vorgangKey || ''));\n});\nreturn items;\n"
-      },
-      "id": "3a9a05ed-5417-40f3-bbb7-75f2c87028d5",
-      "name": "Sortiere Vorgaenge",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        920,
-        6700
-      ]
-    },
-    {
-      "parameters": {
-        "options": {}
-      },
-      "id": "a8f696fc-3133-4d10-8cfd-b7b21a22e1c1",
-      "name": "Loop Vorgaenge",
-      "type": "n8n-nodes-base.splitInBatches",
-      "typeVersion": 3,
-      "position": [
-        1160,
-        6700
-      ]
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; }\n  catch (e) { return {}; }\n}\n\nconst row = $json;\nconst analysis = parseObj(row.analysisJson);\nconst sl = parseObj(analysis.sourceLock);\nconst va = parseObj(analysis.visualAnchors);\nconst guardErrors = Array.isArray(analysis.visualGuardErrors) ? analysis.visualGuardErrors : [];\n\nreturn {\n  json: {\n    vorgangKey: safeStr(row.vorgangKey),\n    vorgangsnummer: safeStr(row.vorgangsnummer),\n    title: safeStr(row.title),\n\n    relevanz: analysis.relevanz,\n    sprengstoff: row.sprengstoff,\n    empfehlung: row.empfehlung,\n    kommunikationspotenzial: row.kommunikationspotenzial,\n    oeffentlicheGelderBetroffen: analysis.oeffentlicheGelderBetroffen === true,\n\n    sourceLock: sl,\n    visualAnchors: va,\n\n    kurzfassung: row.kurzfassung,\n    warumRelevant: row.warumRelevant,\n\n    sourceLockValid: analysis.sourceLockValid === true,\n    visualAnchorsValid: analysis.visualAnchorsValid === true,\n    guardValid: guardErrors.length === 0,\n    visualGuardErrors: guardErrors\n  }\n};"
-      },
-      "id": "6c28fe48-e5c5-4adf-80ac-8d2396c3a650",
-      "name": "Eignungs-Agent: Baue Eingabe",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1400,
-        6700
-      ]
-    },
-    {
-      "parameters": {
-        "workflowId": {
-          "__rl": true,
-          "value": "ZZeD2dqzJUdCCksQ",
-          "mode": "list",
-          "cachedResultName": "ALLRIS_Eignungs_Agent"
-        },
-        "options": {
-          "waitForSubWorkflow": true
-        }
-      },
-      "id": "bca20ac0-2683-4b49-864f-600ced17d450",
-      "name": "Execute Workflow Eignungs-Agent",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.2,
-      "position": [
-        1640,
-        6700
-      ],
-      "alwaysOutputData": true,
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst response = $json || {};\nconst original = $('Eignungs-Agent: Baue Eingabe').itemMatching($itemIndex).json || {};\nconst hasResult = typeof response.satireWorthIt === 'boolean';\n\nconst eignung = hasResult ? response : {\n  vorgangKey: safeStr(original.vorgangKey),\n  vorgangsnummer: safeStr(original.vorgangsnummer),\n  satireWorthIt: false,\n  satireWorthItReason: 'Eignungs-Agent Aufruf fehlgeschlagen - sicherheitshalber kein Sharepic',\n  reservations: [],\n  reservationsBlockImage: false,\n  parseError: true,\n  callFailed: true\n};\n\nreturn { json: { ...original, eignungsAgentJson: JSON.stringify(eignung), _eignung: eignung } };"
-      },
-      "id": "ef77563f-9ef9-4a71-b29f-6aa9c9847302",
-      "name": "Stelle Kontext nach Eignungs-Agent wieder her",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1880,
-        6700
-      ]
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction asArr(v) { return Array.isArray(v) ? v.filter(Boolean).map(safeStr) : []; }\n\nconst j = $json;\nconst original = $('Eignungs-Agent: Baue Eingabe').itemMatching($itemIndex).json || {};\nconst row = $('Loop Vorgaenge').itemMatching($itemIndex).json || {};\n\nconst eignung = j._eignung || {};\nconst satireWorthIt = eignung.satireWorthIt === true;\nconst sourceLockValid = original.sourceLockValid === true;\nconst visualAnchorsValid = original.visualAnchorsValid === true;\nconst guardValid = original.guardValid === true;\nconst reservationsBlockImage = eignung.reservationsBlockImage === true;\n\nconst sharepicRecommended = satireWorthIt && sourceLockValid && visualAnchorsValid && guardValid && !reservationsBlockImage;\n\nlet sharepicNeedStage;\nlet sharepicNeedReason;\n\nif (!satireWorthIt) {\n  sharepicNeedStage = 'not_applicable';\n  sharepicNeedReason = 'Eignungs-Agent: ' + (safeStr(eignung.satireWorthItReason) || 'Kein Sharepic-Bedarf');\n} else if (sharepicRecommended) {\n  sharepicNeedStage = 'topic_ok';\n  sharepicNeedReason = 'Sharepic freigegeben: Eignungs-Agent + SourceLock/Visual-Anker/Guard bestanden.';\n} else {\n  sharepicNeedStage = 'topic_error';\n  const reasons = [];\n  if (!sourceLockValid) reasons.push('sourceLock unvollstaendig');\n  if (!visualAnchorsValid) reasons.push('visualAnchors unvollstaendig');\n  if (!guardValid) reasons.push('Guard blockiert: ' + asArr(original.visualGuardErrors).join(' | '));\n  if (reservationsBlockImage) reasons.push('Eignungs-Agent Bedenken: ' + asArr(eignung.reservations).join(' | '));\n  sharepicNeedReason = 'Sharepic blockiert: ' + reasons.join(' | ');\n}\n\nreturn {\n  json: {\n    ...row,\n    eignungsAgentJson: j.eignungsAgentJson,\n    sharepicNeedStage: sharepicNeedStage,\n    visualDecisionReason: sharepicNeedReason,\n    instagramSharepicNoetig: sharepicNeedStage === 'topic_ok',\n    instagramCarouselNoetig: sharepicNeedStage === 'topic_ok',\n    visualNeeded: sharepicNeedStage === 'topic_ok'\n  }\n};\n"
-      },
-      "id": "32a0489c-f822-4184-8350-7cc454cd43d0",
-      "name": "Verarbeite Eignungs-Entscheidung",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        2120,
-        6700
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "update",
-        "dataTableId": {
-          "__rl": true,
-          "value": "hBLqpqeVEojPpOJl",
-          "mode": "list",
-          "cachedResultName": "allris_vorgaenge",
-          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
-        },
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "vorgangKey",
-              "keyValue": "={{ $json.vorgangKey }}"
-            }
-          ]
-        },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "eignungsAgentJson": "={{ $json.eignungsAgentJson }}",
-            "sharepicNeedStage": "={{ $json.sharepicNeedStage }}",
-            "visualDecisionReason": "={{ $json.visualDecisionReason }}",
-            "instagramSharepicNoetig": "={{ $json.instagramSharepicNoetig }}",
-            "instagramCarouselNoetig": "={{ $json.instagramCarouselNoetig }}",
-            "visualNeeded": "={{ $json.visualNeeded === true ? 'true' : 'false' }}"
-          },
-          "matchingColumns": [],
-          "schema": [
-            {
-              "id": "eignungsAgentJson",
-              "displayName": "eignungsAgentJson",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "sharepicNeedStage",
-              "displayName": "sharepicNeedStage",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "visualDecisionReason",
-              "displayName": "visualDecisionReason",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "instagramSharepicNoetig",
-              "displayName": "instagramSharepicNoetig",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "instagramCarouselNoetig",
-              "displayName": "instagramCarouselNoetig",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "visualNeeded",
-              "displayName": "visualNeeded",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            }
-          ],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": false
-        },
-        "options": {}
-      },
-      "id": "c00b63ba-e596-4f49-8024-0c0fc950210e",
-      "name": "Schreibe Eignungs-Entscheidung",
-      "type": "n8n-nodes-base.dataTable",
-      "typeVersion": 1.1,
-      "position": [
-        2360,
-        6520
-      ],
-      "alwaysOutputData": true,
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "id": "sharepic-empfohlen-check",
-              "leftValue": "={{ $('Verarbeite Eignungs-Entscheidung').item.json.sharepicNeedStage }}",
-              "rightValue": "topic_ok",
-              "operator": {
-                "type": "string",
-                "operation": "equals"
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "a8d6128f-044d-4dd3-862f-b5a466932842",
-      "name": "IF Sharepic empfohlen? (Eignungs-Agent)",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [
-        2600,
-        6700
-      ]
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; }\n  catch (e) { return {}; }\n}\nfunction asArray(v) { return Array.isArray(v) ? v.filter(Boolean).map(safeStr) : []; }\n\nconst analysis = parseObj($json.analysisJson);\nconst sourceLock = parseObj(analysis.sourceLock);\n\nreturn {\n  json: {\n    vorgangKey: $json.vorgangKey,\n    vorgangsnummer: $json.vorgangsnummer,\n    title: $json.title,\n    summaryText: $json.summaryText,\n    combinedText: $json.combinedText,\n    sprengstoff: safeStr(analysis.sprengstoff) || 'GERING',\n    oldSourceTopic: safeStr(sourceLock.sourceTopic),\n    oldRequiredTerms: asArray(sourceLock.requiredTerms),\n    oldRequiredObjects: asArray(sourceLock.requiredObjects)\n  }\n};"
-      },
-      "id": "34287f7d-7d10-4ddd-be05-79421f1a1a98",
-      "name": "Fakten-Shadow: Baue Eingabe",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        2840,
-        6700
-      ]
-    },
-    {
-      "parameters": {
-        "workflowId": {
-          "__rl": true,
-          "value": "6t3TBZtYtKgElV0d",
-          "mode": "list",
-          "cachedResultName": "ALLRIS_Fakten_Agent"
-        },
-        "options": {
-          "waitForSubWorkflow": true
-        }
-      },
-      "id": "301bf76b-d7ac-4737-8271-570dd7b035aa",
-      "name": "Execute Workflow Fakten-Agent (Shadow)",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.2,
-      "position": [
-        3080,
-        6700
-      ],
-      "alwaysOutputData": true,
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction asArray(v) { return Array.isArray(v) ? v.filter(Boolean).map(safeStr) : []; }\n\nconst response = $json || {};\nconst original = $('Fakten-Shadow: Baue Eingabe').itemMatching($itemIndex).json || {};\nconst hasFakten = typeof response.sourceTopic === 'string';\n\nconst fakten = hasFakten ? response : {\n  vorgangKey: safeStr(original.vorgangKey),\n  vorgangsnummer: safeStr(original.vorgangsnummer),\n  sourceTopic: '', sourceConflict: '', requiredTerms: [], requiredObjects: [],\n  requiredAction: '', affectedGroups: [], concreteNumbers: [], responsibilities: [],\n  documentType: '', quotesVerbatim: [],\n  parseError: true,\n  callFailed: true\n};\n\n// Vergleich gegen das bereits VOR der Sub-Workflow-Grenze extrahierte sourceLock (siehe Fakten-Shadow: Baue Eingabe) - kein KI-Urteil.\nconst oldSourceLock = {\n  sourceTopic: safeStr(original.oldSourceTopic),\n  requiredTerms: asArray(original.oldRequiredTerms),\n  requiredObjects: asArray(original.oldRequiredObjects)\n};\n\nfunction normalizeText(v) {\n  return safeStr(v).toLowerCase()\n    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss');\n}\nfunction stemLight(w) {\n  return w.replace(/(ungen|ierung|heit|keit|schaft|tion|ieren|iere|iert|ung|lich|isch|ische|ischen|ischer|isches)$/, '').replace(/(en|er|em|es|e|n|s|t)$/, '');\n}\nfunction tokenOverlap(a, b) {\n  const tokensA = normalizeText(a).split(/[\\W_]+/).filter(w => w.length >= 4).map(stemLight);\n  const tokensB = normalizeText(b).split(/[\\W_]+/).filter(w => w.length >= 4).map(stemLight);\n  if (tokensA.some(w => tokensB.includes(w))) return true;\n  const rawA = normalizeText(a).replace(/[\\W_]+/g, ''), rawB = normalizeText(b).replace(/[\\W_]+/g, '');\n  for (const tok of tokensA) { if (tok.length >= 5 && rawB.includes(tok)) return true; }\n  for (const tok of tokensB) { if (tok.length >= 5 && rawA.includes(tok)) return true; }\n  return false;\n}\n\nconst oldRequiredTerms = asArray(oldSourceLock.requiredTerms);\nconst newRequiredTerms = asArray(fakten.requiredTerms);\nconst oldRequiredObjects = asArray(oldSourceLock.requiredObjects);\nconst newRequiredObjects = asArray(fakten.requiredObjects);\n\nconst termsMatched = newRequiredTerms.filter(t => oldRequiredTerms.some(o => tokenOverlap(t, o))).length;\nconst objectsMatched = newRequiredObjects.filter(t => oldRequiredObjects.some(o => tokenOverlap(t, o))).length;\nconst sourceTopicOverlap = (safeStr(oldSourceLock.sourceTopic) && safeStr(fakten.sourceTopic))\n  ? tokenOverlap(oldSourceLock.sourceTopic, fakten.sourceTopic)\n  : false;\n\nconst comparison = {\n  sourceTopicOverlap: sourceTopicOverlap,\n  requiredTermsMatched: termsMatched,\n  requiredTermsOldCount: oldRequiredTerms.length,\n  requiredTermsNewCount: newRequiredTerms.length,\n  requiredObjectsMatched: objectsMatched,\n  requiredObjectsOldCount: oldRequiredObjects.length,\n  requiredObjectsNewCount: newRequiredObjects.length\n};\n\nreturn {\n  json: {\n    vorgangKey: safeStr(original.vorgangKey),\n    sprengstoff: safeStr(original.sprengstoff) || 'GERING',\n    faktenAgentJson: JSON.stringify(fakten),\n    faktenComparisonJson: JSON.stringify(comparison)\n  }\n};"
-      },
-      "id": "457ecb3e-cff3-4ab2-87c0-13e6cbfb42e9",
-      "name": "Stelle Kontext nach Fakten-Agent wieder her",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        3320,
-        6700
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "update",
-        "dataTableId": {
-          "__rl": true,
-          "value": "hBLqpqeVEojPpOJl",
-          "mode": "list",
-          "cachedResultName": "allris_vorgaenge",
-          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
-        },
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "vorgangKey",
-              "keyValue": "={{ $json.vorgangKey }}"
-            }
-          ]
-        },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "faktenAgentJson": "={{ $json.faktenAgentJson }}",
-            "faktenComparisonJson": "={{ $json.faktenComparisonJson }}"
-          },
-          "matchingColumns": [],
-          "schema": [
-            {
-              "id": "faktenAgentJson",
-              "displayName": "faktenAgentJson",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "faktenComparisonJson",
-              "displayName": "faktenComparisonJson",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            }
-          ],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": false
-        },
-        "options": {}
-      },
-      "id": "fafb78e6-2d2c-4976-8c4e-f0dae79d832a",
-      "name": "Speichere Fakten-Agent Shadow",
-      "type": "n8n-nodes-base.dataTable",
-      "typeVersion": 1.1,
-      "position": [
-        3560,
-        6520
-      ],
-      "alwaysOutputData": true,
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "// Cutover 2026-07-18: laeuft nach Fakten+Satire-Gate (nicht mehr parallel zu Fakten),\n// prueft echten Fakten-Agent-SourceLock statt P3s alter Extraktion.\n// P3d-Port 2026-07-19: analysisJson jetzt direkt aus der DB-Zeile (Parse Analyse JSON existiert\n// hier nicht) - Speichere Analyse hat den gleichen Wert bereits geschrieben, bevor P3d laeuft.\n// FIX: sourceConflict nicht mehr als Pflichtfeld gewertet (optional laut Fakten-Agent-Spec,\n// gleicher Bug wie im QA-Agent selbst, dort am 2026-07-19 behoben).\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return p && typeof p === 'object' && !Array.isArray(p) ? p : {}; }\n  catch (e) { return {}; }\n}\nfunction asArr(v) {\n  if (Array.isArray(v)) return v.filter(Boolean).map(safeStr);\n  if (typeof v === 'string' && v.trim()) { try { const p = JSON.parse(v); if (Array.isArray(p)) return p.filter(Boolean).map(safeStr); } catch (e) {} }\n  return [];\n}\n\nconst base = $('Fakten-Shadow: Baue Eingabe').item.json || {};\nconst row = $('Loop Vorgaenge').itemMatching($itemIndex).json || {};\nconst analysis = parseObj(row.analysisJson);\nconst fakten = parseObj($('Stelle Kontext nach Fakten-Agent wieder her').item.json.faktenAgentJson);\n\nconst sourceLock = {\n  sourceTopic: safeStr(fakten.sourceTopic),\n  sourceConflict: safeStr(fakten.sourceConflict),\n  requiredTerms: asArr(fakten.requiredTerms),\n  requiredObjects: asArr(fakten.requiredObjects),\n  requiredAction: safeStr(fakten.requiredAction)\n};\nconst sourceLockValid = !!(sourceLock.sourceTopic && sourceLock.requiredTerms.length >= 2 && fakten.parseError !== true);\nconst mergedAnalysisJson = JSON.stringify({ ...analysis, sourceLock, sourceLockValid });\n\nreturn {\n  json: {\n    qaStage: 'analyse',\n    vorgangKey: safeStr(base.vorgangKey),\n    vorgangsnummer: safeStr(base.vorgangsnummer),\n    title: safeStr(base.title),\n    analysisJson: mergedAnalysisJson,\n    summaryText: safeStr(base.summaryText),\n    combinedText: safeStr(base.combinedText),\n    skipAdversarialCheck: false\n  }\n};\n"
-      },
-      "id": "32f9cba4-ba4a-481f-a784-59b8f74b2122",
-      "name": "QA-Shadow: Baue QA-Eingabe",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        3800,
-        6700
-      ]
-    },
-    {
-      "parameters": {
-        "workflowId": {
-          "__rl": true,
-          "value": "zJjry37DnhDVErfC",
-          "mode": "list",
-          "cachedResultName": "ALLRIS_QA_Agent"
-        },
-        "options": {
-          "waitForSubWorkflow": true
-        }
-      },
-      "id": "2e746f6b-5629-4e28-a7e7-81149c1eb39d",
-      "name": "Execute Workflow QA-Agent (Shadow)",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.2,
-      "position": [
-        4040,
-        6700
-      ],
-      "alwaysOutputData": true,
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst response = $json || {};\nconst original = $('QA-Shadow: Baue QA-Eingabe').item.json || {};\nconst hasVerdict = typeof response.passed === 'boolean';\n\nconst verdict = hasVerdict ? response : {\n  passed: false,\n  violations: [{ code: 'qa_agent_call_failed', field: 'qaVerdictJson', message: 'QA-Agent-Aufruf fehlgeschlagen oder ohne Verdikt zurueckgekehrt', severity: 'unknown' }],\n  hallucinationSuspects: [],\n  sourceLockBreaches: [],\n  qaStage: 'analyse',\n  vorgangKey: safeStr(original.vorgangKey),\n  vorgangsnummer: safeStr(original.vorgangsnummer),\n  checkedAt: new Date().toISOString(),\n  aiSkipped: true\n};\n\nreturn {\n  json: {\n    ...original,\n    qaVerdictJson: JSON.stringify(verdict),\n    qaPassed: verdict.passed === true,\n    qaCheckedAt: verdict.checkedAt || new Date().toISOString()\n  }\n};"
-      },
-      "id": "f7cb834f-b2b9-428e-84b3-43af5c6e7741",
-      "name": "Stelle Kontext nach QA-Agent wieder her",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        4280,
-        6700
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "update",
-        "dataTableId": {
-          "__rl": true,
-          "value": "hBLqpqeVEojPpOJl",
-          "mode": "list",
-          "cachedResultName": "allris_vorgaenge",
-          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
-        },
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "vorgangKey",
-              "keyValue": "={{ $json.vorgangKey }}"
-            }
-          ]
-        },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "qaVerdictJson": "={{ $json.qaVerdictJson }}",
-            "qaPassed": "={{ $json.qaPassed }}",
-            "qaCheckedAt": "={{ $json.qaCheckedAt }}"
-          },
-          "matchingColumns": [],
-          "schema": [
-            {
-              "id": "qaVerdictJson",
-              "displayName": "qaVerdictJson",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "qaPassed",
-              "displayName": "qaPassed",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "qaCheckedAt",
-              "displayName": "qaCheckedAt",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            }
-          ],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": false
-        },
-        "options": {}
-      },
-      "id": "abba9e70-ef60-4467-a028-6a514ef5afcc",
-      "name": "Speichere QA Verdict (Shadow)",
-      "type": "n8n-nodes-base.dataTable",
-      "typeVersion": 1.1,
-      "position": [
-        4520,
-        6520
-      ],
-      "alwaysOutputData": true,
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "id": "qa-passed-check",
-              "leftValue": "={{ $json.qaPassed }}",
-              "rightValue": true,
-              "operator": {
-                "type": "boolean",
-                "operation": "equals"
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "5ef90d2f-d7a1-46bf-aa00-0510c3f794b1",
-      "name": "IF QA bestanden?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        4760,
-        6700
-      ]
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction asArr(v) { return Array.isArray(v) ? v : []; }\n\nconst j = $json;\nconst violations = asArr(j.violations).map(v => safeStr(v && v.message)).filter(Boolean);\nconst hallucinations = asArr(j.hallucinationSuspects).map(h => safeStr(h && h.claim)).filter(Boolean);\nconst reasons = [...violations, ...hallucinations];\n\nconst lines = [\n  '⚠️ QA-Block: Vorgang ' + safeStr(j.vorgangsnummer) + ' (' + safeStr(j.vorgangKey) + ')',\n  reasons.length ? 'Grund: ' + reasons.join(' | ') : 'Grund: unbekannt (QA-Agent-Aufruf evtl. fehlgeschlagen)',\n  'Bitte in der Data Table pruefen und contentStage/sharepicNeedStage nach Korrektur manuell zuruecksetzen.'\n];\n\nreturn {\n  json: {\n    ...j,\n    txnId: 'qa-block-' + Date.now() + '-' + Math.random().toString(36).slice(2),\n    summaryMessage: lines.join('\\n')\n  }\n};"
-      },
-      "id": "b4744c5a-efcb-4f95-aaa4-b667aaee1116",
-      "name": "Baue QA-Block Nachricht",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        5000,
-        6880
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "update",
-        "dataTableId": {
-          "__rl": true,
-          "value": "hBLqpqeVEojPpOJl",
-          "mode": "list",
-          "cachedResultName": "allris_vorgaenge",
-          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
-        },
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "vorgangKey",
-              "keyValue": "={{ $json.vorgangKey }}"
-            }
-          ]
-        },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "contentStage": "error",
-            "contentErrorReason": "qa_blocked"
-          },
-          "matchingColumns": [],
-          "schema": [
-            {
-              "id": "contentStage",
-              "displayName": "contentStage",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "contentErrorReason",
-              "displayName": "contentErrorReason",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            }
-          ],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": false
-        },
-        "options": {}
-      },
-      "id": "014cdc09-9fed-4b52-a4bf-7fa6e8cf19e8",
-      "name": "Schreibe QA-Block Status",
-      "type": "n8n-nodes-base.dataTable",
-      "typeVersion": 1.1,
-      "position": [
-        5240,
-        6880
-      ],
-      "alwaysOutputData": true,
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "method": "PUT",
-        "url": "=https://matrix.org/_matrix/client/v3/rooms/!COxTeLJyPszYlaHbIx:matrix.golietz.de/send/m.room.message/{{ $json.txnId }}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "contentType": "raw",
-        "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ msgtype: 'm.text', body: $json.summaryMessage }) }}",
-        "options": {
-          "timeout": 30000
-        }
-      },
-      "id": "41bb5812-97d1-4497-8e8f-ca317176b892",
-      "name": "Sende QA-Block Matrix-Meldung",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        5480,
-        6880
-      ],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "od1pN1F5wy2irSDs",
-          "name": "Header Auth account"
-        }
-      },
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; }\n  catch (e) { return {}; }\n}\n\nconst row = $json;\nconst verdict = parseObj(row.qaVerdictJson);\nconst outcome = row.qaPassed === true ? 'accepted' : 'rejected';\n\nconst violations = Array.isArray(verdict.violations) ? verdict.violations : [];\nconst hallucinations = Array.isArray(verdict.hallucinationSuspects) ? verdict.hallucinationSuspects : [];\n\nlet exampleSummary;\nif (outcome === 'accepted') {\n  exampleSummary = safeStr(row.title) + ' - QA bestanden, keine Verstoesse.';\n} else {\n  const firstIssues = [...violations.map(v => v.message), ...hallucinations.map(h => h.claim)].filter(Boolean).slice(0, 3);\n  exampleSummary = safeStr(row.title) + ' - ' + (firstIssues.length ? firstIssues.join(' | ') : 'QA abgelehnt ohne Detail');\n}\n\nreturn {\n  json: {\n    lernAction: 'record',\n    vorgangKey: safeStr(row.vorgangKey),\n    vorgangsnummer: safeStr(row.vorgangsnummer),\n    qaStage: safeStr(row.qaStage) || 'analyse',\n    source: 'qa_agent',\n    outcome: outcome,\n    exampleSummary: exampleSummary.slice(0, 500),\n    detailsJson: safeStr(row.qaVerdictJson) || '{}'\n  }\n};"
-      },
-      "id": "17096454-633f-4344-875a-54b79fb59cb1",
-      "name": "Lern-Shadow: Baue Record-Eingabe",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        5480,
-        6340
-      ]
-    },
-    {
-      "parameters": {
-        "workflowId": {
-          "__rl": true,
-          "value": "Br1O0rUucRnLdKvi",
-          "mode": "list",
-          "cachedResultName": "ALLRIS_Lern_Agent"
-        },
-        "options": {
-          "waitForSubWorkflow": true
-        }
-      },
-      "id": "0a3cba9f-95f6-4dd1-ad81-801a9cac8434",
-      "name": "Execute Workflow Lern-Agent (Record)",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.2,
-      "position": [
-        5960,
-        6340
-      ],
-      "alwaysOutputData": true,
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; }\n  catch (e) { return {}; }\n}\n\nconst fakten = parseObj($json.faktenAgentJson);\n\nreturn {\n  json: {\n    vorgangKey: $json.vorgangKey,\n    vorgangsnummer: safeStr(fakten.vorgangsnummer),\n    sourceTopic: fakten.sourceTopic,\n    sourceConflict: fakten.sourceConflict,\n    requiredTerms: fakten.requiredTerms,\n    requiredObjects: fakten.requiredObjects,\n    requiredAction: fakten.requiredAction,\n    affectedGroups: fakten.affectedGroups,\n    concreteNumbers: fakten.concreteNumbers,\n    responsibilities: fakten.responsibilities,\n    documentType: fakten.documentType,\n    quotesVerbatim: fakten.quotesVerbatim,\n    sprengstoff: $json.sprengstoff\n  }\n};"
-      },
-      "id": "c7de62ca-7315-445e-b317-ec9bb40353ec",
-      "name": "Satire-Shadow: Baue Eingabe",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        6200,
-        6700
-      ]
-    },
-    {
-      "parameters": {
-        "workflowId": {
-          "__rl": true,
-          "value": "NO17q38BeKyS25LY",
-          "mode": "list",
-          "cachedResultName": "ALLRIS_Satire_Agent"
-        },
-        "options": {
-          "waitForSubWorkflow": true
-        }
-      },
-      "id": "847382e2-0c83-40c8-9d67-5b1452d6d7fc",
-      "name": "Execute Workflow Satire-Agent (Shadow)",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.2,
-      "position": [
-        6440,
-        6700
-      ],
-      "alwaysOutputData": true,
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction asArray(v) { return Array.isArray(v) ? v.filter(Boolean).map(safeStr) : []; }\n\nconst response = $json || {};\nconst original = $('Satire-Shadow: Baue Eingabe').itemMatching($itemIndex).json || {};\nconst hasVariants = Array.isArray(response.variants) && response.variants.length > 0;\n\nconst result = hasVariants ? response : {\n  vorgangKey: safeStr(original.vorgangKey),\n  vorgangsnummer: safeStr(original.vorgangsnummer),\n  variants: [],\n  parseError: true,\n  callFailed: true\n};\n\nreturn {\n  json: {\n    vorgangKey: safeStr(original.vorgangKey) || safeStr(response.vorgangKey),\n    vorgangsnummer: safeStr(original.vorgangsnummer),\n    satireAgentJson: JSON.stringify(result),\n    sourceTopic: safeStr(original.sourceTopic),\n    requiredObjects: asArray(original.requiredObjects),\n    requiredAction: safeStr(original.requiredAction),\n    affectedGroups: asArray(original.affectedGroups)\n  }\n};"
-      },
-      "id": "92581f0d-8402-4d3c-850c-6245323bb75d",
-      "name": "Stelle Kontext nach Satire-Agent wieder her",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        6680,
-        6700
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "update",
-        "dataTableId": {
-          "__rl": true,
-          "value": "hBLqpqeVEojPpOJl",
-          "mode": "list",
-          "cachedResultName": "allris_vorgaenge",
-          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
-        },
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "vorgangKey",
-              "keyValue": "={{ $json.vorgangKey }}"
-            }
-          ]
-        },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "satireAgentJson": "={{ $json.satireAgentJson }}"
-          },
-          "matchingColumns": [],
-          "schema": [
-            {
-              "id": "satireAgentJson",
-              "displayName": "satireAgentJson",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            }
-          ],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": false
-        },
-        "options": {}
-      },
-      "id": "2ca3a10b-e867-4b56-b301-88f60cf1d49e",
-      "name": "Speichere Satire-Agent Shadow",
-      "type": "n8n-nodes-base.dataTable",
-      "typeVersion": 1.1,
-      "position": [
-        6920,
-        6520
-      ],
-      "alwaysOutputData": true,
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "// Cutover 2026-07-18: Satire-Agent liefert 3 echte Varianten (unterschiedliche Angriffswinkel,\n// nicht nur Formulierungen). Text (P4) bekommt SOFORT eine automatische Wahl (variants[1],\n// gleiche Default-Logik wie im Schattenbetrieb), damit P4 nicht auf die Matrix-Umfrage warten\n// muss. Das Bild (P5/Bild-Agent) bekommt seine Variante spaeter unabhaengig ueber die\n// Matrix-Umfrage unten - deshalb bleiben imageHeadline/imageSubline hier bewusst LEER, damit\n// P5s bestehendes Gate (IF Headline bereits gewaehlt?) korrekt weiter auf die Umfrage wartet.\n// Um zu vermeiden, dass Bild und Text unterschiedliche Satire-Winkel zeigen, markiert die\n// Umfrage-Nachricht sichtbar, welcher Kandidat zum bereits gewaehlten Text passt.\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; }\n  catch (e) { return {}; }\n}\nfunction asArr(v) {\n  if (Array.isArray(v)) return v.filter(Boolean).map(safeStr);\n  if (typeof v === 'string' && v.trim()) { try { const p = JSON.parse(v); if (Array.isArray(p)) return p.filter(Boolean).map(safeStr); } catch (e) {} }\n  return [];\n}\n\nconst satire = parseObj($json.satireAgentJson);\nconst variants = Array.isArray(satire.variants) ? satire.variants : [];\nconst faktenBase = $('Fakten-Shadow: Baue Eingabe').itemMatching($itemIndex).json || {};\nconst vorgangKey = safeStr($json.vorgangKey);\nconst vorgangsnummer = safeStr($json.vorgangsnummer);\nconst title = safeStr(faktenBase.title);\nconst vnCode = vorgangsnummer.replace(/[^0-9A-Za-z]+/g, '-').replace(/^-+|-+$/g, '');\n\nconst autoIdx = variants.length >= 2 ? 1 : (variants.length === 1 ? 0 : -1);\nconst textVariant = autoIdx >= 0 ? variants[autoIdx] : {};\n\nconst satireBrief = safeStr(textVariant.satireBrief);\nconst satireAngle = safeStr(textVariant.satireAngle);\nconst satirePunchlines = asArr(textVariant.satirePunchlines);\nconst satireTarget = safeStr(textVariant.satireTarget);\nconst satireIntensity = Number(textVariant.satireIntensity) || 0;\nconst satireDoNotClaim = asArr(textVariant.satireDoNotClaim);\nconst satireSafetyNote = safeStr(textVariant.satireSafetyNote);\n\nconst candidates = variants.slice(0, 4).map((v, i) => ({\n  code: (vnCode ? vnCode + '-' : '') + 'K' + (i + 1),\n  imageHeadline: safeStr(v.imageHeadline),\n  imageSubline: safeStr(v.imageSubline),\n  satireBrief: safeStr(v.satireBrief),\n  satireAngle: safeStr(v.satireAngle),\n  satirePunchlines: asArr(v.satirePunchlines),\n  satireTarget: safeStr(v.satireTarget),\n  satireIntensity: Number(v.satireIntensity) || 0,\n  satireDoNotClaim: asArr(v.satireDoNotClaim),\n  satireSafetyNote: safeStr(v.satireSafetyNote),\n  isTextMatch: i === autoIdx\n})).filter(c => c.imageHeadline && c.imageSubline);\n\nconst postedAt = new Date().toISOString();\nconst visualJson = JSON.stringify({ headlineCandidates: candidates, candidatesPostedAt: postedAt });\n\nlet matrixMessage = '';\nlet txnId = '';\nlet shouldPost = candidates.length >= 2;\n\nif (shouldPost) {\n  const lines = ['🎨 Bildvorschläge für ' + vorgangsnummer + ' – ' + title, ''];\n  for (const c of candidates) {\n    lines.push(c.code + ': ' + c.imageHeadline + ' – ' + c.imageSubline + (c.isTextMatch ? ' (passt zum veröffentlichten Text)' : ''));\n    if (c.satireBrief) lines.push('   Idee: ' + c.satireBrief);\n  }\n  lines.push('');\n  const exampleCode = candidates[0].code;\n  lines.push('Antworte mit dem gewünschten Code (z.B. \"' + exampleCode + '\"), um die Auswahl zu bestätigen, oder mit \"' + vnCode + '-X\" für komplett neue Vorschläge.');\n  matrixMessage = lines.join('\\n');\n  txnId = 'satire_hdl_' + Date.now() + '_' + vorgangKey.replace(/[^a-zA-Z0-9]/g, '').substring(0, 10);\n}\n\nreturn {\n  json: {\n    vorgangKey,\n    vorgangsnummer,\n    satireBrief,\n    satireAngle,\n    satirePunchlines: JSON.stringify(satirePunchlines),\n    satireTarget,\n    satireIntensity,\n    satireDoNotClaim: JSON.stringify(satireDoNotClaim),\n    satireSafetyNote,\n    visualJson,\n    headlineChoiceStage: shouldPost ? 'awaiting_headline_choice' : 'satire_agent_failed',\n    imageStage: 'not_started',\n    shouldPost,\n    matrixMessage,\n    txnId,\n    matrixSentOk: false,\n    matrixSendError: ''\n  }\n};"
-      },
-      "id": "00f972ba-3bea-4b78-b5cf-6c1271776844",
-      "name": "Satire-Ergebnis: Baue Text-Auswahl + Umfrage",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        7160,
-        6700
-      ]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "id": "should-post-check",
-              "leftValue": "={{ $json.shouldPost }}",
-              "rightValue": true,
-              "operator": {
-                "type": "boolean",
-                "operation": "equals"
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "09c4a4ab-6f74-4208-bca4-7a203715b7e3",
-      "name": "IF Umfrage noetig? (>=2 Varianten)",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        7400,
-        6700
-      ]
-    },
-    {
-      "parameters": {
-        "method": "PUT",
-        "url": "=https://matrix.org/_matrix/client/v3/rooms/!COxTeLJyPszYlaHbIx:matrix.golietz.de/send/m.room.message/{{ $json.txnId }}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "contentType": "raw",
-        "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ msgtype: 'm.text', body: $json.matrixMessage }) }}",
-        "options": {
-          "timeout": 30000
-        }
-      },
-      "id": "5cadab49-f756-4c11-b570-69424a924c7f",
-      "name": "Sende Satire-Varianten Matrix-Umfrage",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        7640,
-        6520
-      ],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "od1pN1F5wy2irSDs",
-          "name": "Header Auth account"
-        }
-      },
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "// Stellt den Vorgangskontext nach dem Matrix-Versand wieder her (gleiches Muster wie\n// 'Stelle Kontext nach Matrix wieder her' in P5) - der HTTP-Node ersetzt das Item-JSON\n// durch die rohe Matrix-API-Antwort und wuerde sonst vorgangKey/satireBrief/visualJson usw. verlieren.\nconst response = $json || {};\nconst base = $('Satire-Ergebnis: Baue Text-Auswahl + Umfrage').itemMatching($itemIndex).json || {};\n\nconst hasError = !!(\n  response.error ||\n  response.errcode ||\n  (response.statusCode && Number(response.statusCode) >= 400)\n);\nconst eventId = response.event_id || response.eventId || '';\n\nreturn {\n  json: {\n    ...base,\n    matrixSentOk: !hasError && !!eventId,\n    matrixSendError: hasError ? (response.error || response.errcode || 'Matrix-Versand fehlgeschlagen') : ''\n  }\n};"
-      },
-      "id": "60509d63-c928-409d-b574-28e9fec54b39",
-      "name": "Stelle Kontext nach Satire-Umfrage wieder her",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        7880,
-        6520
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "update",
-        "dataTableId": {
-          "__rl": true,
-          "value": "hBLqpqeVEojPpOJl",
-          "mode": "list",
-          "cachedResultName": "allris_vorgaenge",
-          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
-        },
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "vorgangKey",
-              "keyValue": "={{ $json.vorgangKey }}"
-            }
-          ]
-        },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "satireBrief": "={{ $json.satireBrief }}",
-            "satireAngle": "={{ $json.satireAngle }}",
-            "satirePunchlines": "={{ $json.satirePunchlines }}",
-            "satireTarget": "={{ $json.satireTarget }}",
-            "satireIntensity": "={{ $json.satireIntensity }}",
-            "satireDoNotClaim": "={{ $json.satireDoNotClaim }}",
-            "satireSafetyNote": "={{ $json.satireSafetyNote }}",
-            "visualJson": "={{ $json.visualJson }}",
-            "imageStage": "={{ $json.imageStage }}",
-            "matrixSentOk": "={{ $json.matrixSentOk }}",
-            "matrixSendError": "={{ $json.matrixSendError || '' }}",
-            "headlineChoiceStage": "={{ $json.headlineChoiceStage }}"
-          },
-          "matchingColumns": [],
-          "schema": [
-            {
-              "id": "satireBrief",
-              "displayName": "satireBrief",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "satireAngle",
-              "displayName": "satireAngle",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "satirePunchlines",
-              "displayName": "satirePunchlines",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "satireTarget",
-              "displayName": "satireTarget",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "satireIntensity",
-              "displayName": "satireIntensity",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "satireDoNotClaim",
-              "displayName": "satireDoNotClaim",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "satireSafetyNote",
-              "displayName": "satireSafetyNote",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "visualJson",
-              "displayName": "visualJson",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "headlineChoiceStage",
-              "displayName": "headlineChoiceStage",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "imageStage",
-              "displayName": "imageStage",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "matrixSentOk",
-              "displayName": "matrixSentOk",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "matrixSendError",
-              "displayName": "matrixSendError",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            }
-          ],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": false
-        },
-        "options": {}
-      },
-      "id": "f61c510f-989e-42fc-88a9-92cc3634ec38",
-      "name": "Schreibe Satire-Ergebnis",
-      "type": "n8n-nodes-base.dataTable",
-      "typeVersion": 1.1,
-      "position": [
-        8120,
-        6700
-      ],
-      "alwaysOutputData": true,
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "// Satire-Agent lieferte weniger als 2 verwertbare Varianten (Parse-Fehler oder AI-Call\n// fehlgeschlagen) - keine Matrix-Umfrage moeglich, kein Bild-Kandidat verfuegbar.\n// Ohne diese Meldung wuerde die Zeile mit visualStage='satire_agent_failed' unbemerkt\n// liegen bleiben (P5 wartet auf 'headline_selected', das kommt nie). Gleiches\n// Alarmierungs-Muster wie 'Baue QA-Block Nachricht'.\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst j = $json;\nreturn {\n  json: {\n    ...j,\n    txnId: 'satire-fail-' + Date.now() + '-' + Math.random().toString(36).slice(2),\n    summaryMessage: '⚠️ Satire-Agent fehlgeschlagen: Vorgang ' + safeStr(j.vorgangsnummer) + ' (' + safeStr(j.vorgangKey) + ')\\n' +\n      'Grund: weniger als 2 verwertbare Varianten (Parse-Fehler oder AI-Call fehlgeschlagen).\\n' +\n      'Kein Bildvorschlag moeglich. Bitte in der Data Table pruefen und ggf. contentStage/visualStage manuell zuruecksetzen, um einen erneuten Versuch auszuloesen.'\n  }\n};"
-      },
-      "id": "4870b096-fcf0-4516-9738-730d91c29bfd",
-      "name": "Baue Satire-Fehler Nachricht",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        8120,
-        6880
-      ]
-    },
-    {
-      "parameters": {
-        "method": "PUT",
-        "url": "=https://matrix.org/_matrix/client/v3/rooms/!COxTeLJyPszYlaHbIx:matrix.golietz.de/send/m.room.message/{{ $json.txnId }}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "contentType": "raw",
-        "rawContentType": "application/json",
-        "body": "={{ JSON.stringify({ msgtype: 'm.text', body: $json.summaryMessage }) }}",
-        "options": {
-          "timeout": 30000
-        }
-      },
-      "id": "0fac70c8-b1f8-403e-916c-303495df7cf9",
-      "name": "Sende Satire-Fehler Matrix-Meldung",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        8600,
-        6880
-      ],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "od1pN1F5wy2irSDs",
-          "name": "Header Auth account"
-        }
-      },
-      "onError": "continueRegularOutput"
-    },
-    {
-      "id": "b58a6316-eb06-407d-afff-8f1febe5991b",
-      "name": "Merge Kette-Abschluss",
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 3,
-      "position": [
-        8840,
-        6700
-      ],
-      "parameters": {}
-    },
-    {
-      "id": "7c568294-9bc5-4c4b-8e7a-1094f523e32e",
-      "name": "Schreibe Kette-Abschluss",
-      "type": "n8n-nodes-base.dataTable",
-      "typeVersion": 1.1,
-      "position": [
-        9080,
-        6700
-      ],
-      "alwaysOutputData": true,
-      "parameters": {
-        "operation": "update",
-        "dataTableId": {
-          "__rl": true,
-          "value": "hBLqpqeVEojPpOJl",
-          "mode": "list",
-          "cachedResultName": "allris_vorgaenge",
-          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
-        },
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "vorgangKey",
-              "keyValue": "={{ $('Loop Vorgaenge').itemMatching($itemIndex).json.vorgangKey }}"
-            }
-          ]
-        },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "judgmentChainProcessedAt": "={{ $now.toISO() }}"
-          },
-          "schema": [
-            {
-              "id": "judgmentChainProcessedAt",
-              "displayName": "judgmentChainProcessedAt",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            }
-          ]
-        },
-        "options": {}
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "// Nächster Repair-Vorgang (V12_7)\nconst items = $input.all();\nconst rawItem = items && items[0];\nconst j = (rawItem && rawItem.json && typeof rawItem.json === 'object' && !Array.isArray(rawItem.json))\n  ? rawItem.json\n  : {};\nreturn [{ json: j }];\n"
-      },
-      "id": "6f448491-c75d-4ee6-957b-5daa5965d0f6",
-      "name": "Naechster Vorgang",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        9320,
-        6700
-      ]
-    }
-  ],
   "connections": {
     "Schedule Trigger": {
       "main": [
@@ -1636,8 +421,1224 @@
       ]
     }
   },
+  "name": "ALLRIS_P3d_Agenten_Kette",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 5,
+              "triggerAtMinute": 32
+            }
+          ]
+        }
+      },
+      "id": "9658c593-7268-42e9-a1f4-3e7529db8b16",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        208,
+        6704
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "returnAll": true
+      },
+      "id": "a51087d4-ec17-497e-bf2f-71505bb20b00",
+      "name": "Hole alle Vorgaenge",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        448,
+        6704
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Kandidaten fuer die Agenten-Kette (Eignung/Fakten/QA/Lern/Satire):\n// Analyse muss abgeschlossen sein (lastAnalysisAt gesetzt) und die Kette darf fuer diese\n// Zeile noch nicht gelaufen sein (judgmentChainProcessedAt leer). Bewusst kein contentStage-Filter:\n// die Kette lief im urspruenglichen P3 unconditional fuer jede analysierte Zeile, unabhaengig vom\n// abgeleiteten contentStage (watching/ignored/needs_content).\nconst items = $input.all();\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nreturn items.filter(item => {\n  const j = item.json || {};\n  return !!safeStr(j.lastAnalysisAt) && !safeStr(j.judgmentChainProcessedAt);\n});\n"
+      },
+      "id": "bd3e9243-5e82-4d7a-8846-4f09e804db7e",
+      "name": "Filter Agenten-Kandidaten",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        6704
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sortierung: 1. firstseen aufsteigend, 2. volfdnr numerisch, 3. vorgangKey lexikografisch\nfunction parseDate(v) {\n  if (!v) return 0;\n  const t = Date.parse(String(v));\n  return Number.isFinite(t) ? t : 0;\n}\nfunction parseVolfdnr(v) {\n  if (!v) return Infinity;\n  const n = parseInt(String(v).replace(/[^0-9]/g, ''), 10);\n  return Number.isFinite(n) ? n : Infinity;\n}\nconst items = $input.all();\nitems.sort((a, b) => {\n  const ja = a.json || {}, jb = b.json || {};\n  const fa = parseDate(ja.firstseen), fb = parseDate(jb.firstseen);\n  if (fa !== fb) return fa - fb;\n  const va = parseVolfdnr(ja.volfdnr), vb = parseVolfdnr(jb.volfdnr);\n  if (va !== vb) return va - vb;\n  return String(ja.vorgangKey || '').localeCompare(String(jb.vorgangKey || ''));\n});\nreturn items;\n"
+      },
+      "id": "3a9a05ed-5417-40f3-bbb7-75f2c87028d5",
+      "name": "Sortiere Vorgaenge",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        928,
+        6704
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "a8f696fc-3133-4d10-8cfd-b7b21a22e1c1",
+      "name": "Loop Vorgaenge",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1168,
+        6704
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; }\n  catch (e) { return {}; }\n}\n\nconst row = $json;\nconst analysis = parseObj(row.analysisJson);\nconst sl = parseObj(analysis.sourceLock);\nconst va = parseObj(analysis.visualAnchors);\nconst guardErrors = Array.isArray(analysis.visualGuardErrors) ? analysis.visualGuardErrors : [];\n\nreturn {\n  json: {\n    vorgangKey: safeStr(row.vorgangKey),\n    vorgangsnummer: safeStr(row.vorgangsnummer),\n    title: safeStr(row.title),\n\n    relevanz: analysis.relevanz,\n    sprengstoff: row.sprengstoff,\n    empfehlung: row.empfehlung,\n    kommunikationspotenzial: row.kommunikationspotenzial,\n    oeffentlicheGelderBetroffen: analysis.oeffentlicheGelderBetroffen === true,\n\n    sourceLock: sl,\n    visualAnchors: va,\n\n    kurzfassung: row.kurzfassung,\n    warumRelevant: row.warumRelevant,\n\n    sourceLockValid: analysis.sourceLockValid === true,\n    visualAnchorsValid: analysis.visualAnchorsValid === true,\n    guardValid: guardErrors.length === 0,\n    visualGuardErrors: guardErrors\n  }\n};"
+      },
+      "id": "6c28fe48-e5c5-4adf-80ac-8d2396c3a650",
+      "name": "Eignungs-Agent: Baue Eingabe",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1408,
+        6704
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "ZZeD2dqzJUdCCksQ",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Eignungs_Agent"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "bca20ac0-2683-4b49-864f-600ced17d450",
+      "name": "Execute Workflow Eignungs-Agent",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1648,
+        6704
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst response = $json || {};\nconst original = $('Eignungs-Agent: Baue Eingabe').itemMatching($itemIndex).json || {};\nconst hasResult = typeof response.satireWorthIt === 'boolean';\n\nconst eignung = hasResult ? response : {\n  vorgangKey: safeStr(original.vorgangKey),\n  vorgangsnummer: safeStr(original.vorgangsnummer),\n  satireWorthIt: false,\n  satireWorthItReason: 'Eignungs-Agent Aufruf fehlgeschlagen - sicherheitshalber kein Sharepic',\n  reservations: [],\n  reservationsBlockImage: false,\n  parseError: true,\n  callFailed: true\n};\n\nreturn { json: { ...original, eignungsAgentJson: JSON.stringify(eignung), _eignung: eignung } };"
+      },
+      "id": "ef77563f-9ef9-4a71-b29f-6aa9c9847302",
+      "name": "Stelle Kontext nach Eignungs-Agent wieder her",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1888,
+        6704
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction asArr(v) { return Array.isArray(v) ? v.filter(Boolean).map(safeStr) : []; }\n\nconst j = $json;\nconst original = $('Eignungs-Agent: Baue Eingabe').itemMatching($itemIndex).json || {};\nconst row = $('Loop Vorgaenge').itemMatching($itemIndex).json || {};\n\nconst eignung = j._eignung || {};\nconst satireWorthIt = eignung.satireWorthIt === true;\nconst sourceLockValid = original.sourceLockValid === true;\nconst visualAnchorsValid = original.visualAnchorsValid === true;\nconst guardValid = original.guardValid === true;\nconst reservationsBlockImage = eignung.reservationsBlockImage === true;\n\nconst sharepicRecommended = satireWorthIt && sourceLockValid && visualAnchorsValid && guardValid && !reservationsBlockImage;\n\nlet sharepicNeedStage;\nlet sharepicNeedReason;\n\nif (!satireWorthIt) {\n  sharepicNeedStage = 'not_applicable';\n  sharepicNeedReason = 'Eignungs-Agent: ' + (safeStr(eignung.satireWorthItReason) || 'Kein Sharepic-Bedarf');\n} else if (sharepicRecommended) {\n  sharepicNeedStage = 'topic_ok';\n  sharepicNeedReason = 'Sharepic freigegeben: Eignungs-Agent + SourceLock/Visual-Anker/Guard bestanden.';\n} else {\n  sharepicNeedStage = 'topic_error';\n  const reasons = [];\n  if (!sourceLockValid) reasons.push('sourceLock unvollstaendig');\n  if (!visualAnchorsValid) reasons.push('visualAnchors unvollstaendig');\n  if (!guardValid) reasons.push('Guard blockiert: ' + asArr(original.visualGuardErrors).join(' | '));\n  if (reservationsBlockImage) reasons.push('Eignungs-Agent Bedenken: ' + asArr(eignung.reservations).join(' | '));\n  sharepicNeedReason = 'Sharepic blockiert: ' + reasons.join(' | ');\n}\n\nreturn {\n  json: {\n    ...row,\n    eignungsAgentJson: j.eignungsAgentJson,\n    sharepicNeedStage: sharepicNeedStage,\n    visualDecisionReason: sharepicNeedReason,\n    instagramSharepicNoetig: sharepicNeedStage === 'topic_ok',\n    instagramCarouselNoetig: sharepicNeedStage === 'topic_ok',\n    visualNeeded: sharepicNeedStage === 'topic_ok'\n  }\n};\n"
+      },
+      "id": "32a0489c-f822-4184-8350-7cc454cd43d0",
+      "name": "Verarbeite Eignungs-Entscheidung",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2128,
+        6704
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "eignungsAgentJson": "={{ $json.eignungsAgentJson }}",
+            "sharepicNeedStage": "={{ $json.sharepicNeedStage }}",
+            "visualDecisionReason": "={{ $json.visualDecisionReason }}",
+            "instagramSharepicNoetig": "={{ $json.instagramSharepicNoetig }}",
+            "instagramCarouselNoetig": "={{ $json.instagramCarouselNoetig }}",
+            "visualNeeded": "={{ $json.visualNeeded === true ? 'true' : 'false' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "eignungsAgentJson",
+              "displayName": "eignungsAgentJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "sharepicNeedStage",
+              "displayName": "sharepicNeedStage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "visualDecisionReason",
+              "displayName": "visualDecisionReason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "instagramSharepicNoetig",
+              "displayName": "instagramSharepicNoetig",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "instagramCarouselNoetig",
+              "displayName": "instagramCarouselNoetig",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "visualNeeded",
+              "displayName": "visualNeeded",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "c00b63ba-e596-4f49-8024-0c0fc950210e",
+      "name": "Schreibe Eignungs-Entscheidung",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2368,
+        6528
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "sharepic-empfohlen-check",
+              "leftValue": "={{ $('Verarbeite Eignungs-Entscheidung').item.json.sharepicNeedStage }}",
+              "rightValue": "topic_ok",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a8d6128f-044d-4dd3-862f-b5a466932842",
+      "name": "IF Sharepic empfohlen? (Eignungs-Agent)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2608,
+        6704
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; }\n  catch (e) { return {}; }\n}\nfunction asArray(v) { return Array.isArray(v) ? v.filter(Boolean).map(safeStr) : []; }\n\nconst analysis = parseObj($json.analysisJson);\nconst sourceLock = parseObj(analysis.sourceLock);\n\nreturn {\n  json: {\n    vorgangKey: $json.vorgangKey,\n    vorgangsnummer: $json.vorgangsnummer,\n    title: $json.title,\n    summaryText: $json.summaryText,\n    combinedText: $json.combinedText,\n    sprengstoff: safeStr(analysis.sprengstoff) || 'GERING',\n    oldSourceTopic: safeStr(sourceLock.sourceTopic),\n    oldRequiredTerms: asArray(sourceLock.requiredTerms),\n    oldRequiredObjects: asArray(sourceLock.requiredObjects)\n  }\n};"
+      },
+      "id": "34287f7d-7d10-4ddd-be05-79421f1a1a98",
+      "name": "Fakten-Shadow: Baue Eingabe",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2848,
+        6704
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "6t3TBZtYtKgElV0d",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Fakten_Agent"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "301bf76b-d7ac-4737-8271-570dd7b035aa",
+      "name": "Execute Workflow Fakten-Agent (Shadow)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        3088,
+        6704
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction asArray(v) { return Array.isArray(v) ? v.filter(Boolean).map(safeStr) : []; }\n\nconst response = $json || {};\nconst original = $('Fakten-Shadow: Baue Eingabe').itemMatching($itemIndex).json || {};\nconst hasFakten = typeof response.sourceTopic === 'string';\n\nconst fakten = hasFakten ? response : {\n  vorgangKey: safeStr(original.vorgangKey),\n  vorgangsnummer: safeStr(original.vorgangsnummer),\n  sourceTopic: '', sourceConflict: '', requiredTerms: [], requiredObjects: [],\n  requiredAction: '', affectedGroups: [], concreteNumbers: [], responsibilities: [],\n  documentType: '', quotesVerbatim: [],\n  parseError: true,\n  callFailed: true\n};\n\n// Vergleich gegen das bereits VOR der Sub-Workflow-Grenze extrahierte sourceLock (siehe Fakten-Shadow: Baue Eingabe) - kein KI-Urteil.\nconst oldSourceLock = {\n  sourceTopic: safeStr(original.oldSourceTopic),\n  requiredTerms: asArray(original.oldRequiredTerms),\n  requiredObjects: asArray(original.oldRequiredObjects)\n};\n\nfunction normalizeText(v) {\n  return safeStr(v).toLowerCase()\n    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss');\n}\nfunction stemLight(w) {\n  return w.replace(/(ungen|ierung|heit|keit|schaft|tion|ieren|iere|iert|ung|lich|isch|ische|ischen|ischer|isches)$/, '').replace(/(en|er|em|es|e|n|s|t)$/, '');\n}\nfunction tokenOverlap(a, b) {\n  const tokensA = normalizeText(a).split(/[\\W_]+/).filter(w => w.length >= 4).map(stemLight);\n  const tokensB = normalizeText(b).split(/[\\W_]+/).filter(w => w.length >= 4).map(stemLight);\n  if (tokensA.some(w => tokensB.includes(w))) return true;\n  const rawA = normalizeText(a).replace(/[\\W_]+/g, ''), rawB = normalizeText(b).replace(/[\\W_]+/g, '');\n  for (const tok of tokensA) { if (tok.length >= 5 && rawB.includes(tok)) return true; }\n  for (const tok of tokensB) { if (tok.length >= 5 && rawA.includes(tok)) return true; }\n  return false;\n}\n\nconst oldRequiredTerms = asArray(oldSourceLock.requiredTerms);\nconst newRequiredTerms = asArray(fakten.requiredTerms);\nconst oldRequiredObjects = asArray(oldSourceLock.requiredObjects);\nconst newRequiredObjects = asArray(fakten.requiredObjects);\n\nconst termsMatched = newRequiredTerms.filter(t => oldRequiredTerms.some(o => tokenOverlap(t, o))).length;\nconst objectsMatched = newRequiredObjects.filter(t => oldRequiredObjects.some(o => tokenOverlap(t, o))).length;\nconst sourceTopicOverlap = (safeStr(oldSourceLock.sourceTopic) && safeStr(fakten.sourceTopic))\n  ? tokenOverlap(oldSourceLock.sourceTopic, fakten.sourceTopic)\n  : false;\n\nconst comparison = {\n  sourceTopicOverlap: sourceTopicOverlap,\n  requiredTermsMatched: termsMatched,\n  requiredTermsOldCount: oldRequiredTerms.length,\n  requiredTermsNewCount: newRequiredTerms.length,\n  requiredObjectsMatched: objectsMatched,\n  requiredObjectsOldCount: oldRequiredObjects.length,\n  requiredObjectsNewCount: newRequiredObjects.length\n};\n\nreturn {\n  json: {\n    vorgangKey: safeStr(original.vorgangKey),\n    sprengstoff: safeStr(original.sprengstoff) || 'GERING',\n    faktenAgentJson: JSON.stringify(fakten),\n    faktenComparisonJson: JSON.stringify(comparison)\n  }\n};"
+      },
+      "id": "457ecb3e-cff3-4ab2-87c0-13e6cbfb42e9",
+      "name": "Stelle Kontext nach Fakten-Agent wieder her",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3328,
+        6704
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "faktenAgentJson": "={{ $json.faktenAgentJson }}",
+            "faktenComparisonJson": "={{ $json.faktenComparisonJson }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "faktenAgentJson",
+              "displayName": "faktenAgentJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "faktenComparisonJson",
+              "displayName": "faktenComparisonJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "fafb78e6-2d2c-4976-8c4e-f0dae79d832a",
+      "name": "Speichere Fakten-Agent Shadow",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3568,
+        6528
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Cutover 2026-07-18: laeuft nach Fakten+Satire-Gate (nicht mehr parallel zu Fakten),\n// prueft echten Fakten-Agent-SourceLock statt P3s alter Extraktion.\n// P3d-Port 2026-07-19: analysisJson jetzt direkt aus der DB-Zeile (Parse Analyse JSON existiert\n// hier nicht) - Speichere Analyse hat den gleichen Wert bereits geschrieben, bevor P3d laeuft.\n// FIX: sourceConflict nicht mehr als Pflichtfeld gewertet (optional laut Fakten-Agent-Spec,\n// gleicher Bug wie im QA-Agent selbst, dort am 2026-07-19 behoben).\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return p && typeof p === 'object' && !Array.isArray(p) ? p : {}; }\n  catch (e) { return {}; }\n}\nfunction asArr(v) {\n  if (Array.isArray(v)) return v.filter(Boolean).map(safeStr);\n  if (typeof v === 'string' && v.trim()) { try { const p = JSON.parse(v); if (Array.isArray(p)) return p.filter(Boolean).map(safeStr); } catch (e) {} }\n  return [];\n}\n\nconst base = $('Fakten-Shadow: Baue Eingabe').item.json || {};\nconst row = $('Loop Vorgaenge').itemMatching($itemIndex).json || {};\nconst analysis = parseObj(row.analysisJson);\nconst fakten = parseObj($('Stelle Kontext nach Fakten-Agent wieder her').item.json.faktenAgentJson);\n\nconst sourceLock = {\n  sourceTopic: safeStr(fakten.sourceTopic),\n  sourceConflict: safeStr(fakten.sourceConflict),\n  requiredTerms: asArr(fakten.requiredTerms),\n  requiredObjects: asArr(fakten.requiredObjects),\n  requiredAction: safeStr(fakten.requiredAction)\n};\nconst sourceLockValid = !!(sourceLock.sourceTopic && sourceLock.requiredTerms.length >= 2 && fakten.parseError !== true);\nconst mergedAnalysisJson = JSON.stringify({ ...analysis, sourceLock, sourceLockValid });\n\nreturn {\n  json: {\n    qaStage: 'analyse',\n    vorgangKey: safeStr(base.vorgangKey),\n    vorgangsnummer: safeStr(base.vorgangsnummer),\n    title: safeStr(base.title),\n    analysisJson: mergedAnalysisJson,\n    summaryText: safeStr(base.summaryText),\n    combinedText: safeStr(base.combinedText),\n    skipAdversarialCheck: false\n  }\n};\n"
+      },
+      "id": "32f9cba4-ba4a-481f-a784-59b8f74b2122",
+      "name": "QA-Shadow: Baue QA-Eingabe",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3808,
+        6704
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "zJjry37DnhDVErfC",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_QA_Agent"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "2e746f6b-5629-4e28-a7e7-81149c1eb39d",
+      "name": "Execute Workflow QA-Agent (Shadow)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        4048,
+        6704
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst response = $json || {};\nconst original = $('QA-Shadow: Baue QA-Eingabe').item.json || {};\nconst hasVerdict = typeof response.passed === 'boolean';\n\nconst verdict = hasVerdict ? response : {\n  passed: false,\n  violations: [{ code: 'qa_agent_call_failed', field: 'qaVerdictJson', message: 'QA-Agent-Aufruf fehlgeschlagen oder ohne Verdikt zurueckgekehrt', severity: 'unknown' }],\n  hallucinationSuspects: [],\n  sourceLockBreaches: [],\n  qaStage: 'analyse',\n  vorgangKey: safeStr(original.vorgangKey),\n  vorgangsnummer: safeStr(original.vorgangsnummer),\n  checkedAt: new Date().toISOString(),\n  aiSkipped: true\n};\n\nreturn {\n  json: {\n    ...original,\n    qaVerdictJson: JSON.stringify(verdict),\n    qaPassed: verdict.passed === true,\n    qaCheckedAt: verdict.checkedAt || new Date().toISOString()\n  }\n};"
+      },
+      "id": "f7cb834f-b2b9-428e-84b3-43af5c6e7741",
+      "name": "Stelle Kontext nach QA-Agent wieder her",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4288,
+        6704
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "qaVerdictJson": "={{ $json.qaVerdictJson }}",
+            "qaPassed": "={{ $json.qaPassed }}",
+            "qaCheckedAt": "={{ $json.qaCheckedAt }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "qaVerdictJson",
+              "displayName": "qaVerdictJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "qaPassed",
+              "displayName": "qaPassed",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "qaCheckedAt",
+              "displayName": "qaCheckedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "abba9e70-ef60-4467-a028-6a514ef5afcc",
+      "name": "Speichere QA Verdict (Shadow)",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -48,
+        7264
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "qa-passed-check",
+              "leftValue": "={{ $json.qaPassed }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "5ef90d2f-d7a1-46bf-aa00-0510c3f794b1",
+      "name": "IF QA bestanden?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        192,
+        7440
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction asArr(v) { return Array.isArray(v) ? v : []; }\n\nconst j = $json;\nconst violations = asArr(j.violations).map(v => safeStr(v && v.message)).filter(Boolean);\nconst hallucinations = asArr(j.hallucinationSuspects).map(h => safeStr(h && h.claim)).filter(Boolean);\nconst reasons = [...violations, ...hallucinations];\n\nconst lines = [\n  '⚠️ QA-Block: Vorgang ' + safeStr(j.vorgangsnummer) + ' (' + safeStr(j.vorgangKey) + ')',\n  reasons.length ? 'Grund: ' + reasons.join(' | ') : 'Grund: unbekannt (QA-Agent-Aufruf evtl. fehlgeschlagen)',\n  'Bitte in der Data Table pruefen und contentStage/sharepicNeedStage nach Korrektur manuell zuruecksetzen.'\n];\n\nreturn {\n  json: {\n    ...j,\n    txnId: 'qa-block-' + Date.now() + '-' + Math.random().toString(36).slice(2),\n    summaryMessage: lines.join('\\n')\n  }\n};"
+      },
+      "id": "b4744c5a-efcb-4f95-aaa4-b667aaee1116",
+      "name": "Baue QA-Block Nachricht",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        432,
+        7616
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "contentStage": "error",
+            "contentErrorReason": "qa_blocked"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "contentStage",
+              "displayName": "contentStage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "contentErrorReason",
+              "displayName": "contentErrorReason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "014cdc09-9fed-4b52-a4bf-7fa6e8cf19e8",
+      "name": "Schreibe QA-Block Status",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        672,
+        7616
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://matrix.org/_matrix/client/v3/rooms/!COxTeLJyPszYlaHbIx:matrix.golietz.de/send/m.room.message/{{ $json.txnId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ msgtype: 'm.text', body: $json.summaryMessage }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "41bb5812-97d1-4497-8e8f-ca317176b892",
+      "name": "Sende QA-Block Matrix-Meldung",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        912,
+        7616
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "od1pN1F5wy2irSDs",
+          "name": "Header Auth account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; }\n  catch (e) { return {}; }\n}\n\nconst row = $json;\nconst verdict = parseObj(row.qaVerdictJson);\nconst outcome = row.qaPassed === true ? 'accepted' : 'rejected';\n\nconst violations = Array.isArray(verdict.violations) ? verdict.violations : [];\nconst hallucinations = Array.isArray(verdict.hallucinationSuspects) ? verdict.hallucinationSuspects : [];\n\nlet exampleSummary;\nif (outcome === 'accepted') {\n  exampleSummary = safeStr(row.title) + ' - QA bestanden, keine Verstoesse.';\n} else {\n  const firstIssues = [...violations.map(v => v.message), ...hallucinations.map(h => h.claim)].filter(Boolean).slice(0, 3);\n  exampleSummary = safeStr(row.title) + ' - ' + (firstIssues.length ? firstIssues.join(' | ') : 'QA abgelehnt ohne Detail');\n}\n\nreturn {\n  json: {\n    lernAction: 'record',\n    vorgangKey: safeStr(row.vorgangKey),\n    vorgangsnummer: safeStr(row.vorgangsnummer),\n    qaStage: safeStr(row.qaStage) || 'analyse',\n    source: 'qa_agent',\n    outcome: outcome,\n    exampleSummary: exampleSummary.slice(0, 500),\n    detailsJson: safeStr(row.qaVerdictJson) || '{}'\n  }\n};"
+      },
+      "id": "17096454-633f-4344-875a-54b79fb59cb1",
+      "name": "Lern-Shadow: Baue Record-Eingabe",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        7088
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "Br1O0rUucRnLdKvi",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Lern_Agent"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "0a3cba9f-95f6-4dd1-ad81-801a9cac8434",
+      "name": "Execute Workflow Lern-Agent (Record)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1392,
+        7088
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; }\n  catch (e) { return {}; }\n}\n\nconst fakten = parseObj($json.faktenAgentJson);\n\nreturn {\n  json: {\n    vorgangKey: $json.vorgangKey,\n    vorgangsnummer: safeStr(fakten.vorgangsnummer),\n    sourceTopic: fakten.sourceTopic,\n    sourceConflict: fakten.sourceConflict,\n    requiredTerms: fakten.requiredTerms,\n    requiredObjects: fakten.requiredObjects,\n    requiredAction: fakten.requiredAction,\n    affectedGroups: fakten.affectedGroups,\n    concreteNumbers: fakten.concreteNumbers,\n    responsibilities: fakten.responsibilities,\n    documentType: fakten.documentType,\n    quotesVerbatim: fakten.quotesVerbatim,\n    sprengstoff: $json.sprengstoff\n  }\n};"
+      },
+      "id": "c7de62ca-7315-445e-b317-ec9bb40353ec",
+      "name": "Satire-Shadow: Baue Eingabe",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1632,
+        7440
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "NO17q38BeKyS25LY",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Satire_Agent"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "847382e2-0c83-40c8-9d67-5b1452d6d7fc",
+      "name": "Execute Workflow Satire-Agent (Shadow)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1872,
+        7440
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction asArray(v) { return Array.isArray(v) ? v.filter(Boolean).map(safeStr) : []; }\n\nconst response = $json || {};\nconst original = $('Satire-Shadow: Baue Eingabe').itemMatching($itemIndex).json || {};\nconst hasVariants = Array.isArray(response.variants) && response.variants.length > 0;\n\nconst result = hasVariants ? response : {\n  vorgangKey: safeStr(original.vorgangKey),\n  vorgangsnummer: safeStr(original.vorgangsnummer),\n  variants: [],\n  parseError: true,\n  callFailed: true\n};\n\nreturn {\n  json: {\n    vorgangKey: safeStr(original.vorgangKey) || safeStr(response.vorgangKey),\n    vorgangsnummer: safeStr(original.vorgangsnummer),\n    satireAgentJson: JSON.stringify(result),\n    sourceTopic: safeStr(original.sourceTopic),\n    requiredObjects: asArray(original.requiredObjects),\n    requiredAction: safeStr(original.requiredAction),\n    affectedGroups: asArray(original.affectedGroups)\n  }\n};"
+      },
+      "id": "92581f0d-8402-4d3c-850c-6245323bb75d",
+      "name": "Stelle Kontext nach Satire-Agent wieder her",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2112,
+        7440
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "satireAgentJson": "={{ $json.satireAgentJson }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "satireAgentJson",
+              "displayName": "satireAgentJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "2ca3a10b-e867-4b56-b301-88f60cf1d49e",
+      "name": "Speichere Satire-Agent Shadow",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2352,
+        7264
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Cutover 2026-07-18: Satire-Agent liefert 3 echte Varianten (unterschiedliche Angriffswinkel,\n// nicht nur Formulierungen). Text (P4) bekommt SOFORT eine automatische Wahl (variants[1],\n// gleiche Default-Logik wie im Schattenbetrieb), damit P4 nicht auf die Matrix-Umfrage warten\n// muss. Das Bild (P5/Bild-Agent) bekommt seine Variante spaeter unabhaengig ueber die\n// Matrix-Umfrage unten - deshalb bleiben imageHeadline/imageSubline hier bewusst LEER, damit\n// P5s bestehendes Gate (IF Headline bereits gewaehlt?) korrekt weiter auf die Umfrage wartet.\n// Um zu vermeiden, dass Bild und Text unterschiedliche Satire-Winkel zeigen, markiert die\n// Umfrage-Nachricht sichtbar, welcher Kandidat zum bereits gewaehlten Text passt.\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; }\n  catch (e) { return {}; }\n}\nfunction asArr(v) {\n  if (Array.isArray(v)) return v.filter(Boolean).map(safeStr);\n  if (typeof v === 'string' && v.trim()) { try { const p = JSON.parse(v); if (Array.isArray(p)) return p.filter(Boolean).map(safeStr); } catch (e) {} }\n  return [];\n}\n\nconst satire = parseObj($json.satireAgentJson);\nconst variants = Array.isArray(satire.variants) ? satire.variants : [];\nconst faktenBase = $('Fakten-Shadow: Baue Eingabe').itemMatching($itemIndex).json || {};\nconst vorgangKey = safeStr($json.vorgangKey);\nconst vorgangsnummer = safeStr($json.vorgangsnummer);\nconst title = safeStr(faktenBase.title);\nconst vnCode = vorgangsnummer.replace(/[^0-9A-Za-z]+/g, '-').replace(/^-+|-+$/g, '');\n\nconst autoIdx = variants.length >= 2 ? 1 : (variants.length === 1 ? 0 : -1);\nconst textVariant = autoIdx >= 0 ? variants[autoIdx] : {};\n\nconst satireBrief = safeStr(textVariant.satireBrief);\nconst satireAngle = safeStr(textVariant.satireAngle);\nconst satirePunchlines = asArr(textVariant.satirePunchlines);\nconst satireTarget = safeStr(textVariant.satireTarget);\nconst satireIntensity = Number(textVariant.satireIntensity) || 0;\nconst satireDoNotClaim = asArr(textVariant.satireDoNotClaim);\nconst satireSafetyNote = safeStr(textVariant.satireSafetyNote);\n\nconst candidates = variants.slice(0, 4).map((v, i) => ({\n  code: (vnCode ? vnCode + '-' : '') + 'K' + (i + 1),\n  imageHeadline: safeStr(v.imageHeadline),\n  imageSubline: safeStr(v.imageSubline),\n  satireBrief: safeStr(v.satireBrief),\n  satireAngle: safeStr(v.satireAngle),\n  satirePunchlines: asArr(v.satirePunchlines),\n  satireTarget: safeStr(v.satireTarget),\n  satireIntensity: Number(v.satireIntensity) || 0,\n  satireDoNotClaim: asArr(v.satireDoNotClaim),\n  satireSafetyNote: safeStr(v.satireSafetyNote),\n  isTextMatch: i === autoIdx\n})).filter(c => c.imageHeadline && c.imageSubline);\n\nconst postedAt = new Date().toISOString();\nconst visualJson = JSON.stringify({ headlineCandidates: candidates, candidatesPostedAt: postedAt });\n\nlet matrixMessage = '';\nlet txnId = '';\nlet shouldPost = candidates.length >= 2;\n\nif (shouldPost) {\n  const lines = ['🎨 Bildvorschläge für ' + vorgangsnummer + ' – ' + title, ''];\n  for (const c of candidates) {\n    lines.push(c.code + ': ' + c.imageHeadline + ' – ' + c.imageSubline + (c.isTextMatch ? ' (passt zum veröffentlichten Text)' : ''));\n    if (c.satireBrief) lines.push('   Idee: ' + c.satireBrief);\n  }\n  lines.push('');\n  const exampleCode = candidates[0].code;\n  lines.push('Antworte mit dem gewünschten Code (z.B. \"' + exampleCode + '\"), um die Auswahl zu bestätigen, oder mit \"' + vnCode + '-X\" für komplett neue Vorschläge.');\n  matrixMessage = lines.join('\\n');\n  txnId = 'satire_hdl_' + Date.now() + '_' + vorgangKey.replace(/[^a-zA-Z0-9]/g, '').substring(0, 10);\n}\n\nreturn {\n  json: {\n    vorgangKey,\n    vorgangsnummer,\n    satireBrief,\n    satireAngle,\n    satirePunchlines: JSON.stringify(satirePunchlines),\n    satireTarget,\n    satireIntensity,\n    satireDoNotClaim: JSON.stringify(satireDoNotClaim),\n    satireSafetyNote,\n    visualJson,\n    headlineChoiceStage: shouldPost ? 'awaiting_headline_choice' : 'satire_agent_failed',\n    imageStage: 'not_started',\n    shouldPost,\n    matrixMessage,\n    txnId,\n    matrixSentOk: false,\n    matrixSendError: ''\n  }\n};"
+      },
+      "id": "00f972ba-3bea-4b78-b5cf-6c1271776844",
+      "name": "Satire-Ergebnis: Baue Text-Auswahl + Umfrage",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2592,
+        7440
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "should-post-check",
+              "leftValue": "={{ $json.shouldPost }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "09c4a4ab-6f74-4208-bca4-7a203715b7e3",
+      "name": "IF Umfrage noetig? (>=2 Varianten)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2832,
+        7440
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://matrix.org/_matrix/client/v3/rooms/!COxTeLJyPszYlaHbIx:matrix.golietz.de/send/m.room.message/{{ $json.txnId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ msgtype: 'm.text', body: $json.matrixMessage }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "5cadab49-f756-4c11-b570-69424a924c7f",
+      "name": "Sende Satire-Varianten Matrix-Umfrage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3072,
+        7264
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "od1pN1F5wy2irSDs",
+          "name": "Header Auth account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Stellt den Vorgangskontext nach dem Matrix-Versand wieder her (gleiches Muster wie\n// 'Stelle Kontext nach Matrix wieder her' in P5) - der HTTP-Node ersetzt das Item-JSON\n// durch die rohe Matrix-API-Antwort und wuerde sonst vorgangKey/satireBrief/visualJson usw. verlieren.\nconst response = $json || {};\nconst base = $('Satire-Ergebnis: Baue Text-Auswahl + Umfrage').itemMatching($itemIndex).json || {};\n\nconst hasError = !!(\n  response.error ||\n  response.errcode ||\n  (response.statusCode && Number(response.statusCode) >= 400)\n);\nconst eventId = response.event_id || response.eventId || '';\n\nreturn {\n  json: {\n    ...base,\n    matrixSentOk: !hasError && !!eventId,\n    matrixSendError: hasError ? (response.error || response.errcode || 'Matrix-Versand fehlgeschlagen') : ''\n  }\n};"
+      },
+      "id": "60509d63-c928-409d-b574-28e9fec54b39",
+      "name": "Stelle Kontext nach Satire-Umfrage wieder her",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3312,
+        7264
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "satireBrief": "={{ $json.satireBrief }}",
+            "satireAngle": "={{ $json.satireAngle }}",
+            "satirePunchlines": "={{ $json.satirePunchlines }}",
+            "satireTarget": "={{ $json.satireTarget }}",
+            "satireIntensity": "={{ $json.satireIntensity }}",
+            "satireDoNotClaim": "={{ $json.satireDoNotClaim }}",
+            "satireSafetyNote": "={{ $json.satireSafetyNote }}",
+            "visualJson": "={{ $json.visualJson }}",
+            "imageStage": "={{ $json.imageStage }}",
+            "matrixSentOk": "={{ $json.matrixSentOk }}",
+            "matrixSendError": "={{ $json.matrixSendError || '' }}",
+            "headlineChoiceStage": "={{ $json.headlineChoiceStage }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "satireBrief",
+              "displayName": "satireBrief",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "satireAngle",
+              "displayName": "satireAngle",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "satirePunchlines",
+              "displayName": "satirePunchlines",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "satireTarget",
+              "displayName": "satireTarget",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "satireIntensity",
+              "displayName": "satireIntensity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "satireDoNotClaim",
+              "displayName": "satireDoNotClaim",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "satireSafetyNote",
+              "displayName": "satireSafetyNote",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "visualJson",
+              "displayName": "visualJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "headlineChoiceStage",
+              "displayName": "headlineChoiceStage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imageStage",
+              "displayName": "imageStage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "matrixSentOk",
+              "displayName": "matrixSentOk",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "matrixSendError",
+              "displayName": "matrixSendError",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "f61c510f-989e-42fc-88a9-92cc3634ec38",
+      "name": "Schreibe Satire-Ergebnis",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3552,
+        7440
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Satire-Agent lieferte weniger als 2 verwertbare Varianten (Parse-Fehler oder AI-Call\n// fehlgeschlagen) - keine Matrix-Umfrage moeglich, kein Bild-Kandidat verfuegbar.\n// Ohne diese Meldung wuerde die Zeile mit visualStage='satire_agent_failed' unbemerkt\n// liegen bleiben (P5 wartet auf 'headline_selected', das kommt nie). Gleiches\n// Alarmierungs-Muster wie 'Baue QA-Block Nachricht'.\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst j = $json;\nreturn {\n  json: {\n    ...j,\n    txnId: 'satire-fail-' + Date.now() + '-' + Math.random().toString(36).slice(2),\n    summaryMessage: '⚠️ Satire-Agent fehlgeschlagen: Vorgang ' + safeStr(j.vorgangsnummer) + ' (' + safeStr(j.vorgangKey) + ')\\n' +\n      'Grund: weniger als 2 verwertbare Varianten (Parse-Fehler oder AI-Call fehlgeschlagen).\\n' +\n      'Kein Bildvorschlag moeglich. Bitte in der Data Table pruefen und ggf. contentStage/visualStage manuell zuruecksetzen, um einen erneuten Versuch auszuloesen.'\n  }\n};"
+      },
+      "id": "4870b096-fcf0-4516-9738-730d91c29bfd",
+      "name": "Baue Satire-Fehler Nachricht",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3552,
+        7616
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://matrix.org/_matrix/client/v3/rooms/!COxTeLJyPszYlaHbIx:matrix.golietz.de/send/m.room.message/{{ $json.txnId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ msgtype: 'm.text', body: $json.summaryMessage }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "0fac70c8-b1f8-403e-916c-303495df7cf9",
+      "name": "Sende Satire-Fehler Matrix-Meldung",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4032,
+        7616
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "od1pN1F5wy2irSDs",
+          "name": "Header Auth account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {},
+      "id": "b58a6316-eb06-407d-afff-8f1febe5991b",
+      "name": "Merge Kette-Abschluss",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        4272,
+        7440
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $('Loop Vorgaenge').itemMatching($itemIndex).json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "judgmentChainProcessedAt": "={{ $now.toISO() }}"
+          },
+          "schema": [
+            {
+              "id": "judgmentChainProcessedAt",
+              "displayName": "judgmentChainProcessedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7c568294-9bc5-4c4b-8e7a-1094f523e32e",
+      "name": "Schreibe Kette-Abschluss",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        4512,
+        7440
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Nächster Repair-Vorgang (V12_7)\nconst items = $input.all();\nconst rawItem = items && items[0];\nconst j = (rawItem && rawItem.json && typeof rawItem.json === 'object' && !Array.isArray(rawItem.json))\n  ? rawItem.json\n  : {};\nreturn [{ json: j }];\n"
+      },
+      "id": "6f448491-c75d-4ee6-957b-5daa5965d0f6",
+      "name": "Naechster Vorgang",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4752,
+        7440
+      ]
+    }
+  ],
   "pinData": {},
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate"
   }
 }

@@ -1,4 +1,193 @@
 {
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hole needs_content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole needs_content": {
+      "main": [
+        [
+          {
+            "node": "Filter Abschluss-Kandidaten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Abschluss-Kandidaten": {
+      "main": [
+        [
+          {
+            "node": "Sortiere Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sortiere Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Vorgaenge": {
+      "main": [
+        [],
+        [
+          {
+            "node": "IF Repair noetig?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Repair noetig?": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow Repair",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF Markdown noetig?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow Repair": {
+      "main": [
+        [
+          {
+            "node": "Stelle Kontext nach Repair wieder her",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stelle Kontext nach Repair wieder her": {
+      "main": [
+        [
+          {
+            "node": "IF Markdown noetig?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Markdown noetig?": {
+      "main": [
+        [
+          {
+            "node": "Build Summary Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Naechster Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Summary Markdown": {
+      "main": [
+        [
+          {
+            "node": "NC Erstelle Summary Ordner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Erstelle Summary Ordner": {
+      "main": [
+        [
+          {
+            "node": "NC Upload Summary MD",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "NC Upload Summary MD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Upload Summary MD": {
+      "main": [
+        [
+          {
+            "node": "Stelle Kontext nach NC-Upload wieder her",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schreibe Markdown-Status": {
+      "main": [
+        [
+          {
+            "node": "Naechster Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Naechster Vorgang": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stelle Kontext nach NC-Upload wieder her": {
+      "main": [
+        [
+          {
+            "node": "Schreibe Markdown-Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
   "name": "ALLRIS_P3c_Vorgangsabschluss",
   "nodes": [
     {
@@ -8,7 +197,7 @@
             {
               "field": "hours",
               "hoursInterval": 5,
-              "triggerAtMinute": 30
+              "triggerAtMinute": 28
             }
           ]
         }
@@ -337,196 +526,7 @@
       }
     }
   ],
-  "connections": {
-    "Schedule Trigger": {
-      "main": [
-        [
-          {
-            "node": "Hole needs_content",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Hole needs_content": {
-      "main": [
-        [
-          {
-            "node": "Filter Abschluss-Kandidaten",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Filter Abschluss-Kandidaten": {
-      "main": [
-        [
-          {
-            "node": "Sortiere Vorgaenge",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Sortiere Vorgaenge": {
-      "main": [
-        [
-          {
-            "node": "Loop Vorgaenge",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Loop Vorgaenge": {
-      "main": [
-        [],
-        [
-          {
-            "node": "IF Repair noetig?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF Repair noetig?": {
-      "main": [
-        [
-          {
-            "node": "Execute Workflow Repair",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "IF Markdown noetig?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Execute Workflow Repair": {
-      "main": [
-        [
-          {
-            "node": "Stelle Kontext nach Repair wieder her",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Stelle Kontext nach Repair wieder her": {
-      "main": [
-        [
-          {
-            "node": "IF Markdown noetig?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF Markdown noetig?": {
-      "main": [
-        [
-          {
-            "node": "Build Summary Markdown",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Naechster Vorgang",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Build Summary Markdown": {
-      "main": [
-        [
-          {
-            "node": "NC Erstelle Summary Ordner",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NC Erstelle Summary Ordner": {
-      "main": [
-        [
-          {
-            "node": "NC Upload Summary MD",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "NC Upload Summary MD",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NC Upload Summary MD": {
-      "main": [
-        [
-          {
-            "node": "Stelle Kontext nach NC-Upload wieder her",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Schreibe Markdown-Status": {
-      "main": [
-        [
-          {
-            "node": "Naechster Vorgang",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Naechster Vorgang": {
-      "main": [
-        [
-          {
-            "node": "Loop Vorgaenge",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Stelle Kontext nach NC-Upload wieder her": {
-      "main": [
-        [
-          {
-            "node": "Schreibe Markdown-Status",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
-  "pinData": {},
+  "pinData": null,
   "settings": {
     "executionOrder": "v1"
   }
