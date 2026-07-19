@@ -131,7 +131,7 @@
             "index": 0
           },
           {
-            "node": "Fakten-Shadow: Baue Eingabe",
+            "node": "Eignungs-Agent: Baue Eingabe",
             "type": "main",
             "index": 0
           }
@@ -825,7 +825,12 @@
             "index": 0
           },
           {
-            "node": "Satire-Shadow: Baue Eingabe",
+            "node": "QA-Shadow: Baue QA-Eingabe",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "IF Sharepic empfohlen? (Eignungs-Agent)",
             "type": "main",
             "index": 0
           }
@@ -859,11 +864,6 @@
         [
           {
             "node": "Speichere Satire-Agent Shadow",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "QA-Shadow: Baue QA-Eingabe",
             "type": "main",
             "index": 0
           },
@@ -1049,6 +1049,68 @@
             "index": 0
           }
         ]
+      ]
+    },
+    "Eignungs-Agent: Baue Eingabe": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow Eignungs-Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow Eignungs-Agent": {
+      "main": [
+        [
+          {
+            "node": "Stelle Kontext nach Eignungs-Agent wieder her",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stelle Kontext nach Eignungs-Agent wieder her": {
+      "main": [
+        [
+          {
+            "node": "Verarbeite Eignungs-Entscheidung",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verarbeite Eignungs-Entscheidung": {
+      "main": [
+        [
+          {
+            "node": "Schreibe Eignungs-Entscheidung",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fakten-Shadow: Baue Eingabe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schreibe Eignungs-Entscheidung": {},
+    "IF Sharepic empfohlen? (Eignungs-Agent)": {
+      "main": [
+        [
+          {
+            "node": "Satire-Shadow: Baue Eingabe",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
       ]
     }
   },
@@ -1474,7 +1536,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// n8n Code Node: \"Parse Analyse JSON\"\n// Dieser Code ersetzt den bisherigen Code im Node vollständig.\n//\n// Zweck:\n// 1. KI-Rohantwort aus \"AI Analyse JSON\" lesen\n// 2. JSON daraus extrahieren\n// 3. Ursprüngliche Vorgangsdaten aus \"Prepare Analyse Input\" zurückholen\n// 4. Bewertung normalisieren\n// 5. Visual Guard anwenden\n// 6. NUR vorhandene DataTable-Spalten befüllen\n//\n// Keine neuen Spalten nötig.\n// Detaildaten bleiben in:\n// - analysisJson.sourceLock\n// - analysisJson.visualAnchors\n// - analysisJson.visualWorkflow\n// - analysisJson.visualGuardErrors\n\nfunction extractJson(text) {\n  if (!text) return null;\n\n  const stripped = String(text)\n    .replace(/^```(?:json)?\\s*/i, '')\n    .replace(/\\s*```\\s*$/i, '')\n    .trim();\n\n  const start = stripped.indexOf('{');\n  const end = stripped.lastIndexOf('}');\n\n  if (start === -1 || end === -1 || end <= start) return null;\n\n  return stripped.slice(start, end + 1);\n}\n\nfunction getAiText(item) {\n  const j = item.json || {};\n\n  const o = j.output;\n  if (o && Array.isArray(o) && o[0]?.content?.[0]?.text) {\n    return o[0].content[0].text;\n  }\n\n  if (Array.isArray(j.content)) {\n    const text = j.content\n      .map(entry => entry?.text || entry?.content || '')\n      .filter(Boolean)\n      .join('\\n');\n\n    if (text) return text;\n  }\n\n  return (\n    j.text ||\n    j.output_text ||\n    j.message?.content ||\n    j.choices?.[0]?.message?.content ||\n    ''\n  );\n}\n\nfunction getNodeItems(nodeName) {\n  try {\n    const items = $(nodeName).all(0, $runIndex);\n    return Array.isArray(items) ? items : [];\n  } catch (e) {\n    try {\n      const items = $(nodeName).all();\n      return Array.isArray(items) ? items : [];\n    } catch (e2) {\n      return [];\n    }\n  }\n}\n\nfunction getPrepareAnalyseRow() {\n  const items = getNodeItems('Prepare Analyse Input');\n\n  if (items.length === 1 && items[0]?.json) {\n    return items[0].json;\n  }\n\n  try {\n    const j = $('Prepare Analyse Input').item.json;\n    if (j && Object.keys(j).length > 0) return j;\n  } catch (e) {}\n\n  if (items.length > 0 && items[0]?.json) {\n    return items[0].json;\n  }\n\n  return {};\n}\n\nfunction safeStr(v) {\n  return v === null || v === undefined ? '' : String(v).trim();\n}\n\nfunction normalizeText(v) {\n  return safeStr(v)\n    .toLowerCase()\n    .replace(/ä/g, 'ae')\n    .replace(/ö/g, 'oe')\n    .replace(/ü/g, 'ue')\n    .replace(/ß/g, 'ss')\n    .replace(/[„“”\"'`´]/g, '')\n    .replace(/[\\-–—]/g, ' ')\n    .replace(/[^a-z0-9]+/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n\n  if (typeof v === 'string') {\n    try {\n      const p = JSON.parse(v);\n      if (p && typeof p === 'object' && !Array.isArray(p)) return p;\n    } catch (e) {}\n  }\n\n  return {};\n}\n\nfunction asArray(v) {\n  if (Array.isArray(v)) {\n    return v\n      .filter(x => x !== null && x !== undefined && safeStr(x) !== '')\n      .map(x => safeStr(x));\n  }\n\n  if (v === null || v === undefined || v === '') return [];\n\n  if (typeof v === 'string') {\n    const t = v.trim();\n    if (!t) return [];\n\n    try {\n      const p = JSON.parse(t);\n      if (Array.isArray(p)) {\n        return p\n          .filter(x => x !== null && x !== undefined && safeStr(x) !== '')\n          .map(x => safeStr(x));\n      }\n    } catch (e) {}\n\n    return t\n      .split(/\\s*\\|\\s*/)\n      .map(x => safeStr(x))\n      .filter(Boolean);\n  }\n\n  return [safeStr(v)].filter(Boolean);\n}\n\nfunction uniqueArray(arr) {\n  const out = [];\n  const seen = new Set();\n\n  for (const item of asArray(arr)) {\n    const key = normalizeText(item);\n    if (!key || seen.has(key)) continue;\n    seen.add(key);\n    out.push(item);\n  }\n\n  return out;\n}\n\nfunction hasValue(v) {\n  if (Array.isArray(v)) return v.length > 0;\n  if (v && typeof v === 'object') return Object.keys(v).length > 0;\n  return safeStr(v).length > 0;\n}\n\nfunction pick(primary, fallback, fallback2 = '') {\n  if (hasValue(primary)) return primary;\n  if (hasValue(fallback)) return fallback;\n  return fallback2;\n}\n\nfunction toNumber(v, fallback = 0) {\n  const n = Number(String(v ?? '').replace(',', '.'));\n  return Number.isFinite(n) ? n : fallback;\n}\n\nfunction toBool(v) {\n  if (v === true || v === 1) return true;\n  if (v === false || v === 0 || v === null || v === undefined) return false;\n\n  const s = String(v).trim().toLowerCase();\n  return ['true', '1', 'yes', 'ja', 'y'].includes(s);\n}\n\nfunction enumValue(v, allowed, fallback) {\n  const s = safeStr(v).toUpperCase();\n  return allowed.includes(s) ? s : fallback;\n}\n\nfunction clamp(n, min, max) {\n  return Math.max(min, Math.min(max, n));\n}\n\nfunction atLeastSprengstoff(current, minimum) {\n  const order = { KEINER: 0, GERING: 1, MITTEL: 2, HOCH: 3 };\n  const reverse = ['KEINER', 'GERING', 'MITTEL', 'HOCH'];\n  return reverse[Math.max(order[current] ?? 0, order[minimum] ?? 0)];\n}\n\n// ============================================================\n// 1. KI-ANTWORT PARSEN\n// ============================================================\n\nconst item = $input.item;\nconst rowData = getPrepareAnalyseRow();\nconst rawText = getAiText(item);\nconst jsonStr = extractJson(rawText);\n\nlet analysis = null;\nlet parseError = false;\n\nif (jsonStr) {\n  try {\n    analysis = JSON.parse(jsonStr);\n  } catch (e) {\n    parseError = true;\n  }\n} else {\n  parseError = true;\n}\n\nif (parseError || !analysis) {\n  return [{\n    json: {\n      ...rowData,\n      analysisParseError: true,\n      rawAiText: rawText,\n      analysisJson: '{}',\n\n      relevantScore: 0,\n      sprengstoff: 'KEINER',\n      empfehlung: 'BEOBACHTEN',\n      kommunikationspotenzial: 0,\n      themes: '',\n      matrixKurzbetreff: '[FEHLER] ' + (rowData.title || ''),\n      ampel: '⚪',\n\n      kurzfassung: '',\n      kritischeNachfrage: '',\n      begruendungBewertung: '',\n      werProfitiert: '',\n      werZahltOderTraegtNachteile: '',\n      warumRelevant: '',\n      belegbareFakten: '',\n      unsicherheiten: '',\n      warnsignale: '',\n\n      instagramCarouselNoetig: false,\n\n      instagramSharepicNoetig: false,\n      visualDecisionReason: 'Analyse-JSON konnte nicht verarbeitet werden',\n      visualNeeded: false,\n\n      satireBrief: '',\n      satireAngle: '',\n      satirePunchlines: '[]',\n      visualMetaphor: '',\n      satireTarget: '',\n      satireIntensity: 0,\n      satireDoNotClaim: '[]',\n      satireSafetyNote: '',\n\n      satireWorkflowVersion: 'satire-parse-guard-existing-columns-v3',\n      contentStage: 'error',\n      contentErrorReason: 'analysis_error',\n      visualStage: 'not_applicable',\n      imageStage: safeStr(rowData.imageFinalPath) ? 'composed' : 'not_started'\n    }\n  }];\n}\n\nconst s = analysis;\n\n// ============================================================\n// 2. SOURCELOCK UND VISUAL ANCHORS LESEN\n// ============================================================\n\nconst nestedSourceLock = parseObj(s.sourceLock);\nconst nestedVisualAnchors = parseObj(s.visualAnchors);\n\nlet sourceLock = {\n  sourceTopic: safeStr(pick(nestedSourceLock.sourceTopic, s.sourceTopic)),\n  sourceConflict: safeStr(pick(nestedSourceLock.sourceConflict, s.sourceConflict)),\n  requiredTerms: uniqueArray(pick(nestedSourceLock.requiredTerms, s.requiredTerms, [])),\n  requiredObjects: uniqueArray(pick(nestedSourceLock.requiredObjects, s.requiredObjects, [])),\n  requiredAction: safeStr(pick(nestedSourceLock.requiredAction, s.requiredAction)),\n  affectedGroups: uniqueArray(pick(nestedSourceLock.affectedGroups, s.affectedGroups, [])),\n  forbiddenDrift: uniqueArray(pick(nestedSourceLock.forbiddenDrift, s.forbiddenDrift, []))\n};\n\nlet visualAnchors = {\n  satireThemaKonkret: safeStr(pick(nestedVisualAnchors.satireThemaKonkret, s.satireThemaKonkret)),\n  satireKonfliktKonkret: safeStr(pick(nestedVisualAnchors.satireKonfliktKonkret, s.satireKonfliktKonkret)),\n  visualPflichtobjekte: uniqueArray(pick(nestedVisualAnchors.visualPflichtobjekte, s.visualPflichtobjekte, [])),\n  visualPflichthandlung: safeStr(pick(nestedVisualAnchors.visualPflichthandlung, s.visualPflichthandlung)),\n  visualBetroffene: uniqueArray(pick(nestedVisualAnchors.visualBetroffene, s.visualBetroffene, [])),\n  visualOrt: safeStr(pick(nestedVisualAnchors.visualOrt, s.visualOrt || '')),\n  visualUeberzeichnung: safeStr(pick(nestedVisualAnchors.visualUeberzeichnung, s.visualUeberzeichnung)),\n  visualErkennungssatz: safeStr(pick(nestedVisualAnchors.visualErkennungssatz, s.visualErkennungssatz)),\n  visualVerboteneErsatzmotive: uniqueArray(pick(nestedVisualAnchors.visualVerboteneErsatzmotive, s.visualVerboteneErsatzmotive, []))\n};\n\n// ============================================================\n// 3. QUELLTEXT FÜR KONTEXT\n// ============================================================\n\nconst sourceText = [\n  rowData.title,\n  rowData.vorgangsnummer,\n  rowData.summaryText,\n  rowData.thema,\n  rowData.betroffene,\n  rowData.kostenHaushalt,\n  rowData.buergerwirkung,\n  rowData.offenePunkte,\n  rowData.unsicherheitenSummary,\n  rowData.combinedText,\n  rowData.analyseContext\n].map(safeStr).join('\\n');\n\nconst sourceNorm = normalizeText(sourceText);\n\n// ============================================================\n// 4. ENTSCHEIDUNGSFELDER NORMALISIEREN\n// ============================================================\n\nlet relevanz = toNumber(s.relevanz, 0);\nlet kommunikationspotenzial = toNumber(s.kommunikationspotenzial, 0);\n\nlet sprengstoff = enumValue(\n  s.sprengstoff,\n  ['KEINER', 'GERING', 'MITTEL', 'HOCH'],\n  'KEINER'\n);\n\nlet empfehlung = enumValue(\n  s.empfehlung,\n  ['IGNORIEREN', 'BEOBACHTEN', 'REAGIEREN'],\n  'BEOBACHTEN'\n);\n\nconst ungleichFlag =\n  s.ungleichbehandlungErkannt === true ||\n  s.willkuerErkannt === true ||\n  s.doppelstandardErkannt === true;\n\nif (ungleichFlag) {\n  relevanz = Math.max(relevanz, 8);\n  kommunikationspotenzial = Math.max(kommunikationspotenzial, 8);\n  sprengstoff = atLeastSprengstoff(sprengstoff, 'MITTEL');\n  empfehlung = 'REAGIEREN';\n}\n\nif (\n  (relevanz >= 7 && kommunikationspotenzial >= 7) ||\n  sprengstoff === 'HOCH' ||\n  (sprengstoff === 'MITTEL' && relevanz >= 7) ||\n  (s.oeffentlicheGelderBetroffen === true && relevanz >= 6)\n) {\n  empfehlung = 'REAGIEREN';\n} else if (relevanz >= 5 && empfehlung !== 'REAGIEREN') {\n  empfehlung = 'BEOBACHTEN';\n} else if (\n  relevanz <= 4 &&\n  sprengstoff === 'KEINER' &&\n  asArray(s.warnsignale).length === 0 &&\n  !ungleichFlag\n) {\n  empfehlung = 'IGNORIEREN';\n}\n\nconst ampelMap = {\n  KEINER: '⚪',\n  GERING: '🟡',\n  MITTEL: '🟠',\n  HOCH: '🔴'\n};\n\nconst ampel = ampelMap[sprengstoff] || '⚪';\n\nlet reaktionNoetig = toBool(s.reaktionNoetig);\n\nif (empfehlung === 'REAGIEREN') reaktionNoetig = true;\nif (empfehlung === 'IGNORIEREN') reaktionNoetig = false;\n\nconst maxIntensityBySprengstoff = {\n  KEINER: 2,\n  GERING: 2,\n  MITTEL: 4,\n  HOCH: 5\n};\n\nlet satireIntensity = toNumber(s.satireIntensity, 1);\nsatireIntensity = clamp(satireIntensity, 1, maxIntensityBySprengstoff[sprengstoff] || 2);\n\n// ============================================================\n// 5. SENSIBLE THEMEN ERKENNEN\n// ============================================================\n\nconst sensitiveContextText = normalizeText([\n  sourceText,\n  sourceLock.affectedGroups.join(' '),\n  s.kurzfassung,\n  s.warumRelevant,\n  s.begruendungBewertung,\n  s.moeglicheSatirischeReaktion,\n  s.satireBrief,\n  s.visualMetaphor\n].join(' '));\n\nconst sensitiveContext =\n  /\\b(minderjaehrig|minderjaehrige|kind|kinder|schueler|schuelerin|schuelerinnen|schuelern|behinderung|behindert|barrierefrei|barrierefreiheit|blind|blinde|blinder|sehbehindert|taub|krank|pflege|rollstuhl|gefluechtet|wohnungslos|obdachlos|armut|opfer|notlage)\\b/.test(sensitiveContextText);\n\nfunction isAllowedSensitiveSachobjekt(text) {\n  const n = normalizeText(text);\n\n  return /\\b(lichtsignalanlage|ampel|signalanlage|signalgeber|akustischer signalgeber|taster|tasterkasten|taktile bodenplatten|bodenplatten|leitstreifen|rampe|rollstuhlrampe|barrierefreier zugang|barrierefreier taster|bordsteinabsenkung|massnahmenplan|maßnahmenplan|fussgaengerfurt|fussgaengerueberweg|querung|verkehrsinsel)\\b/.test(n);\n}\n\nfunction containsSensitivePerson(text) {\n  const n = normalizeText(text);\n  if (!n) return false;\n  if (isAllowedSensitiveSachobjekt(n)) return false;\n\n  return /\\b(blinder|blinde|blindem|blinden|sehbehinderter|sehbehinderte|sehbehinderten|mensch mit behinderung|menschen mit behinderung|behinderter|behinderte|behinderten|schueler|schuelerin|schuelerinnen|schuelern|kind|kinder|minderjaehriger|minderjaehrige|patient|patientin|pflegebeduerftiger|pflegebeduerftige|rollstuhlfahrer|gefluechteter|gefluechtete|wohnungsloser|wohnungslose|obdachloser|obdachlose|kranker|kranke)\\b/.test(n);\n}\n\nfunction containsSensitiveScene(text) {\n  const n = normalizeText(text);\n  if (!n || !sensitiveContext) return false;\n\n  if (/\\b(ein|eine|der|die|gruppe|gruppe von|mehrere|kleine gruppe)\\s+(blinder|blinde|blindem|blinden|sehbehinderter|sehbehinderte|sehbehinderten|schueler|schuelerin|schuelerinnen|kind|kinder|rollstuhlfahrer|behinderte|behinderten)\\b/.test(n)) {\n    return true;\n  }\n\n  if (/\\b(blinder|blinde|blinden|sehbehinderte|sehbehinderten|schueler|schuelerin|schuelerinnen|kind|kinder|rollstuhlfahrer|behinderte|behinderten)\\b.{0,90}\\b(tippt|drueckt|zeigt|stehen|steht|warten|wartet|laufen|laeuft|irren|irrt|suchen|sucht|stolpern|stolpert|queren|ueberqueren)\\b/.test(n)) {\n    return true;\n  }\n\n  if (/\\b(blinde|blinder|blinden|sehbehinderte|schueler|kinder|rollstuhlfahrer|behinderte)\\b.{0,120}\\b(gefahr|gefaehrdet|verunsichert|hilflos|panik|panisch|unfall|verkehrschaos|risiko|dramatisch)\\b/.test(n)) {\n    return true;\n  }\n\n  return false;\n}\n\nfunction containsSensitiveMetaphor(text) {\n  const n = normalizeText(text);\n  if (!n || !sensitiveContext) return false;\n\n  if (/\\bblind(e|er|es|en)?\\s+(sparschwein|haushalt|verwaltung|planung|politik|ampel|stadt|verfahren|rathaus)\\b/.test(n)) return true;\n\n  if (/\\b(taub(e|er|es|en)?|lahm(e|er|es|en)?|krank(e|er|es|en)?|hilflos(e|er|es|en)?)\\s+(verwaltung|planung|haushalt|politik|ampel|stadt|verfahren|rathaus)\\b/.test(n)) return true;\n\n  if (/barrierefreiheit.{0,60}\\b(luxus|spass|spasz|spaß|teurer spass|teurer spasz|teurer spaß|uebertriebene forderung|übertriebene forderung)\\b/.test(n)) return true;\n\n  return false;\n}\n\n// ============================================================\n// 6. SYMBOL-DRIFT ERKENNEN\n// ============================================================\n\nconst forbiddenSymbolRe =\n  /\\b(sparschwein|geldsack|waage|aktenberg|rathaus|nebel|monster|hai|haie|marionette|marionetten|theaterbuehne|theaterbühne|theater|clown|clowns|maskottchen)\\b/;\n\nfunction sourceContainsExactTerm(term) {\n  const n = normalizeText(term);\n  if (!n || n.length < 3) return false;\n  return sourceNorm.includes(n);\n}\n\nfunction isForbiddenSymbolObject(text) {\n  const n = normalizeText(text);\n  if (!n) return false;\n  if (!forbiddenSymbolRe.test(n)) return false;\n\n  return !sourceContainsExactTerm(text);\n}\n\nconst genericObjectSet = new Set([\n  'stadt',\n  'verwaltung',\n  'politik',\n  'buerokratie',\n  'bürokratie',\n  'gerechtigkeit',\n  'haushalt',\n  'kosten',\n  'finanzierung',\n  'massnahme',\n  'maßnahme',\n  'verfahren',\n  'gremium',\n  'beschluss',\n  'antrag',\n  'vorlage',\n  'thema',\n  'konflikt',\n  'situation',\n  'problem',\n  'prioritaet',\n  'priorität',\n  'zustaendigkeit',\n  'zuständigkeit',\n  'planung',\n  'umsetzung'\n].map(normalizeText));\n\nfunction isConcreteObject(text) {\n  const n = normalizeText(text);\n  if (!n || n.length < 3) return false;\n  if (genericObjectSet.has(n)) return false;\n  if (isForbiddenSymbolObject(text)) return false;\n  if (sensitiveContext && containsSensitivePerson(text)) return false;\n  return true;\n}\n\nfunction concreteCount(arr) {\n  return asArray(arr).filter(isConcreteObject).length;\n}\n\n// ============================================================\n// 7. FORBIDDENDRIFT BEREINIGEN\n// ============================================================\n\nconst genuineParts = new Set([\n  'finanzierung',\n  'haushalt',\n  'kosten',\n  'haushaltsreste',\n  'haushaltsrest',\n  'massnahme',\n  'maßnahme',\n  'ort',\n  'gremium',\n  'sachobjekt',\n  'einrichtung',\n  'lichtsignalanlage',\n  'ampel',\n  'signalgeber',\n  'taster',\n  'tasterkasten',\n  'bodenplatten',\n  'leitstreifen',\n  'barrierefreiheit',\n  'barrierefrei',\n  'heinerich pieper strasse',\n  'heinrich pieper strasse',\n  'berliner allee'\n].map(normalizeText));\n\nconst requiredSet = new Set([\n  ...sourceLock.requiredTerms,\n  ...sourceLock.requiredObjects,\n  sourceLock.requiredAction,\n  visualAnchors.satireThemaKonkret,\n  visualAnchors.visualOrt\n].map(normalizeText).filter(Boolean));\n\nsourceLock.forbiddenDrift = uniqueArray(sourceLock.forbiddenDrift).filter(d => {\n  const n = normalizeText(d);\n  if (!n) return false;\n  if (genuineParts.has(n)) return false;\n  if (requiredSet.has(n)) return false;\n  return true;\n});\n\nconst fallbackForbiddenDrift = [\n  'allgemeine Rathaus-Satire ohne konkreten Vorgangsbezug',\n  'allgemeiner Aktenberg als Hauptmotiv',\n  'beliebiger Geldsack oder reine Finanzsymbolik als Hauptpointe',\n  'Pointe auf Kosten schutzbedürftiger Betroffener',\n  'Korruptionsunterstellung oder persönliche Schuldzuweisung'\n];\n\nfor (const d of fallbackForbiddenDrift) {\n  if (sourceLock.forbiddenDrift.length >= 3) break;\n  if (!sourceLock.forbiddenDrift.some(x => normalizeText(x) === normalizeText(d))) {\n    sourceLock.forbiddenDrift.push(d);\n  }\n}\n\n// ============================================================\n// 8. VALIDIERUNG SOURCELOCK + VISUAL ANCHORS\n// ============================================================\n\nconst sourceLockErrors = [];\n\nif (!sourceLock.sourceTopic) {\n  sourceLockErrors.push('sourceLock.sourceTopic fehlt');\n}\n\nif (!sourceLock.sourceConflict) {\n  sourceLockErrors.push('sourceLock.sourceConflict fehlt');\n}\n\nif (sourceLock.requiredTerms.length < 2) {\n  sourceLockErrors.push('sourceLock.requiredTerms enthält weniger als 2 Begriffe');\n}\n\nif (concreteCount(sourceLock.requiredObjects) < 2) {\n  sourceLockErrors.push('sourceLock.requiredObjects enthält weniger als 2 konkrete Objekte');\n}\n\nif (!sourceLock.requiredAction) {\n  sourceLockErrors.push('sourceLock.requiredAction fehlt');\n}\n\nconst visualAnchorsErrors = [];\n\nif (!visualAnchors.satireThemaKonkret) {\n  visualAnchorsErrors.push('satireThemaKonkret fehlt');\n}\n\nif (!visualAnchors.satireKonfliktKonkret) {\n  visualAnchorsErrors.push('satireKonfliktKonkret fehlt');\n}\n\nif (concreteCount(visualAnchors.visualPflichtobjekte) < 2) {\n  visualAnchorsErrors.push('visualPflichtobjekte enthält weniger als 2 konkrete zeichnbare Objekte');\n}\n\nif (!visualAnchors.visualPflichthandlung) {\n  visualAnchorsErrors.push('visualPflichthandlung fehlt');\n}\n\nif (!visualAnchors.visualErkennungssatz) {\n  visualAnchorsErrors.push('visualErkennungssatz fehlt');\n}\n\nif (visualAnchors.visualVerboteneErsatzmotive.length < 2) {\n  visualAnchorsErrors.push('visualVerboteneErsatzmotive enthält weniger als 2 Einträge');\n}\n\n// ============================================================\n// 9. VISUAL GUARD\n// ============================================================\n\nconst visualSceneText = [\n  visualAnchors.visualPflichthandlung,\n  visualAnchors.visualUeberzeichnung,\n  visualAnchors.visualErkennungssatz,\n  s.visualMetaphor,\n  s.satireBrief,\n  s.satireAngle,\n  asArray(s.satirePunchlines).join(' '),\n  s.moeglicheSatirischeReaktion\n].map(safeStr).join(' ');\n\nconst visualGuardErrors = [];\n\nconst sensitivePersonObjects = [\n  ...visualAnchors.visualPflichtobjekte,\n  ...sourceLock.requiredObjects\n].filter(x => sensitiveContext && containsSensitivePerson(x));\n\nif (sensitivePersonObjects.length > 0) {\n  visualGuardErrors.push(\n    'Sensible Betroffene als Pflichtobjekt/sourceLock.requiredObject erkannt: ' +\n    sensitivePersonObjects.join(', ')\n  );\n}\n\nif (sensitiveContext && containsSensitiveScene(visualSceneText)) {\n  visualGuardErrors.push(\n    'Sensible Betroffene erscheinen in Visual- oder Satirefeldern als Bildszene/Pointe'\n  );\n}\n\nif (sensitiveContext && containsSensitiveMetaphor(visualSceneText)) {\n  visualGuardErrors.push(\n    'Schutzlage wird als Metapher, Wortspiel oder Karikatureigenschaft verwendet'\n  );\n}\n\nlet visualBetroffeneCleared = false;\n\nif (sensitiveContext && visualAnchors.visualBetroffene.length > 0) {\n  visualAnchors.visualBetroffene = [];\n  visualBetroffeneCleared = true;\n}\n\nconst forbiddenSymbols = [\n  ...visualAnchors.visualPflichtobjekte,\n  ...sourceLock.requiredObjects\n].filter(isForbiddenSymbolObject);\n\nif (forbiddenSymbols.length > 0) {\n  visualGuardErrors.push(\n    'Symbol-Drift als Pflichtobjekt/sourceLock.requiredObject erkannt: ' +\n    forbiddenSymbols.join(', ')\n  );\n}\n\nconst sourceLockValid = sourceLockErrors.length === 0;\nconst visualAnchorsValid = visualAnchorsErrors.length === 0;\nconst guardValid = visualGuardErrors.length === 0;\n\n// ============================================================\n// 10. VISUAL-FREIGABE\n// ============================================================\n\nconst visualCandidate =\n  empfehlung === 'REAGIEREN' &&\n  kommunikationspotenzial >= 7;\n\nconst visualReady =\n  visualCandidate &&\n  sourceLockValid &&\n  visualAnchorsValid &&\n  guardValid;\n\nlet visualStage = 'not_applicable';\nlet instagramSharepicNoetig = false;\nlet instagramCarouselNoetig = false;\nlet visualNeeded = false;\nlet visualDecisionReason = '';\n\nif (!visualCandidate) {\n  visualStage = 'not_applicable';\n  visualDecisionReason = 'Kein Sharepic nötig: Empfehlung oder Kommunikationspotenzial reichen nicht.';\n} else if (visualReady) {\n  visualStage = 'topic_ok';\n  instagramSharepicNoetig = true;\n  instagramCarouselNoetig = true;\n  visualNeeded = true;\n  visualDecisionReason = 'Sharepic freigegeben: SourceLock und Visual-Anker vollständig, keine sensible Betroffenen-Pointe, keine Symbol-Drift.';\n} else {\n  visualStage = 'topic_error';\n  instagramSharepicNoetig = false;\n  instagramCarouselNoetig = false;\n  visualNeeded = false;\n\n  const allErrors = [\n    ...sourceLockErrors,\n    ...visualAnchorsErrors,\n    ...visualGuardErrors\n  ];\n\n  visualDecisionReason = 'Sharepic blockiert: ' + allErrors.join(' | ');\n}\n\n// ============================================================\n// 10b. DOWNSTREAM-GUARD (P1/P2/P3 bereits fortgeschritten?)\n// Verhindert, dass eine erneute Analyse (z.B. Re-Scrape/Vorgangskette)\n// bereits von P1/P2/P3 weiterverarbeitete Zeilen zuruecksetzt.\n// Gleiche Logik wie in ALLRIS_Repair_SourceLock_VisualGuard, erweitert um P3-Stufen.\n// ============================================================\n\nfunction hasP1Content(row) {\n  if (safeStr(row.websiteHeadline)) return true;\n  const cj = safeStr(row.contentJson);\n  if (!cj || cj === '{}' || cj === 'null') return false;\n  try {\n    const p = JSON.parse(cj);\n    return p && typeof p === 'object' && !Array.isArray(p) && Object.keys(p).length > 0;\n  } catch (e) {\n    return false;\n  }\n}\n\nconst EARLY_VISUAL_STAGES = new Set(['', 'not_applicable', 'topic_ok', 'topic_error', 'waiting_for_content']);\nconst downstreamProgressed = hasP1Content(rowData) || !EARLY_VISUAL_STAGES.has(safeStr(rowData.visualStage));\n\nif (downstreamProgressed) {\n  visualStage = safeStr(rowData.visualStage) || visualStage;\n  instagramSharepicNoetig = rowData.instagramSharepicNoetig === true || rowData.instagramCarouselNoetig === true || rowData.visualNeeded === true;\n  instagramCarouselNoetig = instagramSharepicNoetig;\n  visualNeeded = instagramSharepicNoetig;\n  visualDecisionReason = safeStr(rowData.visualDecisionReason) || 'Bereits von P1/P2/P3 weiterverarbeitet - contentStage/visualStage durch erneute Analyse nicht ueberschrieben.';\n}\n\n// ============================================================\n// 11. FREIGABEEMPFEHLUNG\n// ============================================================\n\nconst beweissicherheit = enumValue(\n  s.beweissicherheit,\n  ['NIEDRIG', 'MITTEL', 'HOCH'],\n  'NIEDRIG'\n);\n\nconst rechtlichesRisiko = enumValue(\n  s.rechtlichesRisiko,\n  ['NIEDRIG', 'MITTEL', 'HOCH'],\n  'NIEDRIG'\n);\n\nlet freigabeEmpfohlen = toBool(s.freigabeEmpfohlen);\n\nif (\n  empfehlung === 'REAGIEREN' &&\n  beweissicherheit !== 'NIEDRIG' &&\n  rechtlichesRisiko !== 'HOCH'\n) {\n  freigabeEmpfohlen = true;\n}\n\nif (\n  rechtlichesRisiko === 'HOCH' ||\n  beweissicherheit === 'NIEDRIG'\n) {\n  freigabeEmpfohlen = false;\n}\n\n// ============================================================\n// 12. CONTENT-STAGE\n// ============================================================\n\nlet contentStage = 'watching';\nlet contentErrorReason = '';\n\nif (empfehlung === 'IGNORIEREN') contentStage = 'ignored';\nif (empfehlung === 'BEOBACHTEN') contentStage = 'watching';\nif (empfehlung === 'REAGIEREN') contentStage = 'needs_content';\n\nif (downstreamProgressed) {\n  contentStage = safeStr(rowData.contentStage) || contentStage;\n  contentErrorReason = safeStr(rowData.contentErrorReason);\n}\n\n// ============================================================\n// 13. NORMALISIERTES ANALYSISJSON\n// ============================================================\n\nconst normalizedAnalysis = {\n  ...s,\n\n  relevanz,\n  kommunikationspotenzial,\n  sprengstoff,\n  empfehlung,\n  reaktionNoetig,\n  ampel,\n\n  beweissicherheit,\n  rechtlichesRisiko,\n  freigabeEmpfohlen,\n\n  satireIntensity,\n\n  instagramCarouselNoetig,\n  instagramSharepicNoetig,\n  visualNeeded,\n  visualStage,\n\n  sourceLock,\n  sourceLockValid,\n  sourceLockErrors,\n\n  visualAnchors,\n  visualAnchorsValid,\n  visualAnchorsErrors,\n\n  visualGuardErrors,\n  sensitiveContext,\n  visualBetroffeneCleared,\n\n  visualWorkflow: {\n    visualNeeded,\n    visualStage,\n    workflowStatus: visualReady\n      ? 'waiting_for_content'\n      : (visualCandidate ? 'blocked_by_visual_guard' : 'no_visual'),\n    visualDecisionReason,\n    sourceLockValid,\n    sourceLockErrors,\n    visualAnchorsValid,\n    visualAnchorsErrors,\n    visualGuardErrors,\n    sensitiveContext,\n    visualBetroffeneCleared\n  },\n\n  visualDecisionReason\n};\n\n// ============================================================\n// 13b. IMAGE-STAGE\n// ============================================================\n\nconst imageStage = downstreamProgressed\n  ? (safeStr(rowData.imageStage) || 'not_started')\n  : (safeStr(rowData.imageFinalPath) ? 'composed' : 'not_started');\n\n// ============================================================\n// 14. BESTEHENDE TOP-LEVEL-SPALTEN BEFÜLLEN\n// ============================================================\n\nconst kernthemen = asArray(s.kernthemen);\nconst nebenthemen = asArray(s.nebenthemen);\nconst themes = [...new Set([...kernthemen, ...nebenthemen])].join(', ');\n\nreturn [{\n  json: {\n    ...rowData,\n\n    analysisParseError: false,\n    rawAiText: '',\n\n    analysisJson: JSON.stringify(normalizedAnalysis),\n\n    relevantScore: relevanz,\n    sprengstoff,\n    empfehlung,\n    kommunikationspotenzial,\n    themes,\n\n    matrixKurzbetreff:\n      s.matrixKurzbetreff ||\n      ((ampel || '⚪') + ' ' + (rowData.title || '')).substring(0, 120),\n\n    ampel,\n\n    kurzfassung: Array.isArray(s.kurzfassung)\n      ? s.kurzfassung.join(' ')\n      : safeStr(s.kurzfassung),\n\n    kritischeNachfrage: Array.isArray(s.kritischeNachfrage)\n      ? s.kritischeNachfrage.join(' ')\n      : safeStr(s.kritischeNachfrage),\n\n    begruendungBewertung: Array.isArray(s.begruendungBewertung)\n      ? s.begruendungBewertung.join(' ')\n      : safeStr(s.begruendungBewertung),\n\n    werProfitiert: Array.isArray(s.werProfitiert)\n      ? s.werProfitiert.join(', ')\n      : safeStr(s.werProfitiert),\n\n    werZahltOderTraegtNachteile: Array.isArray(s.werZahltOderTraegtNachteile)\n      ? s.werZahltOderTraegtNachteile.join(', ')\n      : safeStr(s.werZahltOderTraegtNachteile),\n\n    warumRelevant: Array.isArray(s.warumRelevant)\n      ? s.warumRelevant.join(' ')\n      : safeStr(s.warumRelevant),\n\n    belegbareFakten: asArray(s.belegbareFakten).join(' | '),\n    unsicherheiten: asArray(s.unsicherheiten).join(' | '),\n    warnsignale: asArray(s.warnsignale).join(' | '),\n\n    instagramCarouselNoetig,\n\n    contentStage,\n    contentErrorReason,\n\n    satireBrief: safeStr(s.satireBrief),\n    satireAngle: safeStr(s.satireAngle),\n    satirePunchlines: JSON.stringify(asArray(s.satirePunchlines)),\n    visualMetaphor: safeStr(s.visualMetaphor),\n    satireTarget: safeStr(s.satireTarget),\n    satireIntensity,\n    satireDoNotClaim: JSON.stringify(asArray(s.satireDoNotClaim)),\n    satireSafetyNote: safeStr(s.satireSafetyNote),\n\n    visualStage,\n    imageStage,\n    instagramSharepicNoetig,\n    visualDecisionReason,\n    visualNeeded,\n\n    satireWorkflowVersion: 'satire-parse-guard-existing-columns-v3'\n  }\n}];"
+        "jsCode": "// n8n Code Node: \"Parse Analyse JSON\"\n// Dieser Code ersetzt den bisherigen Code im Node vollständig.\n//\n// Zweck:\n// 1. KI-Rohantwort aus \"AI Analyse JSON\" lesen\n// 2. JSON daraus extrahieren\n// 3. Ursprüngliche Vorgangsdaten aus \"Prepare Analyse Input\" zurückholen\n// 4. Bewertung normalisieren\n// 5. Visual Guard anwenden\n// 6. NUR vorhandene DataTable-Spalten befüllen\n//\n// Keine neuen Spalten nötig.\n// Detaildaten bleiben in:\n// - analysisJson.sourceLock\n// - analysisJson.visualAnchors\n// - analysisJson.visualGuardErrors\n\nfunction extractJson(text) {\n  if (!text) return null;\n\n  const stripped = String(text)\n    .replace(/^```(?:json)?\\s*/i, '')\n    .replace(/\\s*```\\s*$/i, '')\n    .trim();\n\n  const start = stripped.indexOf('{');\n  const end = stripped.lastIndexOf('}');\n\n  if (start === -1 || end === -1 || end <= start) return null;\n\n  return stripped.slice(start, end + 1);\n}\n\nfunction getAiText(item) {\n  const j = item.json || {};\n\n  const o = j.output;\n  if (o && Array.isArray(o) && o[0]?.content?.[0]?.text) {\n    return o[0].content[0].text;\n  }\n\n  if (Array.isArray(j.content)) {\n    const text = j.content\n      .map(entry => entry?.text || entry?.content || '')\n      .filter(Boolean)\n      .join('\\n');\n\n    if (text) return text;\n  }\n\n  return (\n    j.text ||\n    j.output_text ||\n    j.message?.content ||\n    j.choices?.[0]?.message?.content ||\n    ''\n  );\n}\n\nfunction getNodeItems(nodeName) {\n  try {\n    const items = $(nodeName).all(0, $runIndex);\n    return Array.isArray(items) ? items : [];\n  } catch (e) {\n    try {\n      const items = $(nodeName).all();\n      return Array.isArray(items) ? items : [];\n    } catch (e2) {\n      return [];\n    }\n  }\n}\n\nfunction getPrepareAnalyseRow() {\n  const items = getNodeItems('Prepare Analyse Input');\n\n  if (items.length === 1 && items[0]?.json) {\n    return items[0].json;\n  }\n\n  try {\n    const j = $('Prepare Analyse Input').item.json;\n    if (j && Object.keys(j).length > 0) return j;\n  } catch (e) {}\n\n  if (items.length > 0 && items[0]?.json) {\n    return items[0].json;\n  }\n\n  return {};\n}\n\nfunction safeStr(v) {\n  return v === null || v === undefined ? '' : String(v).trim();\n}\n\nfunction normalizeText(v) {\n  return safeStr(v)\n    .toLowerCase()\n    .replace(/ä/g, 'ae')\n    .replace(/ö/g, 'oe')\n    .replace(/ü/g, 'ue')\n    .replace(/ß/g, 'ss')\n    .replace(/[„“”\"'`´]/g, '')\n    .replace(/[\\-–—]/g, ' ')\n    .replace(/[^a-z0-9]+/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n\n  if (typeof v === 'string') {\n    try {\n      const p = JSON.parse(v);\n      if (p && typeof p === 'object' && !Array.isArray(p)) return p;\n    } catch (e) {}\n  }\n\n  return {};\n}\n\nfunction asArray(v) {\n  if (Array.isArray(v)) {\n    return v\n      .filter(x => x !== null && x !== undefined && safeStr(x) !== '')\n      .map(x => safeStr(x));\n  }\n\n  if (v === null || v === undefined || v === '') return [];\n\n  if (typeof v === 'string') {\n    const t = v.trim();\n    if (!t) return [];\n\n    try {\n      const p = JSON.parse(t);\n      if (Array.isArray(p)) {\n        return p\n          .filter(x => x !== null && x !== undefined && safeStr(x) !== '')\n          .map(x => safeStr(x));\n      }\n    } catch (e) {}\n\n    return t\n      .split(/\\s*\\|\\s*/)\n      .map(x => safeStr(x))\n      .filter(Boolean);\n  }\n\n  return [safeStr(v)].filter(Boolean);\n}\n\nfunction uniqueArray(arr) {\n  const out = [];\n  const seen = new Set();\n\n  for (const item of asArray(arr)) {\n    const key = normalizeText(item);\n    if (!key || seen.has(key)) continue;\n    seen.add(key);\n    out.push(item);\n  }\n\n  return out;\n}\n\nfunction hasValue(v) {\n  if (Array.isArray(v)) return v.length > 0;\n  if (v && typeof v === 'object') return Object.keys(v).length > 0;\n  return safeStr(v).length > 0;\n}\n\nfunction pick(primary, fallback, fallback2 = '') {\n  if (hasValue(primary)) return primary;\n  if (hasValue(fallback)) return fallback;\n  return fallback2;\n}\n\nfunction toNumber(v, fallback = 0) {\n  const n = Number(String(v ?? '').replace(',', '.'));\n  return Number.isFinite(n) ? n : fallback;\n}\n\nfunction toBool(v) {\n  if (v === true || v === 1) return true;\n  if (v === false || v === 0 || v === null || v === undefined) return false;\n\n  const s = String(v).trim().toLowerCase();\n  return ['true', '1', 'yes', 'ja', 'y'].includes(s);\n}\n\nfunction enumValue(v, allowed, fallback) {\n  const s = safeStr(v).toUpperCase();\n  return allowed.includes(s) ? s : fallback;\n}\n\nfunction clamp(n, min, max) {\n  return Math.max(min, Math.min(max, n));\n}\n\nfunction atLeastSprengstoff(current, minimum) {\n  const order = { KEINER: 0, GERING: 1, MITTEL: 2, HOCH: 3 };\n  const reverse = ['KEINER', 'GERING', 'MITTEL', 'HOCH'];\n  return reverse[Math.max(order[current] ?? 0, order[minimum] ?? 0)];\n}\n\n// ============================================================\n// 1. KI-ANTWORT PARSEN\n// ============================================================\n\nconst item = $input.item;\nconst rowData = getPrepareAnalyseRow();\nconst rawText = getAiText(item);\nconst jsonStr = extractJson(rawText);\n\nlet analysis = null;\nlet parseError = false;\n\nif (jsonStr) {\n  try {\n    analysis = JSON.parse(jsonStr);\n  } catch (e) {\n    parseError = true;\n  }\n} else {\n  parseError = true;\n}\n\nif (parseError || !analysis) {\n  return [{\n    json: {\n      ...rowData,\n      analysisParseError: true,\n      rawAiText: rawText,\n      analysisJson: '{}',\n\n      relevantScore: 0,\n      sprengstoff: 'KEINER',\n      empfehlung: 'BEOBACHTEN',\n      kommunikationspotenzial: 0,\n      themes: '',\n      matrixKurzbetreff: '[FEHLER] ' + (rowData.title || ''),\n      ampel: '⚪',\n\n      kurzfassung: '',\n      kritischeNachfrage: '',\n      begruendungBewertung: '',\n      werProfitiert: '',\n      werZahltOderTraegtNachteile: '',\n      warumRelevant: '',\n      belegbareFakten: '',\n      unsicherheiten: '',\n      warnsignale: '',\n\n      satireBrief: '',\n      satireAngle: '',\n      satirePunchlines: '[]',\n      visualMetaphor: '',\n      satireTarget: '',\n      satireIntensity: 0,\n      satireDoNotClaim: '[]',\n      satireSafetyNote: '',\n\n      satireWorkflowVersion: 'satire-parse-guard-existing-columns-v3',\n      contentStage: 'error',\n      contentErrorReason: 'analysis_error',\n      imageStage: safeStr(rowData.imageFinalPath) ? 'composed' : 'not_started'\n    }\n  }];\n}\n\nconst s = analysis;\n\n// ============================================================\n// 2. SOURCELOCK UND VISUAL ANCHORS LESEN\n// ============================================================\n\nconst nestedSourceLock = parseObj(s.sourceLock);\nconst nestedVisualAnchors = parseObj(s.visualAnchors);\n\nlet sourceLock = {\n  sourceTopic: safeStr(pick(nestedSourceLock.sourceTopic, s.sourceTopic)),\n  sourceConflict: safeStr(pick(nestedSourceLock.sourceConflict, s.sourceConflict)),\n  requiredTerms: uniqueArray(pick(nestedSourceLock.requiredTerms, s.requiredTerms, [])),\n  requiredObjects: uniqueArray(pick(nestedSourceLock.requiredObjects, s.requiredObjects, [])),\n  requiredAction: safeStr(pick(nestedSourceLock.requiredAction, s.requiredAction)),\n  affectedGroups: uniqueArray(pick(nestedSourceLock.affectedGroups, s.affectedGroups, [])),\n  forbiddenDrift: uniqueArray(pick(nestedSourceLock.forbiddenDrift, s.forbiddenDrift, []))\n};\n\nlet visualAnchors = {\n  satireThemaKonkret: safeStr(pick(nestedVisualAnchors.satireThemaKonkret, s.satireThemaKonkret)),\n  satireKonfliktKonkret: safeStr(pick(nestedVisualAnchors.satireKonfliktKonkret, s.satireKonfliktKonkret)),\n  visualPflichtobjekte: uniqueArray(pick(nestedVisualAnchors.visualPflichtobjekte, s.visualPflichtobjekte, [])),\n  visualPflichthandlung: safeStr(pick(nestedVisualAnchors.visualPflichthandlung, s.visualPflichthandlung)),\n  visualBetroffene: uniqueArray(pick(nestedVisualAnchors.visualBetroffene, s.visualBetroffene, [])),\n  visualOrt: safeStr(pick(nestedVisualAnchors.visualOrt, s.visualOrt || '')),\n  visualUeberzeichnung: safeStr(pick(nestedVisualAnchors.visualUeberzeichnung, s.visualUeberzeichnung)),\n  visualErkennungssatz: safeStr(pick(nestedVisualAnchors.visualErkennungssatz, s.visualErkennungssatz)),\n  visualVerboteneErsatzmotive: uniqueArray(pick(nestedVisualAnchors.visualVerboteneErsatzmotive, s.visualVerboteneErsatzmotive, []))\n};\n\n// ============================================================\n// 3. QUELLTEXT FÜR KONTEXT\n// ============================================================\n\nconst sourceText = [\n  rowData.title,\n  rowData.vorgangsnummer,\n  rowData.summaryText,\n  rowData.thema,\n  rowData.betroffene,\n  rowData.kostenHaushalt,\n  rowData.buergerwirkung,\n  rowData.offenePunkte,\n  rowData.unsicherheitenSummary,\n  rowData.combinedText,\n  rowData.analyseContext\n].map(safeStr).join('\\n');\n\nconst sourceNorm = normalizeText(sourceText);\n\n// ============================================================\n// 4. ENTSCHEIDUNGSFELDER NORMALISIEREN\n// ============================================================\n\nlet relevanz = toNumber(s.relevanz, 0);\nlet kommunikationspotenzial = toNumber(s.kommunikationspotenzial, 0);\n\nlet sprengstoff = enumValue(\n  s.sprengstoff,\n  ['KEINER', 'GERING', 'MITTEL', 'HOCH'],\n  'KEINER'\n);\n\nlet empfehlung = enumValue(\n  s.empfehlung,\n  ['IGNORIEREN', 'BEOBACHTEN', 'REAGIEREN'],\n  'BEOBACHTEN'\n);\n\nconst ungleichFlag =\n  s.ungleichbehandlungErkannt === true ||\n  s.willkuerErkannt === true ||\n  s.doppelstandardErkannt === true;\n\nif (ungleichFlag) {\n  relevanz = Math.max(relevanz, 8);\n  kommunikationspotenzial = Math.max(kommunikationspotenzial, 8);\n  sprengstoff = atLeastSprengstoff(sprengstoff, 'MITTEL');\n  empfehlung = 'REAGIEREN';\n}\n\nif (\n  (relevanz >= 7 && kommunikationspotenzial >= 7) ||\n  sprengstoff === 'HOCH' ||\n  (sprengstoff === 'MITTEL' && relevanz >= 7) ||\n  (s.oeffentlicheGelderBetroffen === true && relevanz >= 6)\n) {\n  empfehlung = 'REAGIEREN';\n} else if (relevanz >= 5 && empfehlung !== 'REAGIEREN') {\n  empfehlung = 'BEOBACHTEN';\n} else if (\n  relevanz <= 4 &&\n  sprengstoff === 'KEINER' &&\n  asArray(s.warnsignale).length === 0 &&\n  !ungleichFlag\n) {\n  empfehlung = 'IGNORIEREN';\n}\n\nconst ampelMap = {\n  KEINER: '⚪',\n  GERING: '🟡',\n  MITTEL: '🟠',\n  HOCH: '🔴'\n};\n\nconst ampel = ampelMap[sprengstoff] || '⚪';\n\nlet reaktionNoetig = toBool(s.reaktionNoetig);\n\nif (empfehlung === 'REAGIEREN') reaktionNoetig = true;\nif (empfehlung === 'IGNORIEREN') reaktionNoetig = false;\n\nconst maxIntensityBySprengstoff = {\n  KEINER: 2,\n  GERING: 2,\n  MITTEL: 4,\n  HOCH: 5\n};\n\nlet satireIntensity = toNumber(s.satireIntensity, 1);\nsatireIntensity = clamp(satireIntensity, 1, maxIntensityBySprengstoff[sprengstoff] || 2);\n\n// ============================================================\n// 5. SENSIBLE THEMEN ERKENNEN\n// ============================================================\n\nconst sensitiveContextText = normalizeText([\n  sourceText,\n  sourceLock.affectedGroups.join(' '),\n  s.kurzfassung,\n  s.warumRelevant,\n  s.begruendungBewertung,\n  s.moeglicheSatirischeReaktion,\n  s.satireBrief,\n  s.visualMetaphor\n].join(' '));\n\nconst sensitiveContext =\n  /\\b(minderjaehrig|minderjaehrige|kind|kinder|schueler|schuelerin|schuelerinnen|schuelern|behinderung|behindert|barrierefrei|barrierefreiheit|blind|blinde|blinder|sehbehindert|taub|krank|pflege|rollstuhl|gefluechtet|wohnungslos|obdachlos|armut|opfer|notlage)\\b/.test(sensitiveContextText);\n\nfunction isAllowedSensitiveSachobjekt(text) {\n  const n = normalizeText(text);\n\n  return /\\b(lichtsignalanlage|ampel|signalanlage|signalgeber|akustischer signalgeber|taster|tasterkasten|taktile bodenplatten|bodenplatten|leitstreifen|rampe|rollstuhlrampe|barrierefreier zugang|barrierefreier taster|bordsteinabsenkung|massnahmenplan|maßnahmenplan|fussgaengerfurt|fussgaengerueberweg|querung|verkehrsinsel)\\b/.test(n);\n}\n\nfunction containsSensitivePerson(text) {\n  const n = normalizeText(text);\n  if (!n) return false;\n  if (isAllowedSensitiveSachobjekt(n)) return false;\n\n  return /\\b(blinder|blinde|blindem|blinden|sehbehinderter|sehbehinderte|sehbehinderten|mensch mit behinderung|menschen mit behinderung|behinderter|behinderte|behinderten|schueler|schuelerin|schuelerinnen|schuelern|kind|kinder|minderjaehriger|minderjaehrige|patient|patientin|pflegebeduerftiger|pflegebeduerftige|rollstuhlfahrer|gefluechteter|gefluechtete|wohnungsloser|wohnungslose|obdachloser|obdachlose|kranker|kranke)\\b/.test(n);\n}\n\nfunction containsSensitiveScene(text) {\n  const n = normalizeText(text);\n  if (!n || !sensitiveContext) return false;\n\n  if (/\\b(ein|eine|der|die|gruppe|gruppe von|mehrere|kleine gruppe)\\s+(blinder|blinde|blindem|blinden|sehbehinderter|sehbehinderte|sehbehinderten|schueler|schuelerin|schuelerinnen|kind|kinder|rollstuhlfahrer|behinderte|behinderten)\\b/.test(n)) {\n    return true;\n  }\n\n  if (/\\b(blinder|blinde|blinden|sehbehinderte|sehbehinderten|schueler|schuelerin|schuelerinnen|kind|kinder|rollstuhlfahrer|behinderte|behinderten)\\b.{0,90}\\b(tippt|drueckt|zeigt|stehen|steht|warten|wartet|laufen|laeuft|irren|irrt|suchen|sucht|stolpern|stolpert|queren|ueberqueren)\\b/.test(n)) {\n    return true;\n  }\n\n  if (/\\b(blinde|blinder|blinden|sehbehinderte|schueler|kinder|rollstuhlfahrer|behinderte)\\b.{0,120}\\b(gefahr|gefaehrdet|verunsichert|hilflos|panik|panisch|unfall|verkehrschaos|risiko|dramatisch)\\b/.test(n)) {\n    return true;\n  }\n\n  return false;\n}\n\nfunction containsSensitiveMetaphor(text) {\n  const n = normalizeText(text);\n  if (!n || !sensitiveContext) return false;\n\n  if (/\\bblind(e|er|es|en)?\\s+(sparschwein|haushalt|verwaltung|planung|politik|ampel|stadt|verfahren|rathaus)\\b/.test(n)) return true;\n\n  if (/\\b(taub(e|er|es|en)?|lahm(e|er|es|en)?|krank(e|er|es|en)?|hilflos(e|er|es|en)?)\\s+(verwaltung|planung|haushalt|politik|ampel|stadt|verfahren|rathaus)\\b/.test(n)) return true;\n\n  if (/barrierefreiheit.{0,60}\\b(luxus|spass|spasz|spaß|teurer spass|teurer spasz|teurer spaß|uebertriebene forderung|übertriebene forderung)\\b/.test(n)) return true;\n\n  return false;\n}\n\n// ============================================================\n// 6. SYMBOL-DRIFT ERKENNEN\n// ============================================================\n\nconst forbiddenSymbolRe =\n  /\\b(sparschwein|geldsack|waage|aktenberg|rathaus|nebel|monster|hai|haie|marionette|marionetten|theaterbuehne|theaterbühne|theater|clown|clowns|maskottchen)\\b/;\n\nfunction sourceContainsExactTerm(term) {\n  const n = normalizeText(term);\n  if (!n || n.length < 3) return false;\n  return sourceNorm.includes(n);\n}\n\nfunction isForbiddenSymbolObject(text) {\n  const n = normalizeText(text);\n  if (!n) return false;\n  if (!forbiddenSymbolRe.test(n)) return false;\n\n  return !sourceContainsExactTerm(text);\n}\n\nconst genericObjectSet = new Set([\n  'stadt',\n  'verwaltung',\n  'politik',\n  'buerokratie',\n  'bürokratie',\n  'gerechtigkeit',\n  'haushalt',\n  'kosten',\n  'finanzierung',\n  'massnahme',\n  'maßnahme',\n  'verfahren',\n  'gremium',\n  'beschluss',\n  'antrag',\n  'vorlage',\n  'thema',\n  'konflikt',\n  'situation',\n  'problem',\n  'prioritaet',\n  'priorität',\n  'zustaendigkeit',\n  'zuständigkeit',\n  'planung',\n  'umsetzung'\n].map(normalizeText));\n\nfunction isConcreteObject(text) {\n  const n = normalizeText(text);\n  if (!n || n.length < 3) return false;\n  if (genericObjectSet.has(n)) return false;\n  if (isForbiddenSymbolObject(text)) return false;\n  if (sensitiveContext && containsSensitivePerson(text)) return false;\n  return true;\n}\n\nfunction concreteCount(arr) {\n  return asArray(arr).filter(isConcreteObject).length;\n}\n\n// ============================================================\n// 7. FORBIDDENDRIFT BEREINIGEN\n// ============================================================\n\nconst genuineParts = new Set([\n  'finanzierung',\n  'haushalt',\n  'kosten',\n  'haushaltsreste',\n  'haushaltsrest',\n  'massnahme',\n  'maßnahme',\n  'ort',\n  'gremium',\n  'sachobjekt',\n  'einrichtung',\n  'lichtsignalanlage',\n  'ampel',\n  'signalgeber',\n  'taster',\n  'tasterkasten',\n  'bodenplatten',\n  'leitstreifen',\n  'barrierefreiheit',\n  'barrierefrei',\n  'heinerich pieper strasse',\n  'heinrich pieper strasse',\n  'berliner allee'\n].map(normalizeText));\n\nconst requiredSet = new Set([\n  ...sourceLock.requiredTerms,\n  ...sourceLock.requiredObjects,\n  sourceLock.requiredAction,\n  visualAnchors.satireThemaKonkret,\n  visualAnchors.visualOrt\n].map(normalizeText).filter(Boolean));\n\nsourceLock.forbiddenDrift = uniqueArray(sourceLock.forbiddenDrift).filter(d => {\n  const n = normalizeText(d);\n  if (!n) return false;\n  if (genuineParts.has(n)) return false;\n  if (requiredSet.has(n)) return false;\n  return true;\n});\n\nconst fallbackForbiddenDrift = [\n  'allgemeine Rathaus-Satire ohne konkreten Vorgangsbezug',\n  'allgemeiner Aktenberg als Hauptmotiv',\n  'beliebiger Geldsack oder reine Finanzsymbolik als Hauptpointe',\n  'Pointe auf Kosten schutzbedürftiger Betroffener',\n  'Korruptionsunterstellung oder persönliche Schuldzuweisung'\n];\n\nfor (const d of fallbackForbiddenDrift) {\n  if (sourceLock.forbiddenDrift.length >= 3) break;\n  if (!sourceLock.forbiddenDrift.some(x => normalizeText(x) === normalizeText(d))) {\n    sourceLock.forbiddenDrift.push(d);\n  }\n}\n\n// ============================================================\n// 8. VALIDIERUNG SOURCELOCK + VISUAL ANCHORS\n// ============================================================\n\nconst sourceLockErrors = [];\n\nif (!sourceLock.sourceTopic) {\n  sourceLockErrors.push('sourceLock.sourceTopic fehlt');\n}\n\nif (!sourceLock.sourceConflict) {\n  sourceLockErrors.push('sourceLock.sourceConflict fehlt');\n}\n\nif (sourceLock.requiredTerms.length < 2) {\n  sourceLockErrors.push('sourceLock.requiredTerms enthält weniger als 2 Begriffe');\n}\n\nif (concreteCount(sourceLock.requiredObjects) < 2) {\n  sourceLockErrors.push('sourceLock.requiredObjects enthält weniger als 2 konkrete Objekte');\n}\n\nif (!sourceLock.requiredAction) {\n  sourceLockErrors.push('sourceLock.requiredAction fehlt');\n}\n\nconst visualAnchorsErrors = [];\n\nif (!visualAnchors.satireThemaKonkret) {\n  visualAnchorsErrors.push('satireThemaKonkret fehlt');\n}\n\nif (!visualAnchors.satireKonfliktKonkret) {\n  visualAnchorsErrors.push('satireKonfliktKonkret fehlt');\n}\n\nif (concreteCount(visualAnchors.visualPflichtobjekte) < 2) {\n  visualAnchorsErrors.push('visualPflichtobjekte enthält weniger als 2 konkrete zeichnbare Objekte');\n}\n\nif (!visualAnchors.visualPflichthandlung) {\n  visualAnchorsErrors.push('visualPflichthandlung fehlt');\n}\n\nif (!visualAnchors.visualErkennungssatz) {\n  visualAnchorsErrors.push('visualErkennungssatz fehlt');\n}\n\nif (visualAnchors.visualVerboteneErsatzmotive.length < 2) {\n  visualAnchorsErrors.push('visualVerboteneErsatzmotive enthält weniger als 2 Einträge');\n}\n\n// ============================================================\n// 9. VISUAL GUARD\n// ============================================================\n\nconst visualSceneText = [\n  visualAnchors.visualPflichthandlung,\n  visualAnchors.visualUeberzeichnung,\n  visualAnchors.visualErkennungssatz,\n  s.visualMetaphor,\n  s.satireBrief,\n  s.satireAngle,\n  asArray(s.satirePunchlines).join(' '),\n  s.moeglicheSatirischeReaktion\n].map(safeStr).join(' ');\n\nconst visualGuardErrors = [];\n\nconst sensitivePersonObjects = [\n  ...visualAnchors.visualPflichtobjekte,\n  ...sourceLock.requiredObjects\n].filter(x => sensitiveContext && containsSensitivePerson(x));\n\nif (sensitivePersonObjects.length > 0) {\n  visualGuardErrors.push(\n    'Sensible Betroffene als Pflichtobjekt/sourceLock.requiredObject erkannt: ' +\n    sensitivePersonObjects.join(', ')\n  );\n}\n\nif (sensitiveContext && containsSensitiveScene(visualSceneText)) {\n  visualGuardErrors.push(\n    'Sensible Betroffene erscheinen in Visual- oder Satirefeldern als Bildszene/Pointe'\n  );\n}\n\nif (sensitiveContext && containsSensitiveMetaphor(visualSceneText)) {\n  visualGuardErrors.push(\n    'Schutzlage wird als Metapher, Wortspiel oder Karikatureigenschaft verwendet'\n  );\n}\n\nlet visualBetroffeneCleared = false;\n\nif (sensitiveContext && visualAnchors.visualBetroffene.length > 0) {\n  visualAnchors.visualBetroffene = [];\n  visualBetroffeneCleared = true;\n}\n\nconst forbiddenSymbols = [\n  ...visualAnchors.visualPflichtobjekte,\n  ...sourceLock.requiredObjects\n].filter(isForbiddenSymbolObject);\n\nif (forbiddenSymbols.length > 0) {\n  visualGuardErrors.push(\n    'Symbol-Drift als Pflichtobjekt/sourceLock.requiredObject erkannt: ' +\n    forbiddenSymbols.join(', ')\n  );\n}\n\nconst sourceLockValid = sourceLockErrors.length === 0;\nconst visualAnchorsValid = visualAnchorsErrors.length === 0;\nconst guardValid = visualGuardErrors.length === 0;\n\n// ============================================================\n// 10. DOWNSTREAM-GUARD (Content bereits erzeugt?)\n// Die Sharepic-Bedarfs-Entscheidung selbst wird nicht mehr hier getroffen,\n// sondern vom Eignungs-Agenten (siehe \"Verarbeite Eignungs-Entscheidung\"\n// weiter unten in dieser Kette) - dieser Block bleibt nur fuer den\n// contentStage-Bestandsschutz gegen eine erneute Analyse erhalten.\n// ============================================================\n\nfunction hasP1Content(row) {\n  if (safeStr(row.websiteHeadline)) return true;\n  const cj = safeStr(row.contentJson);\n  if (!cj || cj === '{}' || cj === 'null') return false;\n  try {\n    const p = JSON.parse(cj);\n    return p && typeof p === 'object' && !Array.isArray(p) && Object.keys(p).length > 0;\n  } catch (e) {\n    return false;\n  }\n}\n\nconst downstreamProgressed = hasP1Content(rowData);\n\n// ============================================================\n// 11. FREIGABEEMPFEHLUNG\n// ============================================================\n\nconst beweissicherheit = enumValue(\n  s.beweissicherheit,\n  ['NIEDRIG', 'MITTEL', 'HOCH'],\n  'NIEDRIG'\n);\n\nconst rechtlichesRisiko = enumValue(\n  s.rechtlichesRisiko,\n  ['NIEDRIG', 'MITTEL', 'HOCH'],\n  'NIEDRIG'\n);\n\nlet freigabeEmpfohlen = toBool(s.freigabeEmpfohlen);\n\nif (\n  empfehlung === 'REAGIEREN' &&\n  beweissicherheit !== 'NIEDRIG' &&\n  rechtlichesRisiko !== 'HOCH'\n) {\n  freigabeEmpfohlen = true;\n}\n\nif (\n  rechtlichesRisiko === 'HOCH' ||\n  beweissicherheit === 'NIEDRIG'\n) {\n  freigabeEmpfohlen = false;\n}\n\n// ============================================================\n// 12. CONTENT-STAGE\n// ============================================================\n\nlet contentStage = 'watching';\nlet contentErrorReason = '';\n\nif (empfehlung === 'IGNORIEREN') contentStage = 'ignored';\nif (empfehlung === 'BEOBACHTEN') contentStage = 'watching';\nif (empfehlung === 'REAGIEREN') contentStage = 'needs_content';\n\nif (downstreamProgressed) {\n  contentStage = safeStr(rowData.contentStage) || contentStage;\n  contentErrorReason = safeStr(rowData.contentErrorReason);\n}\n\n// ============================================================\n// 13. NORMALISIERTES ANALYSISJSON\n// ============================================================\n\nconst normalizedAnalysis = {\n  ...s,\n\n  relevanz,\n  kommunikationspotenzial,\n  sprengstoff,\n  empfehlung,\n  reaktionNoetig,\n  ampel,\n\n  beweissicherheit,\n  rechtlichesRisiko,\n  freigabeEmpfohlen,\n\n  satireIntensity,\n\n  sourceLock,\n  sourceLockValid,\n  sourceLockErrors,\n\n  visualAnchors,\n  visualAnchorsValid,\n  visualAnchorsErrors,\n\n  visualGuardErrors,\n  sensitiveContext,\n  visualBetroffeneCleared\n};\n\n// ============================================================\n// 13b. IMAGE-STAGE\n// ============================================================\n\nconst imageStage = downstreamProgressed\n  ? (safeStr(rowData.imageStage) || 'not_started')\n  : (safeStr(rowData.imageFinalPath) ? 'composed' : 'not_started');\n\n// ============================================================\n// 14. BESTEHENDE TOP-LEVEL-SPALTEN BEFÜLLEN\n// ============================================================\n\nconst kernthemen = asArray(s.kernthemen);\nconst nebenthemen = asArray(s.nebenthemen);\nconst themes = [...new Set([...kernthemen, ...nebenthemen])].join(', ');\n\nreturn [{\n  json: {\n    ...rowData,\n\n    analysisParseError: false,\n    rawAiText: '',\n\n    analysisJson: JSON.stringify(normalizedAnalysis),\n\n    relevantScore: relevanz,\n    sprengstoff,\n    empfehlung,\n    kommunikationspotenzial,\n    themes,\n\n    matrixKurzbetreff:\n      s.matrixKurzbetreff ||\n      ((ampel || '⚪') + ' ' + (rowData.title || '')).substring(0, 120),\n\n    ampel,\n\n    kurzfassung: Array.isArray(s.kurzfassung)\n      ? s.kurzfassung.join(' ')\n      : safeStr(s.kurzfassung),\n\n    kritischeNachfrage: Array.isArray(s.kritischeNachfrage)\n      ? s.kritischeNachfrage.join(' ')\n      : safeStr(s.kritischeNachfrage),\n\n    begruendungBewertung: Array.isArray(s.begruendungBewertung)\n      ? s.begruendungBewertung.join(' ')\n      : safeStr(s.begruendungBewertung),\n\n    werProfitiert: Array.isArray(s.werProfitiert)\n      ? s.werProfitiert.join(', ')\n      : safeStr(s.werProfitiert),\n\n    werZahltOderTraegtNachteile: Array.isArray(s.werZahltOderTraegtNachteile)\n      ? s.werZahltOderTraegtNachteile.join(', ')\n      : safeStr(s.werZahltOderTraegtNachteile),\n\n    warumRelevant: Array.isArray(s.warumRelevant)\n      ? s.warumRelevant.join(' ')\n      : safeStr(s.warumRelevant),\n\n    belegbareFakten: asArray(s.belegbareFakten).join(' | '),\n    unsicherheiten: asArray(s.unsicherheiten).join(' | '),\n    warnsignale: asArray(s.warnsignale).join(' | '),\n\n    contentStage,\n    contentErrorReason,\n\n    satireBrief: safeStr(s.satireBrief),\n    satireAngle: safeStr(s.satireAngle),\n    satirePunchlines: JSON.stringify(asArray(s.satirePunchlines)),\n    visualMetaphor: safeStr(s.visualMetaphor),\n    satireTarget: safeStr(s.satireTarget),\n    satireIntensity,\n    satireDoNotClaim: JSON.stringify(asArray(s.satireDoNotClaim)),\n    satireSafetyNote: safeStr(s.satireSafetyNote),\n\n    imageStage,\n\n    satireWorkflowVersion: 'satire-parse-guard-existing-columns-v3'\n  }\n}];"
       },
       "id": "fca30d5e-1ced-4114-b2a1-b7e493153cd1",
       "name": "Parse Analyse JSON",
@@ -1523,7 +1585,6 @@
             "belegbareFakten": "={{ $json.belegbareFakten }}",
             "unsicherheiten": "={{ $json.unsicherheiten }}",
             "warnsignale": "={{ $json.warnsignale }}",
-            "instagramCarouselNoetig": "={{ $json.instagramCarouselNoetig }}",
             "lastAnalysisAt": "={{ $now.toISO() }}",
             "contentStage": "={{ $json.contentStage }}",
             "contentErrorReason": "={{ $json.contentErrorReason }}",
@@ -1536,12 +1597,8 @@
             "satireIntensity": "={{ $json.satireIntensity || 0 }}",
             "satireDoNotClaim": "={{ $json.satireDoNotClaim || '[]' }}",
             "satireSafetyNote": "={{ $json.satireSafetyNote || '' }}",
-            "visualStage": "={{ $json.visualStage || 'not_applicable' }}",
             "imageStage": "={{ $json.imageStage }}",
-            "instagramSharepicNoetig": "={{ $json.instagramSharepicNoetig || false }}",
-            "visualDecisionReason": "={{ $json.visualDecisionReason || '' }}",
-            "satireWorkflowVersion": "satire-chain-v2-content-gated",
-            "visualNeeded": "={{ $json.visualNeeded === true ? 'true' : 'false' }}"
+            "satireWorkflowVersion": "satire-chain-v2-content-gated"
           },
           "schema": [
             {
@@ -1715,16 +1772,6 @@
               "removed": false
             },
             {
-              "id": "instagramCarouselNoetig",
-              "displayName": "instagramCarouselNoetig",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
               "id": "lastAnalysisAt",
               "displayName": "lastAnalysisAt",
               "required": false,
@@ -1845,16 +1892,6 @@
               "removed": false
             },
             {
-              "id": "visualStage",
-              "displayName": "visualStage",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
               "id": "imageStage",
               "displayName": "imageStage",
               "required": false,
@@ -1865,38 +1902,8 @@
               "removed": false
             },
             {
-              "id": "instagramSharepicNoetig",
-              "displayName": "instagramSharepicNoetig",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "visualDecisionReason",
-              "displayName": "visualDecisionReason",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
               "id": "satireWorkflowVersion",
               "displayName": "satireWorkflowVersion",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "visualNeeded",
-              "displayName": "visualNeeded",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -3517,7 +3524,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction asArr(v) { return Array.isArray(v) ? v : []; }\n\nconst j = $json;\nconst violations = asArr(j.violations).map(v => safeStr(v && v.message)).filter(Boolean);\nconst hallucinations = asArr(j.hallucinationSuspects).map(h => safeStr(h && h.claim)).filter(Boolean);\nconst reasons = [...violations, ...hallucinations];\n\nconst lines = [\n  '⚠️ QA-Block: Vorgang ' + safeStr(j.vorgangsnummer) + ' (' + safeStr(j.vorgangKey) + ')',\n  reasons.length ? 'Grund: ' + reasons.join(' | ') : 'Grund: unbekannt (QA-Agent-Aufruf evtl. fehlgeschlagen)',\n  'Bitte in der Data Table pruefen und contentStage/visualStage nach Korrektur manuell zuruecksetzen.'\n];\n\nreturn {\n  json: {\n    ...j,\n    txnId: 'qa-block-' + Date.now() + '-' + Math.random().toString(36).slice(2),\n    summaryMessage: lines.join('\\n')\n  }\n};"
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction asArr(v) { return Array.isArray(v) ? v : []; }\n\nconst j = $json;\nconst violations = asArr(j.violations).map(v => safeStr(v && v.message)).filter(Boolean);\nconst hallucinations = asArr(j.hallucinationSuspects).map(h => safeStr(h && h.claim)).filter(Boolean);\nconst reasons = [...violations, ...hallucinations];\n\nconst lines = [\n  '⚠️ QA-Block: Vorgang ' + safeStr(j.vorgangsnummer) + ' (' + safeStr(j.vorgangKey) + ')',\n  reasons.length ? 'Grund: ' + reasons.join(' | ') : 'Grund: unbekannt (QA-Agent-Aufruf evtl. fehlgeschlagen)',\n  'Bitte in der Data Table pruefen und contentStage/sharepicNeedStage nach Korrektur manuell zuruecksetzen.'\n];\n\nreturn {\n  json: {\n    ...j,\n    txnId: 'qa-block-' + Date.now() + '-' + Math.random().toString(36).slice(2),\n    summaryMessage: lines.join('\\n')\n  }\n};"
       },
       "id": "bf763522-ea1a-4a69-ab72-b689087f3203",
       "name": "Baue QA-Block Nachricht",
@@ -3633,7 +3640,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "// Cutover 2026-07-18: Satire-Agent liefert 3 echte Varianten (unterschiedliche Angriffswinkel,\n// nicht nur Formulierungen). Text (P4) bekommt SOFORT eine automatische Wahl (variants[1],\n// gleiche Default-Logik wie im Schattenbetrieb), damit P4 nicht auf die Matrix-Umfrage warten\n// muss. Das Bild (P5/Bild-Agent) bekommt seine Variante spaeter unabhaengig ueber die\n// Matrix-Umfrage unten - deshalb bleiben imageHeadline/imageSubline hier bewusst LEER, damit\n// P5s bestehendes Gate (IF Headline bereits gewaehlt?) korrekt weiter auf die Umfrage wartet.\n// Um zu vermeiden, dass Bild und Text unterschiedliche Satire-Winkel zeigen, markiert die\n// Umfrage-Nachricht sichtbar, welcher Kandidat zum bereits gewaehlten Text passt.\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; }\n  catch (e) { return {}; }\n}\nfunction asArr(v) {\n  if (Array.isArray(v)) return v.filter(Boolean).map(safeStr);\n  if (typeof v === 'string' && v.trim()) { try { const p = JSON.parse(v); if (Array.isArray(p)) return p.filter(Boolean).map(safeStr); } catch (e) {} }\n  return [];\n}\n\nconst satire = parseObj($json.satireAgentJson);\nconst variants = Array.isArray(satire.variants) ? satire.variants : [];\nconst faktenBase = $('Fakten-Shadow: Baue Eingabe').itemMatching($itemIndex).json || {};\nconst vorgangKey = safeStr($json.vorgangKey);\nconst vorgangsnummer = safeStr($json.vorgangsnummer);\nconst title = safeStr(faktenBase.title);\nconst vnCode = vorgangsnummer.replace(/[^0-9A-Za-z]+/g, '-').replace(/^-+|-+$/g, '');\n\nconst autoIdx = variants.length >= 2 ? 1 : (variants.length === 1 ? 0 : -1);\nconst textVariant = autoIdx >= 0 ? variants[autoIdx] : {};\n\nconst satireBrief = safeStr(textVariant.satireBrief);\nconst satireAngle = safeStr(textVariant.satireAngle);\nconst satirePunchlines = asArr(textVariant.satirePunchlines);\nconst satireTarget = safeStr(textVariant.satireTarget);\nconst satireIntensity = Number(textVariant.satireIntensity) || 0;\nconst satireDoNotClaim = asArr(textVariant.satireDoNotClaim);\nconst satireSafetyNote = safeStr(textVariant.satireSafetyNote);\n\nconst candidates = variants.slice(0, 4).map((v, i) => ({\n  code: (vnCode ? vnCode + '-' : '') + 'K' + (i + 1),\n  imageHeadline: safeStr(v.imageHeadline),\n  imageSubline: safeStr(v.imageSubline),\n  satireBrief: safeStr(v.satireBrief),\n  satireAngle: safeStr(v.satireAngle),\n  satirePunchlines: asArr(v.satirePunchlines),\n  satireTarget: safeStr(v.satireTarget),\n  satireIntensity: Number(v.satireIntensity) || 0,\n  satireDoNotClaim: asArr(v.satireDoNotClaim),\n  satireSafetyNote: safeStr(v.satireSafetyNote),\n  isTextMatch: i === autoIdx\n})).filter(c => c.imageHeadline && c.imageSubline);\n\nconst postedAt = new Date().toISOString();\nconst visualJson = JSON.stringify({ headlineCandidates: candidates, candidatesPostedAt: postedAt });\n\nlet matrixMessage = '';\nlet txnId = '';\nlet shouldPost = candidates.length >= 2;\n\nif (shouldPost) {\n  const lines = ['🎨 Bildvorschläge für ' + vorgangsnummer + ' – ' + title, ''];\n  for (const c of candidates) {\n    lines.push(c.code + ': ' + c.imageHeadline + ' – ' + c.imageSubline + (c.isTextMatch ? ' (passt zum veröffentlichten Text)' : ''));\n    if (c.satireBrief) lines.push('   Idee: ' + c.satireBrief);\n  }\n  lines.push('');\n  const exampleCode = candidates[0].code;\n  lines.push('Antworte mit dem gewünschten Code (z.B. \"' + exampleCode + '\"), um die Auswahl zu bestätigen, oder mit \"' + vnCode + '-X\" für komplett neue Vorschläge.');\n  matrixMessage = lines.join('\\n');\n  txnId = 'satire_hdl_' + Date.now() + '_' + vorgangKey.replace(/[^a-zA-Z0-9]/g, '').substring(0, 10);\n}\n\nreturn {\n  json: {\n    vorgangKey,\n    vorgangsnummer,\n    satireBrief,\n    satireAngle,\n    satirePunchlines: JSON.stringify(satirePunchlines),\n    satireTarget,\n    satireIntensity,\n    satireDoNotClaim: JSON.stringify(satireDoNotClaim),\n    satireSafetyNote,\n    visualJson,\n    visualStage: shouldPost ? 'awaiting_headline_choice' : 'satire_agent_failed',\n    imageStage: 'not_started',\n    shouldPost,\n    matrixMessage,\n    txnId,\n    matrixSentOk: false,\n    matrixSendError: ''\n  }\n};"
+        "jsCode": "// Cutover 2026-07-18: Satire-Agent liefert 3 echte Varianten (unterschiedliche Angriffswinkel,\n// nicht nur Formulierungen). Text (P4) bekommt SOFORT eine automatische Wahl (variants[1],\n// gleiche Default-Logik wie im Schattenbetrieb), damit P4 nicht auf die Matrix-Umfrage warten\n// muss. Das Bild (P5/Bild-Agent) bekommt seine Variante spaeter unabhaengig ueber die\n// Matrix-Umfrage unten - deshalb bleiben imageHeadline/imageSubline hier bewusst LEER, damit\n// P5s bestehendes Gate (IF Headline bereits gewaehlt?) korrekt weiter auf die Umfrage wartet.\n// Um zu vermeiden, dass Bild und Text unterschiedliche Satire-Winkel zeigen, markiert die\n// Umfrage-Nachricht sichtbar, welcher Kandidat zum bereits gewaehlten Text passt.\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; }\n  catch (e) { return {}; }\n}\nfunction asArr(v) {\n  if (Array.isArray(v)) return v.filter(Boolean).map(safeStr);\n  if (typeof v === 'string' && v.trim()) { try { const p = JSON.parse(v); if (Array.isArray(p)) return p.filter(Boolean).map(safeStr); } catch (e) {} }\n  return [];\n}\n\nconst satire = parseObj($json.satireAgentJson);\nconst variants = Array.isArray(satire.variants) ? satire.variants : [];\nconst faktenBase = $('Fakten-Shadow: Baue Eingabe').itemMatching($itemIndex).json || {};\nconst vorgangKey = safeStr($json.vorgangKey);\nconst vorgangsnummer = safeStr($json.vorgangsnummer);\nconst title = safeStr(faktenBase.title);\nconst vnCode = vorgangsnummer.replace(/[^0-9A-Za-z]+/g, '-').replace(/^-+|-+$/g, '');\n\nconst autoIdx = variants.length >= 2 ? 1 : (variants.length === 1 ? 0 : -1);\nconst textVariant = autoIdx >= 0 ? variants[autoIdx] : {};\n\nconst satireBrief = safeStr(textVariant.satireBrief);\nconst satireAngle = safeStr(textVariant.satireAngle);\nconst satirePunchlines = asArr(textVariant.satirePunchlines);\nconst satireTarget = safeStr(textVariant.satireTarget);\nconst satireIntensity = Number(textVariant.satireIntensity) || 0;\nconst satireDoNotClaim = asArr(textVariant.satireDoNotClaim);\nconst satireSafetyNote = safeStr(textVariant.satireSafetyNote);\n\nconst candidates = variants.slice(0, 4).map((v, i) => ({\n  code: (vnCode ? vnCode + '-' : '') + 'K' + (i + 1),\n  imageHeadline: safeStr(v.imageHeadline),\n  imageSubline: safeStr(v.imageSubline),\n  satireBrief: safeStr(v.satireBrief),\n  satireAngle: safeStr(v.satireAngle),\n  satirePunchlines: asArr(v.satirePunchlines),\n  satireTarget: safeStr(v.satireTarget),\n  satireIntensity: Number(v.satireIntensity) || 0,\n  satireDoNotClaim: asArr(v.satireDoNotClaim),\n  satireSafetyNote: safeStr(v.satireSafetyNote),\n  isTextMatch: i === autoIdx\n})).filter(c => c.imageHeadline && c.imageSubline);\n\nconst postedAt = new Date().toISOString();\nconst visualJson = JSON.stringify({ headlineCandidates: candidates, candidatesPostedAt: postedAt });\n\nlet matrixMessage = '';\nlet txnId = '';\nlet shouldPost = candidates.length >= 2;\n\nif (shouldPost) {\n  const lines = ['🎨 Bildvorschläge für ' + vorgangsnummer + ' – ' + title, ''];\n  for (const c of candidates) {\n    lines.push(c.code + ': ' + c.imageHeadline + ' – ' + c.imageSubline + (c.isTextMatch ? ' (passt zum veröffentlichten Text)' : ''));\n    if (c.satireBrief) lines.push('   Idee: ' + c.satireBrief);\n  }\n  lines.push('');\n  const exampleCode = candidates[0].code;\n  lines.push('Antworte mit dem gewünschten Code (z.B. \"' + exampleCode + '\"), um die Auswahl zu bestätigen, oder mit \"' + vnCode + '-X\" für komplett neue Vorschläge.');\n  matrixMessage = lines.join('\\n');\n  txnId = 'satire_hdl_' + Date.now() + '_' + vorgangKey.replace(/[^a-zA-Z0-9]/g, '').substring(0, 10);\n}\n\nreturn {\n  json: {\n    vorgangKey,\n    vorgangsnummer,\n    satireBrief,\n    satireAngle,\n    satirePunchlines: JSON.stringify(satirePunchlines),\n    satireTarget,\n    satireIntensity,\n    satireDoNotClaim: JSON.stringify(satireDoNotClaim),\n    satireSafetyNote,\n    visualJson,\n    headlineChoiceStage: shouldPost ? 'awaiting_headline_choice' : 'satire_agent_failed',\n    imageStage: 'not_started',\n    shouldPost,\n    matrixMessage,\n    txnId,\n    matrixSentOk: false,\n    matrixSendError: ''\n  }\n};"
       },
       "id": "7be127cf-f097-4669-8239-5b9421fd1e24",
       "name": "Satire-Ergebnis: Baue Text-Auswahl + Umfrage",
@@ -3759,10 +3766,10 @@
             "satireDoNotClaim": "={{ $json.satireDoNotClaim }}",
             "satireSafetyNote": "={{ $json.satireSafetyNote }}",
             "visualJson": "={{ $json.visualJson }}",
-            "visualStage": "={{ $json.visualStage }}",
             "imageStage": "={{ $json.imageStage }}",
             "matrixSentOk": "={{ $json.matrixSentOk }}",
-            "matrixSendError": "={{ $json.matrixSendError || '' }}"
+            "matrixSendError": "={{ $json.matrixSendError || '' }}",
+            "headlineChoiceStage": "={{ $json.headlineChoiceStage }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -3847,8 +3854,8 @@
               "removed": false
             },
             {
-              "id": "visualStage",
-              "displayName": "visualStage",
+              "id": "headlineChoiceStage",
+              "displayName": "headlineChoiceStage",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -4151,6 +4158,211 @@
         }
       },
       "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; }\n  catch (e) { return {}; }\n}\n\nconst row = $json;\nconst analysis = parseObj(row.analysisJson);\nconst sl = parseObj(analysis.sourceLock);\nconst va = parseObj(analysis.visualAnchors);\nconst guardErrors = Array.isArray(analysis.visualGuardErrors) ? analysis.visualGuardErrors : [];\n\nreturn {\n  json: {\n    vorgangKey: safeStr(row.vorgangKey),\n    vorgangsnummer: safeStr(row.vorgangsnummer),\n    title: safeStr(row.title),\n\n    relevanz: analysis.relevanz,\n    sprengstoff: row.sprengstoff,\n    empfehlung: row.empfehlung,\n    kommunikationspotenzial: row.kommunikationspotenzial,\n    oeffentlicheGelderBetroffen: analysis.oeffentlicheGelderBetroffen === true,\n\n    sourceLock: sl,\n    visualAnchors: va,\n\n    kurzfassung: row.kurzfassung,\n    warumRelevant: row.warumRelevant,\n\n    sourceLockValid: analysis.sourceLockValid === true,\n    visualAnchorsValid: analysis.visualAnchorsValid === true,\n    guardValid: guardErrors.length === 0,\n    visualGuardErrors: guardErrors\n  }\n};"
+      },
+      "id": "ea1a0001-0000-4000-8000-000000000001",
+      "name": "Eignungs-Agent: Baue Eingabe",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        25168,
+        7000
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "ZZeD2dqzJUdCCksQ",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Eignungs_Agent"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "ea1a0001-0000-4000-8000-000000000002",
+      "name": "Execute Workflow Eignungs-Agent",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        25392,
+        7000
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst response = $json || {};\nconst original = $('Eignungs-Agent: Baue Eingabe').itemMatching($itemIndex).json || {};\nconst hasResult = typeof response.satireWorthIt === 'boolean';\n\nconst eignung = hasResult ? response : {\n  vorgangKey: safeStr(original.vorgangKey),\n  vorgangsnummer: safeStr(original.vorgangsnummer),\n  satireWorthIt: false,\n  satireWorthItReason: 'Eignungs-Agent Aufruf fehlgeschlagen - sicherheitshalber kein Sharepic',\n  reservations: [],\n  reservationsBlockImage: false,\n  parseError: true,\n  callFailed: true\n};\n\nreturn { json: { ...original, eignungsAgentJson: JSON.stringify(eignung), _eignung: eignung } };"
+      },
+      "id": "ea1a0001-0000-4000-8000-000000000003",
+      "name": "Stelle Kontext nach Eignungs-Agent wieder her",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        25616,
+        7000
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction asArr(v) { return Array.isArray(v) ? v.filter(Boolean).map(safeStr) : []; }\n\nconst j = $json;\nconst original = $('Eignungs-Agent: Baue Eingabe').itemMatching($itemIndex).json || {};\nconst priorRow = $('Parse Analyse JSON').itemMatching($itemIndex).json || {};\n\nconst eignung = j._eignung || {};\nconst satireWorthIt = eignung.satireWorthIt === true;\nconst sourceLockValid = original.sourceLockValid === true;\nconst visualAnchorsValid = original.visualAnchorsValid === true;\nconst guardValid = original.guardValid === true;\nconst reservationsBlockImage = eignung.reservationsBlockImage === true;\n\nconst sharepicRecommended = satireWorthIt && sourceLockValid && visualAnchorsValid && guardValid && !reservationsBlockImage;\n\nlet sharepicNeedStage;\nlet sharepicNeedReason;\n\nif (!satireWorthIt) {\n  sharepicNeedStage = 'not_applicable';\n  sharepicNeedReason = 'Eignungs-Agent: ' + (safeStr(eignung.satireWorthItReason) || 'Kein Sharepic-Bedarf');\n} else if (sharepicRecommended) {\n  sharepicNeedStage = 'topic_ok';\n  sharepicNeedReason = 'Sharepic freigegeben: Eignungs-Agent + SourceLock/Visual-Anker/Guard bestanden.';\n} else {\n  sharepicNeedStage = 'topic_error';\n  const reasons = [];\n  if (!sourceLockValid) reasons.push('sourceLock unvollstaendig');\n  if (!visualAnchorsValid) reasons.push('visualAnchors unvollstaendig');\n  if (!guardValid) reasons.push('Guard blockiert: ' + asArr(original.visualGuardErrors).join(' | '));\n  if (reservationsBlockImage) reasons.push('Eignungs-Agent Bedenken: ' + asArr(eignung.reservations).join(' | '));\n  sharepicNeedReason = 'Sharepic blockiert: ' + reasons.join(' | ');\n}\n\n// Guard: eine bereits fortgeschrittene Zeile (Headline-Poll oder Bildprompt-Bau schon\n// gestartet) darf durch eine erneute Analyse nicht zurueckgesetzt werden.\nconst downstreamProgressed = !!(safeStr(priorRow.headlineChoiceStage) || safeStr(priorRow.visualPromptStage));\n\nconst finalSharepicNeedStage = downstreamProgressed ? (safeStr(priorRow.sharepicNeedStage) || sharepicNeedStage) : sharepicNeedStage;\nconst finalReason = downstreamProgressed ? (safeStr(priorRow.visualDecisionReason) || sharepicNeedReason) : sharepicNeedReason;\nconst finalNoetig = finalSharepicNeedStage === 'topic_ok';\n\nreturn {\n  json: {\n    ...priorRow,\n    eignungsAgentJson: j.eignungsAgentJson,\n    sharepicNeedStage: finalSharepicNeedStage,\n    visualDecisionReason: finalReason,\n    instagramSharepicNoetig: finalNoetig,\n    instagramCarouselNoetig: finalNoetig,\n    visualNeeded: finalNoetig\n  }\n};"
+      },
+      "id": "ea1a0001-0000-4000-8000-000000000004",
+      "name": "Verarbeite Eignungs-Entscheidung",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        25840,
+        7000
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "eignungsAgentJson": "={{ $json.eignungsAgentJson }}",
+            "sharepicNeedStage": "={{ $json.sharepicNeedStage }}",
+            "visualDecisionReason": "={{ $json.visualDecisionReason }}",
+            "instagramSharepicNoetig": "={{ $json.instagramSharepicNoetig }}",
+            "instagramCarouselNoetig": "={{ $json.instagramCarouselNoetig }}",
+            "visualNeeded": "={{ $json.visualNeeded === true ? 'true' : 'false' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "eignungsAgentJson",
+              "displayName": "eignungsAgentJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "sharepicNeedStage",
+              "displayName": "sharepicNeedStage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "visualDecisionReason",
+              "displayName": "visualDecisionReason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "instagramSharepicNoetig",
+              "displayName": "instagramSharepicNoetig",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "instagramCarouselNoetig",
+              "displayName": "instagramCarouselNoetig",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "visualNeeded",
+              "displayName": "visualNeeded",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "ea1a0001-0000-4000-8000-000000000005",
+      "name": "Schreibe Eignungs-Entscheidung",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        26064,
+        6800
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "sharepic-empfohlen-check",
+              "leftValue": "={{ $('Verarbeite Eignungs-Entscheidung').item.json.sharepicNeedStage }}",
+              "rightValue": "topic_ok",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ea1a0001-0000-4000-8000-000000000006",
+      "name": "IF Sharepic empfohlen? (Eignungs-Agent)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        26064,
+        7300
+      ]
     }
   ],
   "pinData": {},
@@ -4159,5 +4371,5 @@
     "binaryMode": "separate"
   },
   "tags": [],
-  "versionId": "77909686-c50a-4852-b7bc-0fd53f7ba33a"
+  "versionId": "463257b2-afc3-48a2-89df-c4dba1e88802"
 }

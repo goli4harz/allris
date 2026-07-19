@@ -1,0 +1,116 @@
+{
+  "name": "ALLRIS_Eignungs_Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "e1a1b1c1-0001-4000-8000-000000000001",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction asArr(v) {\n  if (Array.isArray(v)) return v.filter(Boolean).map(safeStr);\n  if (typeof v === 'string' && v.trim()) { try { const p = JSON.parse(v); if (Array.isArray(p)) return p.filter(Boolean).map(safeStr); } catch (e) {} }\n  return [];\n}\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; }\n  catch (e) { return {}; }\n}\nfunction num(v, fb) { const n = Number(String(v ?? '').replace(',', '.')); return Number.isFinite(n) ? n : fb; }\n\nconst row = $json;\nconst sl = parseObj(row.sourceLock);\nconst va = parseObj(row.visualAnchors);\n\nreturn {\n  json: {\n    vorgangKey: safeStr(row.vorgangKey),\n    vorgangsnummer: safeStr(row.vorgangsnummer),\n    title: safeStr(row.title),\n\n    relevanz: num(row.relevanz, 0),\n    sprengstoff: safeStr(row.sprengstoff) || 'KEINER',\n    empfehlung: safeStr(row.empfehlung) || 'BEOBACHTEN',\n    kommunikationspotenzial: num(row.kommunikationspotenzial, 0),\n    oeffentlicheGelderBetroffen: row.oeffentlicheGelderBetroffen === true,\n\n    sourceTopic: safeStr(sl.sourceTopic),\n    sourceConflict: safeStr(sl.sourceConflict),\n    requiredObjects: asArr(sl.requiredObjects),\n    requiredAction: safeStr(sl.requiredAction),\n    affectedGroups: asArr(sl.affectedGroups),\n\n    satireThemaKonkret: safeStr(va.satireThemaKonkret),\n    satireKonfliktKonkret: safeStr(va.satireKonfliktKonkret),\n    visualPflichthandlung: safeStr(va.visualPflichthandlung),\n    visualBetroffene: asArr(va.visualBetroffene),\n    visualUeberzeichnung: safeStr(va.visualUeberzeichnung),\n\n    kurzfassung: safeStr(row.kurzfassung),\n    warumRelevant: safeStr(row.warumRelevant),\n\n    sourceLockValid: row.sourceLockValid === true,\n    visualAnchorsValid: row.visualAnchorsValid === true,\n    guardValid: row.guardValid === true,\n    visualGuardErrors: asArr(row.visualGuardErrors)\n  }\n};"
+      },
+      "id": "e1a1b1c1-0002-4000-8000-000000000002",
+      "name": "Normalisiere Eingabe",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "={{ (() => { return `Du bist der Eignungs-Agent der Satire-Redaktion DIE PARTEI Goslar. Deine einzige Aufgabe: entscheiden, ob sich ein kommunalpolitischer Vorgang inhaltlich fuer ein SATIRISCHES SHAREPIC (Bild-Post) eignet - nicht ob der Artikel/Text geschrieben wird, nur das Bild.\n\nDu triffst eine REDAKTIONELLE Einschaetzung (ist das Thema satirisch ergiebig, konkret genug, nicht nur eine austauschbare Verwaltungsfloskel), KEINE Sicherheits- oder Persoenlichkeitsrechtsprüfung - dafuer gibt es einen separaten, deterministischen Filter nach dir, der deine Empfehlung nur noch abschwaechen, nie verstaerken kann.\n\nVORGANG:\nTitel: ${$json.title}\nVorgangsnummer: ${$json.vorgangsnummer}\nKurzfassung: ${$json.kurzfassung}\nWarum relevant: ${$json.warumRelevant}\n\nBEWERTUNG (bereits von der Analyse-KI vergeben, nicht neu bewerten):\nrelevanz: ${$json.relevanz}/10, sprengstoff: ${$json.sprengstoff}, empfehlung: ${$json.empfehlung}, kommunikationspotenzial: ${$json.kommunikationspotenzial}/10, oeffentlicheGelderBetroffen: ${$json.oeffentlicheGelderBetroffen}\n\nSACHKERN (SourceLock):\nsourceTopic: ${$json.sourceTopic}\nsourceConflict: ${$json.sourceConflict}\nrequiredObjects: ${JSON.stringify($json.requiredObjects)}\nrequiredAction: ${$json.requiredAction}\naffectedGroups: ${JSON.stringify($json.affectedGroups)}\n\nBILD-ANKER (falls schon vorhanden):\nsatireThemaKonkret: ${$json.satireThemaKonkret}\nsatireKonfliktKonkret: ${$json.satireKonfliktKonkret}\nvisualPflichthandlung: ${$json.visualPflichthandlung}\nvisualBetroffene: ${JSON.stringify($json.visualBetroffene)}\n\nEntscheide satireWorthIt anhand dieser Leitfragen (nicht mechanisch abhaken, sondern gesamthaft urteilen):\n- Ist der Sachkern konkret genug fuer ein eigenstaendiges Bildmotiv (kein austauschbares \"Verwaltung ist langsam\")?\n- Steht die politische/kommunale Verantwortung im Vordergrund, nicht nur ein technisches Detail ohne Zuspitzung?\n- Rechtfertigen relevanz/kommunikationspotenzial/sprengstoff den Aufwand eines eigenen Sharepics (Faustregel: eher ja bei empfehlung=REAGIEREN und kommunikationspotenzial>=7, aber du darfst auch begruendet abweichen, wenn der Sachkern besonders bildstark oder besonders schwach ist)?\n- Gibt es ueberhaupt einen konkreten, zeichenbaren Bildkonflikt, oder bliebe es abstrakt?\n\nreservations: liste NUR inhaltlich-ethische Bedenken (z.B. Betroffene in prekaerer Lage wuerden zur Pointe, Thema ist zu sensibel fuer Zuspitzung, Gefahr von Verwechslung mit realen Einzelpersonen) - keine rein handwerklichen/strukturellen Probleme (die prueft der Code separat).\n\nreservationsBlockImage: true nur wenn eine der reservations so schwer wiegt, dass DIESES Bild in keiner Form vertretbar waere (nicht nur \"vorsichtig formulieren\" noetig).\n\nAntworte AUSSCHLIESSLICH mit einem JSON-Objekt, keine Markdown-Codebloecke, kein Text davor oder danach, in genau diesem Schema:\n{\n  \"satireWorthIt\": true oder false,\n  \"satireWorthItReason\": \"1-2 Saetze Begruendung\",\n  \"reservations\": [\"...\"],\n  \"reservationsBlockImage\": true oder false\n}`; })() }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "e1a1b1c1-0003-4000-8000-000000000003",
+      "name": "Message a model",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        432,
+        0
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "RiT1gwJpQWzSo6NO",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction asArr(v) { return Array.isArray(v) ? v.filter(Boolean).map(safeStr) : []; }\n\nfunction getAiText(j) {\n  if (typeof j.content === 'string') return j.content;\n  if (typeof j.text === 'string') return j.text;\n  if (j.message && typeof j.message.content === 'string') return j.message.content;\n  if (Array.isArray(j.choices) && j.choices[0] && j.choices[0].message) return safeStr(j.choices[0].message.content);\n  if (Array.isArray(j.output)) {\n    const msg = j.output.find(function(o) { return o && o.type === 'message' && Array.isArray(o.content); });\n    const part = msg && msg.content.find(function(c) { return c && typeof c.text === 'string'; });\n    if (part) return part.text;\n  }\n  return safeStr(JSON.stringify(j));\n}\n\nfunction extractJson(text) {\n  const t = safeStr(text).replace(/```json/gi, '```').replace(/```/g, '');\n  const start = t.indexOf('{');\n  const end = t.lastIndexOf('}');\n  if (start === -1 || end === -1 || end < start) return null;\n  try { return JSON.parse(t.substring(start, end + 1)); } catch (e) { return null; }\n}\n\nconst base = $('Normalisiere Eingabe').item.json;\nconst aiText = getAiText($json);\nconst parsed = extractJson(aiText);\n\nif (!parsed) {\n  return {\n    json: {\n      vorgangKey: base.vorgangKey,\n      vorgangsnummer: base.vorgangsnummer,\n      satireWorthIt: false,\n      satireWorthItReason: 'Eignungs-Agent Parse-Fehler - sicherheitshalber kein Sharepic',\n      reservations: [],\n      reservationsBlockImage: false,\n      parseError: true\n    }\n  };\n}\n\nreturn {\n  json: {\n    vorgangKey: base.vorgangKey,\n    vorgangsnummer: base.vorgangsnummer,\n    satireWorthIt: parsed.satireWorthIt === true,\n    satireWorthItReason: safeStr(parsed.satireWorthItReason),\n    reservations: asArr(parsed.reservations),\n    reservationsBlockImage: parsed.reservationsBlockImage === true,\n    parseError: false\n  }\n};"
+      },
+      "id": "e1a1b1c1-0004-4000-8000-000000000004",
+      "name": "Parse Eignung JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        768,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Normalisiere Eingabe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalisiere Eingabe": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Parse Eignung JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "pinData": {}
+}
