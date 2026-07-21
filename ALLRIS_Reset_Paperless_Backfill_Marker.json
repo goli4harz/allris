@@ -1,0 +1,149 @@
+{
+  "name": "ALLRIS_Reset_Paperless_Backfill_Marker",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "1a2b3c4d-0001-4000-8000-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "returnAll": true
+      },
+      "id": "1a2b3c4d-0002-4000-8000-000000000002",
+      "name": "Alle Vorgaenge lesen",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [224, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Nur Zeilen mit gesetztem Marker muessen zurueckgesetzt werden.\nconst out = items.filter(i => !!i.json.paperlessBackfilledAt);\nconsole.log(`[Reset] ${out.length} von ${items.length} Vorgaengen haben paperlessBackfilledAt gesetzt und werden zurueckgesetzt.`);\nreturn out.map(i => ({ json: { vorgangKey: i.json.vorgangKey } }));\n"
+      },
+      "id": "1a2b3c4d-0003-4000-8000-000000000003",
+      "name": "Nur mit Marker",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [448, 0]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "1a2b3c4d-0004-4000-8000-000000000004",
+      "name": "Loop Vorgaenge",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [672, 0]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "paperlessBackfilledAt": ""
+          },
+          "schema": [
+            {
+              "id": "paperlessBackfilledAt",
+              "displayName": "paperlessBackfilledAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1a2b3c4d-0005-4000-8000-000000000005",
+      "name": "Marker loeschen",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [896, -80],
+      "alwaysOutputData": true,
+      "retryOnFail": false,
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          { "node": "Alle Vorgaenge lesen", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Alle Vorgaenge lesen": {
+      "main": [
+        [
+          { "node": "Nur mit Marker", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Nur mit Marker": {
+      "main": [
+        [
+          { "node": "Loop Vorgaenge", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Loop Vorgaenge": {
+      "main": [
+        [],
+        [
+          { "node": "Marker loeschen", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Marker loeschen": {
+      "main": [
+        [
+          { "node": "Loop Vorgaenge", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": false
+  },
+  "versionId": "00000000-0000-4000-8000-000000000001",
+  "meta": {
+    "instanceId": "3918cd7b1079333be95f7df5d1ce0c807af27c5d6c51c5bb061c962138165169"
+  },
+  "id": "ALLRISResetBackfillMarker001",
+  "tags": []
+}

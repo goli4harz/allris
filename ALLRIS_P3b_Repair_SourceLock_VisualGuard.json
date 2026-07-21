@@ -1,5 +1,4 @@
 {
-  "active": true,
   "connections": {
     "Execute Workflow Trigger": {
       "main": [
@@ -137,8 +136,6 @@
       ]
     }
   },
-  "id": "KfPtfJfOe39LTJzR",
-  "meta": null,
   "name": "ALLRIS_P3b_Repair_SourceLock_VisualGuard",
   "nodes": [
     {
@@ -533,7 +530,5 @@
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
-  },
-  "tags": [],
-  "versionId": "90196df9-7b0f-4196-86e6-01c3684ccd4f"
+  }
 }

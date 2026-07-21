@@ -1,4 +1,5 @@
 {
+  "active": true,
   "connections": {
     "Schedule Trigger": {
       "main": [
@@ -99,6 +100,8 @@
       ]
     }
   },
+  "id": "4VXIOwv6ouMbBCER",
+  "meta": null,
   "name": "ALLRIS_P5b_Matrix_Headline_Reader",
   "nodes": [
     {
@@ -511,5 +514,7 @@
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
-  }
+  },
+  "tags": [],
+  "versionId": "695d67b3-f9d5-430a-9ba8-faca2d1f1e07"
 }

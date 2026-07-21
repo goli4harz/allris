@@ -1,0 +1,1824 @@
+{
+  "active": true,
+  "connections": {
+    "Backfill Konfiguration": {
+      "main": [
+        [
+          {
+            "node": "Paperless GET Tag ALLRIS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless GET Tag ALLRIS": {
+      "main": [
+        [
+          {
+            "node": "IF Tag ALLRIS existiert?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Tag ALLRIS existiert?": {
+      "main": [
+        [
+          {
+            "node": "Paperless Normalize Tag ALLRIS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Paperless POST Tag ALLRIS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless POST Tag ALLRIS": {
+      "main": [
+        [
+          {
+            "node": "Paperless Normalize Tag ALLRIS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless Normalize Tag ALLRIS": {
+      "main": [
+        [
+          {
+            "node": "Paperless GET Correspondent Stadt Goslar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless GET Correspondent Stadt Goslar": {
+      "main": [
+        [
+          {
+            "node": "IF Correspondent Stadt Goslar existiert?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Correspondent Stadt Goslar existiert?": {
+      "main": [
+        [
+          {
+            "node": "Paperless Normalize Correspondent Stadt Goslar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Paperless POST Correspondent Stadt Goslar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless POST Correspondent Stadt Goslar": {
+      "main": [
+        [
+          {
+            "node": "Paperless Normalize Correspondent Stadt Goslar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless Normalize Correspondent Stadt Goslar": {
+      "main": [
+        [
+          {
+            "node": "Paperless GET DocType Original",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless GET DocType Original": {
+      "main": [
+        [
+          {
+            "node": "IF DocType Original existiert?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF DocType Original existiert?": {
+      "main": [
+        [
+          {
+            "node": "Paperless Normalize DocType Original",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Paperless POST DocType Original",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless POST DocType Original": {
+      "main": [
+        [
+          {
+            "node": "Paperless Normalize DocType Original",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless Normalize DocType Original": {
+      "main": [
+        [
+          {
+            "node": "Paperless GET DocType Anlage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless GET DocType Anlage": {
+      "main": [
+        [
+          {
+            "node": "IF DocType Anlage existiert?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF DocType Anlage existiert?": {
+      "main": [
+        [
+          {
+            "node": "Paperless Normalize DocType Anlage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Paperless POST DocType Anlage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless POST DocType Anlage": {
+      "main": [
+        [
+          {
+            "node": "Paperless Normalize DocType Anlage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless Normalize DocType Anlage": {
+      "main": [
+        [
+          {
+            "node": "Paperless GET DocType Dokument",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless GET DocType Dokument": {
+      "main": [
+        [
+          {
+            "node": "IF DocType Dokument existiert?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF DocType Dokument existiert?": {
+      "main": [
+        [
+          {
+            "node": "Paperless Normalize DocType Dokument",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Paperless POST DocType Dokument",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless POST DocType Dokument": {
+      "main": [
+        [
+          {
+            "node": "Paperless Normalize DocType Dokument",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless Normalize DocType Dokument": {
+      "main": [
+        [
+          {
+            "node": "Lese Vorgaenge aus DataTable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lese Vorgaenge aus DataTable": {
+      "main": [
+        [
+          {
+            "node": "Filter archivierte Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter archivierte Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgänge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Vorgänge": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Nextcloud List 01_originale",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nextcloud List 01_originale": {
+      "main": [
+        [
+          {
+            "node": "Expand Nextcloud Dateien",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Expand Nextcloud Dateien": {
+      "main": [
+        [
+          {
+            "node": "IF Datei vorhanden?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Datei vorhanden?": {
+      "main": [
+        [
+          {
+            "node": "Code Log Kein Dokument",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Nextcloud Download Datei",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code Log Kein Dokument": {
+      "main": [
+        [
+          {
+            "node": "Aggregiere Backfill-Ergebnis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nextcloud Download Datei": {
+      "main": [
+        [
+          {
+            "node": "Code Prüfe Nextcloud Download",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code Prüfe Nextcloud Download": {
+      "main": [
+        [
+          {
+            "node": "IF Download OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Download OK?": {
+      "main": [
+        [
+          {
+            "node": "Paperless Titel bauen (Backfill)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code Log Download Fehler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code Log Download Fehler": {
+      "main": [
+        [
+          {
+            "node": "Aggregiere Backfill-Ergebnis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless Titel bauen (Backfill)": {
+      "main": [
+        [
+          {
+            "node": "Paperless Prüfe Dokument (Backfill)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless Prüfe Dokument (Backfill)": {
+      "main": [
+        [
+          {
+            "node": "IF Paperless existiert bereits? (Backfill)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Paperless existiert bereits? (Backfill)": {
+      "main": [
+        [
+          {
+            "node": "Paperless Markiere Skip (Backfill)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Restore Binary vor Upload (Backfill)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restore Binary vor Upload (Backfill)": {
+      "main": [
+        [
+          {
+            "node": "IF Paperless Metadaten vollständig? (Backfill)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless Markiere Skip (Backfill)": {
+      "main": [
+        [
+          {
+            "node": "Paperless Log Ergebnis (Backfill)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Paperless Metadaten vollständig? (Backfill)": {
+      "main": [
+        [
+          {
+            "node": "Paperless Upload Dokument (mit Metadaten) (Backfill)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Paperless Upload Dokument (nur Titel) (Backfill)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless Upload Dokument (mit Metadaten) (Backfill)": {
+      "main": [
+        [
+          {
+            "node": "Paperless Log Ergebnis (Backfill)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless Upload Dokument (nur Titel) (Backfill)": {
+      "main": [
+        [
+          {
+            "node": "Paperless Log Ergebnis (Backfill)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless Log Ergebnis (Backfill)": {
+      "main": [
+        [
+          {
+            "node": "Aggregiere Backfill-Ergebnis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregiere Backfill-Ergebnis": {
+      "main": [
+        [
+          {
+            "node": "IF Backfill vollständig?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Backfill vollständig?": {
+      "main": [
+        [
+          {
+            "node": "Paperless Backfill markieren",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop weiter (Backfill)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless Backfill markieren": {
+      "main": [
+        [
+          {
+            "node": "Loop weiter (Backfill)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop weiter (Backfill)": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgänge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Backfill Konfiguration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "UYCdv5g37YbNBKLh",
+  "meta": null,
+  "name": "ALLRIS_Paperless_Backfill",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "\n// Backfill-Konfiguration.\n// onlyVorgangKey: leer = alle bereits archivierten Vorgänge, sonst nur diesen einen\n// (zum Testen vor dem großen Lauf).\n\nreturn [{\n  json: {\n    onlyVorgangKey: \"\"\n  }\n}];\n"
+      },
+      "id": "271cca13-0dce-4e58-8902-d21988ff0c0d",
+      "name": "Backfill Konfiguration",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7392,
+        2432
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://dm.diepartei-goslar.de/api/tags/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "name__iexact",
+              "value": "ALLRIS"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "5b403ac6-ee19-4932-8d1a-c282b20eb385",
+      "name": "Paperless GET Tag ALLRIS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        7568,
+        2432
+      ],
+      "retryOnFail": false,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XZ0dfa9bGWssam8f",
+          "name": "Paperless API"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "bf-if-tag-001",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9827ebab-edad-4c45-b4c3-2bd4e2a96c8a",
+      "name": "IF Tag ALLRIS existiert?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        7728,
+        2432
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dm.diepartei-goslar.de/api/tags/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"name\": \"ALLRIS\"}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "8bdf157f-f2d8-44e3-a664-f5d0eeadd99f",
+      "name": "Paperless POST Tag ALLRIS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        7888,
+        2432
+      ],
+      "retryOnFail": false,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XZ0dfa9bGWssam8f",
+          "name": "Paperless API"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const j = $input.item.json;\nlet id = null;\nif (Array.isArray(j.results)) {\n  id = j.results[0]?.id ?? null;\n} else if (j.id !== undefined) {\n  id = j.id;\n}\nif (!id) {\n  console.warn('[Backfill/Paperless] Tag \"ALLRIS\": konnte keine ID ermitteln.');\n}\nreturn { json: { id, name: 'ALLRIS' } };"
+      },
+      "id": "8777dd60-c171-4425-84d9-361a294190a8",
+      "name": "Paperless Normalize Tag ALLRIS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8048,
+        2432
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://dm.diepartei-goslar.de/api/correspondents/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "name__iexact",
+              "value": "Stadt Goslar"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "c24936c0-6781-49a4-ad35-4d998d2c2f76",
+      "name": "Paperless GET Correspondent Stadt Goslar",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        8208,
+        2432
+      ],
+      "retryOnFail": false,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XZ0dfa9bGWssam8f",
+          "name": "Paperless API"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "bf-if-corr-001",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f65cdbe1-7550-4549-b4ea-0c61b3c830bd",
+      "name": "IF Correspondent Stadt Goslar existiert?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        8368,
+        2432
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dm.diepartei-goslar.de/api/correspondents/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"name\": \"Stadt Goslar\"}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "7cbb7516-f664-4b2c-a380-597fc29f9c3a",
+      "name": "Paperless POST Correspondent Stadt Goslar",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        8528,
+        2432
+      ],
+      "retryOnFail": false,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XZ0dfa9bGWssam8f",
+          "name": "Paperless API"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const j = $input.item.json;\nlet id = null;\nif (Array.isArray(j.results)) {\n  id = j.results[0]?.id ?? null;\n} else if (j.id !== undefined) {\n  id = j.id;\n}\nif (!id) {\n  console.warn('[Backfill/Paperless] Correspondent \"Stadt Goslar\": konnte keine ID ermitteln.');\n}\nreturn { json: { id, name: 'Stadt Goslar' } };"
+      },
+      "id": "de6ab130-cb2c-4911-af04-fb1e7536ae7c",
+      "name": "Paperless Normalize Correspondent Stadt Goslar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8688,
+        2432
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://dm.diepartei-goslar.de/api/document_types/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "name__iexact",
+              "value": "Original"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "5ab59640-db89-4e46-9643-85e910016f66",
+      "name": "Paperless GET DocType Original",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        8848,
+        2432
+      ],
+      "retryOnFail": false,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XZ0dfa9bGWssam8f",
+          "name": "Paperless API"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "bf-if-doctype-orig-001",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "df2637b6-5a8f-4e66-a3c9-6f7336e7cd4a",
+      "name": "IF DocType Original existiert?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        9008,
+        2432
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dm.diepartei-goslar.de/api/document_types/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"name\": \"Original\"}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "ff375fa2-b0b6-4a46-8ff1-214192b6c040",
+      "name": "Paperless POST DocType Original",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        9168,
+        2432
+      ],
+      "retryOnFail": false,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XZ0dfa9bGWssam8f",
+          "name": "Paperless API"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const j = $input.item.json;\nlet id = null;\nif (Array.isArray(j.results)) {\n  id = j.results[0]?.id ?? null;\n} else if (j.id !== undefined) {\n  id = j.id;\n}\nif (!id) {\n  console.warn('[Backfill/Paperless] DocumentType \"Original\": konnte keine ID ermitteln.');\n}\nreturn { json: { id, name: 'Original' } };"
+      },
+      "id": "c48119f7-3881-4647-870a-dd814aa30414",
+      "name": "Paperless Normalize DocType Original",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7200,
+        2656
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://dm.diepartei-goslar.de/api/document_types/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "name__iexact",
+              "value": "Anlage"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "e26c642e-c4eb-40d0-8af9-af79f1ba87af",
+      "name": "Paperless GET DocType Anlage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        7360,
+        2656
+      ],
+      "retryOnFail": false,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XZ0dfa9bGWssam8f",
+          "name": "Paperless API"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "bf-if-doctype-anlage-001",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "89308f49-6699-4388-930d-e2a2ca55d6a8",
+      "name": "IF DocType Anlage existiert?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        7520,
+        2656
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dm.diepartei-goslar.de/api/document_types/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"name\": \"Anlage\"}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "8548a0a3-dd34-49c9-a03c-8a69f88b4e96",
+      "name": "Paperless POST DocType Anlage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        7680,
+        2656
+      ],
+      "retryOnFail": false,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XZ0dfa9bGWssam8f",
+          "name": "Paperless API"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const j = $input.item.json;\nlet id = null;\nif (Array.isArray(j.results)) {\n  id = j.results[0]?.id ?? null;\n} else if (j.id !== undefined) {\n  id = j.id;\n}\nif (!id) {\n  console.warn('[Backfill/Paperless] DocumentType \"Anlage\": konnte keine ID ermitteln.');\n}\nreturn { json: { id, name: 'Anlage' } };"
+      },
+      "id": "236f4432-3f7b-48e9-b8bb-1fdcd7bbd9e3",
+      "name": "Paperless Normalize DocType Anlage",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7840,
+        2656
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://dm.diepartei-goslar.de/api/document_types/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "name__iexact",
+              "value": "Dokument"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "fc329b17-4dee-4b50-a214-79b110d24f81",
+      "name": "Paperless GET DocType Dokument",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        8000,
+        2656
+      ],
+      "retryOnFail": false,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XZ0dfa9bGWssam8f",
+          "name": "Paperless API"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "bf-if-doctype-dok-001",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "cd677449-b76b-4e37-bf70-a2d0a7185ace",
+      "name": "IF DocType Dokument existiert?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        8160,
+        2656
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dm.diepartei-goslar.de/api/document_types/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"name\": \"Dokument\"}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "b971ab51-e9ef-4488-97a4-7d4be67e62b8",
+      "name": "Paperless POST DocType Dokument",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        8352,
+        2656
+      ],
+      "retryOnFail": false,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XZ0dfa9bGWssam8f",
+          "name": "Paperless API"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const j = $input.item.json;\nlet id = null;\nif (Array.isArray(j.results)) {\n  id = j.results[0]?.id ?? null;\n} else if (j.id !== undefined) {\n  id = j.id;\n}\nif (!id) {\n  console.warn('[Backfill/Paperless] DocumentType \"Dokument\": konnte keine ID ermitteln.');\n}\nreturn { json: { id, name: 'Dokument' } };"
+      },
+      "id": "0814b23f-58f6-45bb-9eab-a43896fe9ec4",
+      "name": "Paperless Normalize DocType Dokument",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8512,
+        2656
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "returnAll": true
+      },
+      "id": "444c4a60-9556-4ef3-8fa0-deb0ab16793f",
+      "name": "Lese Vorgaenge aus DataTable",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        8688,
+        2656
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Bereinigt einen Ordnerpfad-Wert aus der DataTable.\nfunction sanitizeFolder(raw) {\n  const s = (raw || '').trim();\n  if (s.toLowerCase() === 'null' || s.toLowerCase() === 'undefined' || s === '-') return '';\n  return s;\n}\n\nconst cfg = $('Backfill Konfiguration').first()?.json || {};\nconst onlyVorgangKey = (cfg.onlyVorgangKey || '').trim();\n\nconst out = [];\nlet alreadyBackfilled = 0;\nfor (const item of items) {\n  const j = item.json;\n  const folder = sanitizeFolder(j.nextcloudFolder);\n  if (!folder) continue;\n  if (onlyVorgangKey) {\n    if (j.vorgangKey !== onlyVorgangKey) continue;\n  } else if (j.paperlessBackfilledAt) {\n    // Vorgang wurde in einem frueheren Stundenlauf bereits vollstaendig zu Paperless\n    // synchronisiert (siehe 'Paperless Backfill markieren') - nicht bei jedem Lauf\n    // die komplette Historie neu scannen, das hat zuvor zu andauerndem Dubletten-\n    // Zuwachs gefuehrt.\n    alreadyBackfilled++;\n    continue;\n  }\n  out.push({ json: { ...j, nextcloudFolder: folder } });\n}\n\nout.sort((a, b) => {\n  const aDate = Date.parse(a.json.firstseen || a.json.createdAt || '') || 0;\n  const bDate = Date.parse(b.json.firstseen || b.json.createdAt || '') || 0;\n  return aDate - bDate;\n});\n\nconsole.log(`[Backfill] ${out.length} bereits archivierte Vorgänge zum Nachziehen (aus ${items.length} DataTable-Zeilen, ${alreadyBackfilled} bereits vollständig synchronisiert).`);\nreturn out;\n"
+      },
+      "id": "03ab2595-2d36-42d3-9076-b8e264519c3a",
+      "name": "Filter archivierte Vorgaenge",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8896,
+        2656
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "81e5743f-e93a-426a-bcd2-017fb26f72a4",
+      "name": "Loop Vorgänge",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        9088,
+        2656
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "operation": "list",
+        "path": "={{ $json.nextcloudFolder }}/01_originale"
+      },
+      "id": "f440ead2-bef2-4516-8010-abd571b6ecbb",
+      "name": "Nextcloud List 01_originale",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [
+        7152,
+        2896
+      ],
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Verwandelt das Nextcloud-Listing des '01_originale'-Ordners in ein Item pro Datei.\n// Gibt IMMER mindestens ein Item zurück (auch bei leerem Ordner/Fehler), damit die\n// SplitInBatches-Schleife nie hängen bleibt.\n//\n// Der Nextcloud-'list'-Node liefert pro Eintrag ein 'path' (WebDAV-href, i.d.R.\n// URL-kodiert und MIT Server-/User-Präfix wie /remote.php/dav/files/<user>/...).\n// Für den nachfolgenden 'download'-Node wird aber der reine, dekodierte Pfad ab\n// dem bekannten Vorgangsordner benötigt (gleiches Format wie im Haupt-Workflow,\n// z.B. /DiePARTEI/Allris/2026/xxx/01_originale/datei.pdf) - NICHT selbst neu\n// zusammensetzen, sondern aus der Href ableiten, um Kodierungs-/Präfix-Mismatches\n// zu vermeiden (führte zuvor zu 0-KB-Downloads, weil 'download' Statuscodes nicht prüft).\n\nconst vorgang = $('Loop Vorgänge').first().json;\nconst rawItems = $input.all();\n\nconst errored = rawItems.length === 1 && rawItems[0].json && rawItems[0].json.error;\nif (errored) {\n  console.warn(`[Backfill] ${vorgang.vorgangKey}: Nextcloud-Liste fehlgeschlagen: ${JSON.stringify(rawItems[0].json.error)}`);\n}\n\nfunction isFileEntry(f) {\n  const type = String(f.type || '').toLowerCase();\n  if (type) return type === 'file';\n  const p = f.path || f.href || f.filename || f.name || '';\n  return !!p && !String(p).endsWith('/');\n}\n\nconst files = errored ? [] : rawItems.map(i => i.json).filter(isFileEntry);\n\nif (files.length === 0) {\n  if (!errored) {\n    console.warn(`[Backfill] ${vorgang.vorgangKey}: keine Dateien in \"${vorgang.nextcloudFolder}/01_originale\" gefunden.`);\n  }\n  return [{\n    json: {\n      vorgangKey: vorgang.vorgangKey,\n      nextcloudFolder: vorgang.nextcloudFolder,\n      _noFiles: true\n    }\n  }];\n}\n\nreturn files.map(f => {\n  const rawHref = f.path || f.href || f.filename || '';\n  let decodedHref = String(rawHref);\n  try {\n    decodedHref = decodeURIComponent(decodedHref);\n  } catch (e) {\n    console.warn(`[Backfill] Konnte Href nicht dekodieren (\"${rawHref}\"): ${e.message}`);\n  }\n\n  const fileName = f.name || decodedHref.split('/').filter(Boolean).pop() || 'unbekannt';\n\n  // Ab dem bekannten Vorgangsordner schneiden - robust gegen unbekanntes\n  // WebDAV-Präfix (remote.php/dav/files/<user>/... vs. remote.php/webdav/...).\n  const anchor = vorgang.nextcloudFolder;\n  const anchorIdx = decodedHref.indexOf(anchor);\n  const fullPath = anchorIdx !== -1\n    ? decodedHref.substring(anchorIdx)\n    : `${vorgang.nextcloudFolder}/01_originale/${fileName}`;\n\n  if (anchorIdx === -1) {\n    console.warn(`[Backfill] Konnte \"${anchor}\" nicht in Href \"${decodedHref}\" finden, nutze zusammengesetzten Pfad als Fallback.`);\n  }\n\n  return {\n    json: {\n      vorgangKey: vorgang.vorgangKey,\n      nextcloudFolder: vorgang.nextcloudFolder,\n      fileName,\n      fullPath,\n      _noFiles: false\n    }\n  };\n});\n"
+      },
+      "id": "3fb1ad28-7c20-46b9-8f7f-8b738e40a71a",
+      "name": "Expand Nextcloud Dateien",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7344,
+        2896
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "bf-if-nofiles-001",
+              "leftValue": "={{ $json._noFiles }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b9542b2f-9b1f-4ff3-9019-a2ea724ba1db",
+      "name": "IF Datei vorhanden?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        7552,
+        2896
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "console.log(`[Backfill] ${$input.item.json.vorgangKey}: keine Dokumente zum Nachziehen.`);\nreturn { json: { vorgangKey: $input.item.json.vorgangKey, _skippedReason: 'no_files' } };"
+      },
+      "id": "81481400-ed24-40d7-a119-c536307ebee0",
+      "name": "Code Log Kein Dokument",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7744,
+        3120
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "path": "={{ $json.fullPath }}"
+      },
+      "id": "9bbbdb4c-0813-4441-be8d-e4c25aa6eead",
+      "name": "Nextcloud Download Datei",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [
+        7744,
+        2896
+      ],
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\nconst item = $input.item;\nconst j = item.json || {};\nconst binary = item.binary || {};\nconst hasBinary = !!binary.data;\n\nlet fileSize = 0;\nif (hasBinary) {\n  try {\n    const buf = await this.helpers.getBinaryDataBuffer(0, 'data');\n    fileSize = buf.length;\n  } catch (e) {\n    console.warn(`[Backfill] Konnte Binärdaten nicht prüfen (${j.vorgangKey || '?'} / ${j.fileName || '?'}): ${e.message}`);\n  }\n}\n\nconst downloadOk = hasBinary && fileSize > 0 && !j.error;\n\nif (!downloadOk) {\n  console.warn(`[Backfill] Download fehlgeschlagen: ${j.vorgangKey || '?'} / ${j.fileName || '?'} (hasBinary=${hasBinary}, size=${fileSize})`);\n}\n\nreturn {\n  json: { ...j, _downloadOk: downloadOk, _downloadFileSize: fileSize },\n  binary\n};\n"
+      },
+      "id": "88c0578a-dcd5-45f7-88a3-9899cb978100",
+      "name": "Code Prüfe Nextcloud Download",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7952,
+        2896
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "bf-if-dlok-001",
+              "leftValue": "={{ $json._downloadOk }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ca636127-6950-4df7-a102-1bc474401a3e",
+      "name": "IF Download OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        8144,
+        2896
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "console.warn(`[Backfill] Übersprungen wegen Downloadfehler: ${$input.item.json.vorgangKey} / ${$input.item.json.fileName}`);\nreturn { json: { vorgangKey: $input.item.json.vorgangKey, fileName: $input.item.json.fileName, _skippedReason: 'download_failed' } };"
+      },
+      "id": "8c35d6c3-3319-403c-8e2e-61e69631f819",
+      "name": "Code Log Download Fehler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7936,
+        3120
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\n// Baut den Paperless-Dubletten-Titel und löst Tag/Correspondent/DocumentType-IDs auf.\n// Analog zu 'Paperless Titel bauen' im Haupt-Nextcloud-Workflow, aber mit Dateiname\n// aus dem Nextcloud-Listing statt aus documentsJson.\n\nconst j = $input.item.json;\n\nfunction sanitize(str, maxLen) {\n  return String(str || '')\n    .replace(/[\\/\\\\:*?\"<>|\\r\\n]/g, '_')\n    .replace(/\\s+/g, '_')\n    .replace(/_+/g, '_')\n    .replace(/^_+|_+$/g, '')\n    .substring(0, maxLen || 150);\n}\n\nconst paperlessTitle = sanitize(`${j.vorgangKey || 'unbekannt'}_${j.fileName || ''}`, 150);\n\nfunction inferDocType(fileName) {\n  const f = String(fileName || '').toLowerCase();\n  if (f.includes('_original')) return 'original';\n  if (f.includes('_anlage')) return 'anlage';\n  return 'document';\n}\n\nconst tagId = $('Paperless Normalize Tag ALLRIS').first()?.json?.id || null;\nconst correspondentId = $('Paperless Normalize Correspondent Stadt Goslar').first()?.json?.id || null;\n\nconst docType = inferDocType(j.fileName);\nlet documentTypeId = null;\nif (docType === 'original') {\n  documentTypeId = $('Paperless Normalize DocType Original').first()?.json?.id || null;\n} else if (docType === 'anlage') {\n  documentTypeId = $('Paperless Normalize DocType Anlage').first()?.json?.id || null;\n} else {\n  documentTypeId = $('Paperless Normalize DocType Dokument').first()?.json?.id || null;\n}\n\nconst paperlessMetaOk = !!(tagId && correspondentId && documentTypeId);\nif (!paperlessMetaOk) {\n  console.warn(`[Backfill] Metadaten (Tag/Correspondent/DocType) unvollständig für ${paperlessTitle} - Upload läuft nur mit Titel.`);\n}\n\nreturn {\n  json: {\n    ...j,\n    paperlessTitle,\n    paperlessTagId: tagId,\n    paperlessCorrespondentId: correspondentId,\n    paperlessDocumentTypeId: documentTypeId,\n    paperlessMetaOk\n  },\n  binary: $input.item.binary || {}\n};\n"
+      },
+      "id": "65c9fe73-0f1f-4e85-b6a1-2be25b1a18b2",
+      "name": "Paperless Titel bauen (Backfill)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8352,
+        2896
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://dm.diepartei-goslar.de/api/documents/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "title__iexact",
+              "value": "={{ $json.paperlessTitle }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "719b4634-c4e7-4507-9348-2123937be942",
+      "name": "Paperless Prüfe Dokument (Backfill)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        8544,
+        2896
+      ],
+      "retryOnFail": false,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XZ0dfa9bGWssam8f",
+          "name": "Paperless API"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "bf-if-exists-001",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            },
+            {
+              "id": "bf-if-exists-002-error",
+              "leftValue": "={{ !!$json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "85961c08-92b0-4074-996d-49b29578a952",
+      "name": "IF Paperless existiert bereits? (Backfill)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        8720,
+        2896
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\n// Der HTTP-GET-Node 'Paperless Prüfe Dokument (Backfill)' liefert nur JSON\n// (count/results) zurück und verwirft dabei die Binärdaten der Datei.\n// Hier werden sie aus 'Paperless Titel bauen (Backfill)' wiederhergestellt,\n// bevor der Upload-Node sie braucht.\n\nconst j = $input.item.json;\nconst original = $('Paperless Titel bauen (Backfill)').item;\n\nreturn {\n  json: j,\n  binary: original.binary || {}\n};\n"
+      },
+      "id": "a4403907-3d3f-497f-a87a-b5b450207df1",
+      "name": "Restore Binary vor Upload (Backfill)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8400,
+        3120
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\n// Zweig wird auch angesteuert, wenn die Dubletten-Pruefung selbst fehlgeschlagen ist\n// (siehe 'IF Paperless existiert bereits? (Backfill)') - in dem Fall NICHT hochladen,\n// da sonst bei jedem transienten API-Fehler ein Duplikat entstehen wuerde. Stattdessen\n// hier als Skip protokollieren und im naechsten Lauf erneut versuchen.\nconst j = $input.item.json;\nreturn { json: { ...j, _paperlessSkippedExisting: !j.error, _paperlessSkippedCheckFailed: !!j.error } };"
+      },
+      "id": "724e0637-bca9-4f59-860a-8b7a667ce798",
+      "name": "Paperless Markiere Skip (Backfill)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8896,
+        2880
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "bf-if-metaok-001",
+              "leftValue": "={{ $json.paperlessMetaOk }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "272bd994-b9d1-4ce0-b2b5-eb203731b214",
+      "name": "IF Paperless Metadaten vollständig? (Backfill)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        9104,
+        2896
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dm.diepartei-goslar.de/api/documents/post_document/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "document",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "title",
+              "value": "={{ $('Paperless Titel bauen (Backfill)').item.json.paperlessTitle }}"
+            },
+            {
+              "name": "tags",
+              "value": "={{ $('Paperless Titel bauen (Backfill)').item.json.paperlessTagId }}"
+            },
+            {
+              "name": "correspondent",
+              "value": "={{ $('Paperless Titel bauen (Backfill)').item.json.paperlessCorrespondentId }}"
+            },
+            {
+              "name": "document_type",
+              "value": "={{ $('Paperless Titel bauen (Backfill)').item.json.paperlessDocumentTypeId }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 90000
+        }
+      },
+      "id": "0967ac9c-3b85-4d1d-8626-f46de069b904",
+      "name": "Paperless Upload Dokument (mit Metadaten) (Backfill)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        8096,
+        3120
+      ],
+      "retryOnFail": false,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XZ0dfa9bGWssam8f",
+          "name": "Paperless API"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dm.diepartei-goslar.de/api/documents/post_document/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "document",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "title",
+              "value": "={{ $('Paperless Titel bauen (Backfill)').item.json.paperlessTitle }}"
+            },
+            {
+              "name": "tags",
+              "value": "={{ $('Paperless Titel bauen (Backfill)').item.json.paperlessTagId }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 90000
+        }
+      },
+      "id": "9bcfb6b3-849f-47db-bf98-3f03f6d35e53",
+      "name": "Paperless Upload Dokument (nur Titel) (Backfill)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        8736,
+        3120
+      ],
+      "retryOnFail": false,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XZ0dfa9bGWssam8f",
+          "name": "Paperless API"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const j = $input.item.json;\nif (j._paperlessSkippedCheckFailed) {\n  console.warn(`[Backfill/Paperless] Übersprungen (Dublettenprüfung fehlgeschlagen, Retry im nächsten Lauf): ${j.paperlessTitle}`);\n} else if (j._paperlessSkippedExisting) {\n  console.log(`[Backfill/Paperless] Übersprungen (existiert bereits): ${j.paperlessTitle}`);\n} else if (j.error) {\n  console.warn(`[Backfill/Paperless] Fehler bei \"${j.paperlessTitle}\": ${j.error.message || j.error}`);\n} else {\n  console.log(`[Backfill/Paperless] Hochgeladen: ${j.paperlessTitle}`);\n}\nreturn { json: { paperlessTitle: j.paperlessTitle || '' } };"
+      },
+      "id": "f9d47a4b-40de-44bb-b3db-1265558e6367",
+      "name": "Paperless Log Ergebnis (Backfill)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8928,
+        3120
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "09a5eab1-faf7-456e-a4a7-6e4cbd34e1bb",
+      "name": "Loop weiter (Backfill)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        9120,
+        3120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Fasst alle Datei-Ergebnisse EINES Vorgangs (kann 0, 1 oder mehrere Items sein,\n// je nach Anzahl Dateien in '01_originale') zu einem einzigen Abschlussurteil\n// zusammen. Nur wenn wirklich ALLES fehlerfrei war (kein Downloadfehler, keine\n// fehlgeschlagene Dublettenpruefung, kein Upload-Fehler), gilt der Vorgang als\n// vollstaendig zu Paperless synchronisiert und wird per 'paperlessBackfilledAt'\n// markiert - sonst wird er im naechsten Stundenlauf erneut geprueft.\n\nconst vorgang = $('Loop Vorgänge').first().json;\nconst results = $input.all();\n\nconst failed = results.some(i => {\n  const j = i.json || {};\n  return j._skippedReason === 'download_failed' || j._paperlessSkippedCheckFailed === true || !!j.error;\n});\n\nconsole.log(`[Backfill] ${vorgang.vorgangKey}: ${failed ? 'nicht vollständig - wird beim nächsten Lauf erneut geprüft' : 'vollständig synchronisiert'}.`);\n\nreturn [{ json: { vorgangKey: vorgang.vorgangKey, _backfillComplete: !failed } }];\n"
+      },
+      "id": "f5bfe302-8de0-4283-bf19-933ca49f321e",
+      "name": "Aggregiere Backfill-Ergebnis",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        9312,
+        3120
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "bf-if-complete-001",
+              "leftValue": "={{ $json._backfillComplete }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9e05c714-38ea-48a5-8a16-4bf5bd8e3fed",
+      "name": "IF Backfill vollständig?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        9504,
+        3120
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "paperlessBackfilledAt": "={{ $now.toISO() }}"
+          },
+          "schema": [
+            {
+              "id": "paperlessBackfilledAt",
+              "displayName": "paperlessBackfilledAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "67877ed6-0753-4812-8c21-5471971f53e4",
+      "name": "Paperless Backfill markieren",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        9696,
+        2992
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "triggerAtMinute": 50
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        7168,
+        2432
+      ],
+      "id": "08ab1479-c7b8-4886-ae26-55824dcde6b0",
+      "name": "Schedule Trigger"
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "saveManualExecutions": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false,
+    "saveDataSuccessExecution": "none"
+  },
+  "tags": [],
+  "versionId": "31a2c5c6-b993-47c2-a2ad-a0302f9e644d"
+}

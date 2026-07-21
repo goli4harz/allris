@@ -1,4 +1,90 @@
 {
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Normalisiere QA-Eingabe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalisiere QA-Eingabe": {
+      "main": [
+        [
+          {
+            "node": "Deterministische Regelprüfung",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Deterministische Regelprüfung": {
+      "main": [
+        [
+          {
+            "node": "Skip AI Check?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Skip AI Check?": {
+      "main": [
+        [
+          {
+            "node": "Baue Leeren KI-Befund",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue Leeren KI-Befund": {
+      "main": [
+        [
+          {
+            "node": "Berechne QA-Gesamtverdikt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse KI-Befund": {
+      "main": [
+        [
+          {
+            "node": "Berechne QA-Gesamtverdikt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Parse KI-Befund",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
   "name": "ALLRIS_QA_Agent",
   "nodes": [
     {
@@ -154,92 +240,6 @@
       }
     }
   ],
-  "connections": {
-    "Execute Workflow Trigger": {
-      "main": [
-        [
-          {
-            "node": "Normalisiere QA-Eingabe",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Normalisiere QA-Eingabe": {
-      "main": [
-        [
-          {
-            "node": "Deterministische Regelprüfung",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Deterministische Regelprüfung": {
-      "main": [
-        [
-          {
-            "node": "Skip AI Check?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Skip AI Check?": {
-      "main": [
-        [
-          {
-            "node": "Baue Leeren KI-Befund",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Message a model",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Baue Leeren KI-Befund": {
-      "main": [
-        [
-          {
-            "node": "Berechne QA-Gesamtverdikt",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Parse KI-Befund": {
-      "main": [
-        [
-          {
-            "node": "Berechne QA-Gesamtverdikt",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Message a model": {
-      "main": [
-        [
-          {
-            "node": "Parse KI-Befund",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
   "pinData": {},
   "settings": {
     "executionOrder": "v1",

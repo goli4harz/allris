@@ -1,4 +1,39 @@
 {
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Normalisiere Eingabe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalisiere Eingabe": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Parse Bild JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
   "name": "ALLRIS_Bild_Agent",
   "nodes": [
     {
@@ -76,41 +111,6 @@
       }
     }
   ],
-  "connections": {
-    "Execute Workflow Trigger": {
-      "main": [
-        [
-          {
-            "node": "Normalisiere Eingabe",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Normalisiere Eingabe": {
-      "main": [
-        [
-          {
-            "node": "Message a model",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Message a model": {
-      "main": [
-        [
-          {
-            "node": "Parse Bild JSON",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
   "pinData": {},
   "settings": {
     "executionOrder": "v1",

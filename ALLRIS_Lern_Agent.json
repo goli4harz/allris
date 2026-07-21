@@ -1,4 +1,57 @@
 {
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Ist Retrieve?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ist Retrieve?": {
+      "main": [
+        [
+          {
+            "node": "Hole Lernbeispiele",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Baue Lernbeispiel-Zeile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole Lernbeispiele": {
+      "main": [
+        [
+          {
+            "node": "Waehle Top-Beispiele",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue Lernbeispiel-Zeile": {
+      "main": [
+        [
+          {
+            "node": "Speichere Lernbeispiel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
   "name": "ALLRIS_Lern_Agent",
   "nodes": [
     {
@@ -226,59 +279,6 @@
       "alwaysOutputData": true
     }
   ],
-  "connections": {
-    "Execute Workflow Trigger": {
-      "main": [
-        [
-          {
-            "node": "Ist Retrieve?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Ist Retrieve?": {
-      "main": [
-        [
-          {
-            "node": "Hole Lernbeispiele",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Baue Lernbeispiel-Zeile",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Hole Lernbeispiele": {
-      "main": [
-        [
-          {
-            "node": "Waehle Top-Beispiele",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Baue Lernbeispiel-Zeile": {
-      "main": [
-        [
-          {
-            "node": "Speichere Lernbeispiel",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
   "pinData": {},
   "settings": {
     "executionOrder": "v1",
