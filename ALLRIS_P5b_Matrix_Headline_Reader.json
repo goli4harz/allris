@@ -70,7 +70,7 @@
       "main": [
         [
           {
-            "node": "Sende Erinnerung",
+            "node": "IF Nur Exhausted-Markierung?",
             "type": "main",
             "index": 0
           }
@@ -93,6 +93,24 @@
         [
           {
             "node": "Speichere Erinnerung",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Nur Exhausted-Markierung?": {
+      "main": [
+        [
+          {
+            "node": "Speichere Erinnerung",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sende Erinnerung",
             "type": "main",
             "index": 0
           }
@@ -394,7 +412,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Prueft, welche wartenden Vorgaenge laenger als REMINDER_INTERVAL_MS keine\n// neue Nachricht bekommen haben, und baut dafuer eine Erinnerung mit den\n// bereits bestehenden Kandidaten (keine neue KI-Generierung, kein neuer Text).\n// Stoppt nach MAX_REMINDERS, damit ein unbeantworteter Vorgang nicht endlos nervt.\nconst REMINDER_INTERVAL_MS = 12 * 60 * 60 * 1000;\nconst MAX_REMINDERS = 3;\n\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst now = Date.now();\nconst due = [];\n\nfor (const item of items) {\n  const row = item.json;\n  const reminderCount = Number(row._reminderCount || 0);\n  if (reminderCount >= MAX_REMINDERS) continue;\n\n  const lastPromptMs = row._lastReminderAt\n    ? Date.parse(row._lastReminderAt)\n    : (row._candidatesPostedAt ? Date.parse(row._candidatesPostedAt) : 0);\n  if (!lastPromptMs || (now - lastPromptMs) < REMINDER_INTERVAL_MS) continue;\n\n  const candidates = Array.isArray(row._headlineCandidates) ? row._headlineCandidates : [];\n  if (candidates.length === 0) continue;\n\n  const nextReminderCount = reminderCount + 1;\n  const lines = [\n    '⏰ Erinnerung (' + nextReminderCount + '/' + MAX_REMINDERS + ') - noch offen: ' + safeStr(row.vorgangsnummer) + ' - ' + safeStr(row.title),\n    ''\n  ];\n  for (const c of candidates) {\n    lines.push(safeStr(c.code) + ': ' + safeStr(c.imageHeadline) + ' - ' + safeStr(c.imageSubline));\n  }\n  lines.push('');\n  const exampleCode = candidates.length > 0 ? safeStr(candidates[0].code) : '';\n  const vnCode = safeStr(row.vorgangsnummer).replace(/[^0-9A-Za-z]+/g, '-').replace(/^-+|-+$/g, '');\n  lines.push('Antworte mit dem gewuenschten Code (z.B. ' + exampleCode + '), um die Auswahl zu bestaetigen, oder mit \\'' + vnCode + '-X\\' fuer komplett neue Vorschlaege (Vorgangsnummer + -X, ohne Kandidat).');\n\n  const vorgangKeySafe = safeStr(row.vorgangKey).replace(/[^a-zA-Z0-9]/g, '');\n  const txnId = 'hdl_remind_' + vorgangKeySafe + '_r' + nextReminderCount;\n\n  due.push({\n    json: {\n      ...row,\n      matrixReminderMessage: lines.join('\\n'),\n      matrixReminderTxnId: txnId,\n      _nextReminderCount: nextReminderCount\n    }\n  });\n}\n\nreturn due;\n"
+        "jsCode": "// Prueft, welche wartenden Vorgaenge laenger als REMINDER_INTERVAL_MS keine\n// neue Nachricht bekommen haben, und baut dafuer eine Erinnerung mit den\n// bereits bestehenden Kandidaten (keine neue KI-Generierung, kein neuer Text).\n// Stoppt nach MAX_REMINDERS, damit ein unbeantworteter Vorgang nicht endlos nervt.\n//\n// FIX (Architekturpruefung 2026-07-22, Befund F3): bisher wurde ein Vorgang nach\n// Erreichen von MAX_REMINDERS stillschweigend uebersprungen - unsichtbar in der\n// Status-Uebersicht, ohne jede Markierung. Jetzt wird EINMALIG (nicht bei jedem\n// 15-Minuten-Lauf erneut) ein sichtbarer Hinweis in visualJson.workflow\n// hinterlegt (reminderExhausted/reminderExhaustedAt) - keine neue DB-Spalte\n// noetig, da visualJson bereits existiert und bereits von diesem Workflow\n// geschrieben wird. headlineChoiceStage bleibt dabei bewusst unveraendert:\n// der Mensch kann jederzeit trotzdem noch per Matrix antworten, es werden nur\n// keine weiteren automatischen Erinnerungen mehr verschickt.\nconst REMINDER_INTERVAL_MS = 12 * 60 * 60 * 1000;\nconst MAX_REMINDERS = 3;\n\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; }\n  catch (e) { return {}; }\n}\n\nconst now = Date.now();\nconst due = [];\n\nfor (const item of items) {\n  const row = item.json;\n  const reminderCount = Number(row._reminderCount || 0);\n\n  if (reminderCount >= MAX_REMINDERS) {\n    const vj = parseObj(row.visualJson);\n    const alreadyMarkedExhausted = !!(vj.workflow && vj.workflow.reminderExhausted === true);\n    if (alreadyMarkedExhausted) continue;\n\n    vj.workflow = {\n      ...(vj.workflow && typeof vj.workflow === 'object' && !Array.isArray(vj.workflow) ? vj.workflow : {}),\n      reminderExhausted: true,\n      reminderExhaustedAt: new Date().toISOString()\n    };\n\n    due.push({\n      json: {\n        ...row,\n        visualJson: JSON.stringify(vj),\n        _reminderExhaustedOnly: true\n      }\n    });\n    continue;\n  }\n\n  const lastPromptMs = row._lastReminderAt\n    ? Date.parse(row._lastReminderAt)\n    : (row._candidatesPostedAt ? Date.parse(row._candidatesPostedAt) : 0);\n  if (!lastPromptMs || (now - lastPromptMs) < REMINDER_INTERVAL_MS) continue;\n\n  const candidates = Array.isArray(row._headlineCandidates) ? row._headlineCandidates : [];\n  if (candidates.length === 0) continue;\n\n  const nextReminderCount = reminderCount + 1;\n  const lines = [\n    '⏰ Erinnerung (' + nextReminderCount + '/' + MAX_REMINDERS + ') - noch offen: ' + safeStr(row.vorgangsnummer) + ' - ' + safeStr(row.title),\n    ''\n  ];\n  for (const c of candidates) {\n    lines.push(safeStr(c.code) + ': ' + safeStr(c.imageHeadline) + ' - ' + safeStr(c.imageSubline));\n  }\n  lines.push('');\n  const exampleCode = candidates.length > 0 ? safeStr(candidates[0].code) : '';\n  const vnCode = safeStr(row.vorgangsnummer).replace(/[^0-9A-Za-z]+/g, '-').replace(/^-+|-+$/g, '');\n  lines.push('Antworte mit dem gewuenschten Code (z.B. ' + exampleCode + '), um die Auswahl zu bestaetigen, oder mit \\'' + vnCode + '-X\\' fuer komplett neue Vorschlaege (Vorgangsnummer + -X, ohne Kandidat).');\n\n  const vorgangKeySafe = safeStr(row.vorgangKey).replace(/[^a-zA-Z0-9]/g, '');\n  const txnId = 'hdl_remind_' + vorgangKeySafe + '_r' + nextReminderCount;\n\n  due.push({\n    json: {\n      ...row,\n      matrixReminderMessage: lines.join('\\n'),\n      matrixReminderTxnId: txnId,\n      _nextReminderCount: nextReminderCount,\n      _reminderExhaustedOnly: false\n    }\n  });\n}\n\nreturn due;\n"
       },
       "id": "b1e2c3d4-0007-4aaa-8bbb-000000000007",
       "name": "Finde erinnerungsfällige Vorgänge",
@@ -508,6 +526,37 @@
         240
       ],
       "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "options": {
+          "caseSensitive": true,
+          "leftValue": "",
+          "typeValidation": "strict",
+          "version": 2
+        },
+        "conditions": [
+          {
+            "id": "reminder-exhausted-only-001",
+            "leftValue": "={{ $json._reminderExhaustedOnly }}",
+            "rightValue": true,
+            "operator": {
+              "type": "boolean",
+              "operation": "equals"
+            }
+          }
+        ],
+        "combinator": "and"
+      },
+      "id": "e4f1a2b3-6c9d-4a7e-8f1b-3d5c7a9e0b2f",
+      "name": "IF Nur Exhausted-Markierung?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1424,
+        512
+      ],
+      "notes": "F3 (Architekturpruefung 2026-07-22): true = MAX_REMINDERS bereits erreicht, nur noch visualJson-Markierung schreiben, keine erneute Matrix-Nachricht. false = normaler Erinnerungsversand (unveraendertes Verhalten)."
     }
   ],
   "pinData": {},
