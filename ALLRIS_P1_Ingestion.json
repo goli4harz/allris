@@ -133,7 +133,7 @@
         ],
         [
           {
-            "node": "Expand Documents",
+            "node": "Aggregate Texts",
             "type": "main",
             "index": 0
           }
@@ -360,35 +360,6 @@
         ]
       ]
     },
-    "Expand Documents": {
-      "main": [
-        [
-          {
-            "node": "Loop Dokumente",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Loop Dokumente": {
-      "main": [
-        [
-          {
-            "node": "Aggregate Texts",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Dokument-Extraktion übersprungen (siehe P3 NC-Fallback)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Aggregate Texts": {
       "main": [
         [
@@ -445,17 +416,6 @@
         [
           {
             "node": "HTTP ALLRIS Übersicht",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Dokument-Extraktion übersprungen (siehe P3 NC-Fallback)": {
-      "main": [
-        [
-          {
-            "node": "Loop Dokumente",
             "type": "main",
             "index": 0
           }
@@ -834,20 +794,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const out = [];\nfor (const item of items) {\n  let docs = [];\n  try {\n    docs = JSON.parse(item.json.documentsJson || '[]');\n    if (!Array.isArray(docs)) docs = [];\n  } catch(e) {\n    docs = [];\n  }\n\n  const referer = item.json.allrisUrl || 'https://www.goslar.de/stadt/politik/allris/vo040_r.asp?SORT=2vofdat';\n\n  const base = {\n    vorgangKey:        item.json.vorgangKey,\n    volfdnr:           item.json.volfdnr           || '',\n    title:             item.json.title,\n    vorgangsnummer:    item.json.vorgangsnummer,\n    sourceUrl:         item.json.sourceUrl          || '',\n    allrisUrl:         item.json.allrisUrl,\n    documentCount:     item.json.documentCount,\n    documentsJson:     item.json.documentsJson,\n    vorfilterThemen:   item.json.vorfilterThemen    || [],\n    vorfilterKeywords: item.json.vorfilterKeywords  || [],\n    vorfilterScore:    item.json.vorfilterScore     || 0,\n    isKnown:           item.json.isKnown            || false,\n    needsRefresh:      item.json.needsRefresh       !== false,\n    oldContentStage:   item.json.oldContentStage    || '',\n    oldContentErrorReason: item.json.oldContentErrorReason || '',\n    documentsChanged:  item.json.documentsChanged   === true,\n    stammVorgangsnummer: item.json.stammVorgangsnummer || item.json.vorgangsnummer || '',\n    folgeNummer:         item.json.folgeNummer        || '',\n    istFolgevorgang:     item.json.istFolgevorgang    === true,\n    _docLoopInit:      true,\n    referer\n  };\n\n  if (docs.length === 0) {\n    // Platzhalter-Item für Vorgänge ohne Dokumente\n    const docRunKey = `${item.json.vorgangKey}::__none__`;\n    out.push({ json: {\n      ...base,\n      url:       '',\n      type:      'none',\n      docKey:    '',\n      label:     '',\n      docRunKey\n    }});\n  } else {\n    for (const doc of docs) {\n      const docRunKey = `${item.json.vorgangKey}::${doc.docKey || doc.url}`;\n      out.push({ json: {\n        ...base,\n        url:    doc.url,\n        type:   doc.type,\n        docKey: doc.docKey || '',\n        label:  doc.label  || '',\n        docRunKey\n      }});\n    }\n  }\n}\nreturn out;\n"
-      },
-      "id": "4216f325-3207-4663-86ea-22fdf3906fd0",
-      "name": "Expand Documents",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        112,
-        816
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Vorgangs-Metadaten robust über \"Expand Documents\" holen (1:1 pro Vorgang).\n// \"Loop Dokumente\" hat (alwaysOutputData) schon mehrfach einen Phantom-Aufruf\n// ausgelöst, bei dem der runIndex nicht zu \"Expand Documents\" passt. Ein\n// einzelner solcher Ausreißer darf NIE die gesamte Ausführung abbrechen –\n// deshalb hier überspringen (kein Ergebnis) statt werfen; der Vorgang bleibt\n// als needsRefresh stehen und wird beim nächsten geplanten Lauf erneut versucht.\nlet expandItems = [];\ntry {\n  expandItems = $('Expand Documents').all(0, $runIndex);\n} catch (e) {\n  expandItems = [];\n}\n\n// Sicherer Platzhalter, falls dieser Vorgang übersprungen werden muss:\n// vorgangKey bleibt leer, isKnown:true routet auf \"Update bekannter Vorgang\",\n// dessen Filter (keyValue={{$json.vorgangKey}}) dann keine Zeile trifft –\n// also ein No-Op-Update statt eines falschen Inserts. Wichtig ist nur, dass\n// die Kette weiterläuft und \"Loop Vorgangsseiten\" wieder getriggert wird.\nconst skipResult = [{ json: { vorgangKey: '', isKnown: true, needsRefresh: false, _skippedPhantomAggregate: true } }];\n\nif (!expandItems || expandItems.length === 0) {\n  console.warn(\n    `[Aggregate Texts] Keine Vorgangsdaten von \"Expand Documents\" bei runIndex=${$runIndex} ` +\n    `(vermutlich Phantom-Aufruf von \"Loop Dokumente\") – Vorgang wird übersprungen.`\n  );\n  return skipResult;\n}\n\nconst vorgangMeta = expandItems[0].json || {};\nconst currentVorgangKey = String(vorgangMeta.vorgangKey || '').trim();\n\nif (!currentVorgangKey) {\n  console.warn(\n    `[Aggregate Texts] \"Expand Documents\"-Item besitzt keinen vorgangKey bei runIndex=${$runIndex} – Vorgang wird übersprungen.`\n  );\n  return skipResult;\n}\n\n// Dokument-Text-Extraktion laeuft seit 2026-07-18 nicht mehr in P1 - siehe 'Dokument-\n// Extraktion uebersprungen (siehe P3 NC-Fallback)'. P3s Nextcloud/Tika-Fallback ist die\n// alleinige Extraktionsquelle. combinedText ist deshalb hier immer der technische\n// Platzhalter, den P3s 'Pruefe vorhandenen combinedText' erkennt und auf den NC-Fallback\n// umleitet.\nconst documentCount = Number(vorgangMeta.documentCount || 0);\nconst combinedText = documentCount > 0\n  ? '(Dokumentlinks gefunden, aber kein Dokumenttext extrahierbar)'\n  : '(Keine Dokumentlinks gefunden)';\n\nconst group = {\n  vorgangKey: currentVorgangKey,\n  volfdnr: vorgangMeta.volfdnr || '',\n  title: vorgangMeta.title || '',\n  vorgangsnummer: vorgangMeta.vorgangsnummer || '',\n  sourceUrl: vorgangMeta.sourceUrl || '',\n  allrisUrl: vorgangMeta.allrisUrl || '',\n  documentCount,\n  documentsJson: vorgangMeta.documentsJson || '[]',\n  vorfilterThemen: vorgangMeta.vorfilterThemen || [],\n  vorfilterKeywords: vorgangMeta.vorfilterKeywords || [],\n  vorfilterScore: vorgangMeta.vorfilterScore || 0,\n  isKnown: vorgangMeta.isKnown === true,\n  needsRefresh: vorgangMeta.needsRefresh !== false,\n  oldContentStage: vorgangMeta.oldContentStage || '',\n  oldContentErrorReason: vorgangMeta.oldContentErrorReason || '',\n  documentsChanged: vorgangMeta.documentsChanged === true,\n  stammVorgangsnummer: vorgangMeta.stammVorgangsnummer || vorgangMeta.vorgangsnummer || '',\n  folgeNummer: String(vorgangMeta.folgeNummer || ''),\n  istFolgevorgang: vorgangMeta.istFolgevorgang === true,\n  extractedCount: 0,\n  failedCount: 0\n};\n\nreturn [{\n  json: {\n    vorgangKey: group.vorgangKey,\n    volfdnr: group.volfdnr,\n    title: group.title,\n    vorgangsnummer: group.vorgangsnummer,\n    stammVorgangsnummer: group.stammVorgangsnummer || group.vorgangsnummer || '',\n    folgeNummer: String(group.folgeNummer || ''),\n    istFolgevorgang: group.istFolgevorgang === true,\n    sourceUrl: group.sourceUrl,\n    allrisUrl: group.allrisUrl,\n    documentCount: group.documentCount,\n    documentsJson: group.documentsJson,\n    vorfilterThemen: group.vorfilterThemen,\n    vorfilterKeywords: group.vorfilterKeywords,\n    vorfilterScore: group.vorfilterScore,\n    isKnown: group.isKnown,\n    needsRefresh: group.needsRefresh,\n    oldContentStage: group.oldContentStage || '',\n    oldContentErrorReason: group.oldContentErrorReason || '',\n    documentsChanged: group.documentsChanged === true,\n    extractedDocumentCount: group.extractedCount,\n    failedDocumentCount: group.failedCount,\n    combinedTextLength: combinedText.length,\n    combinedText\n  }\n}];"
+        "jsCode": "// Vereinfacht 2026-07-21: der alte Umweg ueber \"Expand Documents\" -> \"Loop\n// Dokumente\" -> \"Dokument-Extraktion uebersprungen\" tat seit der 07-18-\n// Extraktions-Vereinfachung nichts mehr (reiner No-Op-Durchlauf), verursachte\n// aber ueber einen fehlerhaften SplitInBatches-reset (jedes Dokument-Item,\n// nicht nur das erste pro Vorgang, hatte _docLoopInit:true) hunderte Phantom-\n// Ausfuehrungen pro Lauf -- live beobachtet als Explosion auf 900+ Items bei\n// nur 10 tatsaechlichen Vorgaengen. documentCount/documentsJson stehen bereits\n// auf dem Item aus \"Gruppierung nach Vorgang\"/\"Check if known\" - der ganze\n// Dokument-Loop war fuer diese reine Metadaten-Weitergabe nie noetig.\nreturn items.map(item => {\n  const vorgangMeta = item.json;\n  const documentCount = Number(vorgangMeta.documentCount || 0);\n  const combinedText = documentCount > 0\n    ? '(Dokumentlinks gefunden, aber kein Dokumenttext extrahierbar)'\n    : '(Keine Dokumentlinks gefunden)';\n\n  return { json: {\n    vorgangKey: vorgangMeta.vorgangKey,\n    volfdnr: vorgangMeta.volfdnr || '',\n    title: vorgangMeta.title || '',\n    vorgangsnummer: vorgangMeta.vorgangsnummer || '',\n    stammVorgangsnummer: vorgangMeta.stammVorgangsnummer || vorgangMeta.vorgangsnummer || '',\n    folgeNummer: String(vorgangMeta.folgeNummer || ''),\n    istFolgevorgang: vorgangMeta.istFolgevorgang === true,\n    sourceUrl: vorgangMeta.sourceUrl || '',\n    allrisUrl: vorgangMeta.allrisUrl || '',\n    documentCount,\n    documentsJson: vorgangMeta.documentsJson || '[]',\n    vorfilterThemen: vorgangMeta.vorfilterThemen || [],\n    vorfilterKeywords: vorgangMeta.vorfilterKeywords || [],\n    vorfilterScore: vorgangMeta.vorfilterScore || 0,\n    isKnown: vorgangMeta.isKnown === true,\n    needsRefresh: vorgangMeta.needsRefresh !== false,\n    oldContentStage: vorgangMeta.oldContentStage || '',\n    oldContentErrorReason: vorgangMeta.oldContentErrorReason || '',\n    documentsChanged: vorgangMeta.documentsChanged === true,\n    extractedDocumentCount: 0,\n    failedDocumentCount: 0,\n    combinedTextLength: combinedText.length,\n    combinedText\n  } };\n});"
       },
       "id": "ef945f6c-2758-463d-9b74-b0c0a1ac9d21",
       "name": "Aggregate Texts",
@@ -2447,22 +2394,6 @@
     },
     {
       "parameters": {
-        "options": {
-          "reset": "={{ $json._docLoopInit === true }}"
-        }
-      },
-      "id": "f7c01f0a-d307-4afb-a2f4-f396718ab3f4",
-      "name": "Loop Dokumente",
-      "type": "n8n-nodes-base.splitInBatches",
-      "typeVersion": 3,
-      "position": [
-        352,
-        816
-      ],
-      "alwaysOutputData": true
-    },
-    {
-      "parameters": {
         "operation": "get",
         "dataTableId": {
           "__rl": true,
@@ -2485,19 +2416,6 @@
         48
       ],
       "alwaysOutputData": true
-    },
-    {
-      "parameters": {
-        "jsCode": "// Dokument-Text-Extraktion laeuft seit 2026-07-18 nicht mehr in P1 (HTTP-Download +\n// Tika direkt von der ALLRIS-Quelle). P3s Nextcloud/Tika-Fallback (siehe 'Pruefe\n// vorhandenen combinedText' in ALLRIS_P3_Bewertung) ist die alleinige Extraktionsquelle\n// geworden, nachdem P1s direkter Download beim End-to-End-Test zuverlaessig fehlschlug\n// (vermutlich Session-/Cookie-Problem, nie abschliessend geklaert) - P3 zieht die\n// Dokumente ohnehin nochmal aus Nextcloud (von P2 hochgeladen), P1s eigener Versuch war\n// nur ein nutzloser HTTP/Tika-Roundtrip. Dieser Node ersetzt die gesamte alte\n// Download/Tika-Kette als reiner Durchlaufposten, damit 'Loop Dokumente' weiterhin\n// korrekt durch alle Dokumente eines Vorgangs iteriert (fuer documentCount/documentsJson\n// in 'Aggregate Texts'), ohne pro Dokument einen Netzwerk-Request auszufuehren.\nreturn items;"
-      },
-      "id": "c2b2fc21-1a24-4a00-af3a-afced691e6bd",
-      "name": "Dokument-Extraktion übersprungen (siehe P3 NC-Fallback)",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        576,
-        1008
-      ]
     }
   ],
   "pinData": {},
