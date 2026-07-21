@@ -8,6 +8,11 @@
             "node": "HTTP ALLRIS Übersicht",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Hole archiving_failed",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -401,6 +406,61 @@
         [
           {
             "node": "HTTP Vorgangsseite Warmup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole archiving_failed": {
+      "main": [
+        [
+          {
+            "node": "Filtere unbenachrichtigte archiving_failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtere unbenachrichtigte archiving_failed": {
+      "main": [
+        [
+          {
+            "node": "Baue Archivierungs-Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue Archivierungs-Alert": {
+      "main": [
+        [
+          {
+            "node": "Send Matrix Archivierungs-Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Matrix Archivierungs-Alert": {
+      "main": [
+        [
+          {
+            "node": "Markiere archiving_failed als gemeldet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Markiere archiving_failed als gemeldet": {
+      "main": [
+        [
+          {
+            "node": "DB Markiere archiving_failed gemeldet",
             "type": "main",
             "index": 0
           }
@@ -1220,6 +1280,165 @@
         6832
       ],
       "webhookId": "0e6e3787-0fd6-4e1e-a3aa-2aa0b68d83b9"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "contentStage",
+              "keyValue": "archiving_failed"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "f4a1b2c3-1111-4a2b-8c3d-4e5f6a7b8c9d",
+      "name": "Hole archiving_failed",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        400,
+        640
+      ],
+      "notes": "F4 (Architekturpruefung 2026-07-22): liest alle Vorgaenge im dauerhaften Fehlerzustand archiving_failed (siehe 'Aggregiere Upload Ergebnisse', maxRetries=10)."
+    },
+    {
+      "parameters": {
+        "jsCode": "// F4 (Architekturpruefung 2026-07-22): laesst nur Zeilen durch, die noch\n// nicht per Matrix gemeldet wurden. Nutzt (mangels eigener DB-Spalte in\n// dieser risikoarmen Charge) das in diesem Zustand ohnehin leere Feld\n// contentErrorReason als Dedup-Marker: 'archiving_failed_notified' bedeutet\n// bereits gemeldet. contentStage bleibt unveraendert 'archiving_failed'\n// (weiterhin der in der Status-Uebersicht erkennbare Endzustand). Eine\n// dedizierte Spalte (z.B. archivingFailedNotifiedAt) ist fuer Paket 2\n// (State-History/Fehlercodes) vorgesehen.\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nreturn items.filter(item => {\n  const j = item.json || {};\n  return safeStr(j.contentErrorReason) !== 'archiving_failed_notified';\n});\n"
+      },
+      "id": "f4a1b2c3-2222-4a2b-8c3d-4e5f6a7b8c9d",
+      "name": "Filtere unbenachrichtigte archiving_failed",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        656,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// F4 (Architekturpruefung 2026-07-22): baut eine Matrix-Sammelmeldung fuer\n// Vorgaenge, deren Nextcloud-Archivierung nach 10 Upload-Versuchen endgueltig\n// aufgegeben wurde (contentStage=archiving_failed, siehe \"Aggregiere Upload\n// Ergebnisse\"). Dieser Zustand war zuvor ein stiller Sackgassen-Zustand ohne\n// jede Meldung (Befund F4). Die Vorfilterung auf tatsaechlich neue/\n// ungemeldete Faelle passiert bereits in \"Filtere unbenachrichtigte\n// archiving_failed\". Muster identisch zu \"Baue Blockiert-Alert\" in\n// ALLRIS_P4_Content_Reaktion.json.\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nif (!items || items.length === 0) {\n  return [];\n}\n\nconst zeilen = items.map(item => {\n  const j = item.json || {};\n  const link = safeStr(j.allrisUrl) || safeStr(j.sourceUrl);\n  return `• ${safeStr(j.vorgangsnummer) || '?'} – ${safeStr(j.title) || '(kein Titel)'}\\n  ${link}`;\n});\n\nconst msg = `⚠️ Nextcloud-Archivierung endgueltig fehlgeschlagen (${items.length})\\n\\n` +\n  `Diese Vorgaenge haben 10 Upload-Versuche ueberschritten und werden von P2 ` +\n  `nicht mehr automatisch erneut versucht - sie benoetigen manuelle Pruefung ` +\n  `(z.B. Nextcloud-Erreichbarkeit, Proxy). Diese Meldung wiederholt sich erst ` +\n  `wieder, wenn ein neuer Vorgang denselben Zustand erreicht:\\n\\n` +\n  zeilen.join('\\n\\n');\n\nconst txnId = 'archivealert_' + Date.now();\n\nreturn [{ json: { alertMessage: msg, txnId, blockedCount: items.length } }];\n"
+      },
+      "id": "f4a1b2c3-3333-4a2b-8c3d-4e5f6a7b8c9d",
+      "name": "Baue Archivierungs-Alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://matrix.org/_matrix/client/v3/rooms/!COxTeLJyPszYlaHbIx:matrix.golietz.de/send/m.room.message/{{ $json.txnId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ msgtype: 'm.text', body: $json.alertMessage }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "f4a1b2c3-4444-4a2b-8c3d-4e5f6a7b8c9d",
+      "name": "Send Matrix Archivierungs-Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1168,
+        640
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "od1pN1F5wy2irSDs",
+          "name": "Header Auth account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// F4: re-liest die Pro-Zeilen-Liste vom Vorfilter-Node (nicht vom\n// aggregierten Send-Matrix-Output, der nur noch 1 Sammel-Item enthaelt) -\n// gleiches Muster wie \"Markiere Blockaden als gemeldet\" in\n// ALLRIS_P4_Content_Reaktion.json.\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nlet alerted = [];\ntry { alerted = $('Filtere unbenachrichtigte archiving_failed').all(); } catch (e) { alerted = []; }\n\nreturn alerted\n  .filter(item => safeStr(item.json && item.json.vorgangKey))\n  .map(item => ({\n    json: {\n      vorgangKey: safeStr(item.json.vorgangKey)\n    }\n  }));\n"
+      },
+      "id": "f4a1b2c3-5555-4a2b-8c3d-4e5f6a7b8c9d",
+      "name": "Markiere archiving_failed als gemeldet",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1424,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "contentErrorReason": "archiving_failed_notified"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "contentErrorReason",
+              "displayName": "contentErrorReason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "f4a1b2c3-6666-4a2b-8c3d-4e5f6a7b8c9d",
+      "name": "DB Markiere archiving_failed gemeldet",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1680,
+        640
+      ]
     }
   ],
   "pinData": {},
