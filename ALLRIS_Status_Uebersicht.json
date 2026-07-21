@@ -5,7 +5,25 @@
       "main": [
         [
           {
+            "node": "Prüfe Zugriffstoken",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prüfe Zugriffstoken": {
+      "main": [
+        [
+          {
             "node": "Hole alle Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Antwort 401 Unauthorized",
             "type": "main",
             "index": 0
           }
@@ -54,6 +72,54 @@
         272
       ],
       "webhookId": "5986f412-93e4-4afb-88f4-438e18e8aec2"
+    },
+    {
+      "parameters": {
+        "options": {
+          "caseSensitive": true,
+          "leftValue": "",
+          "typeValidation": "strict",
+          "version": 2
+        },
+        "conditions": [
+          {
+            "id": "status-auth-check-001",
+            "leftValue": "={{ !!$env.ALLRIS_STATUS_TOKEN && !!$json.query && $json.query.token === $env.ALLRIS_STATUS_TOKEN }}",
+            "rightValue": true,
+            "operator": {
+              "type": "boolean",
+              "operation": "equals"
+            }
+          }
+        ],
+        "combinator": "and"
+      },
+      "id": "9c2f4b6e-1a3d-4e7f-8b2c-6d5e9f0a1b2c",
+      "name": "Prüfe Zugriffstoken",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1136,
+        272
+      ],
+      "notes": "F8 (Architekturpruefung 2026-07-22): verlangt ?token=... als Query-Parameter, verglichen gegen die n8n-Umgebungsvariable ALLRIS_STATUS_TOKEN. Muss auf dem n8n-Host gesetzt werden (kein hartcodiertes Secret). Ist die Variable nicht gesetzt, schlaegt die Pruefung IMMER fehl (sicherer Default, kein versehentliches Offenlassen)."
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Unauthorized – fehlender oder falscher ?token=... Parameter.",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "7b1e3d5a-4c8f-4a2b-9e6d-2f1a8c3b5d7e",
+      "name": "Antwort 401 Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1136,
+        440
+      ]
     },
     {
       "parameters": {
