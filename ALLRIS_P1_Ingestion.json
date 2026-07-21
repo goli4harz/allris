@@ -1832,7 +1832,9 @@
         1072,
         1024
       ],
-      "alwaysOutputData": true
+      "alwaysOutputData": true,
+      "notes": "F9 (Architekturpruefung 2026-07-22): Diese Spalte enthaelt dieselbe Reset-Regel ('wann darf ein alter Fehlerstatus ueberschrieben werden') wie ALLRIS_P2_Nextcloud.json, Node 'Aggregiere Upload Ergebnisse' (RESET_CONTENT_STAGES/RESET_ERROR_REASONS). Zwei unabhaengige Implementierungen derselben Regel - bei Aenderung IMMER beide Stellen synchron halten. Echte Code-Konsolidierung (gemeinsamer Sub-Workflow) bewusst noch nicht umgesetzt, siehe Umsetzungsplan Paket 2/7.",
+      "notesInFlow": true
     },
     {
       "parameters": {
