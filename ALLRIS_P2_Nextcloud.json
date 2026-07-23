@@ -284,11 +284,21 @@
             "node": "Update Nextcloud Archive Status",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "History Archivierung Erfolg",
+            "type": "main",
+            "index": 0
           }
         ],
         [
           {
             "node": "Markiere Fehler in DataTable",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "History Archivierung Fehler",
             "type": "main",
             "index": 0
           }
@@ -1450,6 +1460,80 @@
       "position": [
         1680,
         640
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "Q54kptpOrbug6bJu",
+          "mode": "list",
+          "cachedResultName": "allris_state_history",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/Q54kptpOrbug6bJu"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_id": "={{ 'p2-' + $execution.id + '-' + $json.vorgangKey + '-success' }}",
+            "vorgang_key": "={{ $json.vorgangKey }}",
+            "pipeline_stage": "archive",
+            "old_state": "",
+            "new_state": "archived",
+            "reason_code": "",
+            "reason_message": "",
+            "workflow_name": "ALLRIS_P2_Nextcloud",
+            "workflow_execution_id": "={{ $execution.id }}",
+            "created_at": "={{ $now.toISO() }}",
+            "metadata_json": "={{ JSON.stringify({ expected: $json._expectedCount, uploaded: $json._uploadedCount, failed: $json._failedCount }) }}"
+          },
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "622ddd53-e8da-4545-82aa-12f83eb59e48",
+      "name": "History Archivierung Erfolg",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        25184,
+        6880
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "Q54kptpOrbug6bJu",
+          "mode": "list",
+          "cachedResultName": "allris_state_history",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/Q54kptpOrbug6bJu"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_id": "={{ 'p2-' + $execution.id + '-' + $json.vorgangKey + '-failure' }}",
+            "vorgang_key": "={{ $json.vorgangKey }}",
+            "pipeline_stage": "archive",
+            "old_state": "",
+            "new_state": "={{ Number($json.nextcloudRetryCount || 0) >= 10 ? 'failed' : 'retry_scheduled' }}",
+            "reason_code": "NEXTCLOUD_UPLOAD_FAILED",
+            "reason_message": "={{ ($json._uploadErrors || []).join(' | ').slice(0, 4000) }}",
+            "workflow_name": "ALLRIS_P2_Nextcloud",
+            "workflow_execution_id": "={{ $execution.id }}",
+            "created_at": "={{ $now.toISO() }}",
+            "metadata_json": "={{ JSON.stringify({ expected: $json._expectedCount, uploaded: $json._uploadedCount, failed: $json._failedCount, retry_count: Number($json.nextcloudRetryCount || 0) }) }}"
+          },
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "4f61048e-044b-4308-8bfc-e8340d33741d",
+      "name": "History Archivierung Fehler",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        25184,
+        7408
       ]
     }
   ],

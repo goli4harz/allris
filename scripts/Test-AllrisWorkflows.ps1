@@ -147,6 +147,26 @@ if ($null -ne $p2) {
         $p2SuccessNode[0].parameters.columns.value.last_error_code -ne '') {
         Add-Failure 'P2: zentrale Fehlerfelder werden nach Erfolg nicht zurückgesetzt.'
     }
+    $p2HistorySuccess = @($p2.nodes | Where-Object name -eq 'History Archivierung Erfolg')
+    $p2HistoryFailure = @($p2.nodes | Where-Object name -eq 'History Archivierung Fehler')
+    if ($p2HistorySuccess.Count -ne 1 -or
+        $p2HistoryFailure.Count -ne 1 -or
+        $p2HistorySuccess[0].parameters.dataTableId.value -ne 'Q54kptpOrbug6bJu' -or
+        $p2HistoryFailure[0].parameters.dataTableId.value -ne 'Q54kptpOrbug6bJu' -or
+        $p2HistoryFailure[0].parameters.columns.value.reason_code -ne 'NEXTCLOUD_UPLOAD_FAILED') {
+        Add-Failure 'P2: Append-History für Archivierung ist unvollständig.'
+    }
+    $p2IfTargets = @(
+        $p2.connections.'IF alle Uploads OK?'.main |
+            ForEach-Object { $_ } |
+            ForEach-Object { $_ } |
+            ForEach-Object { [string]$_.node }
+    )
+    foreach ($requiredTarget in @('History Archivierung Erfolg', 'History Archivierung Fehler')) {
+        if ($requiredTarget -notin $p2IfTargets) {
+            Add-Failure "P2: IF-Ausgang ist nicht mit '$requiredTarget' verbunden."
+        }
+    }
 }
 
 Write-Host "Geprüfte Exporte: $($workflowFiles.Count)"

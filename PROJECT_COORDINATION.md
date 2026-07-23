@@ -91,8 +91,12 @@ Neueste Einträge stehen oben.
 - Strukturtest schützt Fehlercode, Stufe und Erfolgs-Reset.
 - Betroffene Dateien: `ALLRIS_P2_Nextcloud.json`,
   `scripts/Test-AllrisWorkflows.ps1`, `PROJECT_COORDINATION.md`.
-- Nächster Schritt: Append-Eintrag in `allris_state_history` ergänzen und erst
-  danach P2 live veröffentlichen.
+- Append-Einträge für Erfolg und Fehler in `allris_state_history` ergänzt.
+- P2 aktiv und UTF-8-strukturgleich live veröffentlicht; 41 Nodes inklusive
+  beider History-Pfade.
+- Tests: alle 24 Exporte, 7 Sub-Workflow-IDs und Live-Drift-Prüfung
+  erfolgreich; nur die akzeptierte LAN-Statuswarnung bleibt.
+- Nächster Schritt: nächsten P2-Lauf auf Statusupdate und History-Zeile prüfen.
 
 ### 2026-07-23 – Codex – Fehlerfelder live angelegt
 
