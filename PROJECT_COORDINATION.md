@@ -81,6 +81,23 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 Neueste Einträge stehen oben.
 
+### 2026-07-23 – Codex – P3-Quellen- und Parsefehler angebunden
+
+- Fehlender Summary-Quelltext und unbrauchbare Metadaten schreiben
+  `SOURCE_TEXT_MISSING`, Stufe `extraction`.
+- Nicht parsebares Summary-JSON schreibt `CONTENT_JSON_INVALID`, Stufe
+  `analysis`.
+- Alle drei vorhandenen False-Ausgänge schreiben in eine gemeinsame
+  Append-History mit Retry-Metadaten.
+- Ein gemeinsamer History-Node im bestehenden Fehlerbereich; 15×5-Raster
+  bleibt gewahrt.
+- Betroffene Dateien: `ALLRIS_P3_Bewertung.json`,
+  `scripts/Test-AllrisWorkflows.ps1`, `PROJECT_COORDINATION.md`.
+- Live-Rollout: P3 aktiv mit 55 Nodes und UTF-8-strukturgleich zum Export.
+- Tests: alle 24 Exporte, 7 Sub-Workflow-IDs, drei History-Quellen und
+  Live-Drift-Prüfung erfolgreich.
+- Nächster Schritt: P3d-Fakten-/QA-Endfehler analysieren.
+
 ### 2026-07-23 – Codex – P5-Visual-Gate persistiert
 
 - Zuvor still übersprungene Content-Gate-Fehler werden nun persistiert.

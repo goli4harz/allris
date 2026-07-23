@@ -290,6 +290,20 @@ if ($null -ne $p5) {
     }
 }
 
+$p3 = $workflows['ALLRIS_P3_Bewertung'].Data
+if ($null -ne $p3) {
+    $p3SourceError = @($p3.nodes | Where-Object id -eq 'eebbeedb-3551-415b-a532-5bd843170abd')
+    $p3ParseError = @($p3.nodes | Where-Object id -eq '635b1889-95d1-46cd-8db3-ff1ba0c2cddb')
+    $p3History = @($p3.nodes | Where-Object id -eq '063477f3-46d0-4765-9a05-3ac1436cc80d')
+    if ($p3SourceError.Count -ne 1 -or
+        $p3SourceError[0].parameters.columns.value.last_error_code -ne 'SOURCE_TEXT_MISSING' -or
+        $p3ParseError.Count -ne 1 -or
+        $p3ParseError[0].parameters.columns.value.last_error_code -ne 'CONTENT_JSON_INVALID' -or
+        $p3History.Count -ne 1) {
+        Add-Failure 'P3: zentraler Quellen-/Parsefehlervertrag ist unvollständig.'
+    }
+}
+
 Write-Host "Geprüfte Exporte: $($workflowFiles.Count)"
 Write-Host "Sub-Workflow-Referenzen: $($idsReferenced.Count)"
 
