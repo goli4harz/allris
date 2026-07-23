@@ -158,6 +158,15 @@ $p2 = $workflows['ALLRIS_P2_Nextcloud'].Data
 if ($null -ne $p2) {
     $p2FailureNode = @($p2.nodes | Where-Object name -eq 'Markiere Fehler in DataTable')
     $p2SuccessNode = @($p2.nodes | Where-Object name -eq 'Update Nextcloud Archive Status')
+    $p2ClaimCalls = @($p2.nodes | Where-Object {
+        $_.type -match 'executeWorkflow' -and
+        $_.parameters.workflowId.value -eq 'D7cmBsy3exuOkBd9'
+    })
+    $p2ClaimPrepare = @($p2.nodes | Where-Object name -eq 'Bereite P2 Claims vor')
+    $p2ClaimRelease = @($p2.nodes | Where-Object name -eq 'Bereite P2 Claim-Freigabe vor')
+    $p2ReleaseSources = @($p2.connections.psobject.Properties | Where-Object {
+        @($_.Value.main | ForEach-Object { $_ | ForEach-Object node }) -contains 'Bereite P2 Claim-Freigabe vor'
+    })
     if ($p2FailureNode.Count -ne 1 -or
         $p2FailureNode[0].parameters.columns.value.last_error_code -ne 'NEXTCLOUD_UPLOAD_FAILED' -or
         $p2FailureNode[0].parameters.columns.value.last_error_stage -ne 'archive') {
@@ -167,6 +176,14 @@ if ($null -ne $p2) {
         $p2SuccessNode[0].parameters.columns.value.retry_count -ne 0 -or
         $p2SuccessNode[0].parameters.columns.value.last_error_code -ne '') {
         Add-Failure 'P2: zentrale Fehlerfelder werden nach Erfolg nicht zurückgesetzt.'
+    }
+    if ($p2ClaimCalls.Count -ne 2 -or
+        $p2ClaimPrepare.Count -ne 1 -or
+        $p2ClaimPrepare[0].parameters.jsCode -notlike "*claimStage: 'archival'*" -or
+        $p2ClaimPrepare[0].parameters.jsCode -notlike '*leaseMinutes: 60*' -or
+        $p2ClaimRelease.Count -ne 1 -or
+        $p2ReleaseSources.Count -ne 2) {
+        Add-Failure 'P2: Claim-/Lease-Vertrag ist unvollständig.'
     }
     $p2HistorySuccess = @($p2.nodes | Where-Object name -eq 'History Archivierung Erfolg')
     $p2HistoryFailure = @($p2.nodes | Where-Object name -eq 'History Archivierung Fehler')

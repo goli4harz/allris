@@ -79,6 +79,20 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 ## Änderungs- und Übergabeprotokoll
 
+### 2026-07-23 – Codex – P2 an Claim-/Lease angebunden
+
+- Betroffene Dateien: `ALLRIS_P2_Nextcloud.json`,
+  `scripts/Test-AllrisWorkflows.ps1`, `PROJECT_COORDINATION.md`.
+- Archivierungskandidaten erwerben vor dem Loop einen atomaren Claim; fremde
+  gültige Claims werden übersprungen.
+- Claim-Owner `ALLRIS_P2_Nextcloud:<execution-id>`, Stufe `archival`,
+  60-Minuten-Lease für Download/Nextcloud-Operationen.
+- Persistierter Erfolg und Fehler geben nur den eigenen Claim frei;
+  ungefangene Abbrüche behalten die Lease zur Recovery.
+- Live-Rollout: P2 aktiv, 46 Nodes, Version
+  `be795faf-00d8-44d2-96df-a4ce884c46a8`; Scheduler neu registriert.
+- Der vorgelagerte externe ALLRIS-`504`/Verbindungsabbruch bleibt BLK-004.
+
 ### 2026-07-23 – Codex – P7 und P8 an Claim-/Lease angebunden
 
 - Betroffene Dateien: `ALLRIS_P7_WordPress_Publish.json`,
