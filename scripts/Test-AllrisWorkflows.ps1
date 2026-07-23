@@ -73,6 +73,27 @@ foreach ($file in $workflowFiles) {
         Add-Failure "$($file.Name): doppelter Node-Name '$($duplicate.Name)'."
     }
 
+    # Visuell leicht versetzte Nodes (bis 32 px) gelten als dieselbe Zeile.
+    # So bleibt das vereinbarte Raster mit maximal 15 lesbaren Nodes pro Reihe
+    # auch bei späteren Workflow-Erweiterungen überprüfbar.
+    $layoutBands = [System.Collections.Generic.List[object]]::new()
+    foreach ($y in @($workflow.nodes | ForEach-Object {
+        [int]$_.position[1]
+    } | Sort-Object)) {
+        $band = @($layoutBands | Where-Object {
+            [Math]::Abs($y - [int]$_.Anchor) -le 32
+        } | Select-Object -First 1)
+        if ($band.Count -eq 1) {
+            $band[0].Count++
+        } else {
+            $layoutBands.Add([pscustomobject]@{ Anchor = $y; Count = 1 })
+        }
+    }
+    $overfullBands = @($layoutBands | Where-Object Count -gt 15)
+    foreach ($band in $overfullBands) {
+        Add-Failure "$($file.Name): Layout-Zeile bei y=$($band.Anchor) enthält $($band.Count) Nodes (maximal 15)."
+    }
+
     foreach ($source in $workflow.connections.PSObject.Properties) {
         foreach ($channel in $source.Value.PSObject.Properties) {
             foreach ($branch in $channel.Value) {

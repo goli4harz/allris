@@ -79,6 +79,15 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 ## Änderungs- und Übergabeprotokoll
 
+### 2026-07-23 – Codex – 15-Node-Layoutgrenze automatisiert
+
+- Betroffene Dateien: `scripts/Test-AllrisWorkflows.ps1`,
+  `PROJECT_COORDINATION.md`.
+- Der Strukturtest gruppiert Nodes mit bis zu 32 Pixel Y-Abstand als eine
+  visuelle Zeile und meldet mehr als 15 Nodes pro Reihe als Fehler.
+- Alle 25 Exporte erfüllen die Grenze; leicht versetzte Nodes können die
+  Prüfung nicht durch künstlich unterschiedliche Y-Werte umgehen.
+
 ### 2026-07-23 – Codex – Paperless-Kontextwiederherstellung gehärtet
 
 - Betroffene Dateien: `ALLRIS_Paperless_Backfill.json`,
