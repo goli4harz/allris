@@ -186,14 +186,26 @@ if ($null -ne $paperless) {
     }
     $paperlessLog = @($paperless.nodes | Where-Object name -eq 'Paperless Log Ergebnis (Backfill)')
     $paperlessAggregate = @($paperless.nodes | Where-Object name -eq 'Aggregiere Backfill-Ergebnis')
-    if ($paperlessLog.Count -ne 1 -or
-        -not ([string]$paperlessLog[0].parameters.jsCode).Contains(
-            'context = $(''Paperless Titel bauen (Backfill)'').item.json || {}'
-        ) -or
-        $paperlessAggregate.Count -ne 1 -or
-        -not ([string]$paperlessAggregate[0].parameters.jsCode).Contains(
-            'Erwartet genau einen vorgangKey in den Ergebnissen'
-        )) {
+    $paperlessLogCode = if ($paperlessLog.Count -eq 1) {
+        [string]$paperlessLog[0].parameters.jsCode
+    } else {
+        ''
+    }
+    $paperlessAggregateCode = if ($paperlessAggregate.Count -eq 1) {
+        [string]$paperlessAggregate[0].parameters.jsCode
+    } else {
+        ''
+    }
+    $paperlessContextGuardValid =
+        $paperlessLog.Count -eq 1 -and
+        $paperlessLogCode.Contains('function linkedJson(nodeName)') -and
+        $paperlessLogCode.Contains("linkedJson('Paperless Titel bauen (Backfill)')") -and
+        $paperlessLogCode.Contains("linkedJson('Code Pr") -and
+        -not $paperlessLogCode.Contains('$(nodeName).first') -and
+        $paperlessLogCode.Contains('Item-Kontext ohne vorgangKey') -and
+        $paperlessAggregate.Count -eq 1 -and
+        $paperlessAggregateCode.Contains('Erwartet genau einen vorgangKey in den Ergebnissen')
+    if (-not $paperlessContextGuardValid) {
         Add-Failure 'Paperless: Vorgangskontext wird vor der Abschlussaggregation nicht zuverlässig wiederhergestellt.'
     }
 }

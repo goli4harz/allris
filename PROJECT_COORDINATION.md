@@ -79,6 +79,20 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 ## Änderungs- und Übergabeprotokoll
 
+### 2026-07-23 – Codex – Paperless-Kontextwiederherstellung gehärtet
+
+- Betroffene Dateien: `ALLRIS_Paperless_Backfill.json`,
+  `scripts/Test-AllrisWorkflows.ps1`, `PROJECT_COORDINATION.md`.
+- Aus Ausführung `10047` wurde strukturell bestätigt, dass ein alter
+  Ergebniszweig den `vorgangKey` vor der Aggregation verlor.
+- Der Log-Node verwendet nun ausschließlich item-verknüpfte Kontexte aus
+  Titel- und Downloadprüfung; ein unsicherer `first()`-Fallback bleibt verboten.
+- Fehlt der Schlüssel trotzdem, bricht der Zweig explizit ab, statt Erfolg oder
+  Fehler einem möglicherweise falschen Vorgang zuzuordnen.
+- Live-Rollout: Paperless aktiv, 51 Nodes, Version
+  `f0f2fdc0-78c4-4fe4-b24d-2a56a233ea66`; Scheduler erneut registriert.
+- Reguläre Abnahme beim nächsten `:50`-Lauf steht aus.
+
 ### 2026-07-23 – Codex – Scheduler neu registriert und P8-Iststand bereinigt
 
 - Betroffene Dateien: `ALLRIS_P8_Partei_Webseite.json`,
