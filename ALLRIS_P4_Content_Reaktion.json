@@ -85,12 +85,24 @@
       "main": [
         [
           {
-            "node": "Sortiere Reaktions-Vorgänge nach Vorgangsnummer",
+            "node": "Bereite P4 Claims vor",
             "type": "main",
             "index": 0
           }
         ]
       ]
+    },
+    "Bereite P4 Claims vor": {
+      "main": [[{"node":"Erwerbe P4 Claim","type":"main","index":0}]]
+    },
+    "Erwerbe P4 Claim": {
+      "main": [[{"node":"Nur bestaetigte P4 Claims","type":"main","index":0}]]
+    },
+    "Nur bestaetigte P4 Claims": {
+      "main": [[{"node":"Sortiere Reaktions-Vorgänge nach Vorgangsnummer","type":"main","index":0}]]
+    },
+    "Bereite P4 Claim-Freigabe vor": {
+      "main": [[{"node":"Release P4 Claim","type":"main","index":0}]]
     },
     "Loop Reaktions-Vorgänge": {
       "main": [
@@ -191,6 +203,11 @@
         [
           {
             "node": "Nächster Reaktions-Vorgang",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Bereite P4 Claim-Freigabe vor",
             "type": "main",
             "index": 0
           }
@@ -384,6 +401,11 @@
         [
           {
             "node": "Nächster Reaktions-Vorgang",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Bereite P4 Claim-Freigabe vor",
             "type": "main",
             "index": 0
           }
@@ -3632,6 +3654,68 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [10960, 1776]
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = Date.now();\nconst owner = `ALLRIS_P4_Content_Reaktion:${$execution.id}`;\nreturn items\n  .filter(item => {\n    const j = item.json || {};\n    const oldOwner = String(j.claim_owner || '').trim();\n    const expires = Date.parse(String(j.claim_expires_at || ''));\n    return !oldOwner || !Number.isFinite(expires) || expires <= now;\n  })\n  .map(item => ({ json: {\n    ...item.json,\n    claimAction: 'acquire',\n    claimOwner: owner,\n    claimStage: 'content',\n    leaseMinutes: 30,\n    expectedClaimOwner: item.json.claim_owner ?? null,\n    expectedClaimExpiresAt: item.json.claim_expires_at ?? null\n  } }));"
+      },
+      "id": "0718293a-1111-4071-8293-000000000001",
+      "name": "Bereite P4 Claims vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [8272, 1280]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D7cmBsy3exuOkBd9",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Claim_Lease"
+        },
+        "options": {"waitForSubWorkflow":true}
+      },
+      "id": "0718293a-2222-4071-8293-000000000002",
+      "name": "Erwerbe P4 Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [8512, 1280]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.filter(item => item.json?.claimAcquired === true);"
+      },
+      "id": "0718293a-3333-4071-8293-000000000003",
+      "name": "Nur bestaetigte P4 Claims",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [8752, 1280]
+    },
+    {
+      "parameters": {
+        "jsCode": "const vorgangKey = String($json.vorgangKey || '').trim();\nif (!vorgangKey) throw new Error('[P4 Claim Release] vorgangKey fehlt.');\nreturn [{ json: { vorgangKey, claimAction: 'release', claimOwner: `ALLRIS_P4_Content_Reaktion:${$execution.id}` } }];"
+      },
+      "id": "0718293a-4444-4071-8293-000000000004",
+      "name": "Bereite P4 Claim-Freigabe vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [10464, 2208]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D7cmBsy3exuOkBd9",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Claim_Lease"
+        },
+        "options": {"waitForSubWorkflow":true}
+      },
+      "id": "0718293a-5555-4071-8293-000000000005",
+      "name": "Release P4 Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [10704, 2208]
     }
   ],
   "pinData": {},
@@ -3640,5 +3724,5 @@
     "binaryMode": "separate"
   },
   "tags": [],
-  "versionId": "27b80273-b4f5-4bb0-a019-24e2806c8fde"
+  "versionId": "449a19d4-dc0d-49f0-b7b2-2295876eb6a1"
 }

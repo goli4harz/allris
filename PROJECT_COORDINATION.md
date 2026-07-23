@@ -81,6 +81,21 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 Neueste Einträge stehen oben.
 
+### 2026-07-23 – Codex – P4 an Claim-/Lease angebunden
+
+- Claims gelten ausschließlich für den produktiven `needs_content`-Pfad;
+  sechs vorhandene Repair-/Alert-Nebenpfade blieben unverändert.
+- Fremde gültige Claims werden vor Sortierung und Content-Erzeugung
+  übersprungen; freie/abgelaufene Claims werden atomar übernommen.
+- `Update Final Status` und der gemeinsame Content-/SourceLock-Fehlerabschluss
+  geben nur `ALLRIS_P4_Content_Reaktion:<execution-id>` frei.
+- Claim-Stufe `content`, Lease 30 Minuten.
+- Layout: 55 Nodes, maximal 11 Nodes in einer Reihe.
+- Live: aktiv, Version `449a19d4-dc0d-49f0-b7b2-2295876eb6a1`.
+- Tests: 25 Exporte, 15 Sub-Workflow-Referenzen, beide Release-Quellen und
+  Live-Drift-Prüfung erfolgreich.
+- Nächster Schritt: regulären Zyklus abnehmen und P5 anbinden.
+
 ### 2026-07-23 – Codex – P3e an Claim-/Lease angebunden
 
 - P3e übernimmt freie oder abgelaufene Kernbotschaft-Kandidaten atomar und

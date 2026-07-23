@@ -293,6 +293,24 @@ if ($null -ne $p8) {
 
 $p4 = $workflows['ALLRIS_P4_Content_Reaktion'].Data
 if ($null -ne $p4) {
+    $p4ClaimCalls = @($p4.nodes | Where-Object {
+        $_.type -eq 'n8n-nodes-base.executeWorkflow' -and
+        $_.parameters.workflowId.value -eq 'D7cmBsy3exuOkBd9'
+    })
+    $p4ClaimPrepare = @($p4.nodes | Where-Object name -eq 'Bereite P4 Claims vor')
+    $p4ClaimRelease = @($p4.nodes | Where-Object name -eq 'Bereite P4 Claim-Freigabe vor')
+    if ($p4ClaimCalls.Count -ne 2 -or
+        $p4ClaimPrepare.Count -ne 1 -or
+        -not ([string]$p4ClaimPrepare[0].parameters.jsCode).Contains(
+            'expectedClaimExpiresAt: item.json.claim_expires_at ?? null'
+        ) -or
+        $p4ClaimRelease.Count -ne 1 -or
+        -not ([string]$p4ClaimRelease[0].parameters.jsCode).Contains(
+            'ALLRIS_P4_Content_Reaktion:${$execution.id}'
+        )) {
+        Add-Failure 'P4: Claim-Erwerb oder owner-gebundene Freigabe ist unvollständig.'
+    }
+
     $p4Failure = @($p4.nodes | Where-Object id -eq '4ffb1a4a-9d50-46bf-830d-36ae2f4a864c')
     $p4History = @($p4.nodes | Where-Object id -eq '6623da40-2cc6-4ce8-9479-4596675b331d')
     if ($p4Failure.Count -ne 1 -or
