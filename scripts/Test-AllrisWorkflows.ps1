@@ -109,10 +109,50 @@ foreach ($file in $workflowFiles) {
             Add-Failure "$($file.Name): Matrix-Node '$($node.name)' aktiviert httpHeaderAuth nicht vollständig."
         }
     }
+
+    # sourceConflict ist laut kanonischem Vertrag optional. Diese bekannten
+    # Pflichtmuster dürfen in keinem Code-Node erneut eingeführt werden.
+    $forbiddenSourceConflictChecks = @(
+        'safeStr(sl.sourceConflict) &&',
+        'safe(sl.sourceConflict) &&',
+        'sl.sourceConflict &&',
+        '!_canonicalSL.sourceConflict',
+        '!currentSourceLock.sourceConflict',
+        "!sourceConflict) errors.push(",
+        "!canonicalSourceLock.sourceConflict) sourceLockErrors.push(",
+        "!safe(sourceLock.sourceConflict)) sourceLockErrors.push(",
+        "!safeStr(sourceLock.sourceConflict)) sourceLockErrors.push("
+    )
+    foreach ($node in @($workflow.nodes | Where-Object type -eq 'n8n-nodes-base.code')) {
+        $code = [string]$node.parameters.jsCode
+        foreach ($pattern in $forbiddenSourceConflictChecks) {
+            if ($code.Contains($pattern)) {
+                Add-Failure "$($file.Name): Code-Node '$($node.name)' behandelt optionales sourceConflict als Pflichtfeld ('$pattern')."
+            }
+        }
+    }
 }
 
 Write-Host "Geprüfte Exporte: $($workflowFiles.Count)"
 Write-Host "Sub-Workflow-Referenzen: $($idsReferenced.Count)"
+
+# Regression: Eine konfliktlose Mitteilung mit allen kanonischen Pflichtfeldern
+# ist ein gültiger SourceLock.
+$conflictFreeSourceLock = [pscustomobject]@{
+    sourceTopic = 'Sanierung einer Sporthalle'
+    sourceConflict = ''
+    requiredTerms = @('Sporthalle', 'Sanierung')
+    requiredObjects = @('Sporthalle', 'Baugerüst')
+    requiredAction = 'Sporthalle sanieren'
+}
+$conflictFreeSourceLockValid =
+    -not [string]::IsNullOrWhiteSpace($conflictFreeSourceLock.sourceTopic) -and
+    @($conflictFreeSourceLock.requiredTerms).Count -ge 2 -and
+    @($conflictFreeSourceLock.requiredObjects).Count -ge 2 -and
+    -not [string]::IsNullOrWhiteSpace($conflictFreeSourceLock.requiredAction)
+if (-not $conflictFreeSourceLockValid) {
+    Add-Failure 'SourceLock-Regression: konfliktloser Vorgang wurde als ungültig bewertet.'
+}
 
 if ($CheckLive) {
     if ([string]::IsNullOrWhiteSpace($N8nBaseUrl)) {

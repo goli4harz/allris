@@ -61,6 +61,11 @@ Jede Zeile in der Data Table `allris_vorgaenge` trägt mehrere unabhängige Zust
 
 Das ersetzt zwei ältere Modelle: zuerst ein zwei-Felder-Modell (`status`, `visualStatus`), das de facto drei Zustände in zwei Spalten kodierte und wiederholt zu Bugs führte (Migration 2026-07-17/18); danach ein einzelnes `visualStage`-Feld, das von **drei unabhängig entstandenen, teils widersprüchlichen Formeln** parallel beschrieben wurde (P3 direkt nach der Analyse, P3 nach der Headline-Umfrage, P4 nach der Content-Erzeugung — mit jeweils eigenen, leicht unterschiedlichen Schwellenwerten auf denselben Zahlen). **Am 2026-07-19 aufgelöst**: der neue `ALLRIS_Eignungs_Agent` trifft die "braucht dieser Vorgang ein Sharepic?"-Entscheidung als echtes redaktionelles Ermessen (KI-Agent, kein Schwellenwert), `visualStage` wurde in die drei oben genannten, klar getrennten Felder aufgeteilt. Ein manuelles Force-Reset läuft weiterhin über zwei eigene Boolean-Spalten (`visualForceReset`, `imageForceReset`) statt über magische String-Werte.
 
+Der verbindliche Quellenvertrag ist in
+[`docs/SOURCELOCK_CONTRACT.md`](docs/SOURCELOCK_CONTRACT.md) dokumentiert.
+`sourceConflict` ist optional: Ein leerer Wert darf einen konfliktlosen,
+ansonsten vollständig belegten Vorgang nicht blockieren.
+
 ## Agenten-System (produktiv seit 2026-07-18/19)
 
 Sechs einzeln zuständige KI-Agenten plus ein Vergleichs-Werkzeug, die frühere, über P3/P3b/P4/P5 verstreute Prüf- und Generierungslogik konsolidieren. **War bis 2026-07-17 reiner Schattenbetrieb** (parallel mitgelaufen, ohne das Live-Ergebnis zu beeinflussen) — seit dem Cutover am 2026-07-18 sind fünf der sechs Agenten echte, aufrufende Bestandteile der Pipeline, nicht mehr nur Vergleichsdaten:

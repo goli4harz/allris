@@ -50,7 +50,7 @@ Statuswerte: `geplant`, `aktiv`, `teilweise`, `erfüllt`, `verworfen`.
 | TASK-005 | mittel | Lizenz und Beitragsregeln festlegen | Oliver | Entscheidung nötig | gewünschte Lizenz bestimmen |
 | TASK-006 | kritisch | Matrix-Authentifizierung im P6-Node `Sende Presseartikel Matrix` aktivieren und testen | Codex | Review | Authentifizierung live aktiviert; kontrollierter Matrix-Funktionstest steht noch aus |
 | TASK-007 | kritisch | Fachliche Rolle und positives Veröffentlichungs-Gate für P7 festlegen | Oliver | Entscheidung nötig | Vollarchiv oder redaktioneller Kanal; Audit F-02 |
-| TASK-008 | hoch | Kanonischen SourceLock-Vertrag festlegen und `sourceConflict` in allen Stufen einheitlich behandeln | offen | offen | Audit F-03 |
+| TASK-008 | hoch | Kanonischen SourceLock-Vertrag festlegen und `sourceConflict` in allen Stufen einheitlich behandeln | Codex | erledigt | Vertrag dokumentiert; P3b/P4/P5/P6 gemeinsam live veröffentlicht und getestet |
 | TASK-009 | hoch | Zeitkaskade durch Claim-/Lease-fähigen Dispatcher absichern | offen | offen | baut auf TASK-001/TASK-002 auf; Audit F-04 |
 | TASK-010 | mittel | Workflow-ID- und Infrastruktur-Konfigurationslandkarte anlegen | Codex | erledigt | `docs/WORKFLOW_ID_MAP.md`; Live-IDs werden automatisiert geprüft |
 | TASK-011 | kritisch | Wiederkehrende P1-Verbindungsabbrüche zur ALLRIS-Übersicht diagnostizieren und beheben | Codex | blockiert | Ziel liefert `504 Gateway Time-out`; `neverError` entfernt, damit drei HTTP-Retries tatsächlich greifen |
@@ -66,6 +66,7 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 | DEC-002 | 2026-07-23 | Anforderungen und Aufgaben erhalten stabile IDs. | Änderungen und Commits können eindeutig darauf verweisen. | Codex |
 | DEC-003 | 2026-07-23 | Das statische Schnittstellen- und Prozessaudit ist in `docs/SCHNITTSTELLEN_PROZESS_AUDIT_2026-07-23.md` dokumentiert. | Claude, Codex und Oliver benötigen dieselbe priorisierte Befundbasis. | Codex |
 | DEC-004 | 2026-07-23 | `ALLRIS_P8_Partei_Webseite` bleibt produktiv aktiv. | Oliver hat den aktiven Betrieb ausdrücklich bestätigt; das positive Veröffentlichungs-Gate bleibt eine getrennte Verbesserungsaufgabe. | Oliver |
+| DEC-005 | 2026-07-23 | `sourceConflict` ist im kanonischen SourceLock optional. | Konfliktlose Mitteilungen dürfen nicht zu erfundenen Konflikten oder technischen Blockaden führen; vorhandene Konflikte bleiben verbindliche Quellenanker. | Codex |
 
 ## Blocker und benötigte Entscheidungen
 
@@ -79,6 +80,22 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 ## Änderungs- und Übergabeprotokoll
 
 Neueste Einträge stehen oben.
+
+### 2026-07-23 – Codex – SourceLock-Vertrag vereinheitlicht
+
+- Kanonischen Vertrag unter `docs/SOURCELOCK_CONTRACT.md` dokumentiert.
+- `sourceConflict` in P3b, P4, P5 und P6 als Pflichtfeld entfernt; vorhandene
+  Konflikte werden weiterhin konditional geprüft und als Quellenanker genutzt.
+- Strukturtest verhindert die erneute Einführung bekannter
+  `sourceConflict`-Pflichtmuster und enthält einen konfliktlosen
+  Regressionstest.
+- Betroffene Dateien: P3b, P4, P5, P6,
+  `scripts/Test-AllrisWorkflows.ps1`, `docs/SOURCELOCK_CONTRACT.md`, `README.md`
+  und `PROJECT_COORDINATION.md`.
+- Live-Abgleich: alle vier Workflows aktiv, veröffentlicht und strukturgleich
+  mit Git.
+- Tests: alle 24 Exporte, 7 Sub-Workflow-IDs und Live-Drift-Prüfung
+  erfolgreich; nur die bestätigte LAN-Statuswarnung bleibt.
 
 ### 2026-07-23 – Codex – Hauptdokumentation an Live-Ablauf angeglichen
 
