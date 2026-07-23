@@ -81,6 +81,25 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 Neueste Einträge stehen oben.
 
+### 2026-07-23 – Codex – P8-WordPress-Fehlervertrag angebunden
+
+- Partei-Webseite verwendet denselben stabilen Veröffentlichungsfehlercode
+  `WORDPRESS_PUBLISH_FAILED` und Stufe `publication`.
+- Erfolg löscht nur einen bisherigen Veröffentlichungsfehler; andere
+  Fehlerstufen bleiben erhalten.
+- Erfolgs- und Fehler-History unterscheiden das Ziel
+  `partei-webseite` in den Metadaten.
+- Zwei neue History-Nodes kompakt in den bestehenden drei Layoutreihen
+  angeordnet; 15×5-Grenze bleibt gewahrt.
+- Betroffene Dateien: `ALLRIS_P8_Partei_Webseite.json`,
+  `scripts/Test-AllrisWorkflows.ps1`, `PROJECT_COORDINATION.md`.
+- P8 bleibt gemäß DEC-004 produktiv aktiv.
+- Live-Rollout: P8 aktiv mit 18 Nodes und UTF-8-strukturgleich zum Export.
+- Tests: alle 24 Exporte, 7 Sub-Workflow-IDs und Live-Drift-Prüfung
+  erfolgreich; nur die akzeptierte LAN-Statuswarnung bleibt.
+- Nächster Schritt: kontrollierten Partei-WordPress-Fehler-/Erfolgslauf
+  abnehmen.
+
 ### 2026-07-23 – Codex – P7-WordPress-Fehlervertrag angebunden
 
 - Veröffentlichungsfehler schreiben `WORDPRESS_PUBLISH_FAILED`, Stufe

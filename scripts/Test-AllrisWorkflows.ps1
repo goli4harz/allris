@@ -241,6 +241,21 @@ if ($null -ne $p7) {
     }
 }
 
+$p8 = $workflows['ALLRIS_P8_Partei_Webseite'].Data
+if ($null -ne $p8) {
+    $p8Failure = @($p8.nodes | Where-Object id -eq 'f5f722e4-6acd-4ed1-93d0-447bd4b1d961')
+    $p8HistorySuccess = @($p8.nodes | Where-Object id -eq 'b4dc013f-17ae-413a-8605-28e61f1cb1b2')
+    $p8HistoryFailure = @($p8.nodes | Where-Object id -eq 'f9b791e7-6fc8-4011-8fbb-b7de54a317a5')
+    if ($p8Failure.Count -ne 1 -or
+        $p8Failure[0].parameters.columns.value.last_error_code -ne 'WORDPRESS_PUBLISH_FAILED' -or
+        $p8Failure[0].parameters.columns.value.last_error_stage -ne 'publication' -or
+        $p8HistorySuccess.Count -ne 1 -or
+        $p8HistoryFailure.Count -ne 1 -or
+        $p8HistoryFailure[0].parameters.columns.value.reason_code -ne 'WORDPRESS_PUBLISH_FAILED') {
+        Add-Failure 'P8: zentraler WordPress-Fehler-/History-Vertrag ist unvollständig.'
+    }
+}
+
 Write-Host "Geprüfte Exporte: $($workflowFiles.Count)"
 Write-Host "Sub-Workflow-Referenzen: $($idsReferenced.Count)"
 
