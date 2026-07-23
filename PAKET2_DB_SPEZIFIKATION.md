@@ -41,10 +41,25 @@ bleiben.
 
 ## 2. Neue Spalten auf der bestehenden Tabelle `allris_vorgaenge`
 
-**Status 2026-07-23:** noch nicht angelegt. Die Public API kann in der
-eingesetzten n8n-Version Tabellen erstellen, aber keine Spalten bestehender
-Tabellen ergänzen. Dafür ist einmalig die n8n-UI oder eine authentifizierte
-interne Admin-Sitzung erforderlich.
+**Status 2026-07-23:** noch nicht angelegt. Der idempotente Wartungsjob
+`scripts/Initialize-AllrisStateSchema.ps1` zeigt die fehlenden Spalten zunächst
+nur an und ergänzt sie erst mit dem Parameter `-Apply`. Er liest den API-Key
+ausschließlich aus `N8N_API_KEY` oder dem nicht empfohlenen Laufzeitparameter
+`-ApiKey`; der Schlüssel wird nicht versioniert.
+
+Vorschau:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass `
+  -File .\scripts\Initialize-AllrisStateSchema.ps1
+```
+
+Ausführung:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass `
+  -File .\scripts\Initialize-AllrisStateSchema.ps1 -Apply
+```
 
 | Spalte | Typ | Default | Hinweis |
 |---|---|---|---|
