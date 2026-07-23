@@ -51,7 +51,7 @@ Statuswerte: `geplant`, `aktiv`, `teilweise`, `erfüllt`, `verworfen`.
 | TASK-006 | kritisch | Matrix-Authentifizierung im P6-Node `Sende Presseartikel Matrix` aktivieren und testen | Codex | Review | Authentifizierung live aktiviert; kontrollierter Matrix-Funktionstest steht noch aus |
 | TASK-007 | kritisch | Fachliche Rolle und positives Veröffentlichungs-Gate für P7 festlegen | Oliver | Entscheidung nötig | Vollarchiv oder redaktioneller Kanal; Audit F-02 |
 | TASK-008 | hoch | Kanonischen SourceLock-Vertrag festlegen und `sourceConflict` in allen Stufen einheitlich behandeln | Codex | erledigt | Vertrag dokumentiert; P3b/P4/P5/P6 gemeinsam live veröffentlicht und getestet |
-| TASK-009 | hoch | Zeitkaskade durch Claim-/Lease-fähigen Dispatcher absichern | Codex | in Arbeit | Schema, Doppelclaim-Test und Claim-Anbindung P3–P6 erledigt; P7/P8 erst nach regulärer Side-Effect-Abnahme anbinden |
+| TASK-009 | hoch | Zeitkaskade durch Claim-/Lease-fähigen Dispatcher absichern | Codex | Review | Schema, Doppelclaim-Test und Claim-Anbindung aller zustands-/side-effect-relevanten Stufen P2–P8 einschließlich P3c und Paperless erledigt; regulären Gesamtzyklus abnehmen |
 | TASK-010 | mittel | Workflow-ID- und Infrastruktur-Konfigurationslandkarte anlegen | Codex | erledigt | `docs/WORKFLOW_ID_MAP.md`; Live-IDs werden automatisiert geprüft |
 | TASK-011 | kritisch | Wiederkehrende P1-Verbindungsabbrüche zur ALLRIS-Übersicht diagnostizieren und beheben | Codex | blockiert | Ziel liefert `504 Gateway Time-out`; `neverError` entfernt, damit drei HTTP-Retries tatsächlich greifen |
 | TASK-012 | hoch | Paperless-Backfill-Fehler in `Aggregiere Backfill-Ergebnis` beheben | Codex | Review | Kontextfix live; Schedule am 23.07. neu registriert, nächsten regulären `:50`-Lauf prüfen |
@@ -78,6 +78,22 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 | BLK-004 | TASK-011 | ALLRIS-Übersichtsrequest wird aus n8n sowohl direkt als auch über `172.16.1.5:3128` nach drei Timeouts abgebrochen; Zielserver/Firewall/WAF bzw. TLS-Verbindung extern prüfen. | Infrastruktur / Goslar-Server | offen |
 
 ## Änderungs- und Übergabeprotokoll
+
+### 2026-07-23 – Codex – P3c an Claim-/Lease angebunden
+
+- Betroffene Dateien: `ALLRIS_P3c_Vorgangsabschluss.json`,
+  `scripts/Test-AllrisWorkflows.ps1`, `PROJECT_COORDINATION.md`.
+- Abschlusskandidaten erwerben vor Repair/Markdown-Verarbeitung einen atomaren
+  Claim; fremde gültige Claims werden übersprungen.
+- Claim-Owner `ALLRIS_P3c_Vorgangsabschluss:<execution-id>`, Stufe
+  `completion`, 60-Minuten-Lease wegen Repair- und Nextcloud-Schritten.
+- Sowohl „kein Markdown nötig“ als auch der persistierte Markdown-Abschluss
+  geben ausschließlich den eigenen Claim frei.
+- Live-Rollout: aktiv, 20 Nodes, Version
+  `32d4369f-2155-4a38-94ad-c3c940abec4b`; Scheduler neu registriert.
+- TASK-009 geht in Review: P2–P8, P3c und Paperless sind claim-geschützt;
+  P1 erzeugt/upsertet die Zeilen und kann vor deren Existenz keinen Row-Claim
+  erwerben.
 
 ### 2026-07-23 – Codex – Paperless an Claim-/Lease angebunden
 

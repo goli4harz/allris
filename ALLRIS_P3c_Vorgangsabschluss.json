@@ -38,6 +38,39 @@
       "main": [
         [
           {
+            "node": "Bereite P3c Claims vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereite P3c Claims vor": {
+      "main": [
+        [
+          {
+            "node": "Erwerbe P3c Claim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Erwerbe P3c Claim": {
+      "main": [
+        [
+          {
+            "node": "Nur bestaetigte P3c Claims",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nur bestaetigte P3c Claims": {
+      "main": [
+        [
+          {
             "node": "Loop Vorgaenge",
             "type": "main",
             "index": 0
@@ -111,6 +144,11 @@
             "node": "Naechster Vorgang",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Bereite P3c Claim-Freigabe vor",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -160,6 +198,22 @@
         [
           {
             "node": "Naechster Vorgang",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Bereite P3c Claim-Freigabe vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereite P3c Claim-Freigabe vor": {
+      "main": [
+        [
+          {
+            "node": "Release P3c Claim",
             "type": "main",
             "index": 0
           }
@@ -527,6 +581,72 @@
         "mode": "runOnceForEachItem",
         "jsCode": "// Stellt die urspruengliche Zeile wieder her - NC Upload Summary MD (Nextcloud-API-Node) ersetzt\n// die Item-Daten durch die Nextcloud-Antwort (kein vorgangKey mehr enthalten), gleiche Bugklasse\n// wie in P2 (siehe allris_p2_matrix_context_loss_bug) - Schreibe Markdown-Status braucht vorgangKey.\nconst idx = $itemIndex;\nconst original = $('Filter Abschluss-Kandidaten').itemMatching(idx).json;\nreturn { json: { ...original, _markdownUploaded: true } };\n"
       }
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = Date.now();\nconst owner = `ALLRIS_P3c_Vorgangsabschluss:${$execution.id}`;\nreturn items\n  .filter(item => {\n    const j = item.json || {};\n    const oldOwner = String(j.claim_owner || '').trim();\n    const expires = Date.parse(String(j.claim_expires_at || ''));\n    return !oldOwner || !Number.isFinite(expires) || expires <= now;\n  })\n  .map(item => ({ json: {\n    ...item.json,\n    claimAction: 'acquire',\n    claimOwner: owner,\n    claimStage: 'completion',\n    leaseMinutes: 60,\n    expectedClaimOwner: item.json.claim_owner ?? null,\n    expectedClaimExpiresAt: item.json.claim_expires_at ?? null\n  } }));"
+      },
+      "id": "842d79a6-acde-40de-96be-a58686c83c89",
+      "name": "Bereite P3c Claims vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [920, 6828]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D7cmBsy3exuOkBd9",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Claim_Lease"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "b6786407-d54f-44f8-a207-161cdf516476",
+      "name": "Erwerbe P3c Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [1160, 6828]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.filter(item => item.json?.claimAcquired === true);"
+      },
+      "id": "b10cb30b-576a-418a-9e06-2d8b030cfa0c",
+      "name": "Nur bestaetigte P3c Claims",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1400, 6828]
+    },
+    {
+      "parameters": {
+        "jsCode": "const vorgangKey = String($json.vorgangKey || '').trim();\nif (!vorgangKey) throw new Error('[P3c Claim Release] vorgangKey fehlt.');\nreturn [{ json: { vorgangKey, claimAction: 'release', claimOwner: `ALLRIS_P3c_Vorgangsabschluss:${$execution.id}` } }];"
+      },
+      "id": "d9074378-d05a-4385-aa36-7dd807d01fdd",
+      "name": "Bereite P3c Claim-Freigabe vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3320, 6828]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D7cmBsy3exuOkBd9",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Claim_Lease"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "e6bd347d-6de2-4e7a-916b-e6f78fef8ae6",
+      "name": "Release P3c Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [3560, 6828]
     }
   ],
   "pinData": null,
@@ -534,5 +654,5 @@
     "executionOrder": "v1"
   },
   "tags": [],
-  "versionId": "2a696127-584a-4f14-b4dd-c7cc749ce12a"
+  "versionId": "32d4369f-2155-4a38-94ad-c3c940abec4b"
 }

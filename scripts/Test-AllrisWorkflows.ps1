@@ -573,6 +573,27 @@ if ($null -ne $p3d) {
     }
 }
 
+$p3c = $workflows['ALLRIS_P3c_Vorgangsabschluss'].Data
+if ($null -ne $p3c) {
+    $p3cClaimCalls = @($p3c.nodes | Where-Object {
+        $_.type -match 'executeWorkflow' -and
+        $_.parameters.workflowId.value -eq 'D7cmBsy3exuOkBd9'
+    })
+    $p3cClaimPrepare = @($p3c.nodes | Where-Object name -eq 'Bereite P3c Claims vor')
+    $p3cClaimRelease = @($p3c.nodes | Where-Object name -eq 'Bereite P3c Claim-Freigabe vor')
+    $p3cReleaseSources = @($p3c.connections.psobject.Properties | Where-Object {
+        @($_.Value.main | ForEach-Object { $_ | ForEach-Object node }) -contains 'Bereite P3c Claim-Freigabe vor'
+    })
+    if ($p3cClaimCalls.Count -ne 2 -or
+        $p3cClaimPrepare.Count -ne 1 -or
+        $p3cClaimPrepare[0].parameters.jsCode -notlike "*claimStage: 'completion'*" -or
+        $p3cClaimPrepare[0].parameters.jsCode -notlike '*leaseMinutes: 60*' -or
+        $p3cClaimRelease.Count -ne 1 -or
+        $p3cReleaseSources.Count -ne 2) {
+        Add-Failure 'P3c: Claim-/Lease-Vertrag ist unvollständig.'
+    }
+}
+
 $p3e = $workflows['ALLRIS_P3e_Kernbotschaft'].Data
 if ($null -ne $p3e) {
     $p3eClaimCalls = @($p3e.nodes | Where-Object {
