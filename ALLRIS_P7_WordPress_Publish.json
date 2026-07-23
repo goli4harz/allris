@@ -194,7 +194,65 @@
       "main": [
         [
           {
+            "node": "Suche WordPress-Beitrag per Slug",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Suche WordPress-Beitrag per Slug": {
+      "main": [
+        [
+          {
+            "node": "Bewerte WordPress-Slug-Suche",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bewerte WordPress-Slug-Suche": {
+      "main": [
+        [
+          {
+            "node": "IF WordPress-Slug vorhanden?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF WordPress-Slug vorhanden?": {
+      "main": [
+        [
+          {
+            "node": "Restore Loop Context nach WordPress",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF WordPress-Slug-Suche ok?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF WordPress-Slug-Suche ok?": {
+      "main": [
+        [
+          {
             "node": "Create a post",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Restore Loop Context nach WordPress",
             "type": "main",
             "index": 0
           }
@@ -435,6 +493,130 @@
     },
     {
       "parameters": {
+        "url": "https://www.golietz.de/wp-json/wp/v2/posts",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "slug",
+              "value": "={{ $json.wordpressSlug }}"
+            },
+            {
+              "name": "status",
+              "value": "any"
+            },
+            {
+              "name": "per_page",
+              "value": "1"
+            },
+            {
+              "name": "context",
+              "value": "edit"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "522ddb2d-ad2c-4a14-a785-1d30f76c938b",
+      "name": "Suche WordPress-Beitrag per Slug",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2320,
+        288
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "wordpressApi": {
+          "id": "8k2HqYswPaPVS4dr",
+          "name": "Ollies Wordpress"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const original = $('Baue finale Tag-Liste').first().json;\nconst responses = $input.all().map(item => item.json || {});\n\nfunction safe(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction isLookupError(j) {\n  return Boolean(\n    j.error ||\n    j.name === 'NodeApiError' ||\n    Number(j.statusCode || j.status || 0) >= 400\n  );\n}\n\nconst lookupError = responses.find(isLookupError);\nconst expectedSlug = safe(original.wordpressSlug);\nconst existingPost = responses.find(j =>\n  !isLookupError(j) &&\n  Boolean(j.id) &&\n  safe(j.slug) === expectedSlug\n);\n\nlet lookupErrorMessage = '';\nif (lookupError) {\n  lookupErrorMessage = safe(lookupError.error?.message) || safe(lookupError.message) || 'WordPress-Slug-Suche fehlgeschlagen.';\n}\n\nreturn [{\n  json: {\n    ...original,\n    _wordpressSlugExists: Boolean(existingPost),\n    _wordpressSlugLookupOk: !lookupError,\n    id: existingPost?.id || '',\n    link: existingPost?.link || '',\n    error: lookupError ? { message: lookupErrorMessage } : undefined\n  }\n}];\n"
+      },
+      "id": "7b905a08-427b-4d70-b471-3081622cce7a",
+      "name": "Bewerte WordPress-Slug-Suche",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2544,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "wordpress-slug-exists-001",
+              "leftValue": "={{ $json._wordpressSlugExists }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e124f0cd-474a-4ed3-b342-7274e1391490",
+      "name": "IF WordPress-Slug vorhanden?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2768,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "wordpress-slug-lookup-ok-001",
+              "leftValue": "={{ $json._wordpressSlugLookupOk }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "3b2d559a-807a-4323-9cc2-ad1fb8c720da",
+      "name": "IF WordPress-Slug-Suche ok?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2992,
+        384
+      ]
+    },
+    {
+      "parameters": {
         "title": "={{ $json.wordpressTitle }}",
         "additionalFields": {
           "authorId": 2,
@@ -652,7 +834,7 @@
       "typeVersion": 2,
       "position": [
         1440,
-        400
+        384
       ]
     },
     {
@@ -685,7 +867,7 @@
       "typeVersion": 4.2,
       "position": [
         1664,
-        592
+        576
       ],
       "credentials": {
         "wordpressApi": {
@@ -835,7 +1017,7 @@
       "typeVersion": 1.1,
       "position": [
         2080,
-        16
+        160
       ],
       "alwaysOutputData": true
     },
@@ -928,7 +1110,7 @@
       "name": "History WordPress Erfolg",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
-      "position": [2304, 16]
+      "position": [2304, 160]
     },
     {
       "parameters": {
@@ -971,5 +1153,5 @@
     "binaryMode": "separate"
   },
   "tags": [],
-  "versionId": "ddbce356-d5f5-4a7d-927b-f7382e208c6d"
+  "versionId": "3baa8f58-37ab-4228-92aa-09a8b86796f0"
 }

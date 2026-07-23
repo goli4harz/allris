@@ -79,6 +79,21 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 ## Änderungs- und Übergabeprotokoll
 
+### 2026-07-23 – Codex – P7 gegen WordPress-Dubletten abgesichert
+
+- Betroffene Dateien: `ALLRIS_P7_WordPress_Publish.json`,
+  `scripts/Test-AllrisWorkflows.ps1`, `PROJECT_COORDINATION.md`.
+- Vor `Create a post` fragt P7 WordPress mit dem stabilen `wordpressSlug` ab.
+- Ein bereits vorhandener Beitrag wird über den bestehenden Erfolgs- und
+  Datenbankpfad übernommen, statt als `-2`-Slug erneut veröffentlicht zu werden.
+- Nur eine erfolgreiche, leere Slug-Suche erlaubt die Neuanlage. Ein Suchfehler
+  blockiert die Veröffentlichung und läuft in den bestehenden Retry-Fehlerpfad.
+- Vier Nodes ergänzt; P7 bleibt mit 29 Nodes im vereinbarten 15-x-5-Raster.
+- Live-Rollout: P7 aktiv, exakt fünf grafische Zeilen mit maximal 12 Nodes,
+  Version `3baa8f58-37ab-4228-92aa-09a8b86796f0`.
+- Nächster Schritt: regulären P7-Lauf beobachten; Claim-/Lease erst danach
+  ergänzen, damit die Veröffentlichungslogik nicht gleichzeitig geändert wird.
+
 ### 2026-07-23 – Codex – P7 berücksichtigt Veröffentlichungs-Retry
 
 - Betroffene Dateien: `ALLRIS_P7_WordPress_Publish.json`,

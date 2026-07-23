@@ -285,6 +285,13 @@ if ($null -ne $p7) {
     $p7HistorySuccess = @($p7.nodes | Where-Object id -eq 'e2ac04f7-77b5-47c0-8ae1-99b877fc85d1')
     $p7HistoryFailure = @($p7.nodes | Where-Object id -eq '51fc16ec-8640-4eaa-8ccb-35a97d06ac69')
     $p7CandidateFilter = @($p7.nodes | Where-Object name -eq 'Filter WordPress-Kandidaten')
+    $p7SlugLookup = @($p7.nodes | Where-Object name -eq 'Suche WordPress-Beitrag per Slug')
+    $p7SlugEvaluation = @($p7.nodes | Where-Object name -eq 'Bewerte WordPress-Slug-Suche')
+    $p7SlugExistsGate = @($p7.nodes | Where-Object name -eq 'IF WordPress-Slug vorhanden?')
+    $p7SlugLookupGate = @($p7.nodes | Where-Object name -eq 'IF WordPress-Slug-Suche ok?')
+    $p7CreateInputs = @($p7.connections.psobject.Properties | Where-Object {
+        @($_.Value.main | ForEach-Object { $_ | ForEach-Object node }) -contains 'Create a post'
+    })
     if ($p7Failure.Count -ne 1 -or
         $p7Failure[0].parameters.columns.value.last_error_code -ne 'WORDPRESS_PUBLISH_FAILED' -or
         $p7Failure[0].parameters.columns.value.last_error_stage -ne 'publication' -or
@@ -293,7 +300,14 @@ if ($null -ne $p7) {
         $p7HistoryFailure[0].parameters.columns.value.reason_code -ne 'WORDPRESS_PUBLISH_FAILED' -or
         $p7CandidateFilter.Count -ne 1 -or
         $p7CandidateFilter[0].parameters.jsCode -notlike "*safeStr(j.last_error_stage) === 'publication'*" -or
-        $p7CandidateFilter[0].parameters.jsCode -notlike '*publicationRetryAt > Date.now()*') {
+        $p7CandidateFilter[0].parameters.jsCode -notlike '*publicationRetryAt > Date.now()*' -or
+        $p7SlugLookup.Count -ne 1 -or
+        $p7SlugLookup[0].parameters.queryParameters.parameters[0].value -ne '={{ $json.wordpressSlug }}' -or
+        $p7SlugEvaluation.Count -ne 1 -or
+        $p7SlugExistsGate.Count -ne 1 -or
+        $p7SlugLookupGate.Count -ne 1 -or
+        $p7CreateInputs.Count -ne 1 -or
+        $p7CreateInputs[0].Name -ne 'IF WordPress-Slug-Suche ok?') {
         Add-Failure 'P7: zentraler WordPress-Fehler-/History-Vertrag ist unvollständig.'
     }
 }
