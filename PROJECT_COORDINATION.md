@@ -81,6 +81,18 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 Neueste Einträge stehen oben.
 
+### 2026-07-23 – Codex – Neue Nodes grafisch ausgerichtet
+
+- Neue Status-, Retry- und History-Nodes in P2, Paperless und P6 in getrennte
+  Erfolgs-/Fehlerbahnen eingeordnet.
+- Rücksprung-Nodes hinter die neuen Verarbeitungsschritte verschoben und
+  History-Nodes rechts neben ihren fachlichen Statusupdates angeordnet.
+- Ausschließlich `position`-Werte geändert; Parameter und Verbindungen blieben
+  unverändert.
+- Alle drei Workflows aktiv und UTF-8-strukturgleich live veröffentlicht.
+- Tests: 24 Exporte, 7 Sub-Workflow-IDs und Live-Drift-Prüfung erfolgreich.
+- Künftige neue Nodes werden nach demselben Links-nach-rechts-Schema angelegt.
+
 ### 2026-07-23 – Codex – P6-Bildfehlervertrag begonnen
 
 - Endgültig fehlgeschlagene Bildprüfung und irreparables Bildkonzept schreiben

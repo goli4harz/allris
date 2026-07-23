@@ -4791,7 +4791,7 @@
       "name": "History Bildfehler",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
-      "position": [1360, 368]
+      "position": [1584, 368]
     }
   ],
   "pinData": {},
