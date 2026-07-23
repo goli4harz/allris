@@ -79,6 +79,19 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 ## Änderungs- und Übergabeprotokoll
 
+### 2026-07-23 – Codex – Paperless an Claim-/Lease angebunden
+
+- Betroffene Dateien: `ALLRIS_Paperless_Backfill.json`,
+  `scripts/Test-AllrisWorkflows.ps1`, `PROJECT_COORDINATION.md`.
+- Archivierte Backfill-Kandidaten erwerben vor dem Vorgangsloop einen atomaren
+  Claim; fremde gültige Claims werden übersprungen.
+- Claim-Owner `ALLRIS_Paperless_Backfill:<execution-id>`, Stufe `paperless`,
+  60-Minuten-Lease gegen überlappende stündliche Uploadläufe.
+- Persistierter Backfill-Erfolg und Retry-Fehler geben nur den eigenen Claim
+  frei; ungefangene Abbrüche behalten die Lease zur Recovery.
+- Live-Rollout: aktiv, 56 Nodes, Version
+  `b0e0b11e-5b49-4b83-87ee-e5ca41ea4dca`; Scheduler für `:50` neu registriert.
+
 ### 2026-07-23 – Codex – P2 an Claim-/Lease angebunden
 
 - Betroffene Dateien: `ALLRIS_P2_Nextcloud.json`,

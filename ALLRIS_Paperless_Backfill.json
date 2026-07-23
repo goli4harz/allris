@@ -282,6 +282,39 @@
       "main": [
         [
           {
+            "node": "Bereite Paperless Claims vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereite Paperless Claims vor": {
+      "main": [
+        [
+          {
+            "node": "Erwerbe Paperless Claim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Erwerbe Paperless Claim": {
+      "main": [
+        [
+          {
+            "node": "Nur bestaetigte Paperless Claims",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nur bestaetigte Paperless Claims": {
+      "main": [
+        [
+          {
             "node": "Loop Vorgänge",
             "type": "main",
             "index": 0
@@ -557,6 +590,11 @@
             "node": "Loop weiter (Backfill)",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Bereite Paperless Claim-Freigabe vor",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -593,6 +631,22 @@
         [
           {
             "node": "Loop weiter (Backfill)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Bereite Paperless Claim-Freigabe vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereite Paperless Claim-Freigabe vor": {
+      "main": [
+        [
+          {
+            "node": "Release Paperless Claim",
             "type": "main",
             "index": 0
           }
@@ -1993,6 +2047,72 @@
       ],
       "id": "08ab1479-c7b8-4886-ae26-55824dcde6b0",
       "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = Date.now();\nconst owner = `ALLRIS_Paperless_Backfill:${$execution.id}`;\nreturn items\n  .filter(item => {\n    const j = item.json || {};\n    const oldOwner = String(j.claim_owner || '').trim();\n    const expires = Date.parse(String(j.claim_expires_at || ''));\n    return !oldOwner || !Number.isFinite(expires) || expires <= now;\n  })\n  .map(item => ({ json: {\n    ...item.json,\n    claimAction: 'acquire',\n    claimOwner: owner,\n    claimStage: 'paperless',\n    leaseMinutes: 60,\n    expectedClaimOwner: item.json.claim_owner ?? null,\n    expectedClaimExpiresAt: item.json.claim_expires_at ?? null\n  } }));"
+      },
+      "id": "8927c4d8-b4e1-48f1-9181-839ea1761aae",
+      "name": "Bereite Paperless Claims vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [8896, 2784]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D7cmBsy3exuOkBd9",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Claim_Lease"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "b6b6022c-03b0-4c9b-92ef-d98f6e4e1159",
+      "name": "Erwerbe Paperless Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [9120, 2784]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.filter(item => item.json?.claimAcquired === true);"
+      },
+      "id": "5927bd30-a438-482b-9e25-47db22cd7702",
+      "name": "Nur bestaetigte Paperless Claims",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [9344, 2784]
+    },
+    {
+      "parameters": {
+        "jsCode": "const vorgangKey = String($json.vorgangKey || '').trim();\nif (!vorgangKey) throw new Error('[Paperless Claim Release] vorgangKey fehlt.');\nreturn [{ json: { vorgangKey, claimAction: 'release', claimOwner: `ALLRIS_Paperless_Backfill:${$execution.id}` } }];"
+      },
+      "id": "54ba449a-444b-4813-8a60-9fa145ae86f4",
+      "name": "Bereite Paperless Claim-Freigabe vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [10496, 3264]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D7cmBsy3exuOkBd9",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Claim_Lease"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "743a175d-b084-47fe-8ac7-8596d1be2585",
+      "name": "Release Paperless Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [10720, 3264]
     }
   ],
   "pinData": {},
@@ -2006,5 +2126,5 @@
     "saveDataSuccessExecution": "none"
   },
   "tags": [],
-  "versionId": "f0f2fdc0-78c4-4fe4-b24d-2a56a233ea66"
+  "versionId": "b0e0b11e-5b49-4b83-87ee-e5ca41ea4dca"
 }

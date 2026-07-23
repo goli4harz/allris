@@ -224,6 +224,15 @@ if ($null -ne $paperless) {
     }
     $paperlessLog = @($paperless.nodes | Where-Object name -eq 'Paperless Log Ergebnis (Backfill)')
     $paperlessAggregate = @($paperless.nodes | Where-Object name -eq 'Aggregiere Backfill-Ergebnis')
+    $paperlessClaimCalls = @($paperless.nodes | Where-Object {
+        $_.type -match 'executeWorkflow' -and
+        $_.parameters.workflowId.value -eq 'D7cmBsy3exuOkBd9'
+    })
+    $paperlessClaimPrepare = @($paperless.nodes | Where-Object name -eq 'Bereite Paperless Claims vor')
+    $paperlessClaimRelease = @($paperless.nodes | Where-Object name -eq 'Bereite Paperless Claim-Freigabe vor')
+    $paperlessReleaseSources = @($paperless.connections.psobject.Properties | Where-Object {
+        @($_.Value.main | ForEach-Object { $_ | ForEach-Object node }) -contains 'Bereite Paperless Claim-Freigabe vor'
+    })
     $paperlessLogCode = if ($paperlessLog.Count -eq 1) {
         [string]$paperlessLog[0].parameters.jsCode
     } else {
@@ -245,6 +254,14 @@ if ($null -ne $paperless) {
         $paperlessAggregateCode.Contains('Erwartet genau einen vorgangKey in den Ergebnissen')
     if (-not $paperlessContextGuardValid) {
         Add-Failure 'Paperless: Vorgangskontext wird vor der Abschlussaggregation nicht zuverlässig wiederhergestellt.'
+    }
+    if ($paperlessClaimCalls.Count -ne 2 -or
+        $paperlessClaimPrepare.Count -ne 1 -or
+        $paperlessClaimPrepare[0].parameters.jsCode -notlike "*claimStage: 'paperless'*" -or
+        $paperlessClaimPrepare[0].parameters.jsCode -notlike '*leaseMinutes: 60*' -or
+        $paperlessClaimRelease.Count -ne 1 -or
+        $paperlessReleaseSources.Count -ne 2) {
+        Add-Failure 'Paperless: Claim-/Lease-Vertrag ist unvollständig.'
     }
 }
 
