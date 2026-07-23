@@ -222,6 +222,11 @@
             "node": "Schreibe QA-Block Status",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "History QA-Block",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -858,7 +863,13 @@
           "mappingMode": "defineBelow",
           "value": {
             "contentStage": "error",
-            "contentErrorReason": "qa_blocked"
+            "contentErrorReason": "qa_blocked",
+            "last_error_code": "FACTS_QA_FAILED",
+            "last_error_message": "={{ String($json.summaryMessage || 'Fakten-/QA-Prüfung nicht bestanden').slice(0, 4000) }}",
+            "last_error_stage": "judgment",
+            "last_error_at": "={{ $now.toISO() }}",
+            "retry_count": "={{ Number($json.retry_count || 0) + 1 }}",
+            "next_retry_at": ""
           },
           "matchingColumns": [],
           "schema": [
@@ -1046,6 +1057,40 @@
         4752,
         7440
       ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "Q54kptpOrbug6bJu",
+          "mode": "list",
+          "cachedResultName": "allris_state_history",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/Q54kptpOrbug6bJu"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_id": "={{ 'p3d-' + $execution.id + '-' + $json.vorgangKey + '-qa-block' }}",
+            "vorgang_key": "={{ $json.vorgangKey }}",
+            "pipeline_stage": "judgment",
+            "old_state": "",
+            "new_state": "blocked",
+            "reason_code": "FACTS_QA_FAILED",
+            "reason_message": "={{ String($json.summaryMessage || 'Fakten-/QA-Prüfung nicht bestanden').slice(0, 4000) }}",
+            "workflow_name": "ALLRIS_P3d_Agenten_Kette",
+            "workflow_execution_id": "={{ $execution.id }}",
+            "created_at": "={{ $now.toISO() }}",
+            "metadata_json": "={{ JSON.stringify({ violations: $json.violations || [], hallucinationSuspects: $json.hallucinationSuspects || [], retry_count: Number($json.retry_count || 0) + 1 }) }}"
+          },
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "d4a9df45-6110-47cf-96e0-1fbedf9399ce",
+      "name": "History QA-Block",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [672, 7792]
     }
   ],
   "pinData": {},

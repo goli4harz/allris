@@ -304,6 +304,18 @@ if ($null -ne $p3) {
     }
 }
 
+$p3d = $workflows['ALLRIS_P3d_Agenten_Kette'].Data
+if ($null -ne $p3d) {
+    $p3dQaBlock = @($p3d.nodes | Where-Object id -eq '014cdc09-9fed-4b52-a4bf-7fa6e8cf19e8')
+    $p3dHistory = @($p3d.nodes | Where-Object id -eq 'd4a9df45-6110-47cf-96e0-1fbedf9399ce')
+    if ($p3dQaBlock.Count -ne 1 -or
+        $p3dQaBlock[0].parameters.columns.value.last_error_code -ne 'FACTS_QA_FAILED' -or
+        $p3dHistory.Count -ne 1 -or
+        $p3dHistory[0].parameters.columns.value.reason_code -ne 'FACTS_QA_FAILED') {
+        Add-Failure 'P3d: zentraler Fakten-/QA-Fehlervertrag ist unvollständig.'
+    }
+}
+
 Write-Host "Geprüfte Exporte: $($workflowFiles.Count)"
 Write-Host "Sub-Workflow-Referenzen: $($idsReferenced.Count)"
 

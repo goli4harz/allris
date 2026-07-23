@@ -81,6 +81,22 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 Neueste Einträge stehen oben.
 
+### 2026-07-23 – Codex – P3d-QA-Endfehler angebunden
+
+- Endgültige QA-Ablehnung schreibt `FACTS_QA_FAILED`, Stufe `judgment`.
+- Kein automatisches Retry-Datum: Der bestehende Prozess verlangt bewusste
+  Prüfung und manuellen Status-Reset.
+- History enthält Violations, Halluzinationsverdacht und Execution-ID.
+- Ein History-Node unter dem vorhandenen QA-Block-Status; Abschnitt bleibt
+  innerhalb drei Reihen und 15×5.
+- Betroffene Dateien: `ALLRIS_P3d_Agenten_Kette.json`,
+  `scripts/Test-AllrisWorkflows.ps1`, `PROJECT_COORDINATION.md`.
+- Shadow-Agenten und fachliche QA-Entscheidung blieben unverändert.
+- Lokal und gegen n8n geprüft: 24 Exporte, 7 Sub-Workflow-Referenzen,
+  alle Prüfungen erfolgreich.
+- P3d UTF-8-sicher live veröffentlicht: aktiv, 28 Nodes, Version
+  `950924eb-7f76-4310-9367-282eb7d92aff`.
+
 ### 2026-07-23 – Codex – P3-Quellen- und Parsefehler angebunden
 
 - Fehlender Summary-Quelltext und unbrauchbare Metadaten schreiben
