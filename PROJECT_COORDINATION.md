@@ -48,6 +48,11 @@ Statuswerte: `geplant`, `aktiv`, `teilweise`, `erfüllt`, `verworfen`.
 | TASK-003 | hoch | Automatische Strukturtests für alle n8n-JSON-Exporte ergänzen | offen | offen | JSON, Node-Referenzen, Workflow-IDs und erlaubte Statuswerte prüfen |
 | TASK-004 | mittel | README an tatsächlich vorhandene Stufen und Hilfsworkflows angleichen | offen | offen | insbesondere P3e und Dispatcher/Watchdog dokumentieren |
 | TASK-005 | mittel | Lizenz und Beitragsregeln festlegen | Oliver | Entscheidung nötig | gewünschte Lizenz bestimmen |
+| TASK-006 | kritisch | Matrix-Authentifizierung im P6-Node `Sende Presseartikel Matrix` aktivieren und testen | offen | offen | Audit F-01 |
+| TASK-007 | kritisch | Fachliche Rolle und positives Veröffentlichungs-Gate für P7 festlegen | Oliver | Entscheidung nötig | Vollarchiv oder redaktioneller Kanal; Audit F-02 |
+| TASK-008 | hoch | Kanonischen SourceLock-Vertrag festlegen und `sourceConflict` in allen Stufen einheitlich behandeln | offen | offen | Audit F-03 |
+| TASK-009 | hoch | Zeitkaskade durch Claim-/Lease-fähigen Dispatcher absichern | offen | offen | baut auf TASK-001/TASK-002 auf; Audit F-04 |
+| TASK-010 | mittel | Workflow-ID- und Infrastruktur-Konfigurationslandkarte anlegen | offen | offen | Audit F-07/F-08 |
 
 Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
@@ -57,6 +62,7 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 |---|---|---|---|---|
 | DEC-001 | 2026-07-23 | `PROJECT_COORDINATION.md` ist die zentrale Kommunikationsdatei für Mensch, Claude und Codex. | Verhindert getrennte Aufgabenlisten und Kontextverlust zwischen Werkzeugen. | Oliver, Codex |
 | DEC-002 | 2026-07-23 | Anforderungen und Aufgaben erhalten stabile IDs. | Änderungen und Commits können eindeutig darauf verweisen. | Codex |
+| DEC-003 | 2026-07-23 | Das statische Schnittstellen- und Prozessaudit ist in `docs/SCHNITTSTELLEN_PROZESS_AUDIT_2026-07-23.md` dokumentiert. | Claude, Codex und Oliver benötigen dieselbe priorisierte Befundbasis. | Codex |
 
 ## Blocker und benötigte Entscheidungen
 
@@ -68,6 +74,19 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 ## Änderungs- und Übergabeprotokoll
 
 Neueste Einträge stehen oben.
+
+### 2026-07-23 – Codex – Schnittstellen- und Prozessaudit
+
+- Alle versionierten n8n-Exporte, Workflow-Aufrufe, Zeitpläne, Statusverträge
+  und externen Schnittstellen statisch geprüft.
+- Zwei kritische/fachlich kritische sowie mehrere hohe und mittlere
+  Inkonsistenzen dokumentiert.
+- Betroffene Dateien: `docs/SCHNITTSTELLEN_PROZESS_AUDIT_2026-07-23.md`,
+  `PROJECT_COORDINATION.md`.
+- Tests/Validierung: alle JSON-Exporte parsebar; Node-Verbindungen,
+  Sub-Workflow-Referenzen, Data-Table-Zugriffe, HTTP-Authentifizierung und
+  Kandidaten-Gates ausgewertet. Kein Live-End-to-End-Test.
+- Wichtigste nächste Schritte: TASK-006 und TASK-007.
 
 ### 2026-07-23 – Codex
 
