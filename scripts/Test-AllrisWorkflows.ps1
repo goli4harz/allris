@@ -351,6 +351,11 @@ if ($null -ne $p8) {
     $p8HistorySuccess = @($p8.nodes | Where-Object id -eq 'b4dc013f-17ae-413a-8605-28e61f1cb1b2')
     $p8HistoryFailure = @($p8.nodes | Where-Object id -eq 'f9b791e7-6fc8-4011-8fbb-b7de54a317a5')
     $p8CandidateFilter = @($p8.nodes | Where-Object name -eq 'Filter Partei-Webseite-Kandidaten')
+    $p8SlugLookup = @($p8.nodes | Where-Object name -eq 'Suche Partei-Beitrag per Slug')
+    $p8SlugEvaluation = @($p8.nodes | Where-Object name -eq 'Bewerte Partei-Slug-Suche')
+    $p8SlugExistsGate = @($p8.nodes | Where-Object name -eq 'IF Partei-Slug vorhanden?')
+    $p8SlugLookupGate = @($p8.nodes | Where-Object name -eq 'IF Partei-Slug-Suche ok?')
+    $p8BodyTargets = @($p8.connections.'Baue Post-Body'.main[0] | ForEach-Object node)
     if ($p8Failure.Count -ne 1 -or
         $p8Failure[0].parameters.columns.value.last_error_code -ne 'WORDPRESS_PUBLISH_FAILED' -or
         $p8Failure[0].parameters.columns.value.last_error_stage -ne 'publication' -or
@@ -359,7 +364,15 @@ if ($null -ne $p8) {
         $p8HistoryFailure[0].parameters.columns.value.reason_code -ne 'WORDPRESS_PUBLISH_FAILED' -or
         $p8CandidateFilter.Count -ne 1 -or
         $p8CandidateFilter[0].parameters.jsCode -notlike "*safeStr(j.last_error_stage) === 'publication'*" -or
-        $p8CandidateFilter[0].parameters.jsCode -notlike '*publicationRetryAt > Date.now()*') {
+        $p8CandidateFilter[0].parameters.jsCode -notlike '*publicationRetryAt > Date.now()*' -or
+        $p8SlugLookup.Count -ne 1 -or
+        $p8SlugLookup[0].parameters.url -ne 'https://die-partei.net/goslar/wp-json/wp/v2/posts' -or
+        $p8SlugLookup[0].parameters.queryParameters.parameters[0].value -ne '={{ $json.wpSlug }}' -or
+        $p8SlugEvaluation.Count -ne 1 -or
+        $p8SlugExistsGate.Count -ne 1 -or
+        $p8SlugLookupGate.Count -ne 1 -or
+        $p8BodyTargets.Count -ne 1 -or
+        $p8BodyTargets[0] -ne 'Suche Partei-Beitrag per Slug') {
         Add-Failure 'P8: zentraler WordPress-Fehler-/History-Vertrag ist unvollständig.'
     }
 }

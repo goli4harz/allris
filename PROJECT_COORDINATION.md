@@ -79,6 +79,20 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 ## Änderungs- und Übergabeprotokoll
 
+### 2026-07-23 – Codex – P8 gegen WordPress-Dubletten abgesichert
+
+- Betroffene Dateien: `ALLRIS_P8_Partei_Webseite.json`,
+  `scripts/Test-AllrisWorkflows.ps1`, `PROJECT_COORDINATION.md`.
+- Die produktive Zielseite wurde als `https://die-partei.net/goslar/`
+  verifiziert; P8 fragt deren WordPress-REST-API vor jeder Neuanlage per
+  stabilem `wpSlug` ab.
+- Ein vorhandener Beitrag wird über den bestehenden Erfolgs-/Datenbankpfad
+  übernommen. Nur eine erfolgreiche, leere Suche erlaubt `Create a post`.
+- Bei Suchfehlern wird nicht veröffentlicht; die konkrete Ursache läuft in den
+  vorhandenen Veröffentlichungs-Retry-Pfad.
+- Live-Rollout: P8 aktiv, 22 Nodes, stärkste visuelle Reihe 10 Nodes, Version
+  `7fdafb44-8bf9-4f51-aaf7-3d4e8474e334`; Scheduler neu registriert.
+
 ### 2026-07-23 – Codex – 15-Node-Layoutgrenze automatisiert
 
 - Betroffene Dateien: `scripts/Test-AllrisWorkflows.ps1`,

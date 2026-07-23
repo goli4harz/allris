@@ -61,7 +61,65 @@
       "main": [
         [
           {
+            "node": "Suche Partei-Beitrag per Slug",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Suche Partei-Beitrag per Slug": {
+      "main": [
+        [
+          {
+            "node": "Bewerte Partei-Slug-Suche",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bewerte Partei-Slug-Suche": {
+      "main": [
+        [
+          {
+            "node": "IF Partei-Slug vorhanden?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Partei-Slug vorhanden?": {
+      "main": [
+        [
+          {
+            "node": "Stelle Kontext nach Post-Erstellung wieder her",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF Partei-Slug-Suche ok?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Partei-Slug-Suche ok?": {
+      "main": [
+        [
+          {
             "node": "IF Bild vorhanden?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stelle Kontext nach Post-Erstellung wieder her",
             "type": "main",
             "index": 0
           }
@@ -361,7 +419,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const idx = $itemIndex;\nconst original = $('Baue Post-Body').itemMatching(idx).json;\nconst resp = $json;\nconst postId = resp && resp.id ? resp.id : null;\nconst postLink = resp && resp.link ? resp.link : '';\nreturn { json: { ...original, wpPostId: postId, wpPostLink: postLink, wpPostSuccess: !!postId } };\n"
+        "jsCode": "const idx = $itemIndex;\nconst original = $('Baue Post-Body').itemMatching(idx).json;\nconst resp = $json || {};\nconst postId = resp.id || resp.data?.id || null;\nconst postLink = resp.link || resp.data?.link || '';\nconst postError = resp.error?.message || resp.error || resp.message || '';\nreturn {\n  json: {\n    ...original,\n    wpPostId: postId,\n    wpPostLink: postLink,\n    wpPostSuccess: !postError && !!postId,\n    wpPostError: postError ? String(postError) : ''\n  }\n};\n"
       },
       "id": "072107c1-af05-45ab-b8e8-20478131591f",
       "name": "Stelle Kontext nach Post-Erstellung wieder her",
@@ -550,6 +608,130 @@
     },
     {
       "parameters": {
+        "url": "https://die-partei.net/goslar/wp-json/wp/v2/posts",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "slug",
+              "value": "={{ $json.wpSlug }}"
+            },
+            {
+              "name": "status",
+              "value": "any"
+            },
+            {
+              "name": "per_page",
+              "value": "1"
+            },
+            {
+              "name": "context",
+              "value": "edit"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a723b871-6335-43fa-989a-c84b0429a0bb",
+      "name": "Suche Partei-Beitrag per Slug",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1408,
+        1328
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const original = $('Baue Post-Body').item.json;\nconst responses = $input.all().map(item => item.json || {});\n\nfunction safe(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction isLookupError(j) {\n  return Boolean(j.error || j.name === 'NodeApiError' || Number(j.statusCode || j.status || 0) >= 400);\n}\n\nconst lookupError = responses.find(isLookupError);\nconst expectedSlug = safe(original.wpSlug);\nconst existingPost = responses.find(j =>\n  !isLookupError(j) && Boolean(j.id) && safe(j.slug) === expectedSlug\n);\nconst lookupErrorMessage = lookupError\n  ? (safe(lookupError.error?.message) || safe(lookupError.message) || 'WordPress-Slug-Suche der Partei-Webseite fehlgeschlagen.')\n  : '';\n\nreturn [{\n  json: {\n    ...original,\n    _partySlugExists: Boolean(existingPost),\n    _partySlugLookupOk: !lookupError,\n    id: existingPost?.id || '',\n    link: existingPost?.link || '',\n    error: lookupError ? { message: lookupErrorMessage } : undefined\n  }\n}];\n"
+      },
+      "id": "41713efc-bef0-42bf-9f4c-ed4cdf855cf4",
+      "name": "Bewerte Partei-Slug-Suche",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1632,
+        1328
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "party-slug-exists-001",
+              "leftValue": "={{ $json._partySlugExists }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "55939163-881c-40b0-bf35-d62d038067bd",
+      "name": "IF Partei-Slug vorhanden?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1856,
+        1328
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "party-slug-lookup-ok-001",
+              "leftValue": "={{ $json._partySlugLookupOk }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "253c7ae3-1056-4ae1-8643-0481d74e1a85",
+      "name": "IF Partei-Slug-Suche ok?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2080,
+        1328
+      ]
+    },
+    {
+      "parameters": {
         "title": "={{ $json.wpTitle }}",
         "additionalFields": {
           "content": "={{ $json.wpContent }}",
@@ -699,5 +881,5 @@
     "binaryMode": "separate"
   },
   "tags": [],
-  "versionId": "2e56895c-3e25-43ad-a688-6c2a6c476a84"
+  "versionId": "7fdafb44-8bf9-4f51-aaf7-3d4e8474e334"
 }
