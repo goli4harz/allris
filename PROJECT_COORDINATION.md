@@ -81,6 +81,22 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 Neueste Einträge stehen oben.
 
+### 2026-07-23 – Codex – P5-Visual-Gate persistiert
+
+- Zuvor still übersprungene Content-Gate-Fehler werden nun persistiert.
+- Dynamische Zuordnung: `VISUAL_ANCHORS_MISSING`, `SOURCE_LOCK_FAILED` oder
+  `CONTENT_JSON_INVALID` anhand der vorhandenen Gate-Fehlerliste.
+- Content-JSON-Fehler erhalten Retry-Planung; SourceLock- und Anchor-Blockaden
+  warten auf vorgelagerte Reparatur.
+- Status- und History-Node liegen in der vorhandenen zweiten Reihe; Abschnitt
+  bleibt deutlich innerhalb 15×5.
+- Betroffene Dateien: `ALLRIS_P5_Visual_Prompt_Builder.json`,
+  `scripts/Test-AllrisWorkflows.ps1`, `PROJECT_COORDINATION.md`.
+- Live-Rollout: P5 aktiv mit 19 Nodes und UTF-8-strukturgleich zum Export.
+- Tests: alle 24 Exporte, 7 Sub-Workflow-IDs, korrekter Gate-False-Ausgang
+  und Live-Drift-Prüfung erfolgreich.
+- Nächster Schritt: kontrollierten Visual-Gate-Fehlerlauf abnehmen.
+
 ### 2026-07-23 – Codex – P4-Content-Fehlervertrag angebunden
 
 - Gemeinsamer Content-Fehlerpfad unterscheidet stabil zwischen

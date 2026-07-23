@@ -269,6 +269,27 @@ if ($null -ne $p4) {
     }
 }
 
+$p5 = $workflows['ALLRIS_P5_Visual_Prompt_Builder'].Data
+if ($null -ne $p5) {
+    $p5Failure = @($p5.nodes | Where-Object id -eq '729aedbd-cad6-40ee-a28f-d1286914d423')
+    $p5History = @($p5.nodes | Where-Object id -eq '7459b617-ad5a-4a11-8eb2-8f7297e7fe36')
+    if ($p5Failure.Count -ne 1 -or
+        [string]$p5Failure[0].parameters.columns.value.last_error_code -notmatch 'VISUAL_ANCHORS_MISSING' -or
+        $p5History.Count -ne 1 -or
+        $p5History[0].parameters.dataTableId.value -ne 'Q54kptpOrbug6bJu') {
+        Add-Failure 'P5: zentraler Visual-Gate-Fehlervertrag ist unvollständig.'
+    }
+    $p5GateTargets = @(
+        $p5.connections.'IF Content-Gate ok?'.main[1] |
+            ForEach-Object { [string]$_.node }
+    )
+    foreach ($target in @('DB Visual-Gate Fehler', 'History Visual-Gate Fehler')) {
+        if ($target -notin $p5GateTargets) {
+            Add-Failure "P5: Gate-False-Ausgang ist nicht mit '$target' verbunden."
+        }
+    }
+}
+
 Write-Host "Geprüfte Exporte: $($workflowFiles.Count)"
 Write-Host "Sub-Workflow-Referenzen: $($idsReferenced.Count)"
 
