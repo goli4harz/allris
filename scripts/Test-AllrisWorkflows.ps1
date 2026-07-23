@@ -133,6 +133,22 @@ foreach ($file in $workflowFiles) {
     }
 }
 
+$p2 = $workflows['ALLRIS_P2_Nextcloud'].Data
+if ($null -ne $p2) {
+    $p2FailureNode = @($p2.nodes | Where-Object name -eq 'Markiere Fehler in DataTable')
+    $p2SuccessNode = @($p2.nodes | Where-Object name -eq 'Update Nextcloud Archive Status')
+    if ($p2FailureNode.Count -ne 1 -or
+        $p2FailureNode[0].parameters.columns.value.last_error_code -ne 'NEXTCLOUD_UPLOAD_FAILED' -or
+        $p2FailureNode[0].parameters.columns.value.last_error_stage -ne 'archive') {
+        Add-Failure 'P2: zentraler Nextcloud-Fehlervertrag fehlt oder ist inkonsistent.'
+    }
+    if ($p2SuccessNode.Count -ne 1 -or
+        $p2SuccessNode[0].parameters.columns.value.retry_count -ne 0 -or
+        $p2SuccessNode[0].parameters.columns.value.last_error_code -ne '') {
+        Add-Failure 'P2: zentrale Fehlerfelder werden nach Erfolg nicht zurückgesetzt.'
+    }
+}
+
 Write-Host "Geprüfte Exporte: $($workflowFiles.Count)"
 Write-Host "Sub-Workflow-Referenzen: $($idsReferenced.Count)"
 

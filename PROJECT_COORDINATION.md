@@ -44,7 +44,7 @@ Statuswerte: `geplant`, `aktiv`, `teilweise`, `erfüllt`, `verworfen`.
 | ID | Priorität | Aufgabe | Zuständig | Status | Abhängigkeit / nächster Schritt |
 |---|---|---|---|---|---|
 | TASK-001 | hoch | Zentrale State-History und einheitliche Fehlerfelder gemäß `PAKET2_DB_SPEZIFIKATION.md` umsetzen | Codex | erledigt | History-Tabelle und sechs Fehlerfelder live angelegt; Workflow-Verdrahtung folgt unter TASK-002 |
-| TASK-002 | hoch | Dispatcher/Watchdog als zuverlässige Pipeline-Steuerung bewerten und fertigstellen | offen | offen | Zustandsübergänge, Retry-Regeln und Parallelität festlegen |
+| TASK-002 | hoch | Dispatcher/Watchdog als zuverlässige Pipeline-Steuerung bewerten und fertigstellen | Codex | in Arbeit | P2 schreibt zentralen Fehlervertrag; History-Insert und weitere Stufen folgen |
 | TASK-003 | hoch | Automatische Strukturtests für alle n8n-JSON-Exporte ergänzen | Codex | erledigt | `scripts/Test-AllrisWorkflows.ps1`, lokal und gegen Live-n8n erfolgreich |
 | TASK-004 | mittel | README an tatsächlich vorhandene Stufen und Hilfsworkflows angleichen | Codex | erledigt | P3e, P8, Paperless, Status und Dispatcher/Watchdog dokumentiert |
 | TASK-005 | mittel | Lizenz und Beitragsregeln festlegen | Oliver | Entscheidung nötig | gewünschte Lizenz bestimmen |
@@ -80,6 +80,19 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 ## Änderungs- und Übergabeprotokoll
 
 Neueste Einträge stehen oben.
+
+### 2026-07-23 – Codex – P2 an zentralen Fehlervertrag angebunden
+
+- Nextcloud-Archivierungsfehler schreiben additiv
+  `NEXTCLOUD_UPLOAD_FAILED`, Stufe `archive`, Zeitpunkt, Meldung,
+  `retry_count` und exponentielles `next_retry_at`.
+- Erfolgreiche Archivierung setzt die zentralen Fehler- und Retryfelder zurück.
+- Bestehende P2-Felder und Ablaufsteuerung bleiben unverändert.
+- Strukturtest schützt Fehlercode, Stufe und Erfolgs-Reset.
+- Betroffene Dateien: `ALLRIS_P2_Nextcloud.json`,
+  `scripts/Test-AllrisWorkflows.ps1`, `PROJECT_COORDINATION.md`.
+- Nächster Schritt: Append-Eintrag in `allris_state_history` ergänzen und erst
+  danach P2 live veröffentlichen.
 
 ### 2026-07-23 – Codex – Fehlerfelder live angelegt
 

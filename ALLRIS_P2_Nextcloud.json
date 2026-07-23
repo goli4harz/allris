@@ -752,7 +752,13 @@
             "nextcloudFolder": "={{ $json.nextcloudFolder }}",
             "contentStage": "={{ $json.contentStageToWrite }}",
             "contentErrorReason": "={{ $json.contentErrorReasonToWrite }}",
-            "lastseen": "={{ $now.toISO() }}"
+            "lastseen": "={{ $now.toISO() }}",
+            "last_error_code": "",
+            "last_error_message": "",
+            "last_error_stage": "",
+            "last_error_at": "",
+            "retry_count": 0,
+            "next_retry_at": ""
           },
           "matchingColumns": [],
           "schema": [
@@ -942,7 +948,13 @@
           "value": {
             "contentStage": "={{ $json.contentStageToWrite }}",
             "contentErrorReason": "={{ $json.contentErrorReasonToWrite }}",
-            "nextcloudRetryCount": "={{ $json.nextcloudRetryCount }}"
+            "nextcloudRetryCount": "={{ $json.nextcloudRetryCount }}",
+            "last_error_code": "NEXTCLOUD_UPLOAD_FAILED",
+            "last_error_message": "={{ ($json._uploadErrors || []).join(' | ').slice(0, 4000) }}",
+            "last_error_stage": "archive",
+            "last_error_at": "={{ $now.toISO() }}",
+            "retry_count": "={{ Number($json.nextcloudRetryCount || 0) }}",
+            "next_retry_at": "={{ $now.plus({ minutes: Math.min(1440, 15 * Math.pow(2, Math.max(0, Number($json.nextcloudRetryCount || 1) - 1))) }).toISO() }}"
           },
           "schema": [
             {
