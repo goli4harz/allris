@@ -81,6 +81,22 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 Neueste Einträge stehen oben.
 
+### 2026-07-23 – Codex – P6-Matrix-Versandfehler angebunden
+
+- Finaler Presseartikel-Versand nutzt einen echten Fehlerausgang.
+- Fehlerkontext wird vorgangsbezogen wiederhergestellt und als
+  `MATRIX_SEND_FAILED`, Stufe `visual`, mit exponentieller Retry-Planung
+  gespeichert.
+- Append-History enthält Execution-ID, Zielraum und Retry-Metadaten.
+- Neue Kette kompakt rechts vom Versandnode innerhalb des 15×5-Rasters
+  angeordnet.
+- Betroffene Dateien: `ALLRIS_P6_Bildgenerierung.json`,
+  `scripts/Test-AllrisWorkflows.ps1`, `PROJECT_COORDINATION.md`.
+- Live-Rollout: P6 aktiv mit 59 Nodes und UTF-8-strukturgleich zum Export.
+- Tests: alle 24 Exporte, 7 Sub-Workflow-IDs und Live-Drift-Prüfung
+  erfolgreich; nur die akzeptierte LAN-Statuswarnung bleibt.
+- Nächster Schritt: kontrollierten Matrix-Fehler-/Erfolgslauf abnehmen.
+
 ### 2026-07-23 – Codex – Neue Nodes grafisch ausgerichtet
 
 - Neue Status-, Retry- und History-Nodes in P2, Paperless und P6 in getrennte

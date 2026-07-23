@@ -683,7 +683,30 @@
     },
     "Sende Presseartikel Matrix": {
       "main": [
-        []
+        [],
+        [
+          {
+            "node": "Bereite Matrix Versandfehler vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereite Matrix Versandfehler vor": {
+      "main": [
+        [
+          {
+            "node": "DB Matrix Versandfehler",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "History Matrix Versandfehler",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },
@@ -4655,7 +4678,8 @@
         },
         "builtInTools": {},
         "options": {}
-      }
+      },
+      "onError": "continueErrorOutput"
     },
     {
       "id": "258ebfcf-a49e-481e-9cb5-b12c9168c497",
@@ -4738,6 +4762,7 @@
       "name": "Sende Presseartikel Matrix",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
+      "onError": "continueErrorOutput",
       "position": [
         2080,
         1000
@@ -4792,6 +4817,89 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [1584, 368]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const ctx = $('Bereite Presseartikel Matrix-Post vor').itemMatching($itemIndex).json || {};\nconst err = $json.error?.message || $json.message || $json.error || 'Matrix-Versand fehlgeschlagen';\nconst retryCount = Number(ctx.retry_count || 0) + 1;\nconst delayMinutes = Math.min(1440, 15 * Math.pow(2, Math.max(0, retryCount - 1)));\nreturn { json: { ...ctx, matrix_send_error: String(err).slice(0, 4000), retry_count: retryCount, next_retry_at: $now.plus({ minutes: delayMinutes }).toISO() } };"
+      },
+      "id": "85f8d663-1064-4582-a800-329742f7eb96",
+      "name": "Bereite Matrix Versandfehler vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2320, 1000]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "last_error_code": "MATRIX_SEND_FAILED",
+            "last_error_message": "={{ $json.matrix_send_error }}",
+            "last_error_stage": "visual",
+            "last_error_at": "={{ $now.toISO() }}",
+            "retry_count": "={{ $json.retry_count }}",
+            "next_retry_at": "={{ $json.next_retry_at }}"
+          },
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "c67bd02a-6edf-4b68-96a5-bac8d77db407",
+      "name": "DB Matrix Versandfehler",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [2560, 928]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "Q54kptpOrbug6bJu",
+          "mode": "list",
+          "cachedResultName": "allris_state_history",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/Q54kptpOrbug6bJu"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_id": "={{ 'p6-' + $execution.id + '-' + $json.vorgangKey + '-matrix-failure' }}",
+            "vorgang_key": "={{ $json.vorgangKey }}",
+            "pipeline_stage": "visual",
+            "old_state": "",
+            "new_state": "retry_scheduled",
+            "reason_code": "MATRIX_SEND_FAILED",
+            "reason_message": "={{ $json.matrix_send_error }}",
+            "workflow_name": "ALLRIS_P6_Bildgenerierung",
+            "workflow_execution_id": "={{ $execution.id }}",
+            "created_at": "={{ $now.toISO() }}",
+            "metadata_json": "={{ JSON.stringify({ retry_count: $json.retry_count, next_retry_at: $json.next_retry_at, room: $json.matrixPresseRoom || '' }) }}"
+          },
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "7104ce81-c7f0-4cc9-8788-fdeed3c3055a",
+      "name": "History Matrix Versandfehler",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [2560, 1088]
     }
   ],
   "pinData": {},

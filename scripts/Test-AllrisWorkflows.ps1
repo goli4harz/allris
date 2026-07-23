@@ -213,6 +213,17 @@ if ($null -ne $p6) {
         $p6History[0].parameters.columns.value.reason_code -ne 'IMAGE_QA_FAILED') {
         Add-Failure 'P6: gemeinsame Bildfehler-History ist unvollständig.'
     }
+    $p6MatrixSend = @($p6.nodes | Where-Object id -eq '145f3ba6-a607-4c32-8dba-6ac6d406aef8')
+    $p6MatrixDb = @($p6.nodes | Where-Object id -eq 'c67bd02a-6edf-4b68-96a5-bac8d77db407')
+    $p6MatrixHistory = @($p6.nodes | Where-Object id -eq '7104ce81-c7f0-4cc9-8788-fdeed3c3055a')
+    if ($p6MatrixSend.Count -ne 1 -or
+        $p6MatrixSend[0].onError -ne 'continueErrorOutput' -or
+        $p6MatrixDb.Count -ne 1 -or
+        $p6MatrixDb[0].parameters.columns.value.last_error_code -ne 'MATRIX_SEND_FAILED' -or
+        $p6MatrixHistory.Count -ne 1 -or
+        $p6MatrixHistory[0].parameters.columns.value.reason_code -ne 'MATRIX_SEND_FAILED') {
+        Add-Failure 'P6: Matrix-Versandfehlervertrag ist unvollständig.'
+    }
 }
 
 Write-Host "Geprüfte Exporte: $($workflowFiles.Count)"
