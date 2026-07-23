@@ -336,7 +336,7 @@
     },
     {
       "parameters": {
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction safeBool(v) {\n  if (v === true) return true;\n  if (typeof v === 'string') return v.trim().toLowerCase() === 'true';\n  return false;\n}\nfunction hasValidAnalysis(row) {\n  const aj = safeStr(row.analysisJson);\n  if (!aj || aj === '{}' || aj === 'null') return false;\n  try {\n    const parsed = JSON.parse(aj);\n    return parsed && typeof parsed === 'object' && !Array.isArray(parsed);\n  } catch (e) { return false; }\n}\n\nconst BLOCKED_ERROR_REASONS = new Set([\n  'analysis_error', 'summary_input_error', 'summary_parse_error'\n]);\n\nconst items = $input.all();\n\nreturn items.filter(item => {\n  const j = item.json || {};\n  const contentStage = safeStr(j.contentStage);\n  const contentErrorReason = safeStr(j.contentErrorReason);\n\n  const blocked = contentStage === 'needs_summary' || (contentStage === 'error' && BLOCKED_ERROR_REASONS.has(contentErrorReason));\n\n  if (blocked) return false;\n  if (!hasValidAnalysis(j)) return false;\n  if (safeBool(j.wordpressPosted)) return false;\n  if (!safeStr(j.vorgangKey)) return false;\n\n  return true;\n});\n"
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction safeBool(v) {\n  if (v === true) return true;\n  if (typeof v === 'string') return v.trim().toLowerCase() === 'true';\n  return false;\n}\nfunction hasValidAnalysis(row) {\n  const aj = safeStr(row.analysisJson);\n  if (!aj || aj === '{}' || aj === 'null') return false;\n  try {\n    const parsed = JSON.parse(aj);\n    return parsed && typeof parsed === 'object' && !Array.isArray(parsed);\n  } catch (e) { return false; }\n}\n\nconst BLOCKED_ERROR_REASONS = new Set([\n  'analysis_error', 'summary_input_error', 'summary_parse_error'\n]);\n\nconst items = $input.all();\n\nreturn items.filter(item => {\n  const j = item.json || {};\n  const contentStage = safeStr(j.contentStage);\n  const contentErrorReason = safeStr(j.contentErrorReason);\n  const publicationRetryAt = Date.parse(safeStr(j.next_retry_at));\n  const publicationRetryPending =\n    safeStr(j.last_error_stage) === 'publication' &&\n    Number.isFinite(publicationRetryAt) &&\n    publicationRetryAt > Date.now();\n\n  const blocked = contentStage === 'needs_summary' || (contentStage === 'error' && BLOCKED_ERROR_REASONS.has(contentErrorReason));\n\n  if (blocked || publicationRetryPending) return false;\n  if (!hasValidAnalysis(j)) return false;\n  if (safeBool(j.wordpressPosted)) return false;\n  if (!safeStr(j.vorgangKey)) return false;\n\n  return true;\n});\n"
       },
       "id": "029965cb-e424-4260-8a05-9c811bcc05fa",
       "name": "Filter WordPress-Kandidaten",
@@ -971,5 +971,5 @@
     "binaryMode": "separate"
   },
   "tags": [],
-  "versionId": "ca79c209-4d01-43b4-812a-9ceb5804455d"
+  "versionId": "ddbce356-d5f5-4a7d-927b-f7382e208c6d"
 }

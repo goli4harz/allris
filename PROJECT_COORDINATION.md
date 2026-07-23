@@ -79,6 +79,21 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 ## Änderungs- und Übergabeprotokoll
 
+### 2026-07-23 – Codex – P7 berücksichtigt Veröffentlichungs-Retry
+
+- Betroffene Dateien: `ALLRIS_P7_WordPress_Publish.json`,
+  `scripts/Test-AllrisWorkflows.ps1`, `PROJECT_COORDINATION.md`.
+- `Filter WordPress-Kandidaten` überspringt nun fehlgeschlagene
+  Veröffentlichungen bis zum in `next_retry_at` gespeicherten Zeitpunkt.
+- Die Sperre gilt gezielt für `last_error_stage=publication`; Fehler anderer
+  Stufen und reguläre Kandidaten werden dadurch nicht zurückgehalten.
+- Regressionstest ergänzt; alle 25 Exporte und 19 Sub-Workflow-Referenzen
+  einschließlich Live-Abgleich erfolgreich.
+- Live-Rollout: P7 aktiv, 25 Nodes, Version
+  `ddbce356-d5f5-4a7d-927b-f7382e208c6d`; Layout unverändert.
+- Nächster Schritt: vor Claim-/Lease-Einbau eine WordPress-Slug-Abfrage zur
+  sicheren Wiederaufnahme nach unklaren HTTP-Timeouts konzipieren.
+
 Neueste Einträge stehen oben.
 
 ### 2026-07-23 – Codex – P6 an Claim-/Lease angebunden

@@ -284,12 +284,16 @@ if ($null -ne $p7) {
     $p7Failure = @($p7.nodes | Where-Object id -eq 'a30550bc-d993-4d99-a991-4c04040ce40a')
     $p7HistorySuccess = @($p7.nodes | Where-Object id -eq 'e2ac04f7-77b5-47c0-8ae1-99b877fc85d1')
     $p7HistoryFailure = @($p7.nodes | Where-Object id -eq '51fc16ec-8640-4eaa-8ccb-35a97d06ac69')
+    $p7CandidateFilter = @($p7.nodes | Where-Object name -eq 'Filter WordPress-Kandidaten')
     if ($p7Failure.Count -ne 1 -or
         $p7Failure[0].parameters.columns.value.last_error_code -ne 'WORDPRESS_PUBLISH_FAILED' -or
         $p7Failure[0].parameters.columns.value.last_error_stage -ne 'publication' -or
         $p7HistorySuccess.Count -ne 1 -or
         $p7HistoryFailure.Count -ne 1 -or
-        $p7HistoryFailure[0].parameters.columns.value.reason_code -ne 'WORDPRESS_PUBLISH_FAILED') {
+        $p7HistoryFailure[0].parameters.columns.value.reason_code -ne 'WORDPRESS_PUBLISH_FAILED' -or
+        $p7CandidateFilter.Count -ne 1 -or
+        $p7CandidateFilter[0].parameters.jsCode -notlike "*safeStr(j.last_error_stage) === 'publication'*" -or
+        $p7CandidateFilter[0].parameters.jsCode -notlike '*publicationRetryAt > Date.now()*') {
         Add-Failure 'P7: zentraler WordPress-Fehler-/History-Vertrag ist unvollständig.'
     }
 }
