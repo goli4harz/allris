@@ -70,3 +70,18 @@ werden könnte.
 
 Während der Migration bleiben die bestehenden positiven Eingangszustände
 verbindlich. Ein Claim allein ist niemals eine fachliche Freigabe.
+
+## Reproduzierbarer Doppelclaim-Test
+
+Der Testjob läuft standardmäßig nur als Vorschau. Mit `-Apply` setzt er einen
+kurzlebigen Claim, versucht einen zweiten Claim gegen denselben gelesenen
+Altzustand und gibt im `finally`-Block ausschließlich den ersten Owner frei:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass `
+  -File .\scripts\Test-AllrisClaimLease.ps1 `
+  -VorgangKey vol_10580 -Apply
+```
+
+Nur einen unkritischen, vollständig verarbeiteten Vorgang ohne bestehenden
+Claim verwenden.

@@ -98,12 +98,18 @@ Neueste Einträge stehen oben.
   Claim-Eigentum per Re-Read und gibt nur den eigenen Owner wieder frei.
 - Ein 15-Sekunden-Fenster ermöglicht den kontrollierten parallelen
   Doppelclaim-Test.
+- Atomarer Live-Test auf dem vollständig verarbeiteten Vorgang `vol_10580`
+  bestanden: erster Owner änderte genau eine Zeile, zweiter stale Owner null
+  Zeilen, owner-gebundene Freigabe genau eine Zeile.
+- Abschluss-Read bestätigt alle vier Claim-Felder wieder leer.
+- Reproduzierbarer Job `scripts/Test-AllrisClaimLease.ps1` ergänzt; ohne
+  `-Apply` reine Vorschau, Cleanup im `finally`-Block.
 - Betroffene Dateien: `scripts/Initialize-AllrisStateSchema.ps1`,
   `PAKET2_DB_SPEZIFIKATION.md`,
   `docs/DISPATCHER_CLAIM_LEASE_CONTRACT.md`,
   `PROJECT_COORDINATION.md`.
-- Nächster Schritt: unkritischen Testvorgang festlegen und zwei parallele
-  manuelle Läufe abnehmen.
+- Nächster Schritt: Claim-Erwerb und Freigabe zunächst in eine einzelne
+  nicht unumkehrbare Produktionsstufe integrieren.
 
 ### 2026-07-23 – Codex – Paperless-Schedule neu registriert
 
