@@ -81,6 +81,27 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 Neueste Einträge stehen oben.
 
+### 2026-07-23 – Codex – P3 als erste Claim-/Lease-Stufe
+
+- Zentralen Subworkflow `ALLRIS_Claim_Lease` angelegt und live veröffentlicht:
+  `D7cmBsy3exuOkBd9`, 7 Nodes, keine eigenständigen Schedule-/WebHook-Trigger.
+- P3 überspringt fremde gültige Leases und übernimmt freie oder abgelaufene
+  Claims per Compare-and-set mit anschließendem Re-Read.
+- Nur bestätigte Owner erreichen die vorhandene P3-Idempotenz- und
+  Verarbeitungslogik.
+- Erfolgreiche Analyse sowie behandelte Summary-, Metadaten- und Parsefehler
+  geben nur `ALLRIS_P3_Bewertung:<execution-id>` frei.
+- Ungefangene Abbrüche behalten die 30-Minuten-Lease zur sicheren Recovery.
+- Matrix und Analyse laufen weiterhin parallel; der Matrix-Zweig gibt den
+  Claim bewusst nicht vorzeitig frei.
+- Layout: P3 60 Nodes, stärkste Reihe 9 Nodes; Claim-Nodes in eigener lesbarer
+  Reihe, unter der 15×5-Grenze.
+- Live: P3 aktiv, 60 Nodes, Version
+  `672e0dbe-919b-4598-9c44-d96d11f06ef3`; Helper aktiv und triggerlos.
+- Tests: 25 Exporte, 9 Sub-Workflow-Referenzen, alle Strukturprüfungen grün.
+- Nächster Schritt: ersten regulären P3-Lauf prüfen und danach P3d auf fremde
+  aktive Claims sperren.
+
 ### 2026-07-23 – Codex – Claim-/Lease-Grundlage begonnen
 
 - Vier additive Felder festgelegt: `claim_owner`, `claim_stage`,

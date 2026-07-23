@@ -327,6 +327,24 @@ if ($null -ne $p5) {
 
 $p3 = $workflows['ALLRIS_P3_Bewertung'].Data
 if ($null -ne $p3) {
+    $p3ClaimCalls = @($p3.nodes | Where-Object {
+        $_.type -eq 'n8n-nodes-base.executeWorkflow' -and
+        $_.parameters.workflowId.value -eq 'D7cmBsy3exuOkBd9'
+    })
+    $p3ClaimPrepare = @($p3.nodes | Where-Object name -eq 'Bereite P3 Claims vor')
+    $p3ClaimRelease = @($p3.nodes | Where-Object name -eq 'Bereite P3 Claim-Freigabe vor')
+    if ($p3ClaimCalls.Count -ne 2 -or
+        $p3ClaimPrepare.Count -ne 1 -or
+        -not ([string]$p3ClaimPrepare[0].parameters.jsCode).Contains(
+            'expectedClaimExpiresAt: item.json.claim_expires_at ?? null'
+        ) -or
+        $p3ClaimRelease.Count -ne 1 -or
+        -not ([string]$p3ClaimRelease[0].parameters.jsCode).Contains(
+            'ALLRIS_P3_Bewertung:${$execution.id}'
+        )) {
+        Add-Failure 'P3: Claim-Erwerb oder owner-gebundene Freigabe ist unvollständig.'
+    }
+
     $p3SourceError = @($p3.nodes | Where-Object id -eq 'eebbeedb-3551-415b-a532-5bd843170abd')
     $p3ParseError = @($p3.nodes | Where-Object id -eq '635b1889-95d1-46cd-8db3-ff1ba0c2cddb')
     $p3History = @($p3.nodes | Where-Object id -eq '063477f3-46d0-4765-9a05-3ac1436cc80d')

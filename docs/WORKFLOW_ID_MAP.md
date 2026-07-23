@@ -25,6 +25,7 @@ werden.
 | `ALLRIS_Paperless_Backfill.json` | `UYCdv5g37YbNBKLh` | Paperless-Backfill | ja |
 | `ALLRIS_Status_Uebersicht.json` | `yI8lClVAuj6aS5Lz` | LAN-Statusübersicht | ja |
 | `ALLRIS_Dispatcher_Watchdog.json` | `UzevGR7GafUB3dFk` | Watchdog und manueller Claim-Test | nein |
+| `ALLRIS_Claim_Lease.json` | `D7cmBsy3exuOkBd9` | Claim-/Lease-Subworkflow, ohne eigenen Zeit-/WebHook-Trigger | ja |
 | `ALLRIS_Eignungs_Agent.json` | `ZZeD2dqzJUdCCksQ` | Eignungs-Agent | ja |
 | `ALLRIS_Fakten_Agent.json` | `6t3TBZtYtKgElV0d` | Fakten-Agent | ja |
 | `ALLRIS_QA_Agent.json` | `zJjry37DnhDVErfC` | QA-Agent | ja |

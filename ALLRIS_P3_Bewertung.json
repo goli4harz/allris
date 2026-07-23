@@ -16,7 +16,51 @@
       "main": [
         [
           {
+            "node": "Bereite P3 Claims vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereite P3 Claims vor": {
+      "main": [
+        [
+          {
+            "node": "Erwerbe P3 Claim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Erwerbe P3 Claim": {
+      "main": [
+        [
+          {
+            "node": "Nur bestaetigte P3 Claims",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nur bestaetigte P3 Claims": {
+      "main": [
+        [
+          {
             "node": "Guard Bereits verarbeitet (Idempotenz)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereite P3 Claim-Freigabe vor": {
+      "main": [
+        [
+          {
+            "node": "Release P3 Claim",
             "type": "main",
             "index": 0
           }
@@ -119,7 +163,13 @@
     },
     "Speichere Analyse": {
       "main": [
-        []
+        [
+          {
+            "node": "Bereite P3 Claim-Freigabe vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Nächster Vorgang": {
@@ -205,6 +255,11 @@
         [
           {
             "node": "Nächster Vorgang",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Bereite P3 Claim-Freigabe vor",
             "type": "main",
             "index": 0
           }
@@ -452,6 +507,11 @@
             "node": "Nächster Vorgang",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Bereite P3 Claim-Freigabe vor",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -506,6 +566,11 @@
         [
           {
             "node": "Nächster Vorgang",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Bereite P3 Claim-Freigabe vor",
             "type": "main",
             "index": 0
           }
@@ -604,6 +669,17 @@
         [
           {
             "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Repariere Status (Guard)": {
+      "main": [
+        [
+          {
+            "node": "Bereite P3 Claim-Freigabe vor",
             "type": "main",
             "index": 0
           }
@@ -2711,6 +2787,69 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [25328, 7136]
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = Date.now();\nconst owner = `ALLRIS_P3_Bewertung:${$execution.id}`;\nreturn items\n  .filter(item => {\n    const j = item.json || {};\n    const oldOwner = String(j.claim_owner || '').trim();\n    const expires = Date.parse(String(j.claim_expires_at || ''));\n    return !oldOwner || !Number.isFinite(expires) || expires <= now;\n  })\n  .map(item => ({ json: {\n    ...item.json,\n    claimAction: 'acquire',\n    claimOwner: owner,\n    claimStage: 'analysis',\n    leaseMinutes: 30,\n    expectedClaimOwner: item.json.claim_owner ?? null,\n    expectedClaimExpiresAt: item.json.claim_expires_at ?? null\n  } }));"
+      },
+      "id": "d4e5f607-1111-4d4e-8f50-000000000001",
+      "name": "Bereite P3 Claims vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [24016, 6144],
+      "notes": "Ueberspringt fremde, noch gueltige Leases. Freie und abgelaufene Claims werden mit exakt gelesenen Altwerten an den CAS-Helper gegeben."
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D7cmBsy3exuOkBd9",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Claim_Lease"
+        },
+        "options": {"waitForSubWorkflow":true}
+      },
+      "id": "d4e5f607-2222-4d4e-8f50-000000000002",
+      "name": "Erwerbe P3 Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [24272, 6144]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.filter(item => item.json?.claimAcquired === true);"
+      },
+      "id": "d4e5f607-3333-4d4e-8f50-000000000003",
+      "name": "Nur bestaetigte P3 Claims",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [24528, 6144]
+    },
+    {
+      "parameters": {
+        "jsCode": "const vorgangKey = String($json.vorgangKey || '').trim();\nif (!vorgangKey) throw new Error('[P3 Claim Release] vorgangKey fehlt.');\nreturn [{ json: { vorgangKey, claimAction: 'release', claimOwner: `ALLRIS_P3_Bewertung:${$execution.id}` } }];"
+      },
+      "id": "d4e5f607-4444-4d4e-8f50-000000000004",
+      "name": "Bereite P3 Claim-Freigabe vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [26896, 7440]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D7cmBsy3exuOkBd9",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Claim_Lease"
+        },
+        "options": {"waitForSubWorkflow":true}
+      },
+      "id": "d4e5f607-5555-4d4e-8f50-000000000005",
+      "name": "Release P3 Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [27152, 7440]
     }
   ],
   "pinData": {},
@@ -2719,5 +2858,5 @@
     "binaryMode": "separate"
   },
   "tags": [],
-  "versionId": "6f75f08d-ee97-45cd-8105-485dc0a88991"
+  "versionId": "672e0dbe-919b-4598-9c44-d96d11f06ef3"
 }
