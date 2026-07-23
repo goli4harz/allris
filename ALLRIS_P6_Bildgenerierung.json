@@ -4720,7 +4720,6 @@
         2080,
         1000
       ],
-      "onError": "continueRegularOutput",
       "credentials": {
         "httpHeaderAuth": {
           "id": "od1pN1F5wy2irSDs",
@@ -4730,6 +4729,8 @@
       "parameters": {
         "method": "PUT",
         "url": "={{ 'https://matrix.org/_matrix/client/v3/rooms/' + encodeURIComponent($json.matrixPresseRoom) + '/send/m.room.message/' + encodeURIComponent($json.matrixPresseTxnId) }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ msgtype: 'm.text', body: '📰 Presseartikel (final, zum Bild passend) - ' + ($json.vorgangsnummer || '') + ':\\n\\n' + $json.pressStatementFinal }) }}",

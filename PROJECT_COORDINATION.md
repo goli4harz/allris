@@ -48,11 +48,13 @@ Statuswerte: `geplant`, `aktiv`, `teilweise`, `erfüllt`, `verworfen`.
 | TASK-003 | hoch | Automatische Strukturtests für alle n8n-JSON-Exporte ergänzen | offen | offen | JSON, Node-Referenzen, Workflow-IDs und erlaubte Statuswerte prüfen |
 | TASK-004 | mittel | README an tatsächlich vorhandene Stufen und Hilfsworkflows angleichen | offen | offen | insbesondere P3e und Dispatcher/Watchdog dokumentieren |
 | TASK-005 | mittel | Lizenz und Beitragsregeln festlegen | Oliver | Entscheidung nötig | gewünschte Lizenz bestimmen |
-| TASK-006 | kritisch | Matrix-Authentifizierung im P6-Node `Sende Presseartikel Matrix` aktivieren und testen | offen | offen | Audit F-01 |
+| TASK-006 | kritisch | Matrix-Authentifizierung im P6-Node `Sende Presseartikel Matrix` aktivieren und testen | Codex | Review | Authentifizierung live aktiviert; kontrollierter Matrix-Funktionstest steht noch aus |
 | TASK-007 | kritisch | Fachliche Rolle und positives Veröffentlichungs-Gate für P7 festlegen | Oliver | Entscheidung nötig | Vollarchiv oder redaktioneller Kanal; Audit F-02 |
 | TASK-008 | hoch | Kanonischen SourceLock-Vertrag festlegen und `sourceConflict` in allen Stufen einheitlich behandeln | offen | offen | Audit F-03 |
 | TASK-009 | hoch | Zeitkaskade durch Claim-/Lease-fähigen Dispatcher absichern | offen | offen | baut auf TASK-001/TASK-002 auf; Audit F-04 |
 | TASK-010 | mittel | Workflow-ID- und Infrastruktur-Konfigurationslandkarte anlegen | offen | offen | Audit F-07/F-08 |
+| TASK-011 | kritisch | Wiederkehrende P1-Verbindungsabbrüche zur ALLRIS-Übersicht diagnostizieren und beheben | Codex | blockiert | Proxy-Schema/Retry korrigiert; Live-Tests mit und ohne Proxy brechen identisch am Zielrequest ab |
+| TASK-012 | hoch | Paperless-Backfill-Fehler in `Aggregiere Backfill-Ergebnis` beheben | Codex | Review | Kontext- und Fehlerweitergabe live korrigiert; nächsten Stundenlauf prüfen |
 
 Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
@@ -70,10 +72,33 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 |---|---|---|---|---|
 | BLK-001 | TASK-001 | IDs der neu angelegten n8n Data Table und Spalten fehlen. | Oliver / n8n-Instanz | offen |
 | BLK-002 | TASK-005 | Gewünschte Open-Source- oder proprietäre Lizenz ist nicht festgelegt. | Oliver | offen |
+| BLK-003 | TASK-007 / P8 | Soll `ALLRIS_P8_Partei_Webseite` produktiv aktiv bleiben oder bis zu einem positiven Veröffentlichungs-Gate deaktiviert werden? | Oliver | offen |
+| BLK-004 | TASK-011 | ALLRIS-Übersichtsrequest wird aus n8n sowohl direkt als auch über `172.16.1.5:3128` nach drei Timeouts abgebrochen; Zielserver/Firewall/WAF bzw. TLS-Verbindung extern prüfen. | Infrastruktur / Goslar-Server | offen |
 
 ## Änderungs- und Übergabeprotokoll
 
 Neueste Einträge stehen oben.
+
+### 2026-07-23 – Codex – Produktionsfehler P1, Paperless und P6
+
+- P6-Node `Sende Presseartikel Matrix` verwendet das vorhandene
+  `httpHeaderAuth`-Credential jetzt aktiv; Fehler werden nicht mehr
+  stillschweigend über `continueRegularOutput` verschluckt.
+- Paperless-Backfill erhält `vorgangKey` und Fehlerflags bis zur Aggregation;
+  der unsichere Zugriff auf `$('Loop Vorgänge').first().json` wurde entfernt.
+- P1-Proxywerte auf vollständige `http://`-URLs vereinheitlicht und drei
+  Versuche explizit konfiguriert.
+- Betroffene Dateien: `ALLRIS_P1_Ingestion.json`,
+  `ALLRIS_Paperless_Backfill.json`, `ALLRIS_P6_Bildgenerierung.json`,
+  `PROJECT_COORDINATION.md`.
+- Live-Abgleich: alle drei Exporte entsprechen ihren aktiven/publizierten
+  n8n-Versionen.
+- Tests/Validierung: JSON-Parsing, Node-Verbindungen und Zielparameter geprüft.
+  P1-Live-Läufe mit und ohne Proxy scheitern weiterhin identisch am Node
+  `HTTP ALLRIS Übersicht`; der Proxy ist damit nicht die alleinige Ursache.
+- Offene Risiken: Paperless im nächsten Stundenlauf und P6 mit einem
+  kontrollierten Matrix-Test verifizieren; P1 benötigt externe
+  Netzwerk-/Zielserverdiagnose.
 
 ### 2026-07-23 – Codex – Schnittstellen- und Prozessaudit
 

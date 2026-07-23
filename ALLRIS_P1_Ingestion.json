@@ -483,7 +483,7 @@
               "responseFormat": "file"
             }
           },
-          "proxy": "172.16.1.5:3128",
+          "proxy": "http://172.16.1.5:3128",
           "timeout": 60000
         }
       },
@@ -496,6 +496,7 @@
         48
       ],
       "retryOnFail": true,
+      "maxTries": 3,
       "waitBetweenTries": 5000
     },
     {
@@ -552,7 +553,7 @@
               "responseFormat": "file"
             }
           },
-          "proxy": "172.16.1.5:3128",
+          "proxy": "http://172.16.1.5:3128",
           "timeout": 90000
         }
       },
