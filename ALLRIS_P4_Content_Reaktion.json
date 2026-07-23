@@ -367,6 +367,11 @@
             "index": 0
           },
           {
+            "node": "History Content-Fehler",
+            "type": "main",
+            "index": 0
+          },
+          {
             "node": "Nächster Reaktions-Vorgang",
             "type": "main",
             "index": 0
@@ -417,11 +422,16 @@
     "Source-Lock blockiert Content": {
       "main": [
         [
-          {
-            "node": "Speichere Content-Fehler",
-            "type": "main",
-            "index": 0
-          },
+                    {
+                        "node": "Speichere Content-Fehler",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "History Content-Fehler",
+                        "type": "main",
+                        "index": 0
+                    },
           {
             "node": "Nächster Reaktions-Vorgang",
             "type": "main",
@@ -2066,7 +2076,13 @@
             "visualNeeded": "false",
             "visualDecisionReason": "={{ $json.visualDecisionReason || 'Content-Erstellung fehlgeschlagen' }}",
             "textExtractionError": "={{ $json.textExtractionError || ($json.contentValidationErrors || []).join(' | ') || 'Content-Erstellung fehlgeschlagen' }}",
-            "sharepicNeedStage": "={{ $json.sharepicNeedStage === 'blocked_source_lock' ? 'blocked_source_lock' : 'blocked_content_error' }}"
+            "sharepicNeedStage": "={{ $json.sharepicNeedStage === 'blocked_source_lock' ? 'blocked_source_lock' : 'blocked_content_error' }}",
+            "last_error_code": "={{ $json.sharepicNeedStage === 'blocked_source_lock' ? 'SOURCE_LOCK_FAILED' : 'CONTENT_JSON_INVALID' }}",
+            "last_error_message": "={{ String($json.textExtractionError || ($json.contentValidationErrors || []).join(' | ') || $json.visualDecisionReason || 'Content-Erstellung fehlgeschlagen').slice(0, 4000) }}",
+            "last_error_stage": "content",
+            "last_error_at": "={{ $now.toISO() }}",
+            "retry_count": "={{ Number($json.retry_count || 0) + 1 }}",
+            "next_retry_at": "={{ $json.sharepicNeedStage === 'blocked_source_lock' ? '' : $now.plus({ minutes: Math.min(1440, 15 * Math.pow(2, Math.max(0, Number($json.retry_count || 0)))) }).toISO() }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -3582,6 +3598,40 @@
         9392,
         2400
       ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "Q54kptpOrbug6bJu",
+          "mode": "list",
+          "cachedResultName": "allris_state_history",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/Q54kptpOrbug6bJu"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_id": "={{ 'p4-' + $execution.id + '-' + $json.vorgangKey + '-content-failure' }}",
+            "vorgang_key": "={{ $json.vorgangKey }}",
+            "pipeline_stage": "content",
+            "old_state": "",
+            "new_state": "={{ $json.sharepicNeedStage === 'blocked_source_lock' ? 'blocked' : 'retry_scheduled' }}",
+            "reason_code": "={{ $json.sharepicNeedStage === 'blocked_source_lock' ? 'SOURCE_LOCK_FAILED' : 'CONTENT_JSON_INVALID' }}",
+            "reason_message": "={{ String($json.textExtractionError || ($json.contentValidationErrors || []).join(' | ') || $json.visualDecisionReason || 'Content-Erstellung fehlgeschlagen').slice(0, 4000) }}",
+            "workflow_name": "ALLRIS_P4_Content_Reaktion",
+            "workflow_execution_id": "={{ $execution.id }}",
+            "created_at": "={{ $now.toISO() }}",
+            "metadata_json": "={{ JSON.stringify({ sharepicNeedStage: $json.sharepicNeedStage || '', retry_count: Number($json.retry_count || 0) + 1 }) }}"
+          },
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "6623da40-2cc6-4ce8-9479-4596675b331d",
+      "name": "History Content-Fehler",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [10960, 1776]
     }
   ],
   "pinData": {},

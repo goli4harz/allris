@@ -256,6 +256,19 @@ if ($null -ne $p8) {
     }
 }
 
+$p4 = $workflows['ALLRIS_P4_Content_Reaktion'].Data
+if ($null -ne $p4) {
+    $p4Failure = @($p4.nodes | Where-Object id -eq '4ffb1a4a-9d50-46bf-830d-36ae2f4a864c')
+    $p4History = @($p4.nodes | Where-Object id -eq '6623da40-2cc6-4ce8-9479-4596675b331d')
+    if ($p4Failure.Count -ne 1 -or
+        [string]$p4Failure[0].parameters.columns.value.last_error_code -notmatch 'SOURCE_LOCK_FAILED' -or
+        [string]$p4Failure[0].parameters.columns.value.last_error_code -notmatch 'CONTENT_JSON_INVALID' -or
+        $p4History.Count -ne 1 -or
+        $p4History[0].parameters.dataTableId.value -ne 'Q54kptpOrbug6bJu') {
+        Add-Failure 'P4: zentraler Content-/SourceLock-Fehlervertrag ist unvollständig.'
+    }
+}
+
 Write-Host "Geprüfte Exporte: $($workflowFiles.Count)"
 Write-Host "Sub-Workflow-Referenzen: $($idsReferenced.Count)"
 

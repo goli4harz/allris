@@ -81,6 +81,23 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 Neueste Einträge stehen oben.
 
+### 2026-07-23 – Codex – P4-Content-Fehlervertrag angebunden
+
+- Gemeinsamer Content-Fehlerpfad unterscheidet stabil zwischen
+  `SOURCE_LOCK_FAILED` und `CONTENT_JSON_INVALID`.
+- SourceLock-Blockade bleibt ohne automatisches Retry-Datum; invalider Content
+  erhält exponentielle Retry-Planung.
+- Beide bestehenden Fehlerquellen schreiben in eine gemeinsame Append-History.
+- Ein neuer History-Node rechts neben dem Fehlerupdate; Abschnitt bleibt mit
+  drei Reihen deutlich innerhalb des 15×5-Rasters.
+- Betroffene Dateien: `ALLRIS_P4_Content_Reaktion.json`,
+  `scripts/Test-AllrisWorkflows.ps1`, `PROJECT_COORDINATION.md`.
+- Fachliche Content- und SourceLock-Gates blieben unverändert.
+- Live-Rollout: P4 aktiv mit 50 Nodes und UTF-8-strukturgleich zum Export.
+- Tests: alle 24 Exporte, 7 Sub-Workflow-IDs und Live-Drift-Prüfung
+  erfolgreich; nur die akzeptierte LAN-Statuswarnung bleibt.
+- Nächster Schritt: kontrollierten Content-/SourceLock-Fehlerlauf abnehmen.
+
 ### 2026-07-23 – Codex – P8-WordPress-Fehlervertrag angebunden
 
 - Partei-Webseite verwendet denselben stabilen Veröffentlichungsfehlercode
