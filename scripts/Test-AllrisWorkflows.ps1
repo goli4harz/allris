@@ -223,6 +223,24 @@ if ($null -ne $dispatcher) {
 
 $p6 = $workflows['ALLRIS_P6_Bildgenerierung'].Data
 if ($null -ne $p6) {
+    $p6ClaimCalls = @($p6.nodes | Where-Object {
+        $_.type -eq 'n8n-nodes-base.executeWorkflow' -and
+        $_.parameters.workflowId.value -eq 'D7cmBsy3exuOkBd9'
+    })
+    $p6ClaimPrepare = @($p6.nodes | Where-Object name -eq 'Bereite P6 Claims vor')
+    $p6ClaimRelease = @($p6.nodes | Where-Object name -eq 'Bereite P6 Claim-Freigabe vor')
+    if ($p6ClaimCalls.Count -ne 2 -or
+        $p6ClaimPrepare.Count -ne 1 -or
+        -not ([string]$p6ClaimPrepare[0].parameters.jsCode).Contains(
+            'leaseMinutes: 60'
+        ) -or
+        $p6ClaimRelease.Count -ne 1 -or
+        -not ([string]$p6ClaimRelease[0].parameters.jsCode).Contains(
+            'ALLRIS_P6_Bildgenerierung:${$execution.id}'
+        )) {
+        Add-Failure 'P6: Claim-Erwerb, 60-Minuten-Lease oder owner-gebundene Freigabe ist unvollständig.'
+    }
+
     foreach ($nodeId in @(
         'ed509d84-c2b0-4f2e-90ca-9f59f7abf363',
         'e2a86b50-414f-4b61-8b78-cf4654990a63'

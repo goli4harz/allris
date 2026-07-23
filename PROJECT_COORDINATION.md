@@ -81,6 +81,23 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 Neueste Einträge stehen oben.
 
+### 2026-07-23 – Codex – P6 an Claim-/Lease angebunden
+
+- Claim-Erwerb erfolgt erst nach Sortierung und Mengenbegrenzung; weggefilterte
+  Bildkandidaten werden nicht unnötig gesperrt.
+- Bild-API, Compositing, Matrix-Bildversand und Nextcloud erhalten wegen ihrer
+  Laufzeit eine 60-Minuten-Lease.
+- Vier owner-gebundene Freigaben: `image_composed`, endgültige Bildprüfung,
+  endgültiges Bildkonzept und SourceLock-Blockade.
+- Der parallele Presseartikel-/Matrix-Benachrichtigungsast gibt nicht vorzeitig
+  frei; nach `image_composed` verhindert der Bildstatus eine erneute P6-Auswahl.
+- Layout: 64 Nodes, maximal 13 Nodes in einer Reihe.
+- Live: aktiv, Version `cd24828c-e266-4147-8987-4af4c1be9ae6`.
+- Tests: 25 Exporte, 19 Sub-Workflow-Referenzen, vier eindeutige
+  Release-Quellen und Live-Drift-Prüfung erfolgreich.
+- Nächster Schritt: regulären Zyklus abnehmen; Veröffentlichung P7/P8 erst nach
+  gesonderter Claim-/Side-Effect-Prüfung anbinden.
+
 ### 2026-07-23 – Codex – P5 an Claim-/Lease angebunden
 
 - Claim-Erwerb erfolgt erst nach dem bestehenden Visual-Status-Filter; das

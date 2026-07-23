@@ -259,6 +259,11 @@
             "node": "Loop Bildprompts",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Bereite P6 Claim-Freigabe vor",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -353,6 +358,11 @@
           },
           {
             "node": "History Bildfehler",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Bereite P6 Claim-Freigabe vor",
             "type": "main",
             "index": 0
           }
@@ -469,6 +479,11 @@
             "node": "History Bildfehler",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Bereite P6 Claim-Freigabe vor",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -578,6 +593,11 @@
             "node": "Loop Bildprompts",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Bereite P6 Claim-Freigabe vor",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -608,12 +628,24 @@
       "main": [
         [
           {
-            "node": "Loop Bildprompts",
+            "node": "Bereite P6 Claims vor",
             "type": "main",
             "index": 0
           }
         ]
       ]
+    },
+    "Bereite P6 Claims vor": {
+      "main": [[{"node":"Erwerbe P6 Claim","type":"main","index":0}]]
+    },
+    "Erwerbe P6 Claim": {
+      "main": [[{"node":"Nur bestaetigte P6 Claims","type":"main","index":0}]]
+    },
+    "Nur bestaetigte P6 Claims": {
+      "main": [[{"node":"Loop Bildprompts","type":"main","index":0}]]
+    },
+    "Bereite P6 Claim-Freigabe vor": {
+      "main": [[{"node":"Release P6 Claim","type":"main","index":0}]]
     },
     "Baue QA-Prompt": {
       "main": [
@@ -4900,6 +4932,68 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [2560, 1088]
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = Date.now();\nconst owner = `ALLRIS_P6_Bildgenerierung:${$execution.id}`;\nreturn items\n  .filter(item => {\n    const j = item.json || {};\n    const oldOwner = String(j.claim_owner || '').trim();\n    const expires = Date.parse(String(j.claim_expires_at || ''));\n    return !oldOwner || !Number.isFinite(expires) || expires <= now;\n  })\n  .map(item => ({ json: {\n    ...item.json,\n    claimAction: 'acquire',\n    claimOwner: owner,\n    claimStage: 'image',\n    leaseMinutes: 60,\n    expectedClaimOwner: item.json.claim_owner ?? null,\n    expectedClaimExpiresAt: item.json.claim_expires_at ?? null\n  } }));"
+      },
+      "id": "293a4b5c-1111-4293-a4b5-000000000001",
+      "name": "Bereite P6 Claims vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-600, 1168]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D7cmBsy3exuOkBd9",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Claim_Lease"
+        },
+        "options": {"waitForSubWorkflow":true}
+      },
+      "id": "293a4b5c-2222-4293-a4b5-000000000002",
+      "name": "Erwerbe P6 Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [-360, 1168]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.filter(item => item.json?.claimAcquired === true);"
+      },
+      "id": "293a4b5c-3333-4293-a4b5-000000000003",
+      "name": "Nur bestaetigte P6 Claims",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-120, 1168]
+    },
+    {
+      "parameters": {
+        "jsCode": "const vorgangKey = String($json.vorgangKey || '').trim();\nif (!vorgangKey) throw new Error('[P6 Claim Release] vorgangKey fehlt.');\nreturn [{ json: { vorgangKey, claimAction: 'release', claimOwner: `ALLRIS_P6_Bildgenerierung:${$execution.id}` } }];"
+      },
+      "id": "293a4b5c-4444-4293-a4b5-000000000004",
+      "name": "Bereite P6 Claim-Freigabe vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1328, 1200]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D7cmBsy3exuOkBd9",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Claim_Lease"
+        },
+        "options": {"waitForSubWorkflow":true}
+      },
+      "id": "293a4b5c-5555-4293-a4b5-000000000005",
+      "name": "Release P6 Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [1568, 1200]
     }
   ],
   "pinData": {},
@@ -4921,5 +5015,5 @@
       "name": "instagram"
     }
   ],
-  "versionId": "c1d03abf-1bea-4023-adf4-cbc878adbde1"
+  "versionId": "cd24828c-e266-4147-8987-4af4c1be9ae6"
 }
