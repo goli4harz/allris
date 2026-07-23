@@ -534,8 +534,24 @@
             "node": "Paperless Backfill markieren",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "History Paperless Erfolg",
+            "type": "main",
+            "index": 0
           }
         ],
+        [
+          {
+            "node": "Lese Vorgang fuer Paperless Fehler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless Backfill markieren": {
+      "main": [
         [
           {
             "node": "Loop weiter (Backfill)",
@@ -545,7 +561,34 @@
         ]
       ]
     },
-    "Paperless Backfill markieren": {
+    "Lese Vorgang fuer Paperless Fehler": {
+      "main": [
+        [
+          {
+            "node": "Bereite Paperless Fehler vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereite Paperless Fehler vor": {
+      "main": [
+        [
+          {
+            "node": "DB Paperless Fehler",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "History Paperless Fehler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB Paperless Fehler": {
       "main": [
         [
           {
@@ -1787,6 +1830,149 @@
         2992
       ],
       "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "Q54kptpOrbug6bJu",
+          "mode": "list",
+          "cachedResultName": "allris_state_history",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/Q54kptpOrbug6bJu"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_id": "={{ 'paperless-' + $execution.id + '-' + $json.vorgangKey + '-success' }}",
+            "vorgang_key": "={{ $json.vorgangKey }}",
+            "pipeline_stage": "paperless",
+            "old_state": "",
+            "new_state": "imported",
+            "reason_code": "",
+            "reason_message": "",
+            "workflow_name": "ALLRIS_Paperless_Backfill",
+            "workflow_execution_id": "={{ $execution.id }}",
+            "created_at": "={{ $now.toISO() }}",
+            "metadata_json": "{}"
+          },
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "de8bd0ed-faf2-4e7e-bf1b-792583dd02f6",
+      "name": "History Paperless Erfolg",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [9696, 2848]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "c8712e02-7939-46bd-a924-f30e49ef9430",
+      "name": "Lese Vorgang fuer Paperless Fehler",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [9696, 3264]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const retryCount = Number($json.retry_count || 0) + 1;\nconst delayMinutes = Math.min(1440, 15 * Math.pow(2, Math.max(0, retryCount - 1)));\nreturn { json: { ...$json, retry_count: retryCount, next_retry_at: $now.plus({ minutes: delayMinutes }).toISO(), paperless_error_message: 'Mindestens ein Dokument konnte nicht vollständig nach Paperless synchronisiert werden.' } };"
+      },
+      "id": "f834101c-312d-4d72-b5ad-c9e58ce33217",
+      "name": "Bereite Paperless Fehler vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [9904, 3264]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "last_error_code": "PAPERLESS_IMPORT_FAILED",
+            "last_error_message": "={{ $json.paperless_error_message }}",
+            "last_error_stage": "paperless",
+            "last_error_at": "={{ $now.toISO() }}",
+            "retry_count": "={{ $json.retry_count }}",
+            "next_retry_at": "={{ $json.next_retry_at }}"
+          },
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "581f6cac-e012-44ce-ac44-11cf12b2aede",
+      "name": "DB Paperless Fehler",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [10128, 3216]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "Q54kptpOrbug6bJu",
+          "mode": "list",
+          "cachedResultName": "allris_state_history",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/Q54kptpOrbug6bJu"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_id": "={{ 'paperless-' + $execution.id + '-' + $json.vorgangKey + '-failure' }}",
+            "vorgang_key": "={{ $json.vorgangKey }}",
+            "pipeline_stage": "paperless",
+            "old_state": "",
+            "new_state": "retry_scheduled",
+            "reason_code": "PAPERLESS_IMPORT_FAILED",
+            "reason_message": "={{ $json.paperless_error_message }}",
+            "workflow_name": "ALLRIS_Paperless_Backfill",
+            "workflow_execution_id": "={{ $execution.id }}",
+            "created_at": "={{ $now.toISO() }}",
+            "metadata_json": "={{ JSON.stringify({ retry_count: $json.retry_count, next_retry_at: $json.next_retry_at }) }}"
+          },
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "64e87608-aeb3-4576-a731-8467ce0caa03",
+      "name": "History Paperless Fehler",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [10128, 3360]
     },
     {
       "parameters": {

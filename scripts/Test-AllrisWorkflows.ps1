@@ -169,6 +169,23 @@ if ($null -ne $p2) {
     }
 }
 
+$paperless = $workflows['ALLRIS_Paperless_Backfill'].Data
+if ($null -ne $paperless) {
+    $paperlessDbError = @($paperless.nodes | Where-Object name -eq 'DB Paperless Fehler')
+    $paperlessHistory = @($paperless.nodes | Where-Object name -like 'History Paperless *')
+    if ($paperlessDbError.Count -ne 1 -or
+        $paperlessDbError[0].parameters.columns.value.last_error_code -ne 'PAPERLESS_IMPORT_FAILED' -or
+        $paperlessDbError[0].parameters.columns.value.last_error_stage -ne 'paperless') {
+        Add-Failure 'Paperless: zentraler Fehlervertrag fehlt oder ist inkonsistent.'
+    }
+    if ($paperlessHistory.Count -ne 2 -or
+        @($paperlessHistory | Where-Object {
+            $_.parameters.dataTableId.value -ne 'Q54kptpOrbug6bJu'
+        }).Count -gt 0) {
+        Add-Failure 'Paperless: Erfolgs-/Fehler-History ist unvollständig.'
+    }
+}
+
 Write-Host "Geprüfte Exporte: $($workflowFiles.Count)"
 Write-Host "Sub-Workflow-Referenzen: $($idsReferenced.Count)"
 

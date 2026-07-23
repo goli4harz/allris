@@ -54,7 +54,7 @@ Statuswerte: `geplant`, `aktiv`, `teilweise`, `erfüllt`, `verworfen`.
 | TASK-009 | hoch | Zeitkaskade durch Claim-/Lease-fähigen Dispatcher absichern | offen | offen | baut auf TASK-001/TASK-002 auf; Audit F-04 |
 | TASK-010 | mittel | Workflow-ID- und Infrastruktur-Konfigurationslandkarte anlegen | Codex | erledigt | `docs/WORKFLOW_ID_MAP.md`; Live-IDs werden automatisiert geprüft |
 | TASK-011 | kritisch | Wiederkehrende P1-Verbindungsabbrüche zur ALLRIS-Übersicht diagnostizieren und beheben | Codex | blockiert | Ziel liefert `504 Gateway Time-out`; `neverError` entfernt, damit drei HTTP-Retries tatsächlich greifen |
-| TASK-012 | hoch | Paperless-Backfill-Fehler in `Aggregiere Backfill-Ergebnis` beheben | Codex | Review | Kontext- und Fehlerweitergabe live korrigiert; nächsten Stundenlauf prüfen |
+| TASK-012 | hoch | Paperless-Backfill-Fehler in `Aggregiere Backfill-Ergebnis` beheben | Codex | Review | Kontextfix live; zentraler Fehler-/History-Vertrag vorbereitet, Live-Rollout und Stundenlauf prüfen |
 
 Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
@@ -80,6 +80,22 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 ## Änderungs- und Übergabeprotokoll
 
 Neueste Einträge stehen oben.
+
+### 2026-07-23 – Codex – Paperless-Fehlervertrag vorbereitet
+
+- Unvollständige Backfills schreiben `PAPERLESS_IMPORT_FAILED`, Stufe
+  `paperless`, Fehlerzeit sowie exponentielle Retry-Planung.
+- Aktuelle Vorgangszeile wird vor Erhöhung des zentralen Retry-Zählers erneut
+  gelesen.
+- Erfolg und Fehler erzeugen je einen Append-Eintrag in
+  `allris_state_history`; Erfolg löscht bewusst keine möglicherweise fremde
+  Fehlerursache.
+- Betroffene Dateien: `ALLRIS_Paperless_Backfill.json`,
+  `scripts/Test-AllrisWorkflows.ps1`, `PROJECT_COORDINATION.md`.
+- Live-Rollout: aktiv mit 51 Nodes, UTF-8-strukturgleich zum Export.
+- Tests: alle 24 Exporte, 7 Sub-Workflow-IDs und Live-Drift-Prüfung
+  erfolgreich; nur die akzeptierte LAN-Statuswarnung bleibt.
+- Nächster Schritt: nächsten regulären Stundenlauf abnehmen.
 
 ### 2026-07-23 – Codex – P2 an zentralen Fehlervertrag angebunden
 
