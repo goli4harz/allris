@@ -24,6 +24,7 @@ werden.
 | `ALLRIS_P8_Partei_Webseite.json` | `3pAntGoWcG2uAig4` | WordPress Partei-Webseite | ja |
 | `ALLRIS_Paperless_Backfill.json` | `UYCdv5g37YbNBKLh` | Paperless-Backfill | ja |
 | `ALLRIS_Status_Uebersicht.json` | `yI8lClVAuj6aS5Lz` | LAN-Statusübersicht | ja |
+| `ALLRIS_Dispatcher_Watchdog.json` | `UzevGR7GafUB3dFk` | Watchdog und manueller Claim-Test | nein |
 | `ALLRIS_Eignungs_Agent.json` | `ZZeD2dqzJUdCCksQ` | Eignungs-Agent | ja |
 | `ALLRIS_Fakten_Agent.json` | `6t3TBZtYtKgElV0d` | Fakten-Agent | ja |
 | `ALLRIS_QA_Agent.json` | `zJjry37DnhDVErfC` | QA-Agent | ja |
@@ -33,7 +34,6 @@ werden.
 
 ## Nur versioniert, nicht live vorhanden
 
-- `ALLRIS_Dispatcher_Watchdog.json`
 - `ALLRIS_Orchestrator_Shadow.json`
 - `ALLRIS_Reset_Paperless_Backfill_Marker.json`
 

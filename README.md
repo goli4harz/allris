@@ -42,8 +42,9 @@ Vorherige Änderung (2026-07-18): mehrere Live-Bugs in P1 und P4 behoben (Conten
   überträgt archivierte Originaldokumente nach Paperless.
 - `ALLRIS_Status_Uebersicht.json` stellt die im LAN verwendete
   Statusübersicht bereit.
-- `ALLRIS_Dispatcher_Watchdog.json` ist nur versioniert und derzeit nicht in
-  der Live-Instanz vorhanden; er steuert die Pipeline noch nicht.
+- `ALLRIS_Dispatcher_Watchdog.json` ist inaktiv in der Live-Instanz vorhanden.
+  Sein Schedule steuert die Pipeline noch nicht; ein getrennter Manual-Zweig
+  dient dem kontrollierten Claim-/Lease- und Doppelclaim-Test.
 - `ALLRIS_Orchestrator_Shadow.json` bleibt ein inaktiver manueller
   Vergleichsworkflow.
 - `ALLRIS_Reset_Paperless_Backfill_Marker.json` ist ein lokaler,

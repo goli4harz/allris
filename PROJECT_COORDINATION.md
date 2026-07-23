@@ -92,11 +92,18 @@ Neueste Einträge stehen oben.
   positives fachliches Eingangsgate.
 - Alle vier Felder live additiv angelegt; anschließende idempotente Prüfung
   meldet das Schema vollständig.
+- Inaktiven Dispatcher live importiert: `UzevGR7GafUB3dFk`, 16 Nodes in zwei
+  Reihen (5 + 11), Schedule nicht aktiviert.
+- Manueller Testzweig stoppt bei leerem Testschlüssel vor jedem Write, prüft
+  Claim-Eigentum per Re-Read und gibt nur den eigenen Owner wieder frei.
+- Ein 15-Sekunden-Fenster ermöglicht den kontrollierten parallelen
+  Doppelclaim-Test.
 - Betroffene Dateien: `scripts/Initialize-AllrisStateSchema.ps1`,
   `PAKET2_DB_SPEZIFIKATION.md`,
   `docs/DISPATCHER_CLAIM_LEASE_CONTRACT.md`,
   `PROJECT_COORDINATION.md`.
-- Nächster Schritt: manuellen Claim-/Re-Read-Testworkflow bauen.
+- Nächster Schritt: unkritischen Testvorgang festlegen und zwei parallele
+  manuelle Läufe abnehmen.
 
 ### 2026-07-23 – Codex – Paperless-Schedule neu registriert
 

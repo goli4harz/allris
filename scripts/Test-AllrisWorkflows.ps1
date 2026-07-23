@@ -198,6 +198,29 @@ if ($null -ne $paperless) {
     }
 }
 
+$dispatcher = $workflows['ALLRIS_Dispatcher_Watchdog'].Data
+if ($null -ne $dispatcher) {
+    $claimConfig = @($dispatcher.nodes | Where-Object name -eq 'Konfiguriere Claim-Test')
+    $claimAcquire = @($dispatcher.nodes | Where-Object name -eq 'Erwerbe Test-Claim CAS')
+    $claimRelease = @($dispatcher.nodes | Where-Object name -eq 'Gib eigenen Test-Claim frei')
+    $acquireFilters = @($claimAcquire[0].parameters.filters.conditions | ForEach-Object keyName)
+    $releaseFilters = @($claimRelease[0].parameters.filters.conditions | ForEach-Object keyName)
+    if ($dispatcher.active -ne $false -or
+        @($dispatcher.nodes).Count -ne 16 -or
+        $claimConfig.Count -ne 1 -or
+        -not ([string]$claimConfig[0].parameters.jsCode).Contains(
+            "const TEST_VORGANG_KEY = '';"
+        ) -or
+        $claimAcquire.Count -ne 1 -or
+        @('vorgangKey', 'claim_owner', 'claim_expires_at' |
+            Where-Object { $_ -notin $acquireFilters }).Count -gt 0 -or
+        $claimRelease.Count -ne 1 -or
+        @('vorgangKey', 'claim_owner' |
+            Where-Object { $_ -notin $releaseFilters }).Count -gt 0) {
+        Add-Failure 'Dispatcher: manueller Claim-/Re-Read-Test ist nicht sicher oder unvollständig.'
+    }
+}
+
 $p6 = $workflows['ALLRIS_P6_Bildgenerierung'].Data
 if ($null -ne $p6) {
     foreach ($nodeId in @(
