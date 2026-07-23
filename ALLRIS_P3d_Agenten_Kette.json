@@ -27,12 +27,24 @@
       "main": [
         [
           {
-            "node": "Sortiere Vorgaenge",
+            "node": "Bereite P3d Claims vor",
             "type": "main",
             "index": 0
           }
         ]
       ]
+    },
+    "Bereite P3d Claims vor": {
+      "main": [[{"node":"Erwerbe P3d Claim","type":"main","index":0}]]
+    },
+    "Erwerbe P3d Claim": {
+      "main": [[{"node":"Nur bestaetigte P3d Claims","type":"main","index":0}]]
+    },
+    "Nur bestaetigte P3d Claims": {
+      "main": [[{"node":"Sortiere Vorgaenge","type":"main","index":0}]]
+    },
+    "Bereite P3d Claim-Freigabe vor": {
+      "main": [[{"node":"Release P3d Claim","type":"main","index":0}]]
     },
     "Sortiere Vorgaenge": {
       "main": [
@@ -238,6 +250,11 @@
             "node": "Sende QA-Block Matrix-Meldung",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Bereite P3d Claim-Freigabe vor",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -269,6 +286,11 @@
         [
           {
             "node": "Naechster Vorgang",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Bereite P3d Claim-Freigabe vor",
             "type": "main",
             "index": 0
           }
@@ -1091,6 +1113,68 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [672, 7792]
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = Date.now();\nconst owner = `ALLRIS_P3d_Agenten_Kette:${$execution.id}`;\nreturn items\n  .filter(item => {\n    const j = item.json || {};\n    const oldOwner = String(j.claim_owner || '').trim();\n    const expires = Date.parse(String(j.claim_expires_at || ''));\n    return !oldOwner || !Number.isFinite(expires) || expires <= now;\n  })\n  .map(item => ({ json: {\n    ...item.json,\n    claimAction: 'acquire',\n    claimOwner: owner,\n    claimStage: 'judgment',\n    leaseMinutes: 30,\n    expectedClaimOwner: item.json.claim_owner ?? null,\n    expectedClaimExpiresAt: item.json.claim_expires_at ?? null\n  } }));"
+      },
+      "id": "e5f60718-1111-4e5f-8061-000000000001",
+      "name": "Bereite P3d Claims vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [688, 6384]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D7cmBsy3exuOkBd9",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Claim_Lease"
+        },
+        "options": {"waitForSubWorkflow":true}
+      },
+      "id": "e5f60718-2222-4e5f-8061-000000000002",
+      "name": "Erwerbe P3d Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [928, 6384]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.filter(item => item.json?.claimAcquired === true);"
+      },
+      "id": "e5f60718-3333-4e5f-8061-000000000003",
+      "name": "Nur bestaetigte P3d Claims",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1168, 6384]
+    },
+    {
+      "parameters": {
+        "jsCode": "const vorgangKey = String($json.vorgangKey || '').trim();\nif (!vorgangKey) throw new Error('[P3d Claim Release] vorgangKey fehlt.');\nreturn [{ json: { vorgangKey, claimAction: 'release', claimOwner: `ALLRIS_P3d_Agenten_Kette:${$execution.id}` } }];"
+      },
+      "id": "e5f60718-4444-4e5f-8061-000000000004",
+      "name": "Bereite P3d Claim-Freigabe vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2592, 7792]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D7cmBsy3exuOkBd9",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Claim_Lease"
+        },
+        "options": {"waitForSubWorkflow":true}
+      },
+      "id": "e5f60718-5555-4e5f-8061-000000000005",
+      "name": "Release P3d Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [2832, 7792]
     }
   ],
   "pinData": {},
@@ -1099,5 +1183,5 @@
     "binaryMode": "separate"
   },
   "tags": [],
-  "versionId": "eb064baa-dea8-4c4b-bdf9-2675f30d6c4b"
+  "versionId": "fdc50fd9-5355-4edc-b970-41cf222b7dfd"
 }

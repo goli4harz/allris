@@ -359,6 +359,24 @@ if ($null -ne $p3) {
 
 $p3d = $workflows['ALLRIS_P3d_Agenten_Kette'].Data
 if ($null -ne $p3d) {
+    $p3dClaimCalls = @($p3d.nodes | Where-Object {
+        $_.type -eq 'n8n-nodes-base.executeWorkflow' -and
+        $_.parameters.workflowId.value -eq 'D7cmBsy3exuOkBd9'
+    })
+    $p3dClaimPrepare = @($p3d.nodes | Where-Object name -eq 'Bereite P3d Claims vor')
+    $p3dClaimRelease = @($p3d.nodes | Where-Object name -eq 'Bereite P3d Claim-Freigabe vor')
+    if ($p3dClaimCalls.Count -ne 2 -or
+        $p3dClaimPrepare.Count -ne 1 -or
+        -not ([string]$p3dClaimPrepare[0].parameters.jsCode).Contains(
+            'expectedClaimExpiresAt: item.json.claim_expires_at ?? null'
+        ) -or
+        $p3dClaimRelease.Count -ne 1 -or
+        -not ([string]$p3dClaimRelease[0].parameters.jsCode).Contains(
+            'ALLRIS_P3d_Agenten_Kette:${$execution.id}'
+        )) {
+        Add-Failure 'P3d: Claim-Erwerb oder owner-gebundene Freigabe ist unvollständig.'
+    }
+
     $p3dQaBlock = @($p3d.nodes | Where-Object id -eq '014cdc09-9fed-4b52-a4bf-7fa6e8cf19e8')
     $p3dHistory = @($p3d.nodes | Where-Object id -eq 'd4a9df45-6110-47cf-96e0-1fbedf9399ce')
     if ($p3dQaBlock.Count -ne 1 -or

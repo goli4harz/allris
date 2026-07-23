@@ -81,6 +81,22 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 Neueste Einträge stehen oben.
 
+### 2026-07-23 – Codex – P3d an Claim-/Lease angebunden
+
+- P3d übernimmt nur freie oder abgelaufene Vorgänge per zentralem
+  Compare-and-set-Helper und lässt ausschließlich bestätigte Owner weiter.
+- Fremde gültige P3- oder andere Stufen-Claims werden vor Sortierung und
+  Agentenaufrufen übersprungen.
+- Erfolgreicher Kettenabschluss und endgültiger QA-Block geben nur
+  `ALLRIS_P3d_Agenten_Kette:<execution-id>` frei.
+- Matrix-Versand ist nicht für die Freigabe zuständig; dadurch kann verlorener
+  HTTP-Ausgabekontext keine falsche Zeile freigeben.
+- Layout: 33 Nodes, maximal exakt 15 Nodes in einer Reihe.
+- Live: aktiv, Version `fdc50fd9-5355-4edc-b970-41cf222b7dfd`.
+- Tests: 25 Exporte, 11 Sub-Workflow-Referenzen, beide Release-Quellen und
+  Live-Drift-Prüfung erfolgreich.
+- Nächster Schritt: regulären P3/P3d-Zyklus abnehmen und danach P3e anbinden.
+
 ### 2026-07-23 – Codex – P3 als erste Claim-/Lease-Stufe
 
 - Zentralen Subworkflow `ALLRIS_Claim_Lease` angelegt und live veröffentlicht:
