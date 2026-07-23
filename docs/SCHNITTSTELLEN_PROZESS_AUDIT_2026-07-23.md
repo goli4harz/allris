@@ -63,7 +63,7 @@ Ein grünes Ergebnis dieser Prüfung bedeutet daher „im Export konsistent“, 
 | Matrix | P2–P6, Watchdog | feste Raum-IDs, Header-Credential | ein bestätigter Authentifizierungsfehler in P6 |
 | Paperless | Backfill | REST, Header-Credential, Titel als Dublettenprüfung | grundsätzlich geschlossen, aber kein persistierter Fehlerzustand |
 | WordPress golietz.de | P7 | Credential, sofortiger Status `publish` | Kandidaten- und Freigabevertrag unklar/zu breit |
-| WordPress die-partei.net | P8, derzeit inaktiv | Credential, sofortiger Status `publish` | vor Aktivierung Freigaberegel festlegen |
+| WordPress die-partei.net | P8, produktiv aktiv gemäß DEC-004 | Credential, sofortiger Status `publish` | positives Veröffentlichungs-Gate weiterhin fachlich festlegen |
 | Status-WebHook | Status-Übersicht | Query-Token aus `ALLRIS_STATUS_TOKEN` | sicherer Default, Token in URL ist jedoch log-/history-sensitiv |
 
 ## 4. Befunde
@@ -293,4 +293,3 @@ aktualisieren.
 - Gleichzeitige Läufe können dieselbe Zeile nicht doppelt claimen.
 - Jeder externe Fehler erzeugt stabilen Code, Stufe, Zeit, Retry-Zähler und
   Historieneintrag, ohne die ursprüngliche Ursache zu überschreiben.
-
