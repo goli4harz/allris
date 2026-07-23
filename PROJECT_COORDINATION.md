@@ -81,6 +81,23 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 Neueste Einträge stehen oben.
 
+### 2026-07-23 – Codex – P7-WordPress-Fehlervertrag angebunden
+
+- Veröffentlichungsfehler schreiben `WORDPRESS_PUBLISH_FAILED`, Stufe
+  `publication`, Fehlerzeit und exponentielle Retry-Planung.
+- Erfolg löscht zentrale Fehlerfelder nur, wenn deren bisherige Stufe
+  `publication` ist; fremde Fehler bleiben erhalten.
+- Erfolg und beide bestehenden Fehlerquellen schreiben Append-History.
+- Zwei neue History-Nodes ohne zusätzliche Reihe kompakt im bestehenden
+  15×5-Abschnitt angeordnet.
+- Betroffene Dateien: `ALLRIS_P7_WordPress_Publish.json`,
+  `scripts/Test-AllrisWorkflows.ps1`, `PROJECT_COORDINATION.md`.
+- Fachliches Veröffentlichungs-Gate aus TASK-007 blieb unverändert.
+- Live-Rollout: P7 aktiv mit 25 Nodes und UTF-8-strukturgleich zum Export.
+- Tests: alle 24 Exporte, 7 Sub-Workflow-IDs und Live-Drift-Prüfung
+  erfolgreich; nur die akzeptierte LAN-Statuswarnung bleibt.
+- Nächster Schritt: kontrollierten WordPress-Fehler-/Erfolgslauf abnehmen.
+
 ### 2026-07-23 – Codex – P6-Matrix-Versandfehler angebunden
 
 - Finaler Presseartikel-Versand nutzt einen echten Fehlerausgang.
