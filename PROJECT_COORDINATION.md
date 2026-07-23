@@ -53,7 +53,7 @@ Statuswerte: `geplant`, `aktiv`, `teilweise`, `erfüllt`, `verworfen`.
 | TASK-008 | hoch | Kanonischen SourceLock-Vertrag festlegen und `sourceConflict` in allen Stufen einheitlich behandeln | offen | offen | Audit F-03 |
 | TASK-009 | hoch | Zeitkaskade durch Claim-/Lease-fähigen Dispatcher absichern | offen | offen | baut auf TASK-001/TASK-002 auf; Audit F-04 |
 | TASK-010 | mittel | Workflow-ID- und Infrastruktur-Konfigurationslandkarte anlegen | offen | offen | Audit F-07/F-08 |
-| TASK-011 | kritisch | Wiederkehrende P1-Verbindungsabbrüche zur ALLRIS-Übersicht diagnostizieren und beheben | Codex | blockiert | Proxy-Schema/Retry korrigiert; Live-Tests mit und ohne Proxy brechen identisch am Zielrequest ab |
+| TASK-011 | kritisch | Wiederkehrende P1-Verbindungsabbrüche zur ALLRIS-Übersicht diagnostizieren und beheben | Codex | blockiert | Ziel liefert `504 Gateway Time-out`; `neverError` entfernt, damit drei HTTP-Retries tatsächlich greifen |
 | TASK-012 | hoch | Paperless-Backfill-Fehler in `Aggregiere Backfill-Ergebnis` beheben | Codex | Review | Kontext- und Fehlerweitergabe live korrigiert; nächsten Stundenlauf prüfen |
 
 Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
@@ -89,6 +89,10 @@ Neueste Einträge stehen oben.
   der unsichere Zugriff auf `$('Loop Vorgänge').first().json` wurde entfernt.
 - P1-Proxywerte auf vollständige `http://`-URLs vereinheitlicht und drei
   Versuche explizit konfiguriert.
+- Nachfolgende Diagnose: Der Zielpfad liefert zeitweise eine echte
+  `504 Gateway Time-out`-Antwort. `neverError` wurde am Übersichtsrequest
+  entfernt, damit `retryOnFail` 5xx-Antworten tatsächlich wiederholt, statt
+  sie erst im nachgelagerten `codepage`-Node sichtbar zu machen.
 - Betroffene Dateien: `ALLRIS_P1_Ingestion.json`,
   `ALLRIS_Paperless_Backfill.json`, `ALLRIS_P6_Bildgenerierung.json`,
   `PROJECT_COORDINATION.md`.
