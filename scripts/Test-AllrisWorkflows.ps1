@@ -322,6 +322,15 @@ if ($null -ne $p7) {
     $p7SlugEvaluation = @($p7.nodes | Where-Object name -eq 'Bewerte WordPress-Slug-Suche')
     $p7SlugExistsGate = @($p7.nodes | Where-Object name -eq 'IF WordPress-Slug vorhanden?')
     $p7SlugLookupGate = @($p7.nodes | Where-Object name -eq 'IF WordPress-Slug-Suche ok?')
+    $p7ClaimCalls = @($p7.nodes | Where-Object {
+        $_.type -match 'executeWorkflow' -and
+        $_.parameters.workflowId.value -eq 'D7cmBsy3exuOkBd9'
+    })
+    $p7ClaimPrepare = @($p7.nodes | Where-Object name -eq 'Bereite P7 Claims vor')
+    $p7ClaimRelease = @($p7.nodes | Where-Object name -eq 'Bereite P7 Claim-Freigabe vor')
+    $p7ReleaseSources = @($p7.connections.psobject.Properties | Where-Object {
+        @($_.Value.main | ForEach-Object { $_ | ForEach-Object node }) -contains 'Bereite P7 Claim-Freigabe vor'
+    })
     $p7CreateInputs = @($p7.connections.psobject.Properties | Where-Object {
         @($_.Value.main | ForEach-Object { $_ | ForEach-Object node }) -contains 'Create a post'
     })
@@ -339,6 +348,12 @@ if ($null -ne $p7) {
         $p7SlugEvaluation.Count -ne 1 -or
         $p7SlugExistsGate.Count -ne 1 -or
         $p7SlugLookupGate.Count -ne 1 -or
+        $p7ClaimCalls.Count -ne 2 -or
+        $p7ClaimPrepare.Count -ne 1 -or
+        $p7ClaimPrepare[0].parameters.jsCode -notlike "*claimStage: 'publication'*" -or
+        $p7ClaimPrepare[0].parameters.jsCode -notlike '*leaseMinutes: 30*' -or
+        $p7ClaimRelease.Count -ne 1 -or
+        $p7ReleaseSources.Count -ne 2 -or
         $p7CreateInputs.Count -ne 1 -or
         $p7CreateInputs[0].Name -ne 'IF WordPress-Slug-Suche ok?') {
         Add-Failure 'P7: zentraler WordPress-Fehler-/History-Vertrag ist unvollständig.'
@@ -355,6 +370,15 @@ if ($null -ne $p8) {
     $p8SlugEvaluation = @($p8.nodes | Where-Object name -eq 'Bewerte Partei-Slug-Suche')
     $p8SlugExistsGate = @($p8.nodes | Where-Object name -eq 'IF Partei-Slug vorhanden?')
     $p8SlugLookupGate = @($p8.nodes | Where-Object name -eq 'IF Partei-Slug-Suche ok?')
+    $p8ClaimCalls = @($p8.nodes | Where-Object {
+        $_.type -match 'executeWorkflow' -and
+        $_.parameters.workflowId.value -eq 'D7cmBsy3exuOkBd9'
+    })
+    $p8ClaimPrepare = @($p8.nodes | Where-Object name -eq 'Bereite P8 Claims vor')
+    $p8ClaimRelease = @($p8.nodes | Where-Object name -eq 'Bereite P8 Claim-Freigabe vor')
+    $p8ReleaseSources = @($p8.connections.psobject.Properties | Where-Object {
+        @($_.Value.main | ForEach-Object { $_ | ForEach-Object node }) -contains 'Bereite P8 Claim-Freigabe vor'
+    })
     $p8BodyTargets = @($p8.connections.'Baue Post-Body'.main[0] | ForEach-Object node)
     if ($p8Failure.Count -ne 1 -or
         $p8Failure[0].parameters.columns.value.last_error_code -ne 'WORDPRESS_PUBLISH_FAILED' -or
@@ -371,6 +395,12 @@ if ($null -ne $p8) {
         $p8SlugEvaluation.Count -ne 1 -or
         $p8SlugExistsGate.Count -ne 1 -or
         $p8SlugLookupGate.Count -ne 1 -or
+        $p8ClaimCalls.Count -ne 2 -or
+        $p8ClaimPrepare.Count -ne 1 -or
+        $p8ClaimPrepare[0].parameters.jsCode -notlike "*claimStage: 'publication'*" -or
+        $p8ClaimPrepare[0].parameters.jsCode -notlike '*leaseMinutes: 30*' -or
+        $p8ClaimRelease.Count -ne 1 -or
+        $p8ReleaseSources.Count -ne 2 -or
         $p8BodyTargets.Count -ne 1 -or
         $p8BodyTargets[0] -ne 'Suche Partei-Beitrag per Slug') {
         Add-Failure 'P8: zentraler WordPress-Fehler-/History-Vertrag ist unvollständig.'

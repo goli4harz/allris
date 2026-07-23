@@ -38,6 +38,39 @@
       "main": [
         [
           {
+            "node": "Bereite P7 Claims vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereite P7 Claims vor": {
+      "main": [
+        [
+          {
+            "node": "Erwerbe P7 Claim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Erwerbe P7 Claim": {
+      "main": [
+        [
+          {
+            "node": "Nur bestaetigte P7 Claims",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nur bestaetigte P7 Claims": {
+      "main": [
+        [
+          {
             "node": "Loop Vorgaenge",
             "type": "main",
             "index": 0
@@ -316,6 +349,11 @@
             "node": "Naechster WordPress-Vorgang",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Bereite P7 Claim-Freigabe vor",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -325,6 +363,22 @@
         [
           {
             "node": "Naechster WordPress-Vorgang",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Bereite P7 Claim-Freigabe vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereite P7 Claim-Freigabe vor": {
+      "main": [
+        [
+          {
+            "node": "Release P7 Claim",
             "type": "main",
             "index": 0
           }
@@ -1145,6 +1199,72 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [1664, 880]
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = Date.now();\nconst owner = `ALLRIS_P7_WordPress_Publish:${$execution.id}`;\nreturn items\n  .filter(item => {\n    const j = item.json || {};\n    const oldOwner = String(j.claim_owner || '').trim();\n    const expires = Date.parse(String(j.claim_expires_at || ''));\n    return !oldOwner || !Number.isFinite(expires) || expires <= now;\n  })\n  .map(item => ({ json: {\n    ...item.json,\n    claimAction: 'acquire',\n    claimOwner: owner,\n    claimStage: 'publication',\n    leaseMinutes: 30,\n    expectedClaimOwner: item.json.claim_owner ?? null,\n    expectedClaimExpiresAt: item.json.claim_expires_at ?? null\n  } }));"
+      },
+      "id": "10a9cbe5-e173-4fce-9ca9-36ba9b486a1a",
+      "name": "Bereite P7 Claims vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 704]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D7cmBsy3exuOkBd9",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Claim_Lease"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "2f0fd9aa-c1f6-46c4-89d4-b81dcaf5f7b4",
+      "name": "Erwerbe P7 Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [960, 704]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.filter(item => item.json?.claimAcquired === true);"
+      },
+      "id": "e08eb7a2-fd70-4355-bb5f-9c4e59914528",
+      "name": "Nur bestaetigte P7 Claims",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 704]
+    },
+    {
+      "parameters": {
+        "jsCode": "const vorgangKey = String($json.vorgangKey || '').trim();\nif (!vorgangKey) throw new Error('[P7 Claim Release] vorgangKey fehlt.');\nreturn [{ json: { vorgangKey, claimAction: 'release', claimOwner: `ALLRIS_P7_WordPress_Publish:${$execution.id}` } }];"
+      },
+      "id": "ac4a1195-82e8-45d1-a778-6c750ff145f3",
+      "name": "Bereite P7 Claim-Freigabe vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1888, 880]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D7cmBsy3exuOkBd9",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Claim_Lease"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "9666e4f1-f2d4-4368-a19a-bce34a1b401d",
+      "name": "Release P7 Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [2112, 880]
     }
   ],
   "pinData": {},
@@ -1153,5 +1273,5 @@
     "binaryMode": "separate"
   },
   "tags": [],
-  "versionId": "3baa8f58-37ab-4228-92aa-09a8b86796f0"
+  "versionId": "0a24984c-69f1-4dfe-b581-679abc57a26a"
 }

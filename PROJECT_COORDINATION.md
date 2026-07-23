@@ -79,6 +79,22 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 ## Änderungs- und Übergabeprotokoll
 
+### 2026-07-23 – Codex – P7 und P8 an Claim-/Lease angebunden
+
+- Betroffene Dateien: `ALLRIS_P7_WordPress_Publish.json`,
+  `ALLRIS_P8_Partei_Webseite.json`, `scripts/Test-AllrisWorkflows.ps1`,
+  `PROJECT_COORDINATION.md`.
+- Beide Veröffentlichungsstufen überspringen fremde gültige Claims und
+  übernehmen freie oder abgelaufene Claims atomar über `ALLRIS_Claim_Lease`.
+- Claim-Owner sind workflow- und ausführungsgebunden; Stufe `publication`,
+  Lease 30 Minuten.
+- Erfolg und persistierter Veröffentlichungsfehler geben ausschließlich den
+  eigenen Claim frei. Ungefangene Abbrüche behalten die Lease zur Recovery.
+- Live-Rollout: P7 aktiv mit 34 Nodes/Version
+  `0a24984c-69f1-4dfe-b581-679abc57a26a`; P8 aktiv mit 27 Nodes/Version
+  `fa417b8b-eb9e-4a10-a49c-c09f9a2fae57`.
+- Layout: P7 maximal 12, P8 maximal 10 Nodes pro visueller Reihe.
+
 ### 2026-07-23 – Codex – P8 gegen WordPress-Dubletten abgesichert
 
 - Betroffene Dateien: `ALLRIS_P8_Partei_Webseite.json`,

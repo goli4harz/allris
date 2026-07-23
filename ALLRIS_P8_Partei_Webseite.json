@@ -38,6 +38,39 @@
       "main": [
         [
           {
+            "node": "Bereite P8 Claims vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereite P8 Claims vor": {
+      "main": [
+        [
+          {
+            "node": "Erwerbe P8 Claim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Erwerbe P8 Claim": {
+      "main": [
+        [
+          {
+            "node": "Nur bestaetigte P8 Claims",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nur bestaetigte P8 Claims": {
+      "main": [
+        [
+          {
             "node": "Loop Vorgaenge",
             "type": "main",
             "index": 0
@@ -201,6 +234,11 @@
             "node": "Naechster Vorgang",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Bereite P8 Claim-Freigabe vor",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -210,6 +248,22 @@
         [
           {
             "node": "Naechster Vorgang",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Bereite P8 Claim-Freigabe vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereite P8 Claim-Freigabe vor": {
+      "main": [
+        [
+          {
+            "node": "Release P8 Claim",
             "type": "main",
             "index": 0
           }
@@ -873,6 +927,72 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [1216, 1648]
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = Date.now();\nconst owner = `ALLRIS_P8_Partei_Webseite:${$execution.id}`;\nreturn items\n  .filter(item => {\n    const j = item.json || {};\n    const oldOwner = String(j.claim_owner || '').trim();\n    const expires = Date.parse(String(j.claim_expires_at || ''));\n    return !oldOwner || !Number.isFinite(expires) || expires <= now;\n  })\n  .map(item => ({ json: {\n    ...item.json,\n    claimAction: 'acquire',\n    claimOwner: owner,\n    claimStage: 'publication',\n    leaseMinutes: 30,\n    expectedClaimOwner: item.json.claim_owner ?? null,\n    expectedClaimExpiresAt: item.json.claim_expires_at ?? null\n  } }));"
+      },
+      "id": "cd5b3ce6-40f1-45d6-9a1d-4482ea00a597",
+      "name": "Bereite P8 Claims vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [928, 1328]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D7cmBsy3exuOkBd9",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Claim_Lease"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "aaf7bc2f-6d92-40ca-ab00-a680dd6b4682",
+      "name": "Erwerbe P8 Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [1152, 1328]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.filter(item => item.json?.claimAcquired === true);"
+      },
+      "id": "b0ef8c8c-e87a-4a18-b704-42946227dfd0",
+      "name": "Nur bestaetigte P8 Claims",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1376, 1328]
+    },
+    {
+      "parameters": {
+        "jsCode": "const vorgangKey = String($json.vorgangKey || '').trim();\nif (!vorgangKey) throw new Error('[P8 Claim Release] vorgangKey fehlt.');\nreturn [{ json: { vorgangKey, claimAction: 'release', claimOwner: `ALLRIS_P8_Partei_Webseite:${$execution.id}` } }];"
+      },
+      "id": "6fe86e58-8cb4-4ceb-8a99-7a8a5299e294",
+      "name": "Bereite P8 Claim-Freigabe vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1456, 1600]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D7cmBsy3exuOkBd9",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Claim_Lease"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "404c15f7-6c46-44f0-999d-284c5cce7a25",
+      "name": "Release P8 Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [1680, 1600]
     }
   ],
   "pinData": {},
@@ -881,5 +1001,5 @@
     "binaryMode": "separate"
   },
   "tags": [],
-  "versionId": "7fdafb44-8bf9-4f51-aaf7-3d4e8474e334"
+  "versionId": "fa417b8b-eb9e-4a10-a49c-c09f9a2fae57"
 }
