@@ -2,14 +2,6 @@
 
 n8n-Automatisierungspipeline für DIE PARTEI Kreisverband Goslar. Überwacht das Goslarer Ratsinformationssystem ALLRIS, bewertet neue Vorgänge, und generiert daraus automatisiert satirische Social-Media-Inhalte und Sharepics.
 
-## Zusammenarbeit und Projektstatus
-
-Die gemeinsame Kommunikations- und Übergabedatei für Oliver, Claude und Codex
-ist [`PROJECT_COORDINATION.md`](PROJECT_COORDINATION.md). Dort werden
-Anforderungen, offene Aufgaben, Entscheidungen, Blocker und Übergaben gepflegt.
-Sie ist vor jeder Projektänderung zu lesen und bei relevanten Änderungen im
-selben Commit zu aktualisieren.
-
 ## Produktions-Pipeline (P1–P8 + P3b/P3c/P3d/P3e)
 
 Das sind die Dateien, die tatsächlich live laufen (n8n Schedule Trigger, alle 5 Stunden, zeitversetzt) und reale Vorgänge von der ALLRIS-Erfassung bis zur WordPress-Veröffentlichung durchreichen:
