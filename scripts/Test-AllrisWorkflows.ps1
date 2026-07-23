@@ -324,6 +324,24 @@ if ($null -ne $p4) {
 
 $p5 = $workflows['ALLRIS_P5_Visual_Prompt_Builder'].Data
 if ($null -ne $p5) {
+    $p5ClaimCalls = @($p5.nodes | Where-Object {
+        $_.type -eq 'n8n-nodes-base.executeWorkflow' -and
+        $_.parameters.workflowId.value -eq 'D7cmBsy3exuOkBd9'
+    })
+    $p5ClaimPrepare = @($p5.nodes | Where-Object name -eq 'Bereite P5 Claims vor')
+    $p5ClaimRelease = @($p5.nodes | Where-Object name -eq 'Bereite P5 Claim-Freigabe vor')
+    if ($p5ClaimCalls.Count -ne 2 -or
+        $p5ClaimPrepare.Count -ne 1 -or
+        -not ([string]$p5ClaimPrepare[0].parameters.jsCode).Contains(
+            'expectedClaimExpiresAt: item.json.claim_expires_at ?? null'
+        ) -or
+        $p5ClaimRelease.Count -ne 1 -or
+        -not ([string]$p5ClaimRelease[0].parameters.jsCode).Contains(
+            'ALLRIS_P5_Visual_Prompt_Builder:${$execution.id}'
+        )) {
+        Add-Failure 'P5: Claim-Erwerb oder owner-gebundene Freigabe ist unvollständig.'
+    }
+
     $p5Failure = @($p5.nodes | Where-Object id -eq '729aedbd-cad6-40ee-a28f-d1286914d423')
     $p5History = @($p5.nodes | Where-Object id -eq '7459b617-ad5a-4a11-8eb2-8f7297e7fe36')
     if ($p5Failure.Count -ne 1 -or

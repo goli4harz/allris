@@ -81,6 +81,22 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 Neueste Einträge stehen oben.
 
+### 2026-07-23 – Codex – P5 an Claim-/Lease angebunden
+
+- Claim-Erwerb erfolgt erst nach dem bestehenden Visual-Status-Filter; das
+  menschliche Headline-/Matrix-Gate bleibt unverändert.
+- Freie oder abgelaufene Visual-Kandidaten werden atomar übernommen, fremde
+  gültige Claims übersprungen.
+- Erfolgreicher Prompt-Write und bestehender Visual-Gate-Fehler geben nur
+  `ALLRIS_P5_Visual_Prompt_Builder:<execution-id>` frei.
+- Claim-Stufe `visual`, Lease 30 Minuten.
+- Layout: 24 Nodes, maximal 7 Nodes in einer Reihe.
+- Live: aktiv, Version `94a0fbe7-43a8-4448-8e1b-79bfa461e295`.
+- Tests: 25 Exporte, 17 Sub-Workflow-Referenzen, beide Release-Quellen und
+  Live-Drift-Prüfung erfolgreich.
+- Nächster Schritt: regulären Zyklus abnehmen und P6 mit längerer Bild-Lease
+  anbinden.
+
 ### 2026-07-23 – Codex – P4 an Claim-/Lease angebunden
 
 - Claims gelten ausschließlich für den produktiven `needs_content`-Pfad;

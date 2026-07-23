@@ -27,12 +27,24 @@
       "main": [
         [
           {
-            "node": "Sortiere Visual-Vorgänge",
+            "node": "Bereite P5 Claims vor",
             "type": "main",
             "index": 0
           }
         ]
       ]
+    },
+    "Bereite P5 Claims vor": {
+      "main": [[{"node":"Erwerbe P5 Claim","type":"main","index":0}]]
+    },
+    "Erwerbe P5 Claim": {
+      "main": [[{"node":"Nur bestaetigte P5 Claims","type":"main","index":0}]]
+    },
+    "Nur bestaetigte P5 Claims": {
+      "main": [[{"node":"Sortiere Visual-Vorgänge","type":"main","index":0}]]
+    },
+    "Bereite P5 Claim-Freigabe vor": {
+      "main": [[{"node":"Release P5 Claim","type":"main","index":0}]]
     },
     "Loop Visual Vorgänge": {
       "main": [
@@ -62,6 +74,11 @@
         [
           {
             "node": "Nächster Vorgang",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Bereite P5 Claim-Freigabe vor",
             "type": "main",
             "index": 0
           }
@@ -219,6 +236,9 @@
           }
         ]
       ]
+    },
+    "DB Visual-Gate Fehler": {
+      "main": [[{"node":"Bereite P5 Claim-Freigabe vor","type":"main","index":0}]]
     }
   },
   "id": "WIg40QYXmouRoYjq",
@@ -1455,6 +1475,68 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [1360, 240]
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = Date.now();\nconst owner = `ALLRIS_P5_Visual_Prompt_Builder:${$execution.id}`;\nreturn items\n  .filter(item => {\n    const j = item.json || {};\n    const oldOwner = String(j.claim_owner || '').trim();\n    const expires = Date.parse(String(j.claim_expires_at || ''));\n    return !oldOwner || !Number.isFinite(expires) || expires <= now;\n  })\n  .map(item => ({ json: {\n    ...item.json,\n    claimAction: 'acquire',\n    claimOwner: owner,\n    claimStage: 'visual',\n    leaseMinutes: 30,\n    expectedClaimOwner: item.json.claim_owner ?? null,\n    expectedClaimExpiresAt: item.json.claim_expires_at ?? null\n  } }));"
+      },
+      "id": "18293a4b-1111-4182-93a4-000000000001",
+      "name": "Bereite P5 Claims vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [304, -240]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D7cmBsy3exuOkBd9",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Claim_Lease"
+        },
+        "options": {"waitForSubWorkflow":true}
+      },
+      "id": "18293a4b-2222-4182-93a4-000000000002",
+      "name": "Erwerbe P5 Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [544, -240]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.filter(item => item.json?.claimAcquired === true);"
+      },
+      "id": "18293a4b-3333-4182-93a4-000000000003",
+      "name": "Nur bestaetigte P5 Claims",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [784, -240]
+    },
+    {
+      "parameters": {
+        "jsCode": "const vorgangKey = String($json.vorgangKey || '').trim();\nif (!vorgangKey) throw new Error('[P5 Claim Release] vorgangKey fehlt.');\nreturn [{ json: { vorgangKey, claimAction: 'release', claimOwner: `ALLRIS_P5_Visual_Prompt_Builder:${$execution.id}` } }];"
+      },
+      "id": "18293a4b-4444-4182-93a4-000000000004",
+      "name": "Bereite P5 Claim-Freigabe vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 480]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D7cmBsy3exuOkBd9",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Claim_Lease"
+        },
+        "options": {"waitForSubWorkflow":true}
+      },
+      "id": "18293a4b-5555-4182-93a4-000000000005",
+      "name": "Release P5 Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [1360, 480]
     }
   ],
   "pinData": {},
@@ -1463,5 +1545,5 @@
     "binaryMode": "separate"
   },
   "tags": [],
-  "versionId": "2101e172-4427-4371-a443-d836a0d3904f"
+  "versionId": "94a0fbe7-43a8-4448-8e1b-79bfa461e295"
 }
