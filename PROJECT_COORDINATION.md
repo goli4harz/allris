@@ -46,7 +46,7 @@ Statuswerte: `geplant`, `aktiv`, `teilweise`, `erfüllt`, `verworfen`.
 | TASK-001 | hoch | Zentrale State-History und einheitliche Fehlerfelder gemäß `PAKET2_DB_SPEZIFIKATION.md` umsetzen | offen | blockiert | Data Table und Spalten in n8n anlegen; anschließend IDs dokumentieren |
 | TASK-002 | hoch | Dispatcher/Watchdog als zuverlässige Pipeline-Steuerung bewerten und fertigstellen | offen | offen | Zustandsübergänge, Retry-Regeln und Parallelität festlegen |
 | TASK-003 | hoch | Automatische Strukturtests für alle n8n-JSON-Exporte ergänzen | Codex | erledigt | `scripts/Test-AllrisWorkflows.ps1`, lokal und gegen Live-n8n erfolgreich |
-| TASK-004 | mittel | README an tatsächlich vorhandene Stufen und Hilfsworkflows angleichen | offen | offen | insbesondere P3e und Dispatcher/Watchdog dokumentieren |
+| TASK-004 | mittel | README an tatsächlich vorhandene Stufen und Hilfsworkflows angleichen | Codex | erledigt | P3e, P8, Paperless, Status und Dispatcher/Watchdog dokumentiert |
 | TASK-005 | mittel | Lizenz und Beitragsregeln festlegen | Oliver | Entscheidung nötig | gewünschte Lizenz bestimmen |
 | TASK-006 | kritisch | Matrix-Authentifizierung im P6-Node `Sende Presseartikel Matrix` aktivieren und testen | Codex | Review | Authentifizierung live aktiviert; kontrollierter Matrix-Funktionstest steht noch aus |
 | TASK-007 | kritisch | Fachliche Rolle und positives Veröffentlichungs-Gate für P7 festlegen | Oliver | Entscheidung nötig | Vollarchiv oder redaktioneller Kanal; Audit F-02 |
@@ -79,6 +79,15 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 ## Änderungs- und Übergabeprotokoll
 
 Neueste Einträge stehen oben.
+
+### 2026-07-23 – Codex – Hauptdokumentation an Live-Ablauf angeglichen
+
+- P3e und P8 in Produktionsübersicht und Zeitplan aufgenommen.
+- Zuständigkeit von P3d gegenüber P3e korrigiert.
+- Paperless, LAN-Statusübersicht, Dispatcher/Watchdog, Shadow-Orchestrator und
+  Reset-Wartungsworkflow dokumentiert.
+- Betroffene Dateien: `README.md`, `PROJECT_COORDINATION.md`.
+- Tests: Struktur- und Live-Drift-Prüfung weiterhin erfolgreich.
 
 ### 2026-07-23 – Codex – Strukturtests und Live-ID-Landkarte
 
