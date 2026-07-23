@@ -64,3 +64,19 @@ Sechs einzeln zuständige KI-Agenten plus ein Vergleichs-Werkzeug, die frühere,
 Diese Dateien sind n8n-Workflow-Exporte. Beim Import eines **neuen** Workflows mit einem LangChain/KI-Node (z.B. `ALLRIS_QA_Agent.json`) kann n8n mit `f[m] is not iterable` abbrechen — der KI-Node muss dann manuell über die "+"-Node-Palette ergänzt werden, statt über die Datei importiert zu werden.
 
 Referenzierte Data-Table- und Workflow-IDs (z.B. `dataTableId`, `workflowId`) beziehen sich auf die private n8n-Instanz dieses Projekts und müssen nach einem Import in eine andere Instanz neu zugeordnet werden.
+
+## Automatische Strukturprüfung
+
+Die versionierte Workflow-ID-Landkarte liegt unter
+[`docs/WORKFLOW_ID_MAP.md`](docs/WORKFLOW_ID_MAP.md). Exporte und optional die
+Live-Instanz können mit PowerShell geprüft werden:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Test-AllrisWorkflows.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Test-AllrisWorkflows.ps1 -CheckLive
+```
+
+Die Live-Prüfung verwendet `N8N_API_KEY` und optional `N8N_BASE_URL`. Sie gibt
+den Schlüssel nicht aus und prüft JSON-Struktur, Node-Verbindungen,
+Sub-Workflow-IDs, Matrix-Authentifizierung und Abweichungen zwischen Git und
+den gespeicherten Live-Workflows.

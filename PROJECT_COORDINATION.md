@@ -45,14 +45,14 @@ Statuswerte: `geplant`, `aktiv`, `teilweise`, `erfüllt`, `verworfen`.
 |---|---|---|---|---|---|
 | TASK-001 | hoch | Zentrale State-History und einheitliche Fehlerfelder gemäß `PAKET2_DB_SPEZIFIKATION.md` umsetzen | offen | blockiert | Data Table und Spalten in n8n anlegen; anschließend IDs dokumentieren |
 | TASK-002 | hoch | Dispatcher/Watchdog als zuverlässige Pipeline-Steuerung bewerten und fertigstellen | offen | offen | Zustandsübergänge, Retry-Regeln und Parallelität festlegen |
-| TASK-003 | hoch | Automatische Strukturtests für alle n8n-JSON-Exporte ergänzen | offen | offen | JSON, Node-Referenzen, Workflow-IDs und erlaubte Statuswerte prüfen |
+| TASK-003 | hoch | Automatische Strukturtests für alle n8n-JSON-Exporte ergänzen | Codex | erledigt | `scripts/Test-AllrisWorkflows.ps1`, lokal und gegen Live-n8n erfolgreich |
 | TASK-004 | mittel | README an tatsächlich vorhandene Stufen und Hilfsworkflows angleichen | offen | offen | insbesondere P3e und Dispatcher/Watchdog dokumentieren |
 | TASK-005 | mittel | Lizenz und Beitragsregeln festlegen | Oliver | Entscheidung nötig | gewünschte Lizenz bestimmen |
 | TASK-006 | kritisch | Matrix-Authentifizierung im P6-Node `Sende Presseartikel Matrix` aktivieren und testen | Codex | Review | Authentifizierung live aktiviert; kontrollierter Matrix-Funktionstest steht noch aus |
 | TASK-007 | kritisch | Fachliche Rolle und positives Veröffentlichungs-Gate für P7 festlegen | Oliver | Entscheidung nötig | Vollarchiv oder redaktioneller Kanal; Audit F-02 |
 | TASK-008 | hoch | Kanonischen SourceLock-Vertrag festlegen und `sourceConflict` in allen Stufen einheitlich behandeln | offen | offen | Audit F-03 |
 | TASK-009 | hoch | Zeitkaskade durch Claim-/Lease-fähigen Dispatcher absichern | offen | offen | baut auf TASK-001/TASK-002 auf; Audit F-04 |
-| TASK-010 | mittel | Workflow-ID- und Infrastruktur-Konfigurationslandkarte anlegen | offen | offen | Audit F-07/F-08 |
+| TASK-010 | mittel | Workflow-ID- und Infrastruktur-Konfigurationslandkarte anlegen | Codex | erledigt | `docs/WORKFLOW_ID_MAP.md`; Live-IDs werden automatisiert geprüft |
 | TASK-011 | kritisch | Wiederkehrende P1-Verbindungsabbrüche zur ALLRIS-Übersicht diagnostizieren und beheben | Codex | blockiert | Ziel liefert `504 Gateway Time-out`; `neverError` entfernt, damit drei HTTP-Retries tatsächlich greifen |
 | TASK-012 | hoch | Paperless-Backfill-Fehler in `Aggregiere Backfill-Ergebnis` beheben | Codex | Review | Kontext- und Fehlerweitergabe live korrigiert; nächsten Stundenlauf prüfen |
 
@@ -79,6 +79,22 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 ## Änderungs- und Übergabeprotokoll
 
 Neueste Einträge stehen oben.
+
+### 2026-07-23 – Codex – Strukturtests und Live-ID-Landkarte
+
+- Automatische Prüfung für alle `ALLRIS_*.json` ergänzt: JSON,
+  Node-Verbindungen, Sub-Workflow-IDs, Matrix-Authentifizierung und
+  Git-/Live-Struktur.
+- Produktive Drift in P2, P5 und P5b durch Veröffentlichung der versionierten
+  Exporte beseitigt.
+- Die bestätigte LAN-Abweichung der Statusübersicht wird sichtbar als Warnung
+  behandelt.
+- Betroffene Dateien: `scripts/Test-AllrisWorkflows.ps1`,
+  `docs/WORKFLOW_ID_MAP.md`, `README.md`, `PROJECT_COORDINATION.md`.
+- Tests: 24 Exporte und 7 Sub-Workflow-Referenzen lokal sowie gegen Live-n8n
+  erfolgreich geprüft.
+- Nächster Schritt: frischen Paperless-Lauf und einen P6-Lauf mit
+  Matrix-Kandidat abnehmen.
 
 ### 2026-07-23 – Codex – Produktionsfehler P1, Paperless und P6
 
