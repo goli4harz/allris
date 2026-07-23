@@ -26,6 +26,10 @@ $requiredColumns = @(
     [ordered]@{ name = 'last_error_at'; type = 'string' }
     [ordered]@{ name = 'retry_count'; type = 'number' }
     [ordered]@{ name = 'next_retry_at'; type = 'string' }
+    [ordered]@{ name = 'claim_owner'; type = 'string' }
+    [ordered]@{ name = 'claim_stage'; type = 'string' }
+    [ordered]@{ name = 'claim_acquired_at'; type = 'string' }
+    [ordered]@{ name = 'claim_expires_at'; type = 'string' }
 )
 
 function Get-LiveColumns {

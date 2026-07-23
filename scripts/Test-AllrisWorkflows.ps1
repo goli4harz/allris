@@ -429,18 +429,20 @@ if ($CheckLive) {
         Add-Failure "Data Table 'allris_vorgaenge' fehlt oder ist nicht eindeutig."
     }
     else {
-        $expectedErrorColumns = @(
+        $expectedStateColumns = @(
             'last_error_code', 'last_error_message', 'last_error_stage',
-            'last_error_at', 'retry_count', 'next_retry_at'
+            'last_error_at', 'retry_count', 'next_retry_at',
+            'claim_owner', 'claim_stage', 'claim_acquired_at',
+            'claim_expires_at'
         )
         $actualVorgaengeColumns = @($vorgaenge[0].columns | ForEach-Object name)
-        $missingErrorColumns = @($expectedErrorColumns | Where-Object {
+        $missingStateColumns = @($expectedStateColumns | Where-Object {
             $_ -notin $actualVorgaengeColumns
         })
-        if ($missingErrorColumns.Count -gt 0) {
+        if ($missingStateColumns.Count -gt 0) {
             Write-Host (
-                "WARN: allris_vorgaenge: additive Fehlerfelder noch nicht angelegt: " +
-                ($missingErrorColumns -join ', ')
+                "WARN: allris_vorgaenge: additive State-Felder noch nicht angelegt: " +
+                ($missingStateColumns -join ', ')
             ) -ForegroundColor Yellow
         }
     }

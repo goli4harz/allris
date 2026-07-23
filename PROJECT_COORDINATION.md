@@ -51,7 +51,7 @@ Statuswerte: `geplant`, `aktiv`, `teilweise`, `erfüllt`, `verworfen`.
 | TASK-006 | kritisch | Matrix-Authentifizierung im P6-Node `Sende Presseartikel Matrix` aktivieren und testen | Codex | Review | Authentifizierung live aktiviert; kontrollierter Matrix-Funktionstest steht noch aus |
 | TASK-007 | kritisch | Fachliche Rolle und positives Veröffentlichungs-Gate für P7 festlegen | Oliver | Entscheidung nötig | Vollarchiv oder redaktioneller Kanal; Audit F-02 |
 | TASK-008 | hoch | Kanonischen SourceLock-Vertrag festlegen und `sourceConflict` in allen Stufen einheitlich behandeln | Codex | erledigt | Vertrag dokumentiert; P3b/P4/P5/P6 gemeinsam live veröffentlicht und getestet |
-| TASK-009 | hoch | Zeitkaskade durch Claim-/Lease-fähigen Dispatcher absichern | offen | offen | baut auf TASK-001/TASK-002 auf; Audit F-04 |
+| TASK-009 | hoch | Zeitkaskade durch Claim-/Lease-fähigen Dispatcher absichern | Codex | in Arbeit | Claim-/Lease-Vertrag und vier additive Schemafelder vorbereiten; danach manueller Doppelclaim-Test |
 | TASK-010 | mittel | Workflow-ID- und Infrastruktur-Konfigurationslandkarte anlegen | Codex | erledigt | `docs/WORKFLOW_ID_MAP.md`; Live-IDs werden automatisiert geprüft |
 | TASK-011 | kritisch | Wiederkehrende P1-Verbindungsabbrüche zur ALLRIS-Übersicht diagnostizieren und beheben | Codex | blockiert | Ziel liefert `504 Gateway Time-out`; `neverError` entfernt, damit drei HTTP-Retries tatsächlich greifen |
 | TASK-012 | hoch | Paperless-Backfill-Fehler in `Aggregiere Backfill-Ergebnis` beheben | Codex | Review | Kontextfix live; Schedule am 23.07. neu registriert, nächsten regulären `:50`-Lauf prüfen |
@@ -80,6 +80,23 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 ## Änderungs- und Übergabeprotokoll
 
 Neueste Einträge stehen oben.
+
+### 2026-07-23 – Codex – Claim-/Lease-Grundlage begonnen
+
+- Vier additive Felder festgelegt: `claim_owner`, `claim_stage`,
+  `claim_acquired_at`, `claim_expires_at`.
+- Erwerb und Recovery verwenden Compare-and-set über `vorgangKey` und die
+  zuvor gelesenen Claim-Werte; nach jedem Update ist ein Re-Read Pflicht.
+- Standard-Lease 30 Minuten, Archiv-/Bildstufen 60 Minuten.
+- Claim ist ausschließlich eine technische Exklusivsperre und ersetzt kein
+  positives fachliches Eingangsgate.
+- Alle vier Felder live additiv angelegt; anschließende idempotente Prüfung
+  meldet das Schema vollständig.
+- Betroffene Dateien: `scripts/Initialize-AllrisStateSchema.ps1`,
+  `PAKET2_DB_SPEZIFIKATION.md`,
+  `docs/DISPATCHER_CLAIM_LEASE_CONTRACT.md`,
+  `PROJECT_COORDINATION.md`.
+- Nächster Schritt: manuellen Claim-/Re-Read-Testworkflow bauen.
 
 ### 2026-07-23 – Codex – Paperless-Schedule neu registriert
 

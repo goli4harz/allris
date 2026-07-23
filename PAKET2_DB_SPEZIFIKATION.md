@@ -41,7 +41,8 @@ bleiben.
 
 ## 2. Neue Spalten auf der bestehenden Tabelle `allris_vorgaenge`
 
-**Status 2026-07-23:** vollständig angelegt. Der idempotente Wartungsjob
+**Status 2026-07-23:** alle zehn Fehler- und Claim-Felder vollständig angelegt.
+Der idempotente Wartungsjob
 `scripts/Initialize-AllrisStateSchema.ps1` zeigt die fehlenden Spalten zunächst
 nur an und ergänzt sie erst mit dem Parameter `-Apply`. Er liest den API-Key
 ausschließlich aus `N8N_API_KEY` oder dem nicht empfohlenen Laufzeitparameter
@@ -69,6 +70,15 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
 | `last_error_at` | string (ISO-Datum) | leer | |
 | `retry_count` | number | 0 | |
 | `next_retry_at` | string (ISO-Datum) | leer | |
+| `claim_owner` | string | leer | Eindeutiger Workflow-Lauf; keine Secrets |
+| `claim_stage` | string | leer | Aktuell exklusiv bearbeitete Pipeline-Stufe |
+| `claim_acquired_at` | string (ISO-Datum) | leer | Erwerbszeit der Lease |
+| `claim_expires_at` | string (ISO-Datum) | leer | Ende der Lease |
+
+Der verbindliche Erwerbs-, Verlängerungs- und Freigabevertrag steht in
+[`docs/DISPATCHER_CLAIM_LEASE_CONTRACT.md`](docs/DISPATCHER_CLAIM_LEASE_CONTRACT.md).
+Die vier Claim-Felder werden zunächst additiv angelegt; bestehende Zeitpläne
+und Workflow-Eingänge ändern sich dadurch noch nicht.
 
 ### Stabile Fehlercodes (aus der Architekturprüfung, Abschnitt 9.3)
 
