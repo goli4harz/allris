@@ -253,7 +253,7 @@
     },
     {
       "parameters": {
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction safeBool(v) {\n  if (v === true) return true;\n  if (typeof v === 'string') return v.trim().toLowerCase() === 'true';\n  return false;\n}\nconst items = $input.all();\nreturn items.filter(item => {\n  const j = item.json || {};\n  if (!safeStr(j.websiteArticle)) return false;\n  if (safeBool(j.wordpressGoslarPosted)) return false;\n  if (!safeStr(j.vorgangKey)) return false;\n  return true;\n});\n"
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction safeBool(v) {\n  if (v === true) return true;\n  if (typeof v === 'string') return v.trim().toLowerCase() === 'true';\n  return false;\n}\nconst items = $input.all();\nreturn items.filter(item => {\n  const j = item.json || {};\n  const publicationRetryAt = Date.parse(safeStr(j.next_retry_at));\n  const publicationRetryPending =\n    safeStr(j.last_error_stage) === 'publication' &&\n    Number.isFinite(publicationRetryAt) &&\n    publicationRetryAt > Date.now();\n  if (publicationRetryPending) return false;\n  if (!safeStr(j.websiteArticle)) return false;\n  if (safeBool(j.wordpressGoslarPosted)) return false;\n  if (!safeStr(j.vorgangKey)) return false;\n  return true;\n});\n"
       },
       "id": "4948afa1-ba9c-4bdc-956b-70253ae8eb9a",
       "name": "Filter Partei-Webseite-Kandidaten",
@@ -699,5 +699,5 @@
     "binaryMode": "separate"
   },
   "tags": [],
-  "versionId": "be05f34e-b09f-4273-bb57-2d13e51a257a"
+  "versionId": "2e56895c-3e25-43ad-a688-6c2a6c476a84"
 }

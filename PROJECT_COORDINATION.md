@@ -79,6 +79,18 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 ## Änderungs- und Übergabeprotokoll
 
+### 2026-07-23 – Codex – P8 berücksichtigt Veröffentlichungs-Retry
+
+- Betroffene Dateien: `ALLRIS_P8_Partei_Webseite.json`,
+  `scripts/Test-AllrisWorkflows.ps1`, `PROJECT_COORDINATION.md`.
+- P8 überspringt fehlgeschlagene Veröffentlichungen nun bis `next_retry_at`,
+  gezielt begrenzt auf `last_error_stage=publication`.
+- Aktivstatus, Zeitplan, 18 Nodes, Verbindungen und Layout blieben unverändert.
+- Live-Rollout: P8 aktiv, Version
+  `2e56895c-3e25-43ad-a688-6c2a6c476a84`.
+- Für eine Dublettenprüfung fehlt noch eine verlässlich bekannte Ziel-REST-URL;
+  die Tabelle enthält bislang keinen gespeicherten P8-Veröffentlichungslink.
+
 ### 2026-07-23 – Codex – P7 gegen WordPress-Dubletten abgesichert
 
 - Betroffene Dateien: `ALLRIS_P7_WordPress_Publish.json`,

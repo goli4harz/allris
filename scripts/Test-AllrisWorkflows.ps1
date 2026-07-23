@@ -317,12 +317,16 @@ if ($null -ne $p8) {
     $p8Failure = @($p8.nodes | Where-Object id -eq 'f5f722e4-6acd-4ed1-93d0-447bd4b1d961')
     $p8HistorySuccess = @($p8.nodes | Where-Object id -eq 'b4dc013f-17ae-413a-8605-28e61f1cb1b2')
     $p8HistoryFailure = @($p8.nodes | Where-Object id -eq 'f9b791e7-6fc8-4011-8fbb-b7de54a317a5')
+    $p8CandidateFilter = @($p8.nodes | Where-Object name -eq 'Filter Partei-Webseite-Kandidaten')
     if ($p8Failure.Count -ne 1 -or
         $p8Failure[0].parameters.columns.value.last_error_code -ne 'WORDPRESS_PUBLISH_FAILED' -or
         $p8Failure[0].parameters.columns.value.last_error_stage -ne 'publication' -or
         $p8HistorySuccess.Count -ne 1 -or
         $p8HistoryFailure.Count -ne 1 -or
-        $p8HistoryFailure[0].parameters.columns.value.reason_code -ne 'WORDPRESS_PUBLISH_FAILED') {
+        $p8HistoryFailure[0].parameters.columns.value.reason_code -ne 'WORDPRESS_PUBLISH_FAILED' -or
+        $p8CandidateFilter.Count -ne 1 -or
+        $p8CandidateFilter[0].parameters.jsCode -notlike "*safeStr(j.last_error_stage) === 'publication'*" -or
+        $p8CandidateFilter[0].parameters.jsCode -notlike '*publicationRetryAt > Date.now()*') {
         Add-Failure 'P8: zentraler WordPress-Fehler-/History-Vertrag ist unvollständig.'
     }
 }
