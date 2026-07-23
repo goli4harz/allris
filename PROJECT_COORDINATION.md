@@ -43,7 +43,7 @@ Statuswerte: `geplant`, `aktiv`, `teilweise`, `erfüllt`, `verworfen`.
 
 | ID | Priorität | Aufgabe | Zuständig | Status | Abhängigkeit / nächster Schritt |
 |---|---|---|---|---|---|
-| TASK-001 | hoch | Zentrale State-History und einheitliche Fehlerfelder gemäß `PAKET2_DB_SPEZIFIKATION.md` umsetzen | Codex | in Arbeit | History-Tabelle angelegt; idempotenten Schema-Job mit `-Apply` ausführen |
+| TASK-001 | hoch | Zentrale State-History und einheitliche Fehlerfelder gemäß `PAKET2_DB_SPEZIFIKATION.md` umsetzen | Codex | erledigt | History-Tabelle und sechs Fehlerfelder live angelegt; Workflow-Verdrahtung folgt unter TASK-002 |
 | TASK-002 | hoch | Dispatcher/Watchdog als zuverlässige Pipeline-Steuerung bewerten und fertigstellen | offen | offen | Zustandsübergänge, Retry-Regeln und Parallelität festlegen |
 | TASK-003 | hoch | Automatische Strukturtests für alle n8n-JSON-Exporte ergänzen | Codex | erledigt | `scripts/Test-AllrisWorkflows.ps1`, lokal und gegen Live-n8n erfolgreich |
 | TASK-004 | mittel | README an tatsächlich vorhandene Stufen und Hilfsworkflows angleichen | Codex | erledigt | P3e, P8, Paperless, Status und Dispatcher/Watchdog dokumentiert |
@@ -72,7 +72,7 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 | ID | Bezug | Blocker / Frage | Benötigt von | Status |
 |---|---|---|---|---|
-| BLK-001 | TASK-001 | Sechs Fehlerfelder fehlen noch; vorbereiteten Job `scripts/Initialize-AllrisStateSchema.ps1 -Apply` bewusst manuell ausführen. | Oliver | offen |
+| BLK-001 | TASK-001 | Sechs Fehlerfelder fehlten auf `allris_vorgaenge`. | Oliver / Codex | erledigt – Schema live ergänzt |
 | BLK-002 | TASK-005 | Gewünschte Open-Source- oder proprietäre Lizenz ist nicht festgelegt. | Oliver | offen |
 | BLK-003 | TASK-007 / P8 | Soll `ALLRIS_P8_Partei_Webseite` produktiv aktiv bleiben oder bis zu einem positiven Veröffentlichungs-Gate deaktiviert werden? | Oliver | erledigt – bleibt aktiv |
 | BLK-004 | TASK-011 | ALLRIS-Übersichtsrequest wird aus n8n sowohl direkt als auch über `172.16.1.5:3128` nach drei Timeouts abgebrochen; Zielserver/Firewall/WAF bzw. TLS-Verbindung extern prüfen. | Infrastruktur / Goslar-Server | offen |
@@ -80,6 +80,20 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 ## Änderungs- und Übergabeprotokoll
 
 Neueste Einträge stehen oben.
+
+### 2026-07-23 – Codex – Fehlerfelder live angelegt
+
+- Alle sechs additiven Fehlerfelder auf `allris_vorgaenge` angelegt:
+  `last_error_code`, `last_error_message`, `last_error_stage`,
+  `last_error_at`, `retry_count`, `next_retry_at`.
+- Nachprüfung im Initialisierungsjob gegen eine mögliche HTTP-Cache-Antwort
+  abgesichert; der unabhängige Live-Strukturtest bestätigt das vollständige
+  Schema.
+- TASK-001 und BLK-001 abgeschlossen.
+- Betroffene Dateien: `scripts/Initialize-AllrisStateSchema.ps1`,
+  `PAKET2_DB_SPEZIFIKATION.md`, `PROJECT_COORDINATION.md`.
+- Nächster Schritt: additive Workflow-Schreibpfade und Dispatcher-Retry-Modell
+  unter TASK-002 umsetzen.
 
 ### 2026-07-23 – Codex – Idempotenten Schema-Job vorbereitet
 

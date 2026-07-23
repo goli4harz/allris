@@ -17,6 +17,7 @@ $columnsUri = "$base/api/v1/data-tables/$DataTableId/columns"
 $headers = @{
     'X-N8N-API-KEY' = $ApiKey
     'Content-Type' = 'application/json'
+    'Cache-Control' = 'no-cache'
 }
 $requiredColumns = @(
     [ordered]@{ name = 'last_error_code'; type = 'string' }
@@ -27,8 +28,17 @@ $requiredColumns = @(
     [ordered]@{ name = 'next_retry_at'; type = 'string' }
 )
 
+function Get-LiveColumns {
+    $tables = Invoke-RestMethod -Method Get -Uri "$base/api/v1/data-tables?limit=250" -Headers $headers
+    $table = @($tables.data | Where-Object id -eq $DataTableId)
+    if ($table.Count -ne 1) {
+        throw "Data Table $DataTableId fehlt oder ist nicht eindeutig."
+    }
+    return @($table[0].columns)
+}
+
 Write-Host "Prüfe Data Table $DataTableId unter $base ..."
-$existing = @(Invoke-RestMethod -Method Get -Uri $columnsUri -Headers $headers)
+$existing = @(Get-LiveColumns)
 $existingNames = @($existing | ForEach-Object { [string]$_.name })
 $missing = @($requiredColumns | Where-Object { $_.name -notin $existingNames })
 
@@ -55,7 +65,7 @@ foreach ($column in $missing) {
     }
 }
 
-$verified = @(Invoke-RestMethod -Method Get -Uri $columnsUri -Headers $headers)
+$verified = @(Get-LiveColumns)
 $verifiedNames = @($verified | ForEach-Object { [string]$_.name })
 $stillMissing = @($requiredColumns | Where-Object { $_.name -notin $verifiedNames })
 

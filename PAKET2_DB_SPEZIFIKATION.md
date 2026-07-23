@@ -41,7 +41,7 @@ bleiben.
 
 ## 2. Neue Spalten auf der bestehenden Tabelle `allris_vorgaenge`
 
-**Status 2026-07-23:** noch nicht angelegt. Der idempotente Wartungsjob
+**Status 2026-07-23:** vollständig angelegt. Der idempotente Wartungsjob
 `scripts/Initialize-AllrisStateSchema.ps1` zeigt die fehlenden Spalten zunächst
 nur an und ergänzt sie erst mit dem Parameter `-Apply`. Er liest den API-Key
 ausschließlich aus `N8N_API_KEY` oder dem nicht empfohlenen Laufzeitparameter
