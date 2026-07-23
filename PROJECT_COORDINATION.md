@@ -65,6 +65,7 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 | DEC-001 | 2026-07-23 | `PROJECT_COORDINATION.md` ist die zentrale Kommunikationsdatei für Mensch, Claude und Codex. | Verhindert getrennte Aufgabenlisten und Kontextverlust zwischen Werkzeugen. | Oliver, Codex |
 | DEC-002 | 2026-07-23 | Anforderungen und Aufgaben erhalten stabile IDs. | Änderungen und Commits können eindeutig darauf verweisen. | Codex |
 | DEC-003 | 2026-07-23 | Das statische Schnittstellen- und Prozessaudit ist in `docs/SCHNITTSTELLEN_PROZESS_AUDIT_2026-07-23.md` dokumentiert. | Claude, Codex und Oliver benötigen dieselbe priorisierte Befundbasis. | Codex |
+| DEC-004 | 2026-07-23 | `ALLRIS_P8_Partei_Webseite` bleibt produktiv aktiv. | Oliver hat den aktiven Betrieb ausdrücklich bestätigt; das positive Veröffentlichungs-Gate bleibt eine getrennte Verbesserungsaufgabe. | Oliver |
 
 ## Blocker und benötigte Entscheidungen
 
@@ -72,7 +73,7 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 |---|---|---|---|---|
 | BLK-001 | TASK-001 | IDs der neu angelegten n8n Data Table und Spalten fehlen. | Oliver / n8n-Instanz | offen |
 | BLK-002 | TASK-005 | Gewünschte Open-Source- oder proprietäre Lizenz ist nicht festgelegt. | Oliver | offen |
-| BLK-003 | TASK-007 / P8 | Soll `ALLRIS_P8_Partei_Webseite` produktiv aktiv bleiben oder bis zu einem positiven Veröffentlichungs-Gate deaktiviert werden? | Oliver | offen |
+| BLK-003 | TASK-007 / P8 | Soll `ALLRIS_P8_Partei_Webseite` produktiv aktiv bleiben oder bis zu einem positiven Veröffentlichungs-Gate deaktiviert werden? | Oliver | erledigt – bleibt aktiv |
 | BLK-004 | TASK-011 | ALLRIS-Übersichtsrequest wird aus n8n sowohl direkt als auch über `172.16.1.5:3128` nach drei Timeouts abgebrochen; Zielserver/Firewall/WAF bzw. TLS-Verbindung extern prüfen. | Infrastruktur / Goslar-Server | offen |
 
 ## Änderungs- und Übergabeprotokoll
