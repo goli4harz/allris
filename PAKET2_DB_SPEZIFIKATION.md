@@ -13,6 +13,9 @@ und die Spalten unten angelegt sind, verdrahte ich die Workflows dagegen
 
 Anlegen im selben Projekt wie `allris_vorgaenge` (Projekt `CrnegVcMvlcRU0OP`).
 
+**Status 2026-07-23:** angelegt als Data Table `Q54kptpOrbug6bJu`; alle elf
+Spalten sind vorhanden.
+
 | Spalte | Typ | Pflicht | Hinweis |
 |---|---|---|---|
 | `event_id` | string | nein | pro Zeile eine neue UUID/Zeitstempel-ID, wird beim Insert vom Workflow gesetzt |
@@ -37,6 +40,11 @@ bleiben.
 ---
 
 ## 2. Neue Spalten auf der bestehenden Tabelle `allris_vorgaenge`
+
+**Status 2026-07-23:** noch nicht angelegt. Die Public API kann in der
+eingesetzten n8n-Version Tabellen erstellen, aber keine Spalten bestehender
+Tabellen ergänzen. Dafür ist einmalig die n8n-UI oder eine authentifizierte
+interne Admin-Sitzung erforderlich.
 
 | Spalte | Typ | Default | Hinweis |
 |---|---|---|---|

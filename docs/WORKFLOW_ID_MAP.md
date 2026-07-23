@@ -37,6 +37,18 @@ werden.
 - `ALLRIS_Orchestrator_Shadow.json`
 - `ALLRIS_Reset_Paperless_Backfill_Marker.json`
 
+## Data Tables
+
+| Tabelle | Live-ID | Projekt-ID | Rolle |
+|---|---|---|---|
+| `allris_vorgaenge` | `hBLqpqeVEojPpOJl` | `CrnegVcMvlcRU0OP` | Aktueller Zustand je Vorgang |
+| `allris_state_history` | `Q54kptpOrbug6bJu` | `CrnegVcMvlcRU0OP` | Append-only Zustands- und Fehlerhistorie |
+
+`allris_state_history` wurde am 2026-07-23 vollständig gemäß
+`PAKET2_DB_SPEZIFIKATION.md` angelegt. Die sechs additiven Fehlerfelder auf
+`allris_vorgaenge` fehlen noch, weil die öffentliche API dieser n8n-Version
+keine Spaltenänderungen an bestehenden Tabellen anbietet.
+
 ## Verbindliche Sub-Workflow-Aufrufe
 
 | Aufrufer | Ziel | Live-ID |

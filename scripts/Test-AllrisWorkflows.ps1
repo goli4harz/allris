@@ -209,6 +209,46 @@ if ($CheckLive) {
             Add-Failure "$($reference.File): '$($reference.Node)' referenziert unbekannte Live-ID '$($reference.Id)'."
         }
     }
+
+    $dataTables = Invoke-RestMethod -Uri "$base/api/v1/data-tables?limit=250" -Headers $headers
+    $stateHistory = @($dataTables.data | Where-Object name -eq 'allris_state_history')
+    if ($stateHistory.Count -ne 1) {
+        Add-Failure "Data Table 'allris_state_history' fehlt oder ist nicht eindeutig."
+    }
+    else {
+        $expectedHistoryColumns = @(
+            'event_id', 'vorgang_key', 'pipeline_stage', 'old_state', 'new_state',
+            'reason_code', 'reason_message', 'workflow_name',
+            'workflow_execution_id', 'created_at', 'metadata_json'
+        )
+        $actualHistoryColumns = @($stateHistory[0].columns | ForEach-Object name)
+        foreach ($column in $expectedHistoryColumns) {
+            if ($column -notin $actualHistoryColumns) {
+                Add-Failure "Data Table 'allris_state_history': Spalte '$column' fehlt."
+            }
+        }
+    }
+
+    $vorgaenge = @($dataTables.data | Where-Object name -eq 'allris_vorgaenge')
+    if ($vorgaenge.Count -ne 1) {
+        Add-Failure "Data Table 'allris_vorgaenge' fehlt oder ist nicht eindeutig."
+    }
+    else {
+        $expectedErrorColumns = @(
+            'last_error_code', 'last_error_message', 'last_error_stage',
+            'last_error_at', 'retry_count', 'next_retry_at'
+        )
+        $actualVorgaengeColumns = @($vorgaenge[0].columns | ForEach-Object name)
+        $missingErrorColumns = @($expectedErrorColumns | Where-Object {
+            $_ -notin $actualVorgaengeColumns
+        })
+        if ($missingErrorColumns.Count -gt 0) {
+            Write-Host (
+                "WARN: allris_vorgaenge: additive Fehlerfelder noch nicht angelegt: " +
+                ($missingErrorColumns -join ', ')
+            ) -ForegroundColor Yellow
+        }
+    }
 }
 
 if ($failures.Count -gt 0) {

@@ -43,7 +43,7 @@ Statuswerte: `geplant`, `aktiv`, `teilweise`, `erfüllt`, `verworfen`.
 
 | ID | Priorität | Aufgabe | Zuständig | Status | Abhängigkeit / nächster Schritt |
 |---|---|---|---|---|---|
-| TASK-001 | hoch | Zentrale State-History und einheitliche Fehlerfelder gemäß `PAKET2_DB_SPEZIFIKATION.md` umsetzen | offen | blockiert | Data Table und Spalten in n8n anlegen; anschließend IDs dokumentieren |
+| TASK-001 | hoch | Zentrale State-History und einheitliche Fehlerfelder gemäß `PAKET2_DB_SPEZIFIKATION.md` umsetzen | Codex | in Arbeit | History-Tabelle angelegt; sechs Fehlerfelder auf `allris_vorgaenge` noch per UI ergänzen |
 | TASK-002 | hoch | Dispatcher/Watchdog als zuverlässige Pipeline-Steuerung bewerten und fertigstellen | offen | offen | Zustandsübergänge, Retry-Regeln und Parallelität festlegen |
 | TASK-003 | hoch | Automatische Strukturtests für alle n8n-JSON-Exporte ergänzen | Codex | erledigt | `scripts/Test-AllrisWorkflows.ps1`, lokal und gegen Live-n8n erfolgreich |
 | TASK-004 | mittel | README an tatsächlich vorhandene Stufen und Hilfsworkflows angleichen | Codex | erledigt | P3e, P8, Paperless, Status und Dispatcher/Watchdog dokumentiert |
@@ -72,7 +72,7 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 | ID | Bezug | Blocker / Frage | Benötigt von | Status |
 |---|---|---|---|---|
-| BLK-001 | TASK-001 | IDs der neu angelegten n8n Data Table und Spalten fehlen. | Oliver / n8n-Instanz | offen |
+| BLK-001 | TASK-001 | Public API unterstützt keine neuen Spalten auf bestehenden Tabellen; sechs Fehlerfelder auf `allris_vorgaenge` müssen einmalig per n8n-UI ergänzt werden. | Oliver / n8n-UI | offen |
 | BLK-002 | TASK-005 | Gewünschte Open-Source- oder proprietäre Lizenz ist nicht festgelegt. | Oliver | offen |
 | BLK-003 | TASK-007 / P8 | Soll `ALLRIS_P8_Partei_Webseite` produktiv aktiv bleiben oder bis zu einem positiven Veröffentlichungs-Gate deaktiviert werden? | Oliver | erledigt – bleibt aktiv |
 | BLK-004 | TASK-011 | ALLRIS-Übersichtsrequest wird aus n8n sowohl direkt als auch über `172.16.1.5:3128` nach drei Timeouts abgebrochen; Zielserver/Firewall/WAF bzw. TLS-Verbindung extern prüfen. | Infrastruktur / Goslar-Server | offen |
@@ -80,6 +80,20 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 ## Änderungs- und Übergabeprotokoll
 
 Neueste Einträge stehen oben.
+
+### 2026-07-23 – Codex – State-History-Tabelle angelegt
+
+- `allris_state_history` im Projekt `CrnegVcMvlcRU0OP` vollständig und additiv
+  angelegt; Live-ID `Q54kptpOrbug6bJu`.
+- Live-Strukturtest prüft künftig Tabelle und alle elf Spalten.
+- Die sechs Fehlerfelder auf `allris_vorgaenge` bleiben als sichtbare Warnung
+  offen: Die Public API dieser n8n-Version unterstützt keine Spaltenänderung
+  bestehender Tabellen, der interne Endpoint verlangt eine UI-Sitzung.
+- Betroffene Dateien: `PAKET2_DB_SPEZIFIKATION.md`,
+  `docs/WORKFLOW_ID_MAP.md`, `scripts/Test-AllrisWorkflows.ps1`,
+  `PROJECT_COORDINATION.md`.
+- Nächster Schritt: Fehlerfelder per UI ergänzen, danach Workflow-Schreibpfade
+  gegen History und Fehlerfelder verdrahten.
 
 ### 2026-07-23 – Codex – SourceLock-Vertrag vereinheitlicht
 
