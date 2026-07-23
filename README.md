@@ -26,7 +26,7 @@ Das sind die Dateien, die tatsächlich live laufen (n8n Schedule Trigger, alle 5
 
 Vorherige Änderung (2026-07-18): mehrere Live-Bugs in P1 und P4 behoben (Content-Verlust nach dem Matrix-Post in P4, veraltete `visualStage`-Werte aus abgelösten Workflow-Versionen, dauerhaftes Alert-Spamming im "blockierte Vorgänge"-Dashboard, eine feste 2-Seiten-Grenze beim ALLRIS-Übersicht-Scraping in P1) sowie ein echter Zeitplan-Fehler in P7 (lief bisher *vor* P4 im selben 5-Stunden-Zyklus — behoben durch Verschieben von P7 ans Ende der Kaskade).
 
-**Zeitplan-Kaskade (alle Stufen im selben 5h-Zyklus, zeitversetzt):** `P1=:05 → P2=:15 → P3=:25 → P3c=:28 → P3d=:32 → P3e=:33 → P4=:35 → P5=:45 → P6=:55 → P7=:58 → P8=:59`. P3c/P3d/P3e laufen bewusst *vor* P4, da P4 deren Repair-, Eignungs- und Satire-Ergebnisse noch im selben Zyklus liest. Die Kette ist weiterhin rein zeitplanbasiert; die kurzen Abstände sind keine technische Abschlussgarantie und sollen langfristig durch Claim-/Lease-fähige Steuerung ersetzt werden.
+**Zeitplan-Kaskade (alle Stufen im selben 5h-Zyklus, zeitversetzt):** `P1=:05 → P2=:15 → P3=:25 → P3c=:28 → P3d=:32 → P3e=:33 → P4=:35 → P5=:45 → P6=:55 → P7=:58 → P8=:59`. P3c/P3d/P3e laufen bewusst *vor* P4, da P4 deren Repair-, Eignungs- und Satire-Ergebnisse noch im selben Zyklus liest. Die Startzeitpunkte bleiben zeitplangesteuert; atomare Claim-/Lease-Sperren verhindern in P2, P3, P3c, P3d, P3e und P4–P8 sowie im Paperless-Backfill, dass parallele Läufe denselben Vorgang gleichzeitig bearbeiten. Ein Claim ersetzt keine fachliche Eingangsvoraussetzung und garantiert nicht den Abschluss der vorherigen Stufe.
 
 ## Hilfs- und Betriebsworkflows
 
@@ -38,8 +38,9 @@ Vorherige Änderung (2026-07-18): mehrere Live-Bugs in P1 und P4 behoben (Conten
   Sein Schedule steuert die Pipeline noch nicht; ein getrennter Manual-Zweig
   dient dem kontrollierten Claim-/Lease- und Doppelclaim-Test.
 - `ALLRIS_Claim_Lease.json` ist der veröffentlichte, triggerlose Sub-Workflow
-  für atomaren Claim-Erwerb, Re-Read und owner-gebundene Freigabe. P3 nutzt ihn
-  als erste produktive Stufe; er kann nicht selbstständig starten.
+  für atomaren Claim-Erwerb, Re-Read und owner-gebundene Freigabe. Die
+  Stufen P2, P3, P3c, P3d, P3e und P4–P8 sowie der Paperless-Backfill
+  verwenden ihn; er kann nicht selbstständig starten.
 - `ALLRIS_Orchestrator_Shadow.json` bleibt ein inaktiver manueller
   Vergleichsworkflow.
 - `ALLRIS_Reset_Paperless_Backfill_Marker.json` ist ein lokaler,

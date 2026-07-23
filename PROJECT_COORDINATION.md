@@ -79,6 +79,15 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 ## Änderungs- und Übergabeprotokoll
 
+### 2026-07-23 – Codex – README auf Claim-Migrationsstand aktualisiert
+
+- Betroffene Dateien: `README.md`, `PROJECT_COORDINATION.md`.
+- Die öffentliche Betriebsbeschreibung nennt die tatsächlich claim-geschützten
+  Stufen und grenzt technische Exklusivsperre von fachlicher Freigabe und
+  Abschlussgarantie ab.
+- Die interne Koordinationsdatei wird gemäß Olivers Vorgabe nicht im README
+  verlinkt.
+
 ### 2026-07-23 – Codex – P3c an Claim-/Lease angebunden
 
 - Betroffene Dateien: `ALLRIS_P3c_Vorgangsabschluss.json`,
