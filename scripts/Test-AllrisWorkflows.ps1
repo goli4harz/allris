@@ -184,6 +184,18 @@ if ($null -ne $paperless) {
         }).Count -gt 0) {
         Add-Failure 'Paperless: Erfolgs-/Fehler-History ist unvollständig.'
     }
+    $paperlessLog = @($paperless.nodes | Where-Object name -eq 'Paperless Log Ergebnis (Backfill)')
+    $paperlessAggregate = @($paperless.nodes | Where-Object name -eq 'Aggregiere Backfill-Ergebnis')
+    if ($paperlessLog.Count -ne 1 -or
+        -not ([string]$paperlessLog[0].parameters.jsCode).Contains(
+            'context = $(''Paperless Titel bauen (Backfill)'').item.json || {}'
+        ) -or
+        $paperlessAggregate.Count -ne 1 -or
+        -not ([string]$paperlessAggregate[0].parameters.jsCode).Contains(
+            'Erwartet genau einen vorgangKey in den Ergebnissen'
+        )) {
+        Add-Failure 'Paperless: Vorgangskontext wird vor der Abschlussaggregation nicht zuverlässig wiederhergestellt.'
+    }
 }
 
 $p6 = $workflows['ALLRIS_P6_Bildgenerierung'].Data

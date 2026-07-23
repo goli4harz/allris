@@ -54,7 +54,7 @@ Statuswerte: `geplant`, `aktiv`, `teilweise`, `erfüllt`, `verworfen`.
 | TASK-009 | hoch | Zeitkaskade durch Claim-/Lease-fähigen Dispatcher absichern | offen | offen | baut auf TASK-001/TASK-002 auf; Audit F-04 |
 | TASK-010 | mittel | Workflow-ID- und Infrastruktur-Konfigurationslandkarte anlegen | Codex | erledigt | `docs/WORKFLOW_ID_MAP.md`; Live-IDs werden automatisiert geprüft |
 | TASK-011 | kritisch | Wiederkehrende P1-Verbindungsabbrüche zur ALLRIS-Übersicht diagnostizieren und beheben | Codex | blockiert | Ziel liefert `504 Gateway Time-out`; `neverError` entfernt, damit drei HTTP-Retries tatsächlich greifen |
-| TASK-012 | hoch | Paperless-Backfill-Fehler in `Aggregiere Backfill-Ergebnis` beheben | Codex | Review | Kontextfix live; zentraler Fehler-/History-Vertrag vorbereitet, Live-Rollout und Stundenlauf prüfen |
+| TASK-012 | hoch | Paperless-Backfill-Fehler in `Aggregiere Backfill-Ergebnis` beheben | Codex | Review | Kontextfix live; Schedule am 23.07. neu registriert, nächsten regulären `:50`-Lauf prüfen |
 
 Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
@@ -80,6 +80,23 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 ## Änderungs- und Übergabeprotokoll
 
 Neueste Einträge stehen oben.
+
+### 2026-07-23 – Codex – Paperless-Schedule neu registriert
+
+- Execution `10047` war ein Retry des alten Workflow-Snapshots von vor dem
+  Kontextfix; sie ist daher kein Abnahmetest des aktuellen Exports.
+- Um 18:50 Uhr Ortszeit blieb der erwartete reguläre Lauf aus. Paperless hatte
+  seit dem 22.07. keinen Stundenlauf mehr registriert, obwohl `active=true`
+  gespeichert war.
+- Workflow gezielt deaktiviert und sofort wieder aktiviert; aktueller Endstand:
+  aktiv, `activeVersionId=ef5d66b8-d385-4e86-b223-fcc678a054d9`,
+  Trigger weiterhin stündlich zur Minute `:50`.
+- Strukturtest schützt jetzt zusätzlich die Wiederherstellung des
+  `vorgangKey` vor `Aggregiere Backfill-Ergebnis`.
+- Betroffene Dateien: `scripts/Test-AllrisWorkflows.ps1`,
+  `PROJECT_COORDINATION.md`; Workflow-Inhalt blieb unverändert.
+- Tests: 24 Exporte, 7 Sub-Workflow-Referenzen, alle Prüfungen erfolgreich.
+- Nächster Schritt: ersten regulären Lauf nach der Reaktivierung abnehmen.
 
 ### 2026-07-23 – Codex – P3d-QA-Endfehler angebunden
 
