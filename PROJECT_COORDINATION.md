@@ -54,7 +54,7 @@ Statuswerte: `geplant`, `aktiv`, `teilweise`, `erfüllt`, `verworfen`.
 | TASK-009 | hoch | Zeitkaskade durch Claim-/Lease-fähigen Dispatcher absichern | Codex | Review | Schema, Doppelclaim-Test und Claim-Anbindung aller zustands-/side-effect-relevanten Stufen P2–P8 einschließlich P3c und Paperless erledigt; regulären Gesamtzyklus abnehmen |
 | TASK-010 | mittel | Workflow-ID- und Infrastruktur-Konfigurationslandkarte anlegen | Codex | erledigt | `docs/WORKFLOW_ID_MAP.md`; Live-IDs werden automatisiert geprüft |
 | TASK-011 | kritisch | Wiederkehrende P1-Verbindungsabbrüche zur ALLRIS-Übersicht diagnostizieren und beheben | Codex | blockiert | Ziel liefert `504 Gateway Time-out`; `neverError` entfernt, damit drei HTTP-Retries tatsächlich greifen |
-| TASK-012 | hoch | Paperless-Backfill-Fehler in `Aggregiere Backfill-Ergebnis` beheben | Codex | Review | Kontextfix live; Schedule am 23.07. neu registriert, nächsten regulären `:50`-Lauf prüfen |
+| TASK-012 | hoch | Paperless-Backfill-Fehler in `Aggregiere Backfill-Ergebnis` beheben | Codex | blockiert | Kontext- und Claim-Fix live; drei Scheduler-Varianten erzeugen trotz `active=true` keine Ausführung, siehe BLK-005 |
 
 Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
@@ -76,8 +76,26 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 | BLK-002 | TASK-005 | Gewünschte Open-Source- oder proprietäre Lizenz ist nicht festgelegt. | Oliver | offen |
 | BLK-003 | TASK-007 / P8 | Soll `ALLRIS_P8_Partei_Webseite` produktiv aktiv bleiben oder bis zu einem positiven Veröffentlichungs-Gate deaktiviert werden? | Oliver | erledigt – bleibt aktiv |
 | BLK-004 | TASK-011 | ALLRIS-Übersichtsrequest wird aus n8n sowohl direkt als auch über `172.16.1.5:3128` nach drei Timeouts abgebrochen; Zielserver/Firewall/WAF bzw. TLS-Verbindung extern prüfen. | Infrastruktur / Goslar-Server | offen |
+| BLK-005 | TASK-002 / TASK-009 / TASK-012 | Neu aktivierte n8n-Schedules erzeugen keine Ausführung: reguläres `:50`, explizites `hoursInterval=1` und kontrollierter Custom-Cron blieben ohne Execution. Workflow jeweils aktiv und `activeVersionId=versionId`; n8n Scheduler-/Worker-Logs und Dienstzustand auf dem Host prüfen beziehungsweise Dienst kontrolliert neu starten. | n8n-Infrastruktur | offen |
 
 ## Änderungs- und Übergabeprotokoll
+
+### 2026-07-23 – Codex – n8n-Scheduler-Infrastruktur als Blocker bestätigt
+
+- Betroffene Dateien: `ALLRIS_Paperless_Backfill.json`,
+  `PROJECT_COORDINATION.md`.
+- Drei kontrollierte Schedule-Varianten erzeugten keine neue Execution:
+  regulär stündlich `:50`, explizites `hoursInterval=1` und ein kurzfristiger
+  fünfteiliger Custom-Cron.
+- Jeder Test verwendete die veröffentlichte aktive Version; temporäre
+  Testminuten wurden im `finally`-Block auf den kanonischen `:50`-Schedule
+  zurückgestellt.
+- Paperless ist aktiv, `field=hours`, `hoursInterval=1`,
+  `triggerAtMinute=50`, Version
+  `c2225496-692f-4436-8e00-baf790e6d381`.
+- Ohne Zugriff auf n8n Scheduler-/Worker-Logs oder den Dienst kann die reguläre
+  Laufabnahme nicht im Workflow-Repository repariert oder bewiesen werden.
+- BLK-005 angelegt; TASK-012 bleibt bis zur Infrastrukturbehebung blockiert.
 
 ### 2026-07-23 – Codex – Paperless-Stundenintervall explizit gesetzt
 
