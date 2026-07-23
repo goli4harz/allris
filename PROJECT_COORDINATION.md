@@ -79,6 +79,19 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 ## Änderungs- und Übergabeprotokoll
 
+### 2026-07-23 – Codex – Paperless-Stundenintervall explizit gesetzt
+
+- Betroffene Dateien: `ALLRIS_Paperless_Backfill.json`,
+  `scripts/Test-AllrisWorkflows.ps1`, `PROJECT_COORDINATION.md`.
+- Die reguläre `:50`-Ausführung blieb trotz Aktivierung aus. Der Schedule
+  enthielt nur `field=hours`, aber kein explizites `hoursInterval`.
+- `hoursInterval=1` ist nun exportiert und durch einen Regressionstest
+  zusammen mit `triggerAtMinute=50` abgesichert.
+- Live-Rollout: aktiv, Version
+  `3e110de3-9f62-4ec8-912e-b1f6a2c6b2fa`; aktiver Schedule bestätigt als
+  stündlich bei Minute 50.
+- Nächste reguläre Abnahme: 21:50 Uhr.
+
 ### 2026-07-23 – Codex – README auf Claim-Migrationsstand aktualisiert
 
 - Betroffene Dateien: `README.md`, `PROJECT_COORDINATION.md`.

@@ -2034,6 +2034,7 @@
           "interval": [
             {
               "field": "hours",
+              "hoursInterval": 1,
               "triggerAtMinute": 50
             }
           ]
@@ -2126,5 +2127,5 @@
     "saveDataSuccessExecution": "none"
   },
   "tags": [],
-  "versionId": "b0e0b11e-5b49-4b83-87ee-e5ca41ea4dca"
+  "versionId": "3e110de3-9f62-4ec8-912e-b1f6a2c6b2fa"
 }

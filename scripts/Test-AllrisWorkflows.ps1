@@ -209,6 +209,13 @@ if ($null -ne $p2) {
 
 $paperless = $workflows['ALLRIS_Paperless_Backfill'].Data
 if ($null -ne $paperless) {
+    $paperlessSchedule = @($paperless.nodes | Where-Object type -match 'scheduleTrigger')
+    if ($paperlessSchedule.Count -ne 1 -or
+        $paperlessSchedule[0].parameters.rule.interval[0].field -ne 'hours' -or
+        $paperlessSchedule[0].parameters.rule.interval[0].hoursInterval -ne 1 -or
+        $paperlessSchedule[0].parameters.rule.interval[0].triggerAtMinute -ne 50) {
+        Add-Failure 'Paperless: stündlicher :50-Schedule ist nicht explizit konfiguriert.'
+    }
     $paperlessDbError = @($paperless.nodes | Where-Object name -eq 'DB Paperless Fehler')
     $paperlessHistory = @($paperless.nodes | Where-Object name -like 'History Paperless *')
     if ($paperlessDbError.Count -ne 1 -or
