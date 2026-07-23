@@ -350,6 +350,11 @@
             "node": "Loop Bildprompts",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "History Bildfehler",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -457,6 +462,11 @@
         [
           {
             "node": "Loop Bildprompts",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "History Bildfehler",
             "type": "main",
             "index": 0
           }
@@ -2231,7 +2241,13 @@
             "imageSubline": "={{ $json.imageSubline || '' }}",
             "imagePrompt": "={{ $json.imagePrompt || '' }}",
             "imageNegativePrompt": "={{ $json.imageNegativePrompt || '' }}",
-            "visualPromptStage": "prompt_ready"
+            "visualPromptStage": "prompt_ready",
+            "last_error_code": "IMAGE_QA_FAILED",
+            "last_error_message": "={{ ('Bildkonzept ungültig: ' + ($json.imageConceptErrorText || 'unbekannter Fehler')).slice(0, 4000) }}",
+            "last_error_stage": "image",
+            "last_error_at": "={{ $now.toISO() }}",
+            "retry_count": "={{ Number($json.retry_count || 0) + 1 }}",
+            "next_retry_at": "={{ $now.plus({ minutes: Math.min(1440, 15 * Math.pow(2, Math.max(0, Number($json.retry_count || 0)))) }).toISO() }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -3385,7 +3401,13 @@
             "imagePrompt": "={{ $json.imagePrompt || '' }}",
             "imageNegativePrompt": "={{ $json.imageNegativePrompt || '' }}",
             "imageWorkflowVersion": "sharepic-mini-v17.2-qa-retry-same-image",
-            "visualPromptStage": "prompt_ready"
+            "visualPromptStage": "prompt_ready",
+            "last_error_code": "IMAGE_QA_FAILED",
+            "last_error_message": "={{ ('Bildkonzept ungültig: ' + ($json.imageConceptErrorText || 'unbekannter Fehler')).slice(0, 4000) }}",
+            "last_error_stage": "image",
+            "last_error_at": "={{ $now.toISO() }}",
+            "retry_count": "={{ Number($json.retry_count || 0) + 1 }}",
+            "next_retry_at": "={{ $now.plus({ minutes: Math.min(1440, 15 * Math.pow(2, Math.max(0, Number($json.retry_count || 0)))) }).toISO() }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -4736,6 +4758,40 @@
         "jsonBody": "={{ JSON.stringify({ msgtype: 'm.text', body: '📰 Presseartikel (final, zum Bild passend) - ' + ($json.vorgangsnummer || '') + ':\\n\\n' + $json.pressStatementFinal }) }}",
         "options": {}
       }
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "Q54kptpOrbug6bJu",
+          "mode": "list",
+          "cachedResultName": "allris_state_history",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/Q54kptpOrbug6bJu"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_id": "={{ 'p6-' + $execution.id + '-' + $json.vorgangKey + '-image-failure' }}",
+            "vorgang_key": "={{ $json.vorgangKey }}",
+            "pipeline_stage": "image",
+            "old_state": "",
+            "new_state": "retry_scheduled",
+            "reason_code": "IMAGE_QA_FAILED",
+            "reason_message": "={{ ($json.last_error_message || $json.visualDecisionReason || 'Bildprüfung fehlgeschlagen').slice(0, 4000) }}",
+            "workflow_name": "ALLRIS_P6_Bildgenerierung",
+            "workflow_execution_id": "={{ $execution.id }}",
+            "created_at": "={{ $now.toISO() }}",
+            "metadata_json": "={{ JSON.stringify({ imageStage: $json.imageStage || '', retry_count: Number($json.retry_count || 0), next_retry_at: $json.next_retry_at || '' }) }}"
+          },
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "31f4b3a3-b448-4e1d-a261-67bc95061bdd",
+      "name": "History Bildfehler",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [1360, 368]
     }
   ],
   "pinData": {},

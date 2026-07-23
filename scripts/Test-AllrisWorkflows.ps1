@@ -186,6 +186,35 @@ if ($null -ne $paperless) {
     }
 }
 
+$p6 = $workflows['ALLRIS_P6_Bildgenerierung'].Data
+if ($null -ne $p6) {
+    foreach ($nodeId in @(
+        'ed509d84-c2b0-4f2e-90ca-9f59f7abf363',
+        'e2a86b50-414f-4b61-8b78-cf4654990a63'
+    )) {
+        $node = @($p6.nodes | Where-Object id -eq $nodeId)
+        if ($node.Count -ne 1 -or
+            $node[0].parameters.columns.value.last_error_code -ne 'IMAGE_QA_FAILED' -or
+            $node[0].parameters.columns.value.last_error_stage -ne 'image') {
+            Add-Failure "P6: zentraler Bildfehlervertrag fehlt in Node '$nodeId'."
+        }
+        elseif ('History Bildfehler' -notin @(
+            $p6.connections.($node[0].name).main |
+                ForEach-Object { $_ } |
+                ForEach-Object { $_ } |
+                ForEach-Object { [string]$_.node }
+        )) {
+            Add-Failure "P6: Node '$nodeId' ist nicht mit der Bildfehler-History verbunden."
+        }
+    }
+    $p6History = @($p6.nodes | Where-Object id -eq '31f4b3a3-b448-4e1d-a261-67bc95061bdd')
+    if ($p6History.Count -ne 1 -or
+        $p6History[0].parameters.dataTableId.value -ne 'Q54kptpOrbug6bJu' -or
+        $p6History[0].parameters.columns.value.reason_code -ne 'IMAGE_QA_FAILED') {
+        Add-Failure 'P6: gemeinsame Bildfehler-History ist unvollständig.'
+    }
+}
+
 Write-Host "Geprüfte Exporte: $($workflowFiles.Count)"
 Write-Host "Sub-Workflow-Referenzen: $($idsReferenced.Count)"
 

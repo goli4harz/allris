@@ -81,6 +81,21 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 Neueste Einträge stehen oben.
 
+### 2026-07-23 – Codex – P6-Bildfehlervertrag begonnen
+
+- Endgültig fehlgeschlagene Bildprüfung und irreparables Bildkonzept schreiben
+  additiv `IMAGE_QA_FAILED`, Stufe `image`, Fehlerzeit, Retry-Zähler und
+  exponentielles `next_retry_at`.
+- Bestehende Bildstatus- und Diagnosefelder bleiben unverändert erhalten.
+- Strukturtest schützt beide Endfehlerpfade.
+- Betroffene Dateien: `ALLRIS_P6_Bildgenerierung.json`,
+  `scripts/Test-AllrisWorkflows.ps1`, `PROJECT_COORDINATION.md`.
+- Gemeinsame Append-History für beide endgültigen Bildfehler ergänzt.
+- Live-Rollout: P6 aktiv mit 56 Nodes und UTF-8-strukturgleich zum Export.
+- Tests: alle 24 Exporte, 7 Sub-Workflow-IDs und Live-Drift-Prüfung
+  erfolgreich; nur die akzeptierte LAN-Statuswarnung bleibt.
+- Nächster Schritt: Matrix-Versandfehler als separaten Teilpfad behandeln.
+
 ### 2026-07-23 – Codex – Paperless-Fehlervertrag vorbereitet
 
 - Unvollständige Backfills schreiben `PAPERLESS_IMPORT_FAILED`, Stufe
