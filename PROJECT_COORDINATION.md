@@ -81,6 +81,21 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 Neueste Einträge stehen oben.
 
+### 2026-07-23 – Codex – P3e an Claim-/Lease angebunden
+
+- P3e übernimmt freie oder abgelaufene Kernbotschaft-Kandidaten atomar und
+  überspringt fremde gültige Claims.
+- Satire-Erfolg und behandelter Satirefehler laufen bereits durch denselben
+  Datenbankabschluss; genau dort erfolgt die owner-gebundene Freigabe.
+- Claim-Owner: `ALLRIS_P3e_Kernbotschaft:<execution-id>`, Stufe `approval`,
+  Lease 30 Minuten.
+- Layout: 22 Nodes, maximal 11 Nodes in einer Reihe.
+- Live: aktiv, Version `c8e652d8-baf6-4614-ae33-2edebb518732`.
+- Tests: 25 Exporte, 13 Sub-Workflow-Referenzen und Live-Drift-Prüfung
+  erfolgreich.
+- Nächster Schritt: regulären P3/P3d/P3e-Zyklus abnehmen und anschließend P4
+  als nächste nicht veröffentlichende Stufe anbinden.
+
 ### 2026-07-23 – Codex – P3d an Claim-/Lease angebunden
 
 - P3d übernimmt nur freie oder abgelaufene Vorgänge per zentralem

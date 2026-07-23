@@ -387,6 +387,27 @@ if ($null -ne $p3d) {
     }
 }
 
+$p3e = $workflows['ALLRIS_P3e_Kernbotschaft'].Data
+if ($null -ne $p3e) {
+    $p3eClaimCalls = @($p3e.nodes | Where-Object {
+        $_.type -eq 'n8n-nodes-base.executeWorkflow' -and
+        $_.parameters.workflowId.value -eq 'D7cmBsy3exuOkBd9'
+    })
+    $p3eClaimPrepare = @($p3e.nodes | Where-Object name -eq 'Bereite P3e Claims vor')
+    $p3eClaimRelease = @($p3e.nodes | Where-Object name -eq 'Bereite P3e Claim-Freigabe vor')
+    if ($p3eClaimCalls.Count -ne 2 -or
+        $p3eClaimPrepare.Count -ne 1 -or
+        -not ([string]$p3eClaimPrepare[0].parameters.jsCode).Contains(
+            'expectedClaimExpiresAt: item.json.claim_expires_at ?? null'
+        ) -or
+        $p3eClaimRelease.Count -ne 1 -or
+        -not ([string]$p3eClaimRelease[0].parameters.jsCode).Contains(
+            'ALLRIS_P3e_Kernbotschaft:${$execution.id}'
+        )) {
+        Add-Failure 'P3e: Claim-Erwerb oder owner-gebundene Freigabe ist unvollständig.'
+    }
+}
+
 Write-Host "Geprüfte Exporte: $($workflowFiles.Count)"
 Write-Host "Sub-Workflow-Referenzen: $($idsReferenced.Count)"
 

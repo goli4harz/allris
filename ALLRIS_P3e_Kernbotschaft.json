@@ -27,12 +27,24 @@
       "main": [
         [
           {
-            "node": "Sortiere Vorgaenge",
+            "node": "Bereite P3e Claims vor",
             "type": "main",
             "index": 0
           }
         ]
       ]
+    },
+    "Bereite P3e Claims vor": {
+      "main": [[{"node":"Erwerbe P3e Claim","type":"main","index":0}]]
+    },
+    "Erwerbe P3e Claim": {
+      "main": [[{"node":"Nur bestaetigte P3e Claims","type":"main","index":0}]]
+    },
+    "Nur bestaetigte P3e Claims": {
+      "main": [[{"node":"Sortiere Vorgaenge","type":"main","index":0}]]
+    },
+    "Bereite P3e Claim-Freigabe vor": {
+      "main": [[{"node":"Release P3e Claim","type":"main","index":0}]]
     },
     "Sortiere Vorgaenge": {
       "main": [
@@ -184,6 +196,11 @@
         [
           {
             "node": "Naechster Vorgang",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Bereite P3e Claim-Freigabe vor",
             "type": "main",
             "index": 0
           }
@@ -616,6 +633,68 @@
         3320,
         1340
       ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = Date.now();\nconst owner = `ALLRIS_P3e_Kernbotschaft:${$execution.id}`;\nreturn items\n  .filter(item => {\n    const j = item.json || {};\n    const oldOwner = String(j.claim_owner || '').trim();\n    const expires = Date.parse(String(j.claim_expires_at || ''));\n    return !oldOwner || !Number.isFinite(expires) || expires <= now;\n  })\n  .map(item => ({ json: {\n    ...item.json,\n    claimAction: 'acquire',\n    claimOwner: owner,\n    claimStage: 'approval',\n    leaseMinutes: 30,\n    expectedClaimOwner: item.json.claim_owner ?? null,\n    expectedClaimExpiresAt: item.json.claim_expires_at ?? null\n  } }));"
+      },
+      "id": "f6071829-1111-4f60-8172-000000000001",
+      "name": "Bereite P3e Claims vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 1160]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D7cmBsy3exuOkBd9",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Claim_Lease"
+        },
+        "options": {"waitForSubWorkflow":true}
+      },
+      "id": "f6071829-2222-4f60-8172-000000000002",
+      "name": "Erwerbe P3e Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [920, 1160]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.filter(item => item.json?.claimAcquired === true);"
+      },
+      "id": "f6071829-3333-4f60-8172-000000000003",
+      "name": "Nur bestaetigte P3e Claims",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1160, 1160]
+    },
+    {
+      "parameters": {
+        "jsCode": "const vorgangKey = String($json.vorgangKey || '').trim();\nif (!vorgangKey) throw new Error('[P3e Claim Release] vorgangKey fehlt.');\nreturn [{ json: { vorgangKey, claimAction: 'release', claimOwner: `ALLRIS_P3e_Kernbotschaft:${$execution.id}` } }];"
+      },
+      "id": "f6071829-4444-4f60-8172-000000000004",
+      "name": "Bereite P3e Claim-Freigabe vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3560, 1340]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D7cmBsy3exuOkBd9",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Claim_Lease"
+        },
+        "options": {"waitForSubWorkflow":true}
+      },
+      "id": "f6071829-5555-4f60-8172-000000000005",
+      "name": "Release P3e Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [3800, 1340]
     }
   ],
   "pinData": null,
@@ -623,5 +702,5 @@
     "executionOrder": "v1"
   },
   "tags": [],
-  "versionId": "f5087247-c39c-4128-87fc-b9608e0afd16"
+  "versionId": "c8e652d8-baf6-4614-ae33-2edebb518732"
 }
