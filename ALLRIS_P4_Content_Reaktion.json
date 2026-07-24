@@ -93,16 +93,48 @@
       ]
     },
     "Bereite P4 Claims vor": {
-      "main": [[{"node":"Erwerbe P4 Claim","type":"main","index":0}]]
+      "main": [
+        [
+          {
+            "node": "Erwerbe P4 Claim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Erwerbe P4 Claim": {
-      "main": [[{"node":"Nur bestaetigte P4 Claims","type":"main","index":0}]]
+      "main": [
+        [
+          {
+            "node": "Nur bestaetigte P4 Claims",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Nur bestaetigte P4 Claims": {
-      "main": [[{"node":"Sortiere Reaktions-Vorgänge nach Vorgangsnummer","type":"main","index":0}]]
+      "main": [
+        [
+          {
+            "node": "Sortiere Reaktions-Vorgänge nach Vorgangsnummer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Bereite P4 Claim-Freigabe vor": {
-      "main": [[{"node":"Release P4 Claim","type":"main","index":0}]]
+      "main": [
+        [
+          {
+            "node": "Release P4 Claim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Loop Reaktions-Vorgänge": {
       "main": [
@@ -444,16 +476,16 @@
     "Source-Lock blockiert Content": {
       "main": [
         [
-                    {
-                        "node": "Speichere Content-Fehler",
-                        "type": "main",
-                        "index": 0
-                    },
-                    {
-                        "node": "History Content-Fehler",
-                        "type": "main",
-                        "index": 0
-                    },
+          {
+            "node": "Speichere Content-Fehler",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "History Content-Fehler",
+            "type": "main",
+            "index": 0
+          },
           {
             "node": "Nächster Reaktions-Vorgang",
             "type": "main",
@@ -3263,7 +3295,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Baut eine Matrix-Sammelmeldung für neu/geändert dauerhaft blockierte\n// Vorgänge (sharepicNeedStage = blocked_source_lock oder topic_error).\n// Die Vorfilterung auf tatsächlich neue/geänderte Fälle passiert bereits\n// in \"Filtere unbenachrichtigte Blockaden\" (Vergleich gegen die Spalte\n// visualBlockNotifiedReason) - dieser Node baut hier nur noch die Nachricht.\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nif (!items || items.length === 0) {\n  return [];\n}\n\nconst zeilen = items.map(item => {\n  const j = item.json || {};\n  return `• ${safeStr(j.vorgangsnummer) || '?'} – ${safeStr(j.title) || '(kein Titel)'}\\n  Status: ${safeStr(j.sharepicNeedStage)}\\n  Grund: ${safeStr(j.visualDecisionReason) || '(kein Grund hinterlegt)'}\\n  ${safeStr(j.allrisUrl)}`;\n});\n\nconst msg = `⚠️ Neu/geändert dauerhaft blockierte Visual-Vorgänge (${items.length})\\n\\n` +\n  `Diese Vorgänge werden vom Repair-Mechanismus nicht automatisch erneut versucht ` +\n  `und benötigen manuelle Prüfung. Diese Meldung wiederholt sich erst wieder, ` +\n  `wenn sich Status oder Grund ändern:\\n\\n` +\n  zeilen.join('\\n\\n');\n\nconst txnId = 'blkalert_' + Date.now();\n\nreturn [{ json: { alertMessage: msg, txnId, blockedCount: items.length } }];\n"
+        "jsCode": "// Baut je blockiertem Vorgang eine EIGENE Matrix-Meldung (statt einer\n// Sammelmeldung), mit Antwortcodes fuer manuelle Klaerung per Matrix.\n// Vorfilterung auf tatsaechlich neue/geaenderte Faelle passiert bereits in\n// \"Filtere unbenachrichtigte Blockaden\". Antwortcodes werden vom neuen\n// Blockade-Antwort-Zweig in ALLRIS_P5b_Matrix_Headline_Reader ausgewertet\n// (2026-07-24 ergaenzt, siehe PROJECT_COORDINATION.md).\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction vnCode(v) { return safeStr(v).replace(/[^0-9A-Za-z]+/g, '-').replace(/^-+|-+$/g, ''); }\n\nif (!items || items.length === 0) {\n  return [];\n}\n\nreturn items.map(item => {\n  const j = item.json || {};\n  const code = vnCode(j.vorgangsnummer) || vnCode(j.vorgangKey);\n  const msg = `⚠️ Dauerhaft blockierter Visual-Vorgang\n\n` +\n    `${safeStr(j.vorgangsnummer) || '?'} – ${safeStr(j.title) || '(kein Titel)'}\n` +\n    `Status: ${safeStr(j.sharepicNeedStage)}\n` +\n    `Grund: ${safeStr(j.visualDecisionReason) || '(kein Grund hinterlegt)'}\n` +\n    `${safeStr(j.allrisUrl)}\n\n` +\n    `Wird vom Repair-Mechanismus nicht automatisch erneut versucht. Antworte mit \\\"${code}-OK\\\" ` +\n    `um erneut zu pruefen (z.B. nach manueller Korrektur der Quellenbindung), oder \\\"${code}-SKIP\\\" ` +\n    `um dauerhaft ohne Sharepic fortzufahren. Diese Meldung wiederholt sich erst wieder, wenn sich Status oder Grund aendern.`;\n\n  const txnId = 'blkalert_' + vnCode(j.vorgangKey) + '_' + Date.now();\n\n  return { json: { ...j, alertMessage: msg, txnId } };\n});"
       },
       "id": "0bcc3a69-1d5b-4592-824d-1d581b76ca95",
       "name": "Baue Blockiert-Alert",
@@ -3653,7 +3685,10 @@
       "name": "History Content-Fehler",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
-      "position": [10960, 1776]
+      "position": [
+        10960,
+        1776
+      ]
     },
     {
       "parameters": {
@@ -3663,7 +3698,10 @@
       "name": "Bereite P4 Claims vor",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [8272, 1280]
+      "position": [
+        8272,
+        1280
+      ]
     },
     {
       "parameters": {
@@ -3673,13 +3711,18 @@
           "mode": "list",
           "cachedResultName": "ALLRIS_Claim_Lease"
         },
-        "options": {"waitForSubWorkflow":true}
+        "options": {
+          "waitForSubWorkflow": true
+        }
       },
       "id": "0718293a-2222-4071-8293-000000000002",
       "name": "Erwerbe P4 Claim",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
-      "position": [8512, 1280]
+      "position": [
+        8512,
+        1280
+      ]
     },
     {
       "parameters": {
@@ -3689,7 +3732,10 @@
       "name": "Nur bestaetigte P4 Claims",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [8752, 1280]
+      "position": [
+        8752,
+        1280
+      ]
     },
     {
       "parameters": {
@@ -3699,7 +3745,10 @@
       "name": "Bereite P4 Claim-Freigabe vor",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [10464, 2208]
+      "position": [
+        10464,
+        2208
+      ]
     },
     {
       "parameters": {
@@ -3709,13 +3758,18 @@
           "mode": "list",
           "cachedResultName": "ALLRIS_Claim_Lease"
         },
-        "options": {"waitForSubWorkflow":true}
+        "options": {
+          "waitForSubWorkflow": true
+        }
       },
       "id": "0718293a-5555-4071-8293-000000000005",
       "name": "Release P4 Claim",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
-      "position": [10704, 2208]
+      "position": [
+        10704,
+        2208
+      ]
     }
   ],
   "pinData": {},

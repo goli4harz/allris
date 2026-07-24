@@ -80,6 +80,64 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 ## Änderungs- und Übergabeprotokoll
 
+### 2026-07-24 – Claude – Neu: interaktive Matrix-Klaerung fuer dauerhaft blockierte Visual-Vorgaenge
+
+- Ziel/Aufgabe: Nutzer erhielt eine Sammel-Alert-Nachricht für 3 dauerhaft
+  blockierte Vorgänge (`topic_error`/`blocked_source_lock`, sourceLock/
+  Sensible-Betroffene-/Symbol-Drift-Guards) und wies darauf hin, dass keine
+  Matrix-Rückfrage kam, obwohl eine Klärung nötig ist — anders als z.B.
+  P5b's bestehende Headline-Auswahl. Explizite Anforderung: das soll als
+  Frage in Matrix kommen; `-OK` (nach Klärung erneut prüfen, kein Guard
+  wird übersprungen) statt eines blinden Übersteuerns.
+- Ergebnis: neues Antwort-Schema `<Vorgangsnummer>-OK` / `<Vorgangsnummer>-SKIP`,
+  nach demselben bewährten Muster wie P5b's `K1..K4`/`-X`-Codes gebaut.
+  - **`ALLRIS_P4_Content_Reaktion`**, `Baue Blockiert-Alert`: baut jetzt
+    eine **eigene Matrix-Nachricht pro blockiertem Vorgang** (statt einer
+    Sammelnachricht), inkl. Antwortcode-Erklärung. `Send Matrix
+    Blockiert-Alert` verarbeitet Items bereits nativ pro Item (httpRequest-
+    Node, kein Code-Node-Mode-Problem wie beim Claim-Lease-Bug).
+  - **`ALLRIS_P5b_Matrix_Headline_Reader`** (12→17 Nodes): neuer paralleler
+    Zweig `Finde wartende Blockaden` → (über den bestehenden `Matrix
+    Nachrichten lesen`-Read) `Finde Blockade-Antwort` → `IF: Blockade-
+    Update noetig?` → `Speichere Blockade-Antwort` → `Sende Blockade-
+    Bestätigung`. `-SKIP` setzt `sharepicNeedStage='not_applicable'`
+    dauerhaft. `-OK` bewertet die Zeile mit einer **bewusst duplizierten
+    Kopie** von `wouldStillBlock` aus P4s `Filtere unbenachrichtigte
+    Blockaden` (sourceLock/VisualAnchors/Sensible-Betroffene/Symbol-Drift)
+    frisch gegen den aktuellen DB-Stand — bleibt sie blockiert, wird
+    **nichts** geschrieben (`IF`-Gate über `_skipWrite`), nur eine
+    Matrix-Antwort mit dem aktuellen Grund gesendet; ist sie nicht mehr
+    blockiert, wird sie wie im bestehenden Repair-Muster freigegeben
+    (`sharepicNeedStage='topic_ok'`, `visualPromptStage='needs_prompt'`,
+    Bildfelder zurückgesetzt).
+  - **Nebenbei behoben**: `Speichere Headline-Auswahl` (bestehender Node)
+    hatte dieselbe fehlende-`matchType`/leere-`matchingColumns`-Lücke wie
+    der heutige Claim-Lease-Bug — bisher folgenlos, weil P5b immer nur
+    exakt 1 Antwort pro Poll verarbeitet (`matches[0]` gewinnt). Proaktiv
+    auf `matchType:"allConditions"` + `matchingColumns:["vorgangKey"]`
+    korrigiert, gleiche Fehlerklasse wie im heutigen Claim-Lease-Fund.
+- Betroffene Dateien/Workflows: `ALLRIS_P4_Content_Reaktion.json` (live-ID
+  `wGLMrDnSavNIprzu`), `ALLRIS_P5b_Matrix_Headline_Reader.json` (live-ID
+  `4VXIOwv6ouMbBCER`).
+- Tests/Validierung: Live-GET nach PUT bestätigt Node-/Verbindungsstruktur
+  und `matchType` an allen relevanten Stellen. **Kein echter End-to-End-Test
+  durchgeführt** (weder Alert-Versand noch `-OK`/`-SKIP`-Antwort-Verarbeitung) —
+  die drei bereits gemeldeten Vorgänge (2026/139, 2026/138, 2026/135)
+  werden wegen des bestehenden Dedup (`visualBlockNotifiedReason` bereits
+  gleich `visualDecisionReason`) NICHT automatisch neu mit dem neuen
+  Format alarmiert, bis sich der Grund ändert oder `visualBlockNotifiedReason`
+  manuell zurückgesetzt wird.
+- Offene Risiken oder Blocker: ungetesteter Code auf zwei Produktions-
+  Workflows über Nacht live. Insbesondere `Finde Blockade-Antwort`s
+  duplizierte `wouldStillBlock`-Logik muss bei jeder künftigen Änderung an
+  P4s Original mitgepflegt werden (gleiches Duplizierungsmuster wie dort
+  dokumentiert, kein gemeinsamer Code-Pfad zwischen Workflows möglich).
+- Nächster konkreter Schritt: einen echten Test fahren — entweder auf einen
+  neuen, frisch blockierten Vorgang warten, oder `visualBlockNotifiedReason`
+  bei einem der drei bekannten Fälle gezielt zurücksetzen, um die neue
+  Alert-Nachricht samt Antwortcodes auszulösen, dann `-OK` und `-SKIP`
+  je einmal real durchspielen.
+
 ### 2026-07-24 – Claude/Nutzer – Satire-Agent: JSON-Modus gegen gelegentliche Parse-Fehler erzwungen
 
 - Ziel/Aufgabe: Matrix-Alert "Satire-Agent fehlgeschlagen: Vorgang 2026/121
