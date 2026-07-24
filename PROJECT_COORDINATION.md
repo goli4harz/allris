@@ -80,6 +80,36 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 ## Änderungs- und Übergabeprotokoll
 
+### 2026-07-24 – Claude – matchingColumns-Fix ergaenzt: id fehlte in columns.value
+
+- Ziel/Aufgabe: der `matchingColumns:["id"]`-Fix (voriger Eintrag) loeste
+  das Problem ebenfalls nicht — derselbe isolierte Einzeltest
+  (`vol_10600`, id 3024) claimte wieder alle 50 Zeilen.
+- Befund: Rohdaten der Execution zeigen, dass `Bereite Test-Claim vor`
+  korrekt `id:3024` ausgab, aber das erste Ausgabe-Item von `Erwerbe
+  Test-Claim CAS` `id:3049` (eine andere Zeile) zeigte. Ursache:
+  `matchingColumns` benennt nur, WELCHE Spalte(n) aus `columns.value` als
+  Match-Bedingung dienen — der Wert dafuer muss selbst in `columns.value`
+  stehen. Dort war `id` nie enthalten (nur die vier `claim_*`-Felder),
+  also hatte der Node keinen Wert zum Matchen.
+- Fix: `"id": "={{ $json.id }}"` zusaetzlich in `columns.value` ergaenzt,
+  neben den bestehenden vier Feldern. Betrifft dieselben fuenf Stellen wie
+  beim vorigen Fix (`Erwerbe Claim CAS`, `Release eigener Claim` in
+  `ALLRIS_Claim_Lease`; die zwei Test-Zwillinge in
+  `ALLRIS_Dispatcher_Watchdog`; `ALLRIS_Einmalig_Claims_freigeben`).
+- Betroffene Dateien/Workflows: dieselben drei wie im vorigen Eintrag.
+- Tests/Validierung: Live-GET nach PUT bestaetigt `id` jetzt in
+  `columns.value` aller fuenf Nodes, Testschluessel `vol_10600` blieb
+  beim Push erhalten (diesmal korrekt aus der bereits synchronisierten
+  lokalen Datei gepusht). **Noch KEIN Testlauf seit diesem Fix.**
+- Offene Risiken oder Blocker: das ist jetzt der sechste Fix-Versuch am
+  selben Tag. Falls dieser ebenfalls fehlschlaegt, sollte definitiv auf
+  isoliertes UI-Debugging umgestellt werden statt weiterer Live-Deploys.
+- Nächster konkreter Schritt: `ALLRIS_Einmalig_Claims_freigeben` erneut
+  ausfuehren, dann `Manual Claim-Test` erneut ausloesen und das Ergebnis
+  hier nachtragen — endlich mit Erfolg oder mit endgueltigem Stopp der
+  Live-Versuche.
+
 ### 2026-07-24 – Claude – Tatsaechliche Ursache: leeres matchingColumns, nicht die Filterspalte
 
 - Ziel/Aufgabe: der id-Fix (voriger Eintrag) loeste das Problem ebenfalls

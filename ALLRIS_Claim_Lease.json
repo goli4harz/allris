@@ -105,6 +105,7 @@
         "columns": {
           "mappingMode":"defineBelow",
           "value": {
+            "id":"={{ $json.id }}",
             "claim_owner":"={{ $json.claimOwner }}",
             "claim_stage":"={{ $json.claimStage }}",
             "claim_acquired_at":"={{ $json.claimAcquiredAt }}",
@@ -169,7 +170,7 @@
         },
         "columns": {
           "mappingMode":"defineBelow",
-          "value":{"claim_owner":null,"claim_stage":null,"claim_acquired_at":null,"claim_expires_at":null},
+          "value":{"id":"={{ $json.id }}","claim_owner":null,"claim_stage":null,"claim_acquired_at":null,"claim_expires_at":null},
           "matchingColumns":["id"],
           "schema":[]
         },
