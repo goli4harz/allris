@@ -285,7 +285,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const TEST_VORGANG_KEY = '';\n\nif (!TEST_VORGANG_KEY) {\n  throw new Error('[Claim-Test] TEST_VORGANG_KEY im Node Konfiguriere Claim-Test setzen. Ohne expliziten Testschluessel erfolgt kein Datenbank-Write.');\n}\n\nreturn [{ json: { vorgangKey: TEST_VORGANG_KEY } }];"
+        "jsCode": "const TEST_VORGANG_KEY = 'vol_10600';\n\nif (!TEST_VORGANG_KEY) {\n  throw new Error('[Claim-Test] TEST_VORGANG_KEY im Node Konfiguriere Claim-Test setzen. Ohne expliziten Testschluessel erfolgt kein Datenbank-Write.');\n}\n\nreturn [{ json: { vorgangKey: TEST_VORGANG_KEY } }];"
       },
       "id": "b2c3d4e5-2222-4b2c-8d3e-000000000012",
       "name": "Konfiguriere Claim-Test",
