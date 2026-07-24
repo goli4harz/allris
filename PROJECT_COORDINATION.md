@@ -80,6 +80,42 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 ## Änderungs- und Übergabeprotokoll
 
+### 2026-07-24 – Claude – Siebter Versuch: fehlendes matchType (Must Match) ergaenzt, ueber offizielle Doku begruendet
+
+- Ziel/Aufgabe: nach dem Stopp im vorigen Eintrag offizielle n8n-Dokumentation
+  zur Data-Table-`update`-Operation konsultiert (nicht mehr aus Symptomen
+  geraten), da der Nutzer kein eigenes UI-Debugging durchfuehren wollte.
+- Befund: laut `docs.n8n.io` hat die `update`-Operation einen Parameter
+  **"Must Match"** (JSON-Feld `matchType`, Werte `allConditions`/
+  `anyConditions`) — als **Top-Level-Parameter neben `filters`**, nicht
+  darin verschachtelt. Dieser fehlte in **jedem** `update`-Node dieses
+  Sub-Workflows komplett (seit Erstellung durch Codex). Zum Vergleich:
+  der bereits korrekt funktionierende `get`-Node `Hole needs_summary` in
+  P3 hat `matchType:"allConditions"` explizit gesetzt. Arbeitshypothese:
+  ohne explizites `matchType` faellt die `update`-Operation vermutlich auf
+  ein UND-unabhaengiges/breiteres Verhalten zurueck (ODER oder "match
+  alles"), was jeden bisherigen Filterversuch (Spalte, Wertquelle) hinfaellig
+  gemacht haette, egal wie korrekt er sonst war.
+- Fix: `"matchType": "allConditions"` als Top-Level-Parameter ergaenzt in
+  allen sechs betroffenen `filters`-Nodes von `ALLRIS_Claim_Lease`
+  (`Erwerbe Claim CAS`, `Lese Claim zurueck`, `Release eigener Claim`),
+  `ALLRIS_Dispatcher_Watchdog` (Test-Zweig, alle vier Nodes inkl. der
+  beiden Lese-Nodes) und `ALLRIS_Einmalig_Claims_freigeben` (beide Nodes).
+- Betroffene Dateien/Workflows: dieselben drei wie in den vorherigen
+  Eintraegen.
+- Tests/Validierung: Live-GET nach PUT bestaetigt `matchType:"allConditions"`
+  in allen genannten Nodes, Testschluessel `vol_10600` blieb erhalten.
+  **Noch KEIN Testlauf seit diesem Fix.**
+- Offene Risiken oder Blocker: siebter Versuch am selben Tag — diesmal
+  aber erstmals auf offizieller Dokumentation statt reiner Symptom-
+  Beobachtung begruendet, plus direkter Vergleich mit einem im selben
+  Projekt bereits nachweislich funktionierenden Node. Falls das ebenfalls
+  scheitert, ist ein Wechsel weg vom `n8n-nodes-base.dataTable`-Node fuer
+  row-scoped Updates (z.B. direkter Postgres-Zugriff) ernsthaft zu pruefen.
+- Nächster konkreter Schritt: `ALLRIS_Einmalig_Claims_freigeben` erneut
+  ausfuehren, dann `Manual Claim-Test` erneut ausloesen (Testschluessel
+  `vol_10600`) und das Ergebnis hier nachtragen.
+
 ### 2026-07-24 – Claude – Sechster Fix-Versuch gescheitert (Validierungsfehler); Live-Guessing gestoppt
 
 - Ergebnis: `"id"` in `columns.value` (voriger Eintrag) fuehrt zu einem

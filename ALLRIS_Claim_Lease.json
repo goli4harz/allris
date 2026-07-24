@@ -95,6 +95,7 @@
           "cachedResultName":"allris_vorgaenge",
           "cachedResultUrl":"/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
         },
+        "matchType": "allConditions",
         "filters": {
           "conditions": [
             {"keyName":"id","keyValue":"={{ $json.id }}"},
@@ -131,6 +132,7 @@
           "cachedResultName":"allris_vorgaenge",
           "cachedResultUrl":"/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
         },
+        "matchType": "allConditions",
         "filters":{"conditions":[{"keyName":"id","keyValue":"={{ $('Validiere Claim-Anforderung').item.json.id }}"}]},
         "returnAll":false,
         "limit":2
@@ -161,6 +163,7 @@
           "cachedResultName":"allris_vorgaenge",
           "cachedResultUrl":"/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
         },
+        "matchType": "allConditions",
         "filters": {
           "conditions": [
             {"keyName":"id","keyValue":"={{ $json.id }}"},
