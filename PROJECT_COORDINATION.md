@@ -80,6 +80,32 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 ## Änderungs- und Übergabeprotokoll
 
+### 2026-07-24 – Claude – Dispatcher-Watchdog an stündliche Kaskade angepasst
+
+- Ziel/Aufgabe: Folgefrage des Nutzers zum obigen Takt-Wechsel — muss der
+  Dispatcher-Watchdog (Paket 7, 22.07.) jetzt auch schneller laufen?
+- Ergebnis: zwei Anpassungen, beide inhaltlich verknüpft.
+  1. Eigener `Schedule Trigger`: `hoursInterval` 6 → 1 (Minute 20 unverändert).
+  2. `STALE_HOURS`-Konstante im Node `Dispatcher-Watchdog`: 24 → 6. Begründung:
+     der Wert war explizit als "~5 verpasste Kaskaden-Durchläufe" relativ zum
+     damaligen 5h-Takt hergeleitet (24h ≈ 5×5h). Bei jetzt stündlicher
+     Kaskade hätte dieselbe 24h-Schwelle ~24 statt ~5 verpasste Durchläufe
+     bedeutet — deutlich unempfindlicher als ursprünglich beabsichtigt. 6h
+     erhält dieselbe "~5-6 verpasste Durchläufe"-Semantik bei neuem Takt.
+  3. Zwei Code-Kommentare im selben Node an die neue Kaskadenfrequenz und
+     Schwellenbegründung angepasst (reine Doku, keine Logikänderung).
+- Betroffene Dateien/Workflows: `ALLRIS_Dispatcher_Watchdog.json` (live-ID
+  `UzevGR7GafUB3dFk`), `PROJECT_COORDINATION.md`.
+- Tests/Validierung: Live-GET nach PUT bestätigt `hoursInterval:1` und
+  `STALE_HOURS = 6`. Lokale Datei per `node -e "JSON.parse(...)"` geprüft.
+  Kein Live-Lauf beobachtet — der Workflow ist weiterhin `active:false`.
+- Offene Risiken oder Blocker: keine inhaltliche Änderung an den 4 Checks
+  selbst, nur Zeitparameter. Der Workflow ist nach wie vor nicht aktiviert;
+  siehe Vorschlag im vorherigen Gespräch mit dem Nutzer, ihn zu aktivieren —
+  dazu noch keine endgültige Entscheidung getroffen.
+- Nächster konkreter Schritt: mit dem Nutzer klären, ob der Watchdog jetzt
+  aktiviert werden soll.
+
 ### 2026-07-24 – Claude – Verarbeitungstakt P3–P8 auf stündlich erhöht
 
 - Ziel/Aufgabe: Nutzer wollte auf Basis des needs_summary-Rückstaus schnellere
