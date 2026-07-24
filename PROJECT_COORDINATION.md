@@ -78,6 +78,36 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 | BLK-004 | TASK-011 | ALLRIS-Übersichtsrequest wird aus n8n sowohl direkt als auch über `172.16.1.5:3128` nach drei Timeouts abgebrochen; Zielserver/Firewall/WAF bzw. TLS-Verbindung extern prüfen. | Infrastruktur / Goslar-Server | offen |
 | BLK-005 | TASK-002 / TASK-009 / TASK-012 | Neu aktivierte n8n-Schedules erzeugen keine Ausführung: reguläres `:50`, explizites `hoursInterval=1` und kontrollierter Custom-Cron blieben ohne Execution. Workflow jeweils aktiv und `activeVersionId=versionId`; n8n Scheduler-/Worker-Logs und Dienstzustand auf dem Host prüfen beziehungsweise Dienst kontrolliert neu starten. | n8n-Infrastruktur | offen |
 
+### 2026-07-25 – Claude – Raumfix korrigiert: P4 sendete in den falschen Raum, nicht P5b las falsch
+
+- Ziel/Aufgabe: Nutzer stellte klar, dass `!COxTeLJyPszYlaHbIx:matrix.golietz.de`
+  der korrekte Raum fuer Alert, Antwort UND Bestaetigung ist — mein voriger
+  Eintrag ("Blockaden-Antwort-Zweig las aus dem falschen Matrix-Raum") hatte
+  die Ursache falsch herum diagnostiziert.
+- Korrektur: nicht P5bs bestehender Lese-Node war falsch, sondern
+  `ALLRIS_P4_Content_Reaktion`s `Send Matrix Blockiert-Alert` selbst sendete
+  in `!tMRdHxOLwIKDiQlIRz` statt `!COxTeLJyPszYlaHbIx`. Die vorher
+  hinzugefuegte `Sende Blockade-Bestätigung` zeigte schon korrekt auf
+  `!COxTeLJyPszYlaHbIx` (vom bestehenden Node kopiert) — nur der Alert-
+  Send und (in der Folge, durch meinen eigenen Fix) der Lese-Pfad waren
+  betroffen.
+- Fix: `Send Matrix Blockiert-Alert` in P4 auf `!COxTeLJyPszYlaHbIx`
+  umgestellt. In P5b den zusaetzlichen `Matrix Blockaden-Nachrichten
+  lesen`-Node (falscher Raum) wieder entfernt, `Finde Blockade-Antwort`
+  liest jetzt wieder vom bestehenden `Matrix Nachrichten lesen`-Node
+  (17 statt 18 Nodes, identisch zur ersten Version vor dem fehlerhaften
+  Raum-Fix).
+- Betroffene Dateien/Workflows: `ALLRIS_P4_Content_Reaktion.json` (live-ID
+  `wGLMrDnSavNIprzu`), `ALLRIS_P5b_Matrix_Headline_Reader.json` (live-ID
+  `4VXIOwv6ouMbBCER`).
+- Tests/Validierung: Live-GET bestaetigt alle drei Matrix-Nodes (Alert,
+  Lesen, Bestaetigung) zeigen jetzt auf `!COxTeLJyPszYlaHbIx`, 0 Mojibake-
+  Fundstellen in beiden Workflows. **Noch kein `-OK`/`-SKIP`-Test seit
+  diesem (jetzt hoffentlich finalen) Raum-Fix.**
+- Nächster konkreter Schritt: 2026/138 (oder 2026/139) im richtigen Raum
+  mit `-OK` oder `-SKIP` antworten, P5b auslösen, endlich einen echten
+  Ende-zu-Ende-Erfolg bestaetigen.
+
 ### 2026-07-25 – Claude – -OK pruefte gegen eingefrorenes sourceLock statt frisch aus faktenAgentJson
 
 - Ziel/Aufgabe: Realtest mit 2026/138 — Nutzer antwortete `-OK`, erhielt
