@@ -80,6 +80,47 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 ## Änderungs- und Übergabeprotokoll
 
+### 2026-07-24 – Claude – ALLRIS_Claim_Lease: fehlender Node-Modus behoben, Live-Drift zurückgesetzt
+
+- Ziel/Aufgabe: Nutzer meldete einen wachsenden `needs_summary`-Rückstau in
+  `allris_vorgaenge` (19 von 40 Zeilen). Ursache in P3 gesucht.
+- Ergebnis: `Validiere Claim-Anforderung` in `ALLRIS_Claim_Lease` hatte kein
+  `mode`-Feld gesetzt und lief damit im n8n-Default `runOnceForAllItems`
+  statt `runOnceForEachItem`. Der Code ist für Einzel-Item-Verarbeitung
+  geschrieben (`$json`, `return [{ json: {...} }]`); im Default-Modus sah er
+  bei einer Charge von N Kandidaten nur das erste Item und lieferte für den
+  gesamten Lauf genau 1 Ergebnis — unabhängig von N. Live an P3 bestätigt:
+  23 Kandidaten rein, 1 Claim raus (Execution 10406).
+- Zusätzlich entdeckt: die **live laufende** Version von `ALLRIS_Claim_Lease`
+  war von der in Git versionierten Version abgewichen, ohne Übergabe-Eintrag.
+  `Lese Claim zurueck` lief live ungefiltert mit `returnAll:true` (statt der
+  in Git vorhandenen `vorgangKey`-Filterung mit `limit:2`), und `Bestaetige
+  Claim` hatte die Assertion `if (items.length !== 1) throw ...` gegen eine
+  stille Map-Logik ohne Fehlerwurf ersetzt. Vermutlich eine Live-Notlösung
+  gegen den Absturz `[Claim] Re-Read lieferte 20 Zeilen.` (siehe Execution
+  10243, 07:49 Uhr), die die Ursache nicht behoben, sondern den Fehler nur
+  stillgelegt hat.
+- Fix: Git-Version (mit Filter + Assertion) als Basis übernommen, zusätzlich
+  `"mode": "runOnceForEachItem"` auf `Validiere Claim-Anforderung` ergänzt.
+  Live per API gepusht, Git und Live sind wieder identisch.
+- Betroffene Dateien/Workflows: `ALLRIS_Claim_Lease.json` (live-ID
+  `D7cmBsy3exuOkBd9`), `PROJECT_COORDINATION.md`.
+- Tests/Validierung: Live-GET nach dem Push bestätigt `mode` und die
+  Filter-/Assertion-Logik wie in Git. Backup des Live-Standes vor dem Push
+  (inkl. des abgewichenen Zwischenstands) unter
+  `n8n_live_backup/ALLRIS_Claim_Lease_PRE_RESYNC_*.json`. Kein Nachtest mit
+  echtem Mehrfach-Batch über P3 durchgeführt (Nutzer müsste dafür P3 manuell
+  auslösen, aktuell 19 wartende Zeilen als natürlicher Testfall vorhanden).
+- Offene Risiken oder Blocker: Dieser Fix wurde unabhängig von Codex' TASK-009
+  (Claim-Anbindung P2–P8) entwickelt und betrifft den zentralen, von allen
+  Stufen gemeinsam genutzten Sub-Workflow — bitte vor der nächsten
+  Claim-bezogenen Änderung diesen Eintrag lesen. Nicht geprüft, ob dieselbe
+  „live weicht von Git ab"-Situation auch bei anderen Workflows vorliegt.
+- Nächster konkreter Schritt: P3 (oder eine andere Claim-Stufe) einmal real
+  mit mehreren wartenden Zeilen laufen lassen und bestätigen, dass mehr als
+  1 Zeile pro Lauf verarbeitet wird; danach diesen Eintrag um das Ergebnis
+  ergänzen.
+
 ### 2026-07-23 – Codex – n8n-Scheduler-Infrastruktur als Blocker bestätigt
 
 - Betroffene Dateien: `ALLRIS_Paperless_Backfill.json`,
