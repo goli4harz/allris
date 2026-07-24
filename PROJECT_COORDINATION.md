@@ -80,6 +80,44 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 ## Änderungs- und Übergabeprotokoll
 
+### 2026-07-24 – Claude – Verarbeitungstakt P3–P8 auf stündlich erhöht
+
+- Ziel/Aufgabe: Nutzer wollte auf Basis des needs_summary-Rückstaus schnellere
+  Umlaufzeiten; explizite Weisung: "verändere alle Abläufe so, dass sie öfter
+  laufen, nur P1 und P2 nicht".
+- Ergebnis: `Schedule Trigger`-Node in neun Workflows von `hoursInterval: 5`
+  auf `hoursInterval: 1` gesetzt, `triggerAtMinute` je Workflow unverändert
+  gelassen (Reihenfolge der Kaskade innerhalb der Stunde bleibt identisch zur
+  bisherigen 5h-Kaskade): `ALLRIS_P3_Bewertung` (:25), `ALLRIS_P3c_Vorgangsabschluss`
+  (:28), `ALLRIS_P3d_Agenten_Kette` (:32), `ALLRIS_P3e_Kernbotschaft` (:33),
+  `ALLRIS_P4_Content_Reaktion` (:35), `ALLRIS_P5_Visual_Prompt_Builder` (:45),
+  `ALLRIS_P6_Bildgenerierung` (:55), `ALLRIS_P7_WordPress_Publish` (:58),
+  `ALLRIS_P8_Partei_Webseite` (:59).
+- Bewusst unverändert: `ALLRIS_P1_Ingestion` und `ALLRIS_P2_Nextcloud` bleiben
+  bei 5h (explizite Nutzerweisung). `ALLRIS_P5b_Matrix_Headline_Reader` (schon
+  15-Minuten-Poll) und `ALLRIS_Paperless_Backfill` (schon stündlich)
+  unangetastet gelassen. `ALLRIS_Dispatcher_Watchdog` ist aktuell inaktiv
+  (`active:false`) und wurde nicht angefasst.
+- Der Claim-Lease-Mechanismus (siehe Eintrag unten) verhindert Doppelverarbeitung
+  bei häufigerem Anstoßen; das eigentliche Risiko war vor dessen Fix höher, ist
+  jetzt aber strukturell abgesichert.
+- Betroffene Dateien/Workflows: die neun oben genannten `ALLRIS_P3*`–`ALLRIS_P8*`-
+  Exporte, `PROJECT_COORDINATION.md`.
+- Tests/Validierung: Live-GET nach jedem PUT bestätigt `hoursInterval:1` bei
+  unveränderter `triggerAtMinute`; lokale Exporte per `node -e "JSON.parse(...)"`
+  auf Gültigkeit geprüft. Kein Live-Beobachtungszeitraum über mehrere Stunden
+  abgewartet.
+- Offene Risiken oder Blocker: höhere Aufruffrequenz bedeutet häufigere externe
+  Aufrufe (OpenAI, Nextcloud, Paperless, Matrix, WordPress) auch wenn nichts
+  Neues vorliegt — bei 0 Kandidaten sollten die jeweiligen Schleifen aber ohne
+  nennenswerte Zusatzkosten leer durchlaufen. Nicht geprüft, ob P1/P2 bei nur
+  5h-Takt jetzt zum Engpass werden, da nachgelagerte Stufen 5x häufiger prüfen
+  als neue Daten ankommen.
+- Nächster konkreter Schritt: einige Stunden Betrieb beobachten (Status-
+  Übersicht / Datenquellen-Tabelle), ob der needs_summary-Rückstau tatsächlich
+  schneller abgebaut wird und keine der neun Stufen durch die höhere Frequenz
+  auffällig wird (z. B. Rate-Limits bei OpenAI/WordPress).
+
 ### 2026-07-24 – Claude – ALLRIS_Claim_Lease: fehlender Node-Modus behoben, Live-Drift zurückgesetzt
 
 - Ziel/Aufgabe: Nutzer meldete einen wachsenden `needs_summary`-Rückstau in
