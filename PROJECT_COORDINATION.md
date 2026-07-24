@@ -80,6 +80,46 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 ## Änderungs- und Übergabeprotokoll
 
+### 2026-07-24 – Claude/Nutzer – Satire-Agent: JSON-Modus gegen gelegentliche Parse-Fehler erzwungen
+
+- Ziel/Aufgabe: Matrix-Alert "Satire-Agent fehlgeschlagen: Vorgang 2026/121
+  (vol_10617) — Varianten-Generierung fehlgeschlagen (KI-Antwort liess
+  sich nicht als JSON parsen)". `satireAgentJson` bestätigte
+  `variantsParseError:true, variants:[]`, während `kernbotschaft` im
+  selben Lauf korrekt generiert wurde.
+- Befund: beide OpenAI-Nodes (`Kernbotschaft-Kandidaten`,
+  `Varianten generieren`) verlassen sich nur auf eine Prompt-Anweisung
+  ("Antworte AUSSCHLIESSLICH mit einem JSON-Objekt"), ohne den Output
+  technisch auf JSON zu erzwingen (`options` war leer `{}`). Die
+  bestehende Parse-Logik (`extractJson` in `Parse Satire JSON`) ist
+  bereits robust (entfernt Markdown-Codeblöcke, extrahiert zwischen
+  erster/letzter geschweifter Klammer), reicht aber nicht bei einer
+  wirklich unvollständigen/fehlerhaften Antwort (Prompt ist mit ~37KB
+  extrem lang, mögliches Token-Limit-Risiko bei 5 detaillierten Varianten).
+- Fix: Nutzer hat in der n8n-UI selbst auf beiden Nodes "Output Format"
+  auf "JSON Object" gestellt (ich hatte keine verifizierte Parameterform
+  und wollte nach den heutigen Fehlversuchen nicht nochmal blind raten).
+  Live bestätigt: `options.textFormat.textOptions.type = "json_object"`
+  auf beiden Nodes — das ist die korrekte Parameterform für
+  `@n8n/n8n-nodes-langchain.openAi` (typeVersion 2.3) auf dieser Instanz,
+  nirgends sonst im Repo als Referenz vorhanden gewesen. In Git
+  nachgezogen.
+- Betroffene Dateien/Workflows: `ALLRIS_Satire_Agent.json` (live-ID
+  `NO17q38BeKyS25LY`).
+- Tests/Validierung: Live-GET bestätigt die neue Parameterform. Kein
+  gezielter Neu-Testlauf für 2026/121 durchgeführt — nächster
+  automatischer Aufruf des Satire-Agent ist der eigentliche Test.
+- Offene Risiken oder Blocker: JSON-Modus garantiert nur syntaktisch
+  gültiges JSON, nicht dass `variants` inhaltlich vollständig/schema-
+  konform ist — `clampVariant` in `Parse Satire JSON` faengt fehlende
+  Felder bereits ab, das bleibt unverändert. 2026/121 selbst noch nicht
+  manuell zurückgesetzt (contentStage=awaiting_kernbotschaft, aktuell von
+  `ALLRIS_P3e_Kernbotschaft` geclaimt) — kein Handlungsbedarf, solange der
+  laufende P3e-Durchlauf nicht abgeschlossen ist.
+- Nächster konkreter Schritt: nächsten Satire-Agent-Aufruf beobachten
+  (egal ob für 2026/121 oder eine andere Zeile) und bestätigen, dass
+  `variantsParseError` nicht mehr auftritt.
+
 ### 2026-07-24 – Claude – P3d: fehlende matchingColumns verursachten stillen Freigabe-Ausfall (neuer, verwandter Bug)
 
 - Ziel/Aufgabe: nach dem matchType-Fix (voriger Eintrag, funktioniert
