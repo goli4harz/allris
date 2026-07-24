@@ -78,6 +78,54 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 | BLK-004 | TASK-011 | ALLRIS-Übersichtsrequest wird aus n8n sowohl direkt als auch über `172.16.1.5:3128` nach drei Timeouts abgebrochen; Zielserver/Firewall/WAF bzw. TLS-Verbindung extern prüfen. | Infrastruktur / Goslar-Server | offen |
 | BLK-005 | TASK-002 / TASK-009 / TASK-012 | Neu aktivierte n8n-Schedules erzeugen keine Ausführung: reguläres `:50`, explizites `hoursInterval=1` und kontrollierter Custom-Cron blieben ohne Execution. Workflow jeweils aktiv und `activeVersionId=versionId`; n8n Scheduler-/Worker-Logs und Dienstzustand auf dem Host prüfen beziehungsweise Dienst kontrolliert neu starten. | n8n-Infrastruktur | offen |
 
+### 2026-07-25 – Claude – -OK pruefte gegen eingefrorenes sourceLock statt frisch aus faktenAgentJson
+
+- Ziel/Aufgabe: Realtest mit 2026/138 — Nutzer antwortete `-OK`, erhielt
+  aber "immer noch blockiert", obwohl `faktenAgentJson` fuer diese Zeile
+  laengst vollstaendige, gute Daten enthielt (sourceTopic, 5 requiredTerms,
+  5 requiredObjects, requiredAction).
+- Befund: **zwei unterschiedliche sourceLock-Gueltigkeitsdefinitionen
+  koexistieren in P4**, ohne dass das vorher aufgefallen war:
+  1. Der tatsaechliche Sperr-Node `Prüfe Source-Lock (Content)` leitet
+     `sourceLock` bei jedem Lauf **frisch aus `faktenAgentJson`** ab (Cutover
+     2026-07-17 laut eigenem Code-Kommentar) und prueft nur 3 Kriterien
+     (sourceTopic vorhanden, requiredTerms ≥2, kein parseError).
+  2. `Filtere unbenachrichtigte Blockaden` (Quelle fuer meine `-OK`-Logik,
+     dupliziert als `wouldStillBlock`) prueft dagegen das **eingefrorene**
+     `analysisJson.sourceLock` mit 5 (strengeren, teils veralteten)
+     Kriterien. Dieses Feld wird nur bei einem ERFOLGREICHEN P4-Lauf neu
+     geschrieben — bei dauerhaft blockierten Zeilen bleibt es fuer immer auf
+     dem Stand des letzten (blockierten) Laufs stehen, selbst wenn
+     `faktenAgentJson` seither bessere Daten bekommen hat.
+- Fix (bewusst eng begrenzt auf meine eigene `-OK`-Logik, **nicht** P4s
+  eigene interne Inkonsistenz zwischen seinen zwei Nodes angefasst — das
+  waere ein groesserer Eingriff): `Finde Blockade-Antwort` in
+  `ALLRIS_P5b_Matrix_Headline_Reader` leitet `sourceLock` jetzt genauso
+  frisch aus `faktenAgentJson` ab wie der echte Sperr-Node, mit denselben
+  3 Kriterien. Beim `-OK`-Erfolgsfall wird die frisch abgeleitete
+  `sourceLock` zusaetzlich in `analysisJson` zurueckgeschrieben (nicht
+  laenger eingefroren), inkl. neuer Spalte `analysisJson` im
+  `Speichere Blockade-Antwort`-Node.
+- Betroffene Dateien/Workflows: `ALLRIS_P5b_Matrix_Headline_Reader.json`
+  (live-ID `4VXIOwv6ouMbBCER`), Nodes `Finde Blockade-Antwort` und
+  `Speichere Blockade-Antwort`.
+- Tests/Validierung: Live-GET bestaetigt Code-Aenderung und 0 Mojibake-
+  Fundstellen. **Noch kein erneuter `-OK`-Test seit diesem Fix** — 2026/138
+  ist der naechste natuerliche Testfall.
+- Offene Risiken oder Blocker (explizit vom Nutzer als Merkposten
+  gewuenscht): diese ganze sourceLock-Herleitung wurde in einer sehr
+  langen Nachtsession unter Zeitdruck analysiert und gefixt — **sollte in
+  einer ruhigeren Session nochmal logisch komplett durchgeprueft werden**,
+  bevor man sich vollstaendig darauf verlaesst. Insbesondere ungeklaert:
+  ob P4s eigene zwei-Definitionen-Inkonsistenz (Punkt 1 vs. 2 oben) selbst
+  behoben werden sollte, und ob `Filtere unbenachrichtigte Blockaden`
+  (P4s Alert-Entscheidung) durch dieselbe Drift auch selbst betroffen ist
+  und ebenfalls auf frische faktenAgentJson-Ableitung umgestellt werden
+  sollte.
+- Nächster konkreter Schritt: 2026/138 nochmal mit `-OK` antworten, P5b
+  auslösen, bestätigen dass es diesmal freigegeben wird statt erneut
+  "blockiert" zu melden.
+
 ### 2026-07-25 – Claude – Blockaden-Antwort-Zweig las aus dem falschen Matrix-Raum
 
 - Ziel/Aufgabe: Nutzer meldete, dass mehrfache manuelle Ausführungen die
