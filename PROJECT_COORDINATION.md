@@ -78,6 +78,39 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 | BLK-004 | TASK-011 | ALLRIS-Übersichtsrequest wird aus n8n sowohl direkt als auch über `172.16.1.5:3128` nach drei Timeouts abgebrochen; Zielserver/Firewall/WAF bzw. TLS-Verbindung extern prüfen. | Infrastruktur / Goslar-Server | offen |
 | BLK-005 | TASK-002 / TASK-009 / TASK-012 | Neu aktivierte n8n-Schedules erzeugen keine Ausführung: reguläres `:50`, explizites `hoursInterval=1` und kontrollierter Custom-Cron blieben ohne Execution. Workflow jeweils aktiv und `activeVersionId=versionId`; n8n Scheduler-/Worker-Logs und Dienstzustand auf dem Host prüfen beziehungsweise Dienst kontrolliert neu starten. | n8n-Infrastruktur | offen |
 
+### 2026-07-25 – Claude – Satire-Agent: Diagnose-Daten fuer verbleibende JSON-Parse-Fehler ergaenzt
+
+- Ziel/Aufgabe: neuer `variantsParseError`-Fall (Vorgang 2026/131) trotz
+  des JSON-Modus-Fixes von vorhin (Claim-Zeit nach dem Fix, also kein alter
+  Fall). JSON-Modus live bestaetigt aktiv, kein `max_tokens`-Limit gesetzt
+  — Ursache aus den gespeicherten Daten nicht rekonstruierbar, da
+  `extractJson`s catch-Block den Fehler bisher stillschweigend verschluckt
+  hat (`catch (e) { return null; }`, keine Fehlermeldung/Rohtext
+  gespeichert).
+- Fix (bewusst rein additiv, kein Verhalten geaendert): `extractJson` in
+  `Parse Satire JSON` gibt jetzt `{value, error, snippet}` zurueck statt
+  nur `value`. Bei einem Parse-Fehler landen jetzt `variantsParseErrorDetail`
+  (die tatsaechliche JSON.parse-Fehlermeldung bzw. "keine geschweiften
+  Klammern gefunden") und `variantsRawSnippet` (erste 500 Zeichen der
+  rohen KI-Antwort) in `satireAgentJson`. Nur `Parse Satire JSON`
+  geaendert — `Waehle Kernbotschaft` hat eine eigene, separate
+  `extractJson`-Implementierung fuer die Kernbotschaft-Kandidaten, die
+  denselben blinden Fleck hat, aber bewusst nicht mitgeaendert (nicht die
+  Ursache des aktuellen Falls, Umfang heute Nacht bewusst klein gehalten).
+- Betroffene Dateien/Workflows: `ALLRIS_Satire_Agent.json` (live-ID
+  `NO17q38BeKyS25LY`), Node `Parse Satire JSON`.
+- Tests/Validierung: Live-GET bestaetigt neue Felder im Code, 0 Mojibake-
+  Fundstellen. **Rein diagnostisch, kein Test des eigentlichen Fehlerfalls
+  — der naechste `variantsParseError` (egal bei welchem Vorgang) liefert
+  jetzt zum ersten Mal echte Diagnosedaten statt nur "war leer".**
+- Nächster konkreter Schritt: beim naechsten `variantsParseError`
+  `variantsRawSnippet`/`variantsParseErrorDetail` in der betroffenen Zeile
+  ansehen, um die tatsaechliche Ursache zu finden (z.B. Trunkierung,
+  unerwartetes Schema, doppelte Markdown-Zaeune o.ae.) — bisher reine
+  Vermutung, jetzt belegbar. Gleiche Diagnose-Ergaenzung ggf. auch fuer
+  `Waehle Kernbotschaft`s separate `extractJson`-Kopie nachziehen, falls
+  dort ebenfalls Faelle auftreten.
+
 ### 2026-07-25 – Claude – Raumfix korrigiert: P4 sendete in den falschen Raum, nicht P5b las falsch
 
 - Ziel/Aufgabe: Nutzer stellte klar, dass `!COxTeLJyPszYlaHbIx:matrix.golietz.de`
