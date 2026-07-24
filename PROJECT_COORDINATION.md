@@ -78,7 +78,51 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 | BLK-004 | TASK-011 | ALLRIS-Übersichtsrequest wird aus n8n sowohl direkt als auch über `172.16.1.5:3128` nach drei Timeouts abgebrochen; Zielserver/Firewall/WAF bzw. TLS-Verbindung extern prüfen. | Infrastruktur / Goslar-Server | offen |
 | BLK-005 | TASK-002 / TASK-009 / TASK-012 | Neu aktivierte n8n-Schedules erzeugen keine Ausführung: reguläres `:50`, explizites `hoursInterval=1` und kontrollierter Custom-Cron blieben ohne Execution. Workflow jeweils aktiv und `activeVersionId=versionId`; n8n Scheduler-/Worker-Logs und Dienstzustand auf dem Host prüfen beziehungsweise Dienst kontrolliert neu starten. | n8n-Infrastruktur | offen |
 
-## Änderungs- und Übergabeprotokoll
+### 2026-07-25 – Claude – Kritisch: eigener Mojibake-Bug beim Live-Push, sofort behoben
+
+- Ziel/Aufgabe: Nutzer meldete verstuemmelten Text in der neuen Blockaden-
+  Matrix-Nachricht ("TextlÃ¤nge" statt "Textlänge"-Muster).
+- Befund: die in dieser Session verwendete PowerShell-Push-Funktion las
+  lokale Workflow-Dateien via `Get-Content -Raw -Path $localFile |
+  ConvertFrom-Json` **ohne** `-Encoding UTF8`. Auf diesem System (Windows
+  PowerShell 5.1, Systemcodepage "Westeuropäisch (Windows)"/CP1252) liest
+  das UTF-8-Dateien fehlerhaft als CP1252 — jeder Umlaut/Sonderzeichen
+  wurde beim Push doppelt/falsch kodiert. Direkt nachgestellt und
+  bestätigt (`über` wurde zu `Ã¼ber` etc.). Betraf **jeden** Live-Push
+  dieser Session, der eine lokal bearbeitete Datei hochlud — nicht nur die
+  neue Blockaden-Funktion.
+- Ausmaß (Fundstellen-Scan nach dem Mojibake-Marker "Ã" im Live-JSON):
+  `ALLRIS_P4_Content_Reaktion` **1162** Fundstellen (!), `ALLRIS_
+  P5b_Matrix_Headline_Reader` **104**, `ALLRIS_Dispatcher_Watchdog` **7**.
+  `ALLRIS_Claim_Lease` und `ALLRIS_Einmalig_Claims_freigeben` waren mit 0
+  Fundstellen nicht betroffen (dort offenbar kein/kaum Umlaut-Inhalt in
+  den gepushten Aenderungen). Die lokalen Git-Dateien selbst waren
+  durchgehend sauber (0 Fundstellen) — die Korruption geschah nur beim
+  Push, nicht beim vorherigen lokalen Bearbeiten (Node.js/Edit-Tool
+  schreiben korrekt).
+- Fix: alle drei betroffenen Workflows erneut gepusht, diesmal mit
+  `Get-Content -Raw -Path $localFile -Encoding UTF8` und dem PUT-Body als
+  UTF8-Bytes statt als PowerShell-String gesendet. Live-Scan danach
+  bestätigt 0 Fundstellen in allen dreien; Stichprobe an einer Stelle mit
+  echten Umlauten ("SOURCE-LOCK PRÜFEN – V25.6", "ursprünglichen") zeigt
+  korrekte Darstellung.
+- Betroffene Dateien/Workflows: `ALLRIS_P4_Content_Reaktion.json`,
+  `ALLRIS_P5b_Matrix_Headline_Reader.json`,
+  `ALLRIS_Dispatcher_Watchdog.json` (alle drei live neu gepusht, lokale
+  Git-Dateien selbst unveraendert da schon korrekt).
+- Offene Risiken oder Blocker: **Nicht abschliessend geprüft, ob weitere
+  frühere Live-Pushes derselben Session (heute Nacht) ebenfalls betroffen
+  waren** — `ALLRIS_Claim_Lease`/`ALLRIS_Einmalig_Claims_freigeben` wurden
+  gezielt gescannt und waren sauber, aber kein vollstaendiger Rueck-Scan
+  ueber alle heute Nacht veraenderten Workflows durchgefuehrt (z.B.
+  `ALLRIS_Satire_Agent`, `ALLRIS_P3d_Agenten_Kette` — wurden nach
+  Erinnerung ueber den sicheren Live-Fetch-Pfad statt Get-Content
+  gepusht, aber nicht nochmal verifiziert).
+- Nächster konkreter Schritt: bei Gelegenheit einen vollständigen Mojibake-
+  Scan (Marker "Ã", "â€") über alle live ALLRIS-Workflows laufen lassen,
+  nicht nur die heute explizit geänderten — nach dem Muster von
+  [[allris-p3-mojibake-corruption-incident]], das denselben Bug bereits
+  einmal in vier anderen Workflows fand.
 
 ### 2026-07-24 – Claude – Neu: interaktive Matrix-Klaerung fuer dauerhaft blockierte Visual-Vorgaenge
 
