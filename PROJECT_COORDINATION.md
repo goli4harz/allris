@@ -80,6 +80,57 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 ## Änderungs- und Übergabeprotokoll
 
+### 2026-07-24 – Claude – Kritischer Fund: Erwerbe Claim CAS matcht bei Mehrfach-Batches teils zu breit; Notfall-Freigabe-Workflow angelegt
+
+- Ziel/Aufgabe: nach dem Rueckgabeform-Fix (siehe Eintrag unten) erneuter
+  P3-Testlauf durch den Nutzer, diesmal mit 29 echten needs_summary-
+  Kandidaten. Neuer Fehler: `[Claim] Re-Read lieferte 77 Zeilen.` in
+  `Bestaetige Claim`.
+- Befund (kritisch): per-Item-Aufschluesselung der `Erwerbe Claim CAS`-
+  Ausgaben (`pairedItem`) zeigt, dass **nicht** alle 29 CAS-Updates
+  fehlerhaft waren — nur Item 0 (44 statt 1 Treffer) und Item 4 (6 statt 1
+  Treffer), alle uebrigen 27 liefen korrekt mit genau 1 Treffer. Ergebnis:
+  **alle 50 Zeilen der gesamten `allris_vorgaenge`-Tabelle** wurden mit
+  `claim_owner=ALLRIS_P3_Bewertung:10417` belegt, inklusive voellig
+  unbeteiligter `content_posted`/`error`-Zeilen — nicht nur die 29
+  Kandidaten. Lease bis 20:10:05 Uhr, in der Zeit konnte keine andere
+  claim-geschuetzte Stufe (P2, P4-P8) irgendeine Zeile beanspruchen.
+- Hypothese (nicht abschliessend bewiesen): ein n8n-internes Timing-/
+  Bindungsproblem bei der Auswertung von `{{ $json.vorgangKey }}` auf dem
+  `Erwerbe Claim CAS`-Node bei den ersten Aufrufen einer laengeren
+  Item-Serie — die vorgangKey-Bedingung faellt dabei effektiv weg, wodurch
+  nur noch `claim_owner IS NULL`/`claim_expires_at IS NULL` uebrig bleibt
+  und alle zu diesem Zeitpunkt noch unclaimten Zeilen matcht. Betraf bisher
+  unbemerkt vermutlich JEDEN claim-geschuetzten Mehrfach-Batch-Lauf ueber
+  alle Stufen (P2-P8), nicht nur P3 — einzelne Claims (1 Item) waren nie
+  betroffen, weshalb es bislang nicht auffiel.
+- Sofortmassnahme: neuer Workflow `ALLRIS_Einmalig_Claims_freigeben`
+  angelegt (live-ID `hIr8SR7FKIe90FTV`, inaktiv, Manual Trigger) — liest
+  alle Zeilen, filtert auf gesetzten `claim_owner`, setzt die vier
+  Claim-Felder pro Zeile **anhand der eindeutigen `id`-Spalte** (nicht
+  `vorgangKey`) zurueck auf leer. Ein Uebertreffen dieses Cleanup-Workflows
+  waere harmlos (Nullen auf bereits leere Felder setzen aendert nichts) —
+  bewusst so gewaehlt, um das Cleanup nicht demselben Bug auszusetzen.
+  Muss manuell in der n8n-UI ausgefuehrt werden (API kann keine Workflows
+  ausloesen).
+- **Noch NICHT umgesetzt**: ein struktureller Fix fuer `Erwerbe Claim CAS`
+  selbst. Vorschlag (mit dem Nutzer noch nicht final bestaetigt): vor die
+  Claim-Erwerb-Kette einen `SplitInBatches`(Batchgroesse 1)-Loop einbauen,
+  der die Kandidaten zwingend einzeln durch die Kette schickt, statt alle
+  auf einmal an den Data-Table-Node zu geben — umgeht die Mehrfach-Item-
+  Bindungsproblematik strukturell.
+- Betroffene Dateien/Workflows: `ALLRIS_Einmalig_Claims_freigeben.json`
+  (neu), `PROJECT_COORDINATION.md`. `ALLRIS_Claim_Lease.json` selbst noch
+  NICHT geaendert in diesem Eintrag.
+- Offene Risiken oder Blocker: **Claim-Erwerb bei Mehrfach-Batches ist bis
+  zum strukturellen Fix nicht sicher nutzbar** — kann bei jedem Lauf mit
+  mehreren Kandidaten erneut die ganze Tabelle sperren. Vor jedem weiteren
+  Live-Test mit mehreren Kandidaten den Freigabe-Workflow bereithalten.
+- Nächster konkreter Schritt: Freigabe-Workflow einmal ausfuehren lassen,
+  dann mit dem Nutzer den SplitInBatches-Strukturfix abstimmen und
+  umsetzen, bevor P3 (oder eine andere claim-geschuetzte Stufe) erneut mit
+  mehreren Kandidaten getestet wird.
+
 ### 2026-07-24 – Claude – ALLRIS_Claim_Lease: Rueckgabeform an runOnceForEachItem angepasst (Nachbesserung)
 
 - Ziel/Aufgabe: Nutzer meldete live einen neuen Fehler in P3, Node
