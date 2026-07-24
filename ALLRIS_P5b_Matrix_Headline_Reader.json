@@ -51,11 +51,6 @@
             "node": "Finde Sat-Antwort",
             "type": "main",
             "index": 0
-          },
-          {
-            "node": "Finde Blockade-Antwort",
-            "type": "main",
-            "index": 0
           }
         ]
       ]
@@ -161,6 +156,28 @@
         [
           {
             "node": "Sende Blockade-Bestätigung",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finde wartende Blockaden": {
+      "main": [
+        [
+          {
+            "node": "Matrix Blockaden-Nachrichten lesen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Matrix Blockaden-Nachrichten lesen": {
+      "main": [
+        [
+          {
+            "node": "Finde Blockade-Antwort",
             "type": "main",
             "index": 0
           }
@@ -747,6 +764,32 @@
       "typeVersion": 4.2,
       "position": [
         1232,
+        400
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "od1pN1F5wy2irSDs",
+          "name": "Header Auth account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://matrix.org/_matrix/client/v3/rooms/!tMRdHxOLwIKDiQlIRz:matrix.golietz.de/messages?dir=b&limit=30",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "c2d3e4f5-0007-4bbb-9ccc-000000000007",
+      "name": "Matrix Blockaden-Nachrichten lesen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        528,
         400
       ],
       "credentials": {

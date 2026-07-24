@@ -78,6 +78,33 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 | BLK-004 | TASK-011 | ALLRIS-Übersichtsrequest wird aus n8n sowohl direkt als auch über `172.16.1.5:3128` nach drei Timeouts abgebrochen; Zielserver/Firewall/WAF bzw. TLS-Verbindung extern prüfen. | Infrastruktur / Goslar-Server | offen |
 | BLK-005 | TASK-002 / TASK-009 / TASK-012 | Neu aktivierte n8n-Schedules erzeugen keine Ausführung: reguläres `:50`, explizites `hoursInterval=1` und kontrollierter Custom-Cron blieben ohne Execution. Workflow jeweils aktiv und `activeVersionId=versionId`; n8n Scheduler-/Worker-Logs und Dienstzustand auf dem Host prüfen beziehungsweise Dienst kontrolliert neu starten. | n8n-Infrastruktur | offen |
 
+### 2026-07-25 – Claude – Blockaden-Antwort-Zweig las aus dem falschen Matrix-Raum
+
+- Ziel/Aufgabe: Nutzer meldete, dass mehrfache manuelle Ausführungen die
+  `-OK`/`-SKIP`-Antwort nicht erkannten.
+- Befund: `ALLRIS_P4_Content_Reaktion`s `Send Matrix Blockiert-Alert`
+  schickt in Raum `!tMRdHxOLwIKDiQlIRz:matrix.golietz.de`, aber
+  `ALLRIS_P5b_Matrix_Headline_Reader`s bestehender `Matrix Nachrichten
+  lesen`-Node liest nur Raum `!COxTeLJyPszYlaHbIx:matrix.golietz.de` (der
+  P5b-Headline-Auswahl-Raum) — der neue Blockade-Antwort-Zweig hatte
+  dessen Ausgabe wiederverwendet, ohne den abweichenden Ziel-Raum zu
+  prüfen. Antworten landeten dadurch strukturell nie im gelesenen Raum.
+- Fix: neuer eigener Node `Matrix Blockaden-Nachrichten lesen` (gleiche
+  Konfiguration/Credential wie der bestehende Lese-Node, aber Ziel-Raum
+  `!tMRdHxOLwIKDiQlIRz`), gespeist von `Finde wartende Blockaden` (analog
+  zum bestehenden `Finde wartenden Vorgang` → `Matrix Nachrichten
+  lesen`-Muster). `Finde Blockade-Antwort` liest jetzt von diesem neuen
+  Node statt vom falschen gemeinsamen Node.
+- Betroffene Dateien/Workflows: `ALLRIS_P5b_Matrix_Headline_Reader.json`
+  (live-ID `4VXIOwv6ouMbBCER`, jetzt 18 statt 17 Nodes).
+- Tests/Validierung: Live-GET bestätigt neuen Node mit korrekter Raum-ID
+  und 0 Mojibake-Fundstellen (diesmal mit der korrigierten UTF8-Push-
+  Methode gepusht). **Noch kein echter `-OK`/`-SKIP`-Antworttest seit
+  diesem Fix.**
+- Nächster konkreter Schritt: Nutzer im richtigen Raum (`!tMRdHxOLwIKDiQlIRz`)
+  mit `2026-139-OK` oder `2026-139-SKIP` antworten lassen, dann P5b manuell
+  auslösen und bestätigen, dass die Antwort erkannt und verarbeitet wird.
+
 ### 2026-07-25 – Claude – Kritisch: eigener Mojibake-Bug beim Live-Push, sofort behoben
 
 - Ziel/Aufgabe: Nutzer meldete verstuemmelten Text in der neuen Blockaden-
