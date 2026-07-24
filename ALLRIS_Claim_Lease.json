@@ -2,7 +2,13 @@
   "active": true,
   "connections": {
     "Execute Workflow Trigger": {
-      "main": [[{"node":"IF Release?","type":"main","index":0}]]
+      "main": [[{"node":"Loop Claims (1 pro Durchlauf)","type":"main","index":0}]]
+    },
+    "Loop Claims (1 pro Durchlauf)": {
+      "main": [
+        [],
+        [{"node":"IF Release?","type":"main","index":0}]
+      ]
     },
     "IF Release?": {
       "main": [
@@ -18,6 +24,12 @@
     },
     "Lese Claim zurueck": {
       "main": [[{"node":"Bestaetige Claim","type":"main","index":0}]]
+    },
+    "Bestaetige Claim": {
+      "main": [[{"node":"Loop Claims (1 pro Durchlauf)","type":"main","index":0}]]
+    },
+    "Release eigener Claim": {
+      "main": [[{"node":"Loop Claims (1 pro Durchlauf)","type":"main","index":0}]]
     }
   },
   "id": "D7cmBsy3exuOkBd9",
@@ -31,6 +43,14 @@
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
       "position": [256,384]
+    },
+    {
+      "parameters": {"batchSize": 1, "options": {}},
+      "id": "c3d4e5f6-9999-4c3d-8e4f-000000000009",
+      "name": "Loop Claims (1 pro Durchlauf)",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [384,384]
     },
     {
       "parameters": {

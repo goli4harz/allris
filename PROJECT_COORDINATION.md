@@ -80,6 +80,44 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 ## Änderungs- und Übergabeprotokoll
 
+### 2026-07-24 – Claude – ALLRIS_Claim_Lease: struktureller Fix (SplitInBatches) gegen zu breites CAS-Matching
+
+- Ziel/Aufgabe: struktureller Fix für den im vorherigen Eintrag ("Kritischer
+  Fund") beschriebenen Bug — `Erwerbe Claim CAS` matchte bei manchen von
+  mehreren Items pro Ausführung zu breit (44 bzw. 6 statt 1 Treffer).
+- Ergebnis: neuer Node `Loop Claims (1 pro Durchlauf)`
+  (`n8n-nodes-base.splitInBatches`, `batchSize:1`) zwischen
+  `Execute Workflow Trigger` und `IF Release?` eingefügt. Beide bisherigen
+  Endpunkte der Kette (`Release eigener Claim` und `Bestaetige Claim`)
+  verbinden jetzt zurück auf den Loop-Node statt offene Enden zu sein —
+  identisches Schleifenmuster wie `Loop Vorgänge` in `ALLRIS_P3_Bewertung`
+  (zwei Branches, beide zurück auf denselben SplitInBatches-Node,
+  `typeVersion 3`). Dadurch läuft **jedes** Item (Acquire wie Release)
+  zwingend einzeln und sequentiell durch die komplette Kette, nie mehrere
+  gleichzeitig — umgeht die vermutete Mehrfach-Item-Bindungsproblematik
+  strukturell, ohne deren genaue n8n-interne Ursache zu kennen.
+- Betroffene Dateien/Workflows: `ALLRIS_Claim_Lease.json` (live-ID
+  `D7cmBsy3exuOkBd9`, jetzt 8 statt 7 Nodes).
+- Tests/Validierung: Live-GET nach PUT bestätigt Node- und
+  Verbindungsstruktur exakt wie vorgesehen (`Execute Workflow Trigger` →
+  `Loop Claims` → `IF Release?` → beide Zweige → zurück zu `Loop Claims`).
+  **Noch KEIN echter Mehrfach-Batch-Testlauf** — die vorherige Sperre auf
+  50 Zeilen muss zuerst über `ALLRIS_Einmalig_Claims_freigeben` aufgelöst
+  werden, dann ein neuer P3-Lauf mit mehreren Kandidaten als eigentlicher
+  Beweis, dass der Fix wirkt.
+- Offene Risiken oder Blocker: `Bestaetige Claim`s Assertion
+  (`items.length !== 1`) bleibt unverändert bestehen — durch die
+  Einzel-Item-Verarbeitung sollte `items` an dieser Stelle jetzt immer
+  genau die Re-Read-Zeilen des aktuell einen Items enthalten (0, 1 oder
+  2+ bei echter Datenanomalie), nicht mehr die ganze Batch-Vermischung.
+  Nicht geprüft, ob der SplitInBatches-Umbau selbst durch Mehrfachaufrufe
+  aus mehreren gleichzeitigen Caller-Workflows (z.B. P3 und P4 parallel)
+  neue Nebenläufigkeits-Effekte einführt — die Lease-Lock-Semantik selbst
+  bleibt aber ohnehin die eigentliche Absicherung dagegen.
+- Nächster konkreter Schritt: `ALLRIS_Einmalig_Claims_freigeben` ausführen,
+  danach P3 (oder eine andere claim-geschützte Stufe) erneut mit
+  mehreren echten Kandidaten testen und das Ergebnis hier nachtragen.
+
 ### 2026-07-24 – Claude – Kritischer Fund: Erwerbe Claim CAS matcht bei Mehrfach-Batches teils zu breit; Notfall-Freigabe-Workflow angelegt
 
 - Ziel/Aufgabe: nach dem Rueckgabeform-Fix (siehe Eintrag unten) erneuter
