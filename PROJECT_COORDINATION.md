@@ -80,6 +80,50 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 ## Änderungs- und Übergabeprotokoll
 
+### 2026-07-24 – Claude – P3d: fehlende matchingColumns verursachten stillen Freigabe-Ausfall (neuer, verwandter Bug)
+
+- Ziel/Aufgabe: nach dem matchType-Fix (voriger Eintrag, funktioniert
+  bestaetigt) ein echter P3-Lauf mit 29 Kandidaten beobachtet. Ergebnis
+  ueberwiegend gut (needs_summary-Rueckstau vollstaendig abgearbeitet,
+  keine Tabellensperrung mehr) — aber `ALLRIS_P3d_Agenten_Kette` hielt
+  nach Abschluss seiner eigentlichen Arbeit (`judgmentChainProcessedAt`
+  korrekt fuer alle 29 Zeilen gesetzt) weiterhin alle 29 Claims, auch
+  30+ Minuten nach Ablauf der Lease.
+- Befund: `Release P3d Claim` ist im Verbindungsgraph ein Sackgassen-Zweig
+  (keine ausgehende Verbindung, schliesst NICHT die Hauptschleife —
+  das macht `Naechster Vorgang` unabhaengig davon). Kein einziger
+  Execution-Eintrag fuer diesen Aufruf in `ALLRIS_Claim_Lease` seit dem
+  Testlauf (weder Erfolg noch Fehler) — der Zweig wurde also nie erreicht,
+  nicht "fehlgeschlagen". Ursache: die vorgelagerten Schreib-Nodes
+  `Schreibe Kette-Abschluss` und `Schreibe QA-Block Status` (beide
+  `n8n-nodes-base.dataTable`, `operation:"update"`) hatten `matchingColumns`
+  entweder komplett fehlend oder leer `[]`. Der eigentliche DB-Write
+  gelang nachweislich (`judgmentChainProcessedAt` korrekt in der Tabelle),
+  aber der Node lieferte dabei 0 Ausgabe-Items — dadurch lief alles
+  Nachgelagerte (inkl. Claim-Freigabe) fuer keinen der 29 Kandidaten an.
+  Neue Erkenntnis zur Rolle von `matchingColumns`: nicht nur fuer die
+  Trefferauswahl relevant (das macht `filters`+`matchType`, siehe voriger
+  Eintrag), sondern offenbar auch dafuer, ob der Node ueberhaupt ein
+  Ausgabe-Item zurueckliefert.
+- Fix: `matchingColumns:["vorgangKey"]` auf beiden Nodes gesetzt (passend
+  zur ohnehin genutzten Filterspalte).
+- Betroffene Dateien/Workflows: `ALLRIS_P3d_Agenten_Kette.json` (live-ID
+  `a3PHW4QilKpzA082`).
+- Tests/Validierung: Live-GET nach PUT bestaetigt `matchingColumns` in
+  beiden Nodes. **Noch KEIN erneuter P3d-Lauf seit diesem Fix beobachtet**
+  (die 29 bestehenden, bereits abgelaufenen Claims werden vom naechsten
+  P3d-Lauf automatisch neu aufgegriffen).
+- Offene Risiken oder Blocker: dieselbe fehlende-matchingColumns-Lücke
+  koennte in weiteren `dataTable`-`update`-Nodes ueber P4-P8 hinweg
+  bestehen (noch nicht auditiert) — jeweils mit demselben stillen
+  "Write gelingt, aber 0 Output"-Symptom, das ohne gezielte Prüfung
+  wie diese leicht uebersehen wird.
+- Nächster konkreter Schritt: naechsten automatischen oder manuellen
+  P3d-Lauf beobachten und bestaetigen, dass die Claims diesmal korrekt
+  freigegeben werden. Danach ggf. eine gezielte Suche nach weiteren
+  `dataTable`-`update`-Nodes ohne `matchingColumns` ueber das gesamte
+  Repo.
+
 ### 2026-07-24 – Claude – Siebter Versuch: fehlendes matchType (Must Match) ergaenzt, ueber offizielle Doku begruendet
 
 - Ziel/Aufgabe: nach dem Stopp im vorigen Eintrag offizielle n8n-Dokumentation
