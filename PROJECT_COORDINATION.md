@@ -80,6 +80,52 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 ## Änderungs- und Übergabeprotokoll
 
+### 2026-07-24 – Claude – Tatsaechliche Ursache: leeres matchingColumns, nicht die Filterspalte
+
+- Ziel/Aufgabe: der id-Fix (voriger Eintrag) loeste das Problem ebenfalls
+  nicht — der naechste reale Trigger (`ALLRIS_Paperless_Backfill`, eigener
+  Stundenplan, unabhaengig von P3) claimte trotz bestaetigt korrekt
+  isoliertem Einzel-Item (`Validiere Claim-Anforderung`: genau 1 Item) und
+  trotz `id`-basiertem Filter wieder alle 50 Zeilen.
+- Befund: da sowohl `vorgangKey`- als auch `id`-basierte `filters.conditions`
+  gescheitert sind, unabhaengig von Spalte, Itemanzahl und Timing, ist die
+  wahrscheinlichste Erklaerung: **die `update`-Operation des Data-Table-
+  Node-Typs nutzt `filters.conditions` gar nicht als Auswahlmechanismus,
+  sondern `columns.matchingColumns`** — und das war seit Erstellung
+  (23.07., Codex) durchgaengig `[]` (leer). Damit hatte jede Erwerb-/
+  Freigabe-Operation seit Bestehen dieses Sub-Workflows effektiv **keine
+  WHERE-Klausel** und schrieb auf die gesamte Tabelle. Unbemerkt, weil
+  erfolgreiche Laeufe (Erwerb -> Verarbeitung -> Freigabe) sich durch die
+  ebenso ungefilterte Freigabe symmetrisch selbst aufheben. Deckt sich mit
+  einem bereits bekannten Bug derselben Ursache in einem anderen
+  Teilprojekt (Goslarsche-Paperless-Duplikat, `matchingColumns:[]` bei
+  einem DB-Update) — dort war das schon einmal die Wurzel, hier zunaechst
+  faelschlich ausgeschlossen.
+- Fix: `matchingColumns` von `[]` auf `["id"]` gesetzt. Betrifft
+  `Erwerbe Claim CAS` und `Release eigener Claim` in `ALLRIS_Claim_Lease`,
+  die zwei Aequivalente im Test-Zweig von `ALLRIS_Dispatcher_Watchdog`,
+  sowie (aus Konsistenzgruenden, auch wenn dort funktional folgenlos, da
+  Nullwerte auf Nullwerte gesetzt wurden) `ALLRIS_Einmalig_Claims_freigeben`.
+  Die `filters.conditions`-Bloecke aus den vorherigen zwei Fix-Versuchen
+  bleiben unveraendert bestehen (schaden nicht, waren aber vermutlich nie
+  die wirksame Bedingung).
+- Betroffene Dateien/Workflows: `ALLRIS_Claim_Lease.json` (live-ID
+  `D7cmBsy3exuOkBd9`), `ALLRIS_Dispatcher_Watchdog.json` (live-ID
+  `UzevGR7GafUB3dFk`), `ALLRIS_Einmalig_Claims_freigeben.json` (live-ID
+  `hIr8SR7FKIe90FTV`).
+- Tests/Validierung: Live-GET nach PUT bestaetigt `matchingColumns:["id"]`
+  in allen betroffenen Nodes. **Noch KEIN Testlauf seit diesem Fix.**
+- Offene Risiken oder Blocker: falls auch dieser Fix nicht greift, naechster
+  Schritt waere ein vollstaendig isolierter Node-Test mit gepinnten Daten
+  direkt in der n8n-UI (Erwerbe Claim CAS einzeln ausfuehren, Ergebnis vor
+  Ort inspizieren) statt weiterer Live-Deploy-Versuche — vier
+  aufeinanderfolgende Fehlschlaege am selben Tag rechtfertigen einen
+  Wechsel der Vorgehensweise.
+- Nächster konkreter Schritt: `ALLRIS_Einmalig_Claims_freigeben` erneut
+  ausfuehren, dann `ALLRIS_Dispatcher_Watchdog`s `Manual Claim-Test`
+  (Testschluessel weiterhin `vol_10600`) erneut ausloesen und pruefen,
+  ob wirklich nur diese eine Zeile geclaimt wird.
+
 ### 2026-07-24 – Claude – Eigentliche Ursache gefunden: Matching auf vorgangKey ersetzt durch id
 
 - Ziel/Aufgabe: der SplitInBatches-Fix (voriger Eintrag) loeste das Problem

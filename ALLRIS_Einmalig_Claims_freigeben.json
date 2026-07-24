@@ -115,9 +115,7 @@
                                                                        "claim_acquired_at":  null,
                                                                        "claim_expires_at":  null
                                                                    },
-                                                         "matchingColumns":  [
-
-                                                                             ],
+                                                         "matchingColumns": ["id"],
                                                          "schema":  [
 
                                                                     ]

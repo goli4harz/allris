@@ -374,7 +374,7 @@
             "claim_acquired_at": "={{ $json.claimAcquiredAt }}",
             "claim_expires_at": "={{ $json.claimExpiresAt }}"
           },
-          "matchingColumns": [],
+          "matchingColumns": ["id"],
           "schema": []
         },
         "options": {}
@@ -476,7 +476,7 @@
             "claim_acquired_at": null,
             "claim_expires_at": null
           },
-          "matchingColumns": [],
+          "matchingColumns": ["id"],
           "schema": []
         },
         "options": {}
