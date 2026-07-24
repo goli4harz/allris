@@ -80,6 +80,46 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 ## Änderungs- und Übergabeprotokoll
 
+### 2026-07-24 – Claude – Sechster Fix-Versuch gescheitert (Validierungsfehler); Live-Guessing gestoppt
+
+- Ergebnis: `"id"` in `columns.value` (voriger Eintrag) fuehrt zu einem
+  harten Validierungsfehler: "unknown column name 'id'" — `id` ist die
+  System-Primaerspalte der Data Table und laesst sich nicht ueber
+  `columns.value` schreiben, nur lesen/matchen. Der Node lief dadurch gar
+  nicht erst an (kein DB-Write, insofern harmlos, aber auch kein Fortschritt).
+  Der Freigabe-Workflow `ALLRIS_Einmalig_Claims_freigeben` hatte dieselbe
+  fehlerhafte Aenderung erhalten und war dadurch selbst nicht mehr
+  lauffaehig — zuerst repariert, damit ueberhaupt wieder entsperrt werden
+  kann.
+- Ergriffene Sofortmassnahme: `id` wieder aus `columns.value` entfernt in
+  allen fuenf betroffenen Nodes (`Erwerbe Claim CAS`, `Release eigener
+  Claim`, deren zwei Test-Zwillinge, `Gib Claim frei (per id)`).
+  `matchingColumns:["id"]` bleibt bestehen (schadet nicht). Damit sind
+  alle drei Workflows wieder in einem lauffaehigen (fehlerfreien, aber
+  hinsichtlich Zeilen-Scoping weiterhin unbestaetigten) Zustand.
+- **Sechs Fix-Versuche am selben Tag, keiner nachweislich erfolgreich**:
+  (1) mode runOnceForEachItem, (2) Rueckgabeform korrigiert, (3)
+  SplitInBatches-Loop, (4) Matching auf id statt vorgangKey, (5)
+  matchingColumns:["id"] statt [], (6) id zusaetzlich in columns.value
+  (harter Fehler). Live-Deploy-Versuche werden hiermit eingestellt.
+- Betroffene Dateien/Workflows: `ALLRIS_Claim_Lease.json`,
+  `ALLRIS_Dispatcher_Watchdog.json`, `ALLRIS_Einmalig_Claims_freigeben.json`.
+- Offene Risiken oder Blocker: **die eigentliche Ursache ist weiterhin
+  ungeklaert.** Alle claim-geschuetzten Stufen (P2-P8, Paperless) sind bei
+  echten Mehrfach-Kandidaten weiterhin nicht sicher nutzbar — jeder Lauf
+  kann erneut die gesamte Tabelle sperren. `ALLRIS_Einmalig_Claims_freigeben`
+  bleibt als Notfall-Werkzeug einsatzbereit.
+- Nächster konkreter Schritt: **isoliertes UI-Debugging statt weiterer
+  Live-Deploys.** Empfehlung: `Erwerbe Claim CAS` (oder den Test-Zwilling)
+  einzeln mit gepinnten Testdaten in der n8n-UI ausfuehren, das
+  tatsaechliche generierte SQL/die tatsaechliche Anfrage im n8n-Log oder
+  ueber die Node-Ausgabe direkt einsehen, statt weiter aus Symptomen auf
+  die Ursache zu schliessen. Ggf. mit Codex abstimmen, ob dieser Data-
+  Table-Node-Typ (`n8n-nodes-base.dataTable`, `typeVersion 1.1`,
+  `operation:"update"`) fuer row-scoped Updates ueberhaupt zuverlaessig
+  nutzbar ist, oder ob ein Wechsel auf eine andere Update-Methode
+  (z.B. eigener Postgres-Zugriff wie im Finanz-Projekt) noetig ist.
+
 ### 2026-07-24 – Claude – matchingColumns-Fix ergaenzt: id fehlte in columns.value
 
 - Ziel/Aufgabe: der `matchingColumns:["id"]`-Fix (voriger Eintrag) loeste

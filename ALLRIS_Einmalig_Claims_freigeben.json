@@ -110,7 +110,6 @@
                                          "columns":  {
                                                          "mappingMode":  "defineBelow",
                                                          "value":  {
-                                                                       "id":  "={{ $json.id }}",
                                                                        "claim_owner":  null,
                                                                        "claim_stage":  null,
                                                                        "claim_acquired_at":  null,
