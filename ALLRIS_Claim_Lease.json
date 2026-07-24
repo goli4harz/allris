@@ -57,7 +57,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const j = $json || {};\nif (j.claimAction !== 'acquire') throw new Error('[Claim] claimAction muss acquire oder release sein.');\nif (!String(j.vorgangKey || '').trim()) throw new Error('[Claim] vorgangKey fehlt.');\nif (!String(j.claimOwner || '').trim()) throw new Error('[Claim] claimOwner fehlt.');\nif (!String(j.claimStage || '').trim()) throw new Error('[Claim] claimStage fehlt.');\nconst minutes = Math.max(1, Math.min(120, Number(j.leaseMinutes || 30)));\nreturn [{ json: { ...j, leaseMinutes: minutes, claimAcquiredAt: $now.toISO(), claimExpiresAt: $now.plus({ minutes }).toISO() } }];"
+        "jsCode": "const j = $json || {};\nif (j.claimAction !== 'acquire') throw new Error('[Claim] claimAction muss acquire oder release sein.');\nif (!String(j.vorgangKey || '').trim()) throw new Error('[Claim] vorgangKey fehlt.');\nif (!String(j.claimOwner || '').trim()) throw new Error('[Claim] claimOwner fehlt.');\nif (!String(j.claimStage || '').trim()) throw new Error('[Claim] claimStage fehlt.');\nconst minutes = Math.max(1, Math.min(120, Number(j.leaseMinutes || 30)));\nreturn { json: { ...j, leaseMinutes: minutes, claimAcquiredAt: $now.toISO(), claimExpiresAt: $now.plus({ minutes }).toISO() } };"
       },
       "id": "c3d4e5f6-4444-4c3d-8e4f-000000000004",
       "name": "Validiere Claim-Anforderung",

@@ -80,6 +80,42 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 ## Änderungs- und Übergabeprotokoll
 
+### 2026-07-24 – Claude – ALLRIS_Claim_Lease: Rueckgabeform an runOnceForEachItem angepasst (Nachbesserung)
+
+- Ziel/Aufgabe: Nutzer meldete live einen neuen Fehler in P3, Node
+  `Erwerbe P3 Claim`: "A 'json' property isn't an object [item 0]" — direkte
+  Folge des heutigen früheren Fixes (siehe Eintrag "ALLRIS_Claim_Lease:
+  fehlender Node-Modus behoben").
+- Ergebnis: `Validiere Claim-Anforderung` hatte `mode: runOnceForEachItem`
+  gesetzt bekommen, der `return`-Ausdruck war aber unverändert
+  `return [{ json: {...} }];` (Array-Form, korrekt für den alten Default
+  `runOnceForAllItems`). Im Einzel-Item-Modus erwartet n8n ein einzelnes
+  Objekt zurück, kein Array — daher der Fehler. Auf
+  `return { json: {...} };` korrigiert.
+- Betroffene Dateien/Workflows: `ALLRIS_Claim_Lease.json` (live-ID
+  `D7cmBsy3exuOkBd9`, Node `Validiere Claim-Anforderung`),
+  `PROJECT_COORDINATION.md`.
+- Tests/Validierung: Live-GET nach PUT bestätigt die neue Rückgabeform.
+  Lokale Datei per `node -e "JSON.parse(...)"` geprüft. **Kein** erneuter
+  P3-Lauf mit echten Mehrfach-Kandidaten seit diesem Fix beobachtet.
+- Offene Risiken oder Blocker (wichtig, unbestätigter Verdacht): der
+  nachfolgende Node `Bestaetige Claim` hat ebenfalls kein `mode`-Feld
+  gesetzt (Default `runOnceForAllItems`) und enthält
+  `if (items.length !== 1) throw new Error(...)`. Sollte `Lese Claim
+  zurueck` jetzt tatsächlich N separate Ergebnisse liefern (N = Anzahl
+  Kandidaten), würde diese Assertion mit `items.length = N` erneut
+  auslösen — mit genau der Fehlermeldung, die heute früh um 07:49 schon
+  einmal live auftrat. Ob das so eintritt, hängt von n8n-Detailverhalten
+  ab (wie Data-Table-Node-Ausgaben mehrerer Items pairedItem-technisch an
+  einen nachgeschalteten Code-Node ohne eigenen Modus weitergereicht
+  werden), das an dieser Stelle nicht sicher aus dem Code allein
+  ableitbar ist — bewusst NICHT blind vorab geändert, um nicht erneut
+  eine ungeteste Vermutung live zu deployen.
+- Nächster konkreter Schritt: Nutzer bittet erneut um einen manuellen
+  P3-Lauf; falls derselbe/ein neuer Fehler an `Bestaetige Claim` auftritt,
+  anhand der echten Execution-Daten (`includeData=true`) diagnostizieren,
+  nicht per Vermutung vorab fixen.
+
 ### 2026-07-24 – Claude – Dispatcher-Watchdog an stündliche Kaskade angepasst
 
 - Ziel/Aufgabe: Folgefrage des Nutzers zum obigen Takt-Wechsel — muss der
