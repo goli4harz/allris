@@ -329,7 +329,7 @@
     },
     {
       "parameters": {
-        "jsCode": "if (items.length !== 1) {\n  throw new Error(`[Claim-Test] Erwartet genau eine Tabellenzeile, erhalten: ${items.length}.`);\n}\n\nconst row = items[0].json || {};\nconst owner = `ALLRIS_Dispatcher_Watchdog:${$execution.id}`;\nconst acquiredAt = $now.toISO();\nconst expiresAt = $now.plus({ minutes: 30 }).toISO();\n\nreturn [{ json: {\n  vorgangKey: String(row.vorgangKey || ''),\n  expectedClaimOwner: row.claim_owner ?? null,\n  expectedClaimExpiresAt: row.claim_expires_at ?? null,\n  claimOwner: owner,\n  claimStage: 'dispatcher_test',\n  claimAcquiredAt: acquiredAt,\n  claimExpiresAt: expiresAt\n} }];"
+        "jsCode": "if (items.length !== 1) {\n  throw new Error(`[Claim-Test] Erwartet genau eine Tabellenzeile, erhalten: ${items.length}.`);\n}\n\nconst row = items[0].json || {};\nconst owner = `ALLRIS_Dispatcher_Watchdog:${$execution.id}`;\nconst acquiredAt = $now.toISO();\nconst expiresAt = $now.plus({ minutes: 30 }).toISO();\n\nreturn [{ json: {\n  id: row.id,\n  vorgangKey: String(row.vorgangKey || ''),\n  expectedClaimOwner: row.claim_owner ?? null,\n  expectedClaimExpiresAt: row.claim_expires_at ?? null,\n  claimOwner: owner,\n  claimStage: 'dispatcher_test',\n  claimAcquiredAt: acquiredAt,\n  claimExpiresAt: expiresAt\n} }];"
       },
       "id": "b2c3d4e5-4444-4b2c-8d3e-000000000014",
       "name": "Bereite Test-Claim vor",
@@ -353,8 +353,8 @@
         "filters": {
           "conditions": [
             {
-              "keyName": "vorgangKey",
-              "keyValue": "={{ $json.vorgangKey }}"
+              "keyName": "id",
+              "keyValue": "={{ $json.id }}"
             },
             {
               "keyName": "claim_owner",
@@ -402,7 +402,7 @@
           "conditions": [
             {
               "keyName": "vorgangKey",
-              "keyValue": "={{ $('Bereite Test-Claim vor').item.json.vorgangKey }}"
+              "keyValue": "={{ $('Bereite Test-Claim vor').item.json.id }}"
             }
           ]
         },
@@ -459,8 +459,8 @@
         "filters": {
           "conditions": [
             {
-              "keyName": "vorgangKey",
-              "keyValue": "={{ $json.vorgangKey }}"
+              "keyName": "id",
+              "keyValue": "={{ $json.id }}"
             },
             {
               "keyName": "claim_owner",
@@ -504,7 +504,7 @@
           "conditions": [
             {
               "keyName": "vorgangKey",
-              "keyValue": "={{ $('Bereite Test-Claim vor').item.json.vorgangKey }}"
+              "keyValue": "={{ $('Bereite Test-Claim vor').item.json.id }}"
             }
           ]
         },

@@ -80,6 +80,48 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 
 ## Änderungs- und Übergabeprotokoll
 
+### 2026-07-24 – Claude – Eigentliche Ursache gefunden: Matching auf vorgangKey ersetzt durch id
+
+- Ziel/Aufgabe: der SplitInBatches-Fix (voriger Eintrag) loeste das Problem
+  nicht — ein isolierter Einzeltest ueber den `Manual Claim-Test`-Zweig in
+  `ALLRIS_Dispatcher_Watchdog` (eine einzige, kontrollierte Testzeile,
+  kein Batch, kein Loop) claimte ebenfalls wieder alle 50 Zeilen. Damit ist
+  eine Mehrfach-Item- oder Timing-Ursache ausgeschlossen.
+- Befund: die `vorgangKey`-Bedingung im Filter der Data-Table-`update`-
+  Operation (`Erwerbe Claim CAS`, `Release eigener Claim` und ihre
+  Test-Zwillinge) schraenkt den Treffer offenbar grundsaetzlich nicht ein —
+  nur `claim_owner`/`claim_expires_at` greifen. Bisher unbemerkt, weil
+  erfolgreiche Laeufe (Erwerb -> Verarbeitung -> Freigabe) sich durch die
+  ebenso breite Freigabe symmetrisch selbst wieder aufheben; sichtbar wird
+  es erst bei einem Absturz zwischen Erwerb und Freigabe (wie bei allen
+  heutigen Tests). Die genaue n8n-interne Ursache (Typ-/Bindungsproblem des
+  `vorgangKey`-Feldes im Data-Table-Filter) bleibt ungeklaert.
+- Fix: Matching-Spalte von `vorgangKey` auf die eindeutige `id`-Spalte
+  umgestellt — dasselbe Prinzip, das beim Freigabe-Workflow
+  `ALLRIS_Einmalig_Claims_freigeben` bereits zuverlaessig funktionierte.
+  Geaendert: `Erwerbe Claim CAS`, `Lese Claim zurueck`, `Release eigener
+  Claim` in `ALLRIS_Claim_Lease`; `Bereite Test-Claim vor` (gibt jetzt
+  zusaetzlich `id` mit aus), `Erwerbe Test-Claim CAS`, `Lese Claim
+  zurueck`/`Lese Freigabe zurueck`, `Gib eigenen Test-Claim frei` im
+  Test-Zweig von `ALLRIS_Dispatcher_Watchdog`.
+- Betroffene Dateien/Workflows: `ALLRIS_Claim_Lease.json` (live-ID
+  `D7cmBsy3exuOkBd9`), `ALLRIS_Dispatcher_Watchdog.json` (live-ID
+  `UzevGR7GafUB3dFk`, Testschluessel `TEST_VORGANG_KEY='vol_10600'` bleibt
+  vorerst gesetzt fuer den naechsten Test).
+- Tests/Validierung: Live-GET nach PUT bestaetigt `id`-basierte Filter in
+  beiden Workflows. **Noch KEIN erneuter Testlauf** seit diesem Fix — die
+  Tabelle ist aktuell durch den letzten Testlauf wieder komplett gesperrt
+  (`ALLRIS_Dispatcher_Watchdog:10446`, `claim_stage=dispatcher_test`).
+- Offene Risiken oder Blocker: der SplitInBatches-Umbau aus dem vorigen
+  Eintrag bleibt bestehen (schadet nicht, war aber nicht die Loesung).
+  Falls dieser Fix ebenfalls fehlschlaegt, naechster Verdacht waere ein
+  generelles Problem mit String-Spalten-Filtern auf diesem Data-Table-
+  Typ/dieser n8n-Version unabhaengig vom konkreten Spaltennamen.
+- Nächster konkreter Schritt: `ALLRIS_Einmalig_Claims_freigeben` erneut
+  ausfuehren, danach den `Manual Claim-Test`-Zweig in
+  `ALLRIS_Dispatcher_Watchdog` erneut ausloesen und pruefen, ob nur noch
+  `vol_10600` (nicht alle 50 Zeilen) geclaimt wird.
+
 ### 2026-07-24 – Claude – ALLRIS_Claim_Lease: struktureller Fix (SplitInBatches) gegen zu breites CAS-Matching
 
 - Ziel/Aufgabe: struktureller Fix für den im vorherigen Eintrag ("Kritischer

@@ -97,7 +97,7 @@
         },
         "filters": {
           "conditions": [
-            {"keyName":"vorgangKey","keyValue":"={{ $json.vorgangKey }}"},
+            {"keyName":"id","keyValue":"={{ $json.id }}"},
             {"keyName":"claim_owner","keyValue":"={{ $json.expectedClaimOwner }}"},
             {"keyName":"claim_expires_at","keyValue":"={{ $json.expectedClaimExpiresAt }}"}
           ]
@@ -131,7 +131,7 @@
           "cachedResultName":"allris_vorgaenge",
           "cachedResultUrl":"/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
         },
-        "filters":{"conditions":[{"keyName":"vorgangKey","keyValue":"={{ $('Validiere Claim-Anforderung').item.json.vorgangKey }}"}]},
+        "filters":{"conditions":[{"keyName":"id","keyValue":"={{ $('Validiere Claim-Anforderung').item.json.id }}"}]},
         "returnAll":false,
         "limit":2
       },
@@ -163,7 +163,7 @@
         },
         "filters": {
           "conditions": [
-            {"keyName":"vorgangKey","keyValue":"={{ $json.vorgangKey }}"},
+            {"keyName":"id","keyValue":"={{ $json.id }}"},
             {"keyName":"claim_owner","keyValue":"={{ $json.claimOwner }}"}
           ]
         },
