@@ -805,6 +805,9 @@
             "facebookPost": "={{ $json.facebookPost     || '' }}",
             "pressStatement": "={{ $json.pressStatement   || '' }}",
             "instagramCaption": "={{ $json.instagramCaption || '' }}",
+            "websiteTags": "={{ $json.websiteTags || '[]' }}",
+            "facebookHashtags": "={{ $json.facebookHashtags || '[]' }}",
+            "instagramHashtags": "={{ $json.instagramHashtags || '[]' }}",
             "contentCreatedAt": "={{ $now.toISO() }}",
             "contentStage": "={{ $json.contentStage || 'content_generated' }}",
             "contentErrorReason": "={{ $json.contentErrorReason }}",
@@ -1639,6 +1642,36 @@
             {
               "id": "absurdeForderung",
               "displayName": "absurdeForderung",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "websiteTags",
+              "displayName": "websiteTags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "facebookHashtags",
+              "displayName": "facebookHashtags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "instagramHashtags",
+              "displayName": "instagramHashtags",
               "required": false,
               "defaultMatch": false,
               "display": true,
