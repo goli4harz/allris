@@ -274,7 +274,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const original = $('Baue Toot-Text').itemMatching($itemIndex).json;\nconst result = $json || {};\nreturn { json: {\n  ...original,\n  mastodonPostId: result.id || null,\n  mastodonPostUrl: result.url || '',\n  mastodonError: result.url ? '' : (result.error || result.message || 'Unbekannter Fehler beim Mastodon-Post')\n} };"
+        "jsCode": "const original = $('Baue Toot-Text').itemMatching($itemIndex).json;\nconst result = $json || {};\n// FIX 2026-07-25: n8n haengt bei onError=continueRegularOutput den Fehler oft als OBJEKT (nicht String)\n// unter result.error/result.message ein (z.B. { message, description } oder der ganze Node-Fehler).\n// Ungeprueftes Durchreichen landete als \"[object Object]\" in der DB-Spalte mastodonError und\n// verschleierte damit genau die Fehlermeldung, die zur Diagnose gebraucht wird.\nfunction extractErrorText(v) {\n  if (!v) return '';\n  if (typeof v === 'string') return v;\n  if (typeof v === 'object') {\n    return String(v.message || v.description || v.error || JSON.stringify(v));\n  }\n  return String(v);\n}\nreturn { json: {\n  ...original,\n  mastodonPostId: result.id || null,\n  mastodonPostUrl: result.url || '',\n  mastodonError: result.url ? '' : (extractErrorText(result.error) || extractErrorText(result.message) || 'Unbekannter Fehler beim Mastodon-Post')\n} };"
       },
       "id": "f9a1b001-0000-4000-9000-000000000015",
       "name": "Stelle Kontext nach Post-Erstellung wieder her",
