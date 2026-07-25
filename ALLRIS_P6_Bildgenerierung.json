@@ -4817,7 +4817,7 @@
       ],
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const j = $json;\nconst room = '!tMRdHxOLwIKDiQlIRz:matrix.golietz.de';\nconst txnId = 'presse_' + Date.now() + '_' + String(j.vorgangKey||'').replace(/[^a-zA-Z0-9]/g,'').substring(0,10);\nreturn { json: { ...j, matrixPresseRoom: room, matrixPresseTxnId: txnId } };\n"
+        "jsCode": "// FIX 2026-07-25: 'Schreibe Presseartikel Final' (Data-Table-update) ersetzt $json durch die\n// zurueckgegebene DB-Zeile (echte Spalten wie pressStatement) - das nur workflow-interne Feld\n// pressStatementFinal ging dabei verloren, die Matrix-Nachricht zeigte danach woertlich\n// 'undefined' statt des Artikeltexts. Kontext aus 'Parse Presseartikel Final' wiederherstellen.\nconst original = $('Parse Presseartikel Final').itemMatching($itemIndex).json;\nconst j = { ...original, ...$json };\nconst room = '!tMRdHxOLwIKDiQlIRz:matrix.golietz.de';\nconst txnId = 'presse_' + Date.now() + '_' + String(j.vorgangKey||'').replace(/[^a-zA-Z0-9]/g,'').substring(0,10);\nreturn { json: { ...j, matrixPresseRoom: room, matrixPresseTxnId: txnId } };\n"
       }
     },
     {
