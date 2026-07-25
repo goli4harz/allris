@@ -14,7 +14,7 @@
             {
               "field": "hours",
               "hoursInterval": 1,
-              "triggerAtMinute": 2
+              "triggerAtMinute": 58
             }
           ]
         }

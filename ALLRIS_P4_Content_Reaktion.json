@@ -647,7 +647,7 @@
             {
               "field": "hours",
               "hoursInterval": 1,
-              "triggerAtMinute": 35
+              "triggerAtMinute": 21
             }
           ]
         }

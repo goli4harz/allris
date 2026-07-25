@@ -2050,7 +2050,7 @@
             {
               "field": "hours",
               "hoursInterval": 1,
-              "triggerAtMinute": 50
+              "triggerAtMinute": 0
             }
           ]
         }
