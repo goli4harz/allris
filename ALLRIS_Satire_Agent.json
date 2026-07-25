@@ -120,7 +120,8 @@
             "textOptions": {
               "type": "json_object"
             }
-          }
+          },
+          "timeout": 60000
         }
       },
       "type": "@n8n/n8n-nodes-langchain.openAi",
@@ -176,7 +177,8 @@
             "textOptions": {
               "type": "json_object"
             }
-          }
+          },
+          "timeout": 60000
         }
       },
       "type": "@n8n/n8n-nodes-langchain.openAi",
