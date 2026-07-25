@@ -541,6 +541,7 @@
             "wordpressGoslarPosted": "={{ true }}",
             "wordpressGoslarPostedAt": "={{ $now.toISO() }}",
             "wordpressGoslarPostId": "={{ $json.wpPostId }}",
+            "wordpressGoslarPostLink": "={{ $json.wpPostLink || '' }}",
             "last_error_code": "={{ $json.last_error_stage === 'publication' ? '' : ($json.last_error_code || '') }}",
             "last_error_message": "={{ $json.last_error_stage === 'publication' ? '' : ($json.last_error_message || '') }}",
             "last_error_stage": "={{ $json.last_error_stage === 'publication' ? '' : ($json.last_error_stage || '') }}",
@@ -572,6 +573,16 @@
             {
               "id": "wordpressGoslarPostId",
               "displayName": "wordpressGoslarPostId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wordpressGoslarPostLink",
+              "displayName": "wordpressGoslarPostLink",
               "required": false,
               "defaultMatch": false,
               "display": true,
