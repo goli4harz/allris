@@ -636,16 +636,48 @@
       ]
     },
     "Bereite P6 Claims vor": {
-      "main": [[{"node":"Erwerbe P6 Claim","type":"main","index":0}]]
+      "main": [
+        [
+          {
+            "node": "Erwerbe P6 Claim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Erwerbe P6 Claim": {
-      "main": [[{"node":"Nur bestaetigte P6 Claims","type":"main","index":0}]]
+      "main": [
+        [
+          {
+            "node": "Nur bestaetigte P6 Claims",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Nur bestaetigte P6 Claims": {
-      "main": [[{"node":"Loop Bildprompts","type":"main","index":0}]]
+      "main": [
+        [
+          {
+            "node": "Loop Bildprompts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Bereite P6 Claim-Freigabe vor": {
-      "main": [[{"node":"Release P6 Claim","type":"main","index":0}]]
+      "main": [
+        [
+          {
+            "node": "Release P6 Claim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Baue QA-Prompt": {
       "main": [
@@ -793,7 +825,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ============================================================\n// FIX 11.1: Filter gültige Datensätze\n// Erlaubt erneute Bildgenerierung nach image_qa_error,\n// wenn ein neuer vollständiger Visual Prompt vorhanden ist.\n// Zusätzlich kompatibel mit Force Image Refresh Schalter.\n// ============================================================\n\nconst items = $input.all();\n\nfunction safe(v) {\n  return v === null || v === undefined ? '' : String(v).trim();\n}\n\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try {\n    const p = JSON.parse(String(v));\n    return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {};\n  } catch (e) {\n    return {};\n  }\n}\n\nfunction asArr(v) {\n  if (Array.isArray(v)) {\n    return v.filter(Boolean).map(s => String(s).trim()).filter(Boolean);\n  }\n\n  if (typeof v === 'string' && v.trim()) {\n    try {\n      const p = JSON.parse(v);\n      if (Array.isArray(p)) {\n        return p.filter(Boolean).map(s => String(s).trim()).filter(Boolean);\n      }\n    } catch (e) {}\n  }\n\n  return [];\n}\n\nfunction robustBool(v) {\n  if (v === true || v === 1) return true;\n  if (typeof v === 'string') {\n    const s = v.trim().toLowerCase();\n    return s === 'true' || s === '1' || s === 'yes';\n  }\n  return false;\n}\n\nconst RETRYABLE_IMAGE_STAGES = new Set([\n  'qa_pending',\n  'qa_failed',\n  'upload_failed',\n  'composed'\n]);\n\nconst CONTENT_READY_STAGES = new Set([\n  'content_generated',\n  'content_posted'\n]);\n\nconst valid = items\n  .filter(item => {\n    const j = item.json || {};\n\n    const visualPromptStage = safe(j.visualPromptStage);\n    const contentStage = safe(j.contentStage);\n    const imageStage = safe(j.imageStage);\n\n    const promptComplete = !!(\n      safe(j.imagePrompt) &&\n      safe(j.imageHeadline) &&\n      safe(j.imageSubline)\n    );\n\n    if (visualPromptStage !== 'prompt_ready') return false;\n\n    const contentNormallyReady = CONTENT_READY_STAGES.has(contentStage);\n    const contentRetryAllowed =\n      RETRYABLE_IMAGE_STAGES.has(imageStage) &&\n      visualPromptStage === 'prompt_ready' &&\n      promptComplete;\n\n    if (!contentNormallyReady && !contentRetryAllowed) return false;\n\n    if (!safe(j.vorgangKey) || !safe(j.nextcloudFolder)) return false;\n\n    if (!promptComplete) return false;\n\n    if (\n      !safe(j.summaryText) &&\n      !safe(j.combinedText) &&\n      !safe(j.kurzfassung) &&\n      !safe(j.title)\n    ) {\n      return false;\n    }\n\n    return true;\n  })\n  .map(item => {\n    const j = item.json || {};\n    const aj = parseObj(j.analysisJson);\n\n    const visualPromptStage = safe(j.visualPromptStage);\n    const imageStage = safe(j.imageStage);\n    const promptComplete = !!(\n      safe(j.imagePrompt) &&\n      safe(j.imageHeadline) &&\n      safe(j.imageSubline)\n    );\n\n    const retryAfterImageError =\n      RETRYABLE_IMAGE_STAGES.has(imageStage) &&\n      visualPromptStage === 'prompt_ready' &&\n      promptComplete;\n\n    const sl = parseObj(aj.sourceLock || {});\n    const va = parseObj(aj.visualAnchors || {});\n\n    const slValidFlag = robustBool(aj.sourceLockValid);\n    const vaValidFlag = robustBool(aj.visualAnchorsValid);\n\n    const slOk = !!(\n      safe(sl.sourceTopic) &&\n      asArr(sl.requiredTerms).length >= 2 &&\n      asArr(sl.requiredObjects).length >= 2 &&\n      safe(sl.requiredAction) &&\n      slValidFlag\n    );\n\n    const vaOk = !!(\n      safe(va.satireThemaKonkret) &&\n      safe(va.satireKonfliktKonkret) &&\n      asArr(va.visualPflichtobjekte).length >= 2 &&\n      safe(va.visualPflichthandlung) &&\n      safe(va.visualErkennungssatz) &&\n      safe(va.visualUeberzeichnung) &&\n      asArr(va.visualVerboteneErsatzmotive).length >= 2 &&\n      vaValidFlag\n    );\n\n    if (!slOk || !vaOk) {\n      return {\n        ...item,\n        json: {\n          ...j,\n          imageConceptReady: false,\n          imageConceptRepairNeeded: false,\n          sharepicNeedStage: 'blocked_source_lock',\n          _blockedReason: !slOk\n            ? 'sourceLock unvollstaendig/ungueltig (requiredObjects/requiredAction/requiredTerms pruefen)'\n            : 'visualAnchors unvollstaendig/ungueltig (visualVerboteneErsatzmotive/visualAnchorsValid pruefen)'\n        }\n      };\n    }\n\n    return {\n      ...item,\n      json: {\n        ...j,\n        imageConceptReady: true,\n        imageConceptRepairNeeded: false,\n        imageConceptRepairOrigin: retryAfterImageError\n          ? 'retry_after_image_error_or_refresh_with_visual_prompt'\n          : 'existing_visual_prompt',\n        imageConceptRepairAttempt: 0,\n        imageConceptRepairMaxAttempts: 2,\n        _filterPassedReason: retryAfterImageError\n          ? 'contentStage war Bildfehler/Bildlauf, aber vollstaendiger visualPromptStage=prompt_ready vorhanden'\n          : 'Content fertig und visualPromptStage=prompt_ready vorhanden'\n      }\n    };\n  });\n\nreturn valid;\n"
+        "jsCode": "// ============================================================\n// FIX 11.1: Filter gültige Datensätze\n// Erlaubt erneute Bildgenerierung nach image_qa_error,\n// wenn ein neuer vollständiger Visual Prompt vorhanden ist.\n// Zusätzlich kompatibel mit Force Image Refresh Schalter.\n// ============================================================\n\nconst items = $input.all();\n\nfunction safe(v) {\n  return v === null || v === undefined ? '' : String(v).trim();\n}\n\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try {\n    const p = JSON.parse(String(v));\n    return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {};\n  } catch (e) {\n    return {};\n  }\n}\n\nfunction asArr(v) {\n  if (Array.isArray(v)) {\n    return v.filter(Boolean).map(s => String(s).trim()).filter(Boolean);\n  }\n\n  if (typeof v === 'string' && v.trim()) {\n    try {\n      const p = JSON.parse(v);\n      if (Array.isArray(p)) {\n        return p.filter(Boolean).map(s => String(s).trim()).filter(Boolean);\n      }\n    } catch (e) {}\n  }\n\n  return [];\n}\n\nfunction robustBool(v) {\n  if (v === true || v === 1) return true;\n  if (typeof v === 'string') {\n    const s = v.trim().toLowerCase();\n    return s === 'true' || s === '1' || s === 'yes';\n  }\n  return false;\n}\n\nconst RETRYABLE_IMAGE_STAGES = new Set([\n  'qa_pending',\n  'qa_failed',\n  'upload_failed',\n  'composed'\n]);\n\nconst CONTENT_READY_STAGES = new Set([\n  'content_generated',\n  'content_posted'\n]);\n\nconst valid = items\n  .filter(item => {\n    const j = item.json || {};\n\n    const visualPromptStage = safe(j.visualPromptStage);\n    const contentStage = safe(j.contentStage);\n    const imageStage = safe(j.imageStage);\n\n    const promptComplete = !!(\n      safe(j.imagePrompt) &&\n      safe(j.imageHeadline) &&\n      safe(j.imageSubline)\n    );\n\n    if (visualPromptStage !== 'prompt_ready') return false;\n\n    const contentNormallyReady = CONTENT_READY_STAGES.has(contentStage);\n    const contentRetryAllowed =\n      RETRYABLE_IMAGE_STAGES.has(imageStage) &&\n      visualPromptStage === 'prompt_ready' &&\n      promptComplete;\n\n    if (!contentNormallyReady && !contentRetryAllowed) return false;\n\n    if (!safe(j.vorgangKey) || !safe(j.nextcloudFolder)) return false;\n\n    if (!promptComplete) return false;\n\n    if (\n      !safe(j.summaryText) &&\n      !safe(j.combinedText) &&\n      !safe(j.kurzfassung) &&\n      !safe(j.title)\n    ) {\n      return false;\n    }\n\n    return true;\n  })\n  .map(item => {\n    const j = item.json || {};\n    const aj = parseObj(j.analysisJson);\n\n    const visualPromptStage = safe(j.visualPromptStage);\n    const imageStage = safe(j.imageStage);\n    const promptComplete = !!(\n      safe(j.imagePrompt) &&\n      safe(j.imageHeadline) &&\n      safe(j.imageSubline)\n    );\n\n    const retryAfterImageError =\n      RETRYABLE_IMAGE_STAGES.has(imageStage) &&\n      visualPromptStage === 'prompt_ready' &&\n      promptComplete;\n\n    // FIX 2026-07-25 (mirror des -OK-Handlers in P5b und der Repair-Sweeps in P4/P3b/P3c/P5):\n    // sl frisch aus faktenAgentJson bauen statt aus dem eingefrorenen analysisJson.sourceLock -\n    // letztes Gate vor der eigentlichen (teuren) Bildgenerierung, dieselbe Faelligkeit wie ueberall\n    // sonst in der Kette. va bleibt aus analysisJson.visualAnchors, das redundante eingefrorene\n    // vaValidFlag entfaellt (die 7 Feldchecks sind bereits die frische Ableitung).\n    const fakten = parseObj(j.faktenAgentJson || {});\n    const sl = {\n      sourceTopic: safe(fakten.sourceTopic),\n      sourceConflict: safe(fakten.sourceConflict),\n      requiredTerms: asArr(fakten.requiredTerms),\n      requiredObjects: asArr(fakten.requiredObjects),\n      requiredAction: safe(fakten.requiredAction),\n      affectedGroups: asArr(fakten.affectedGroups)\n    };\n    const va = parseObj(aj.visualAnchors || {});\n\n    const slOk = !!(\n      safe(sl.sourceTopic) &&\n      asArr(sl.requiredTerms).length >= 2 &&\n      asArr(sl.requiredObjects).length >= 2 &&\n      safe(sl.requiredAction) &&\n      fakten.parseError !== true\n    );\n\n    const vaOk = !!(\n      safe(va.satireThemaKonkret) &&\n      safe(va.satireKonfliktKonkret) &&\n      asArr(va.visualPflichtobjekte).length >= 2 &&\n      safe(va.visualPflichthandlung) &&\n      safe(va.visualErkennungssatz) &&\n      safe(va.visualUeberzeichnung) &&\n      asArr(va.visualVerboteneErsatzmotive).length >= 2\n    );\n\n    if (!slOk || !vaOk) {\n      return {\n        ...item,\n        json: {\n          ...j,\n          imageConceptReady: false,\n          imageConceptRepairNeeded: false,\n          sharepicNeedStage: 'blocked_source_lock',\n          _blockedReason: !slOk\n            ? 'sourceLock unvollstaendig/ungueltig (requiredObjects/requiredAction/requiredTerms pruefen)'\n            : 'visualAnchors unvollstaendig/ungueltig (visualVerboteneErsatzmotive/visualAnchorsValid pruefen)'\n        }\n      };\n    }\n\n    return {\n      ...item,\n      json: {\n        ...j,\n        imageConceptReady: true,\n        imageConceptRepairNeeded: false,\n        imageConceptRepairOrigin: retryAfterImageError\n          ? 'retry_after_image_error_or_refresh_with_visual_prompt'\n          : 'existing_visual_prompt',\n        imageConceptRepairAttempt: 0,\n        imageConceptRepairMaxAttempts: 2,\n        _filterPassedReason: retryAfterImageError\n          ? 'contentStage war Bildfehler/Bildlauf, aber vollstaendiger visualPromptStage=prompt_ready vorhanden'\n          : 'Content fertig und visualPromptStage=prompt_ready vorhanden'\n      }\n    };\n  });\n\nreturn valid;\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -819,7 +851,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const j = $input.item.json || {};\nfunction safeStr(v) { return (v === null || v === undefined) ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try {\n    const p = JSON.parse(String(v));\n    return p && typeof p === 'object' && !Array.isArray(p) ? p : {};\n  } catch (e) { return {}; }\n}\nfunction short(v, max = 900) {\n  const s = safeStr(v);\n  return s.length > max ? s.substring(0, max) + '…' : s;\n}\n\nconst vorgangKey = safeStr(j.vorgangKey);\nif (!vorgangKey) throw new Error('vorgangKey fehlt.');\nif (!safeStr(j.imagePrompt)) throw new Error('imagePrompt fehlt in ' + vorgangKey);\n\nconst nextcloudFolder = safeStr(j.nextcloudFolder).replace(/\\/+$/, '');\nif (!nextcloudFolder) throw new Error('nextcloudFolder fehlt in ' + vorgangKey);\n\nconst instagramFolder = nextcloudFolder + '/02_reaktion/Instagram';\nconst basePrompt = safeStr(j.imagePrompt);\nconst negativeExtra = safeStr(j.imageNegativePrompt);\nconst imageHeadline = safeStr(j.imageHeadline);\nconst imageSubline = safeStr(j.imageSubline);\nconst imageSmallNote = '';\nif (!imageHeadline) throw new Error('imageHeadline fehlt in ' + vorgangKey);\nif (!imageSubline) throw new Error('imageSubline fehlt in ' + vorgangKey);\n\nconst visualJson = parseObj(j.visualJson);\nconst anchors = parseObj(visualJson.anchors);\nconst attempt = Math.max(1, Number(j.imageQaAttempt || 1));\nconst maxAttempts = Math.max(1, Number(visualJson.qualityGate?.maxAttempts || j.imageQaMaxAttempts || 3));\nconst retryFeedback = safeStr(j.imageQaFeedback || j.imageQaRetryInstruction);\nconst safeKey = vorgangKey.replace(/[^a-zA-Z0-9_-]/g, '_');\nconst imageRefreshRunId = safeStr(j.imageRefreshRunId || j._imageRefreshRunId || '');\nconst imageRefreshSuffix = imageRefreshRunId ? '_' + imageRefreshRunId.replace(/[^a-zA-Z0-9_-]/g, '_') : '';\n\nconst mustShow = Array.isArray(visualJson.mustShow)\n  ? visualJson.mustShow\n  : (Array.isArray(anchors.visualPflichtobjekte) ? anchors.visualPflichtobjekte : []);\n// Topic-Priority: sourceLock > visualJson.sourceLock > analysisJson.sourceLock > satireThemaKonkret > title\n// FIX 4.2/4.3: Canonical Source-Lock IMMER aus analysisJson\n// visualJson.sourceLock ist nur Fallback wenn analysisJson technisch nicht lesbar\nfunction getCanonicalSourceLock(j) {\n  // 1. analysisJson.sourceLock hat immer Vorrang\n  try {\n    const raw = j.analysisJson;\n    let aj = {};\n    if (raw && typeof raw === 'object') aj = raw;\n    else if (raw) aj = JSON.parse(String(raw));\n    if (aj.sourceLock && aj.sourceLock.sourceTopic) {\n      return { sl: aj.sourceLock, valid: aj.sourceLockValid === true || String(aj.sourceLockValid||'').trim()==='true' };\n    }\n  } catch(e) {}\n  // 2. Nur technischer Fallback: visualJson.sourceLock (falls analysisJson nicht lesbar)\n  try {\n    const raw = j.visualJson;\n    let vj = {};\n    if (raw && typeof raw === 'object') vj = raw;\n    else if (raw) vj = JSON.parse(String(raw));\n    if (vj.sourceLock && vj.sourceLock.sourceTopic) {\n      return { sl: vj.sourceLock, valid: false }; // visualJson-Fallback gilt nicht als validiert\n    }\n  } catch(e) {}\n  return { sl: null, valid: false };\n}\nfunction getSourceLockMP(j, vj, anchors) {\n  // imageTopicLock nur verwenden wenn bereits aus aktuellem canonical SL gebildet\n  if (j.imageTopicLock && j._imageTopicLockFromCanonical === true) {\n    return { topic: safeStr(j.imageTopicLock), conflict: safeStr(j.imageConflictLock) };\n  }\n  const { sl } = getCanonicalSourceLock(j);\n  if (sl && sl.sourceTopic) return { topic: sl.sourceTopic, conflict: sl.sourceConflict || '' };\n  // Kein canonical SL: nur Titel als letzter Fallback\n  return {\n    topic: safeStr(j.thema || j.title),\n    conflict: safeStr(anchors.satireKonfliktKonkret || vj.conflictPlain || '')\n  };\n}\nfunction _getSourceLockMP_UNUSED(j, vj, anchors) {\n  if (j.imageTopicLock) return { topic: safeStr(j.imageTopicLock), conflict: safeStr(j.imageConflictLock) };\n  if (vj.sourceLock && vj.sourceLock.sourceTopic) return { topic: vj.sourceLock.sourceTopic, conflict: vj.sourceLock.sourceConflict || '' };\n  try {\n    const aj = JSON.parse(j.analysisJson || '{}');\n    if (aj.sourceLock && aj.sourceLock.sourceTopic) return { topic: aj.sourceLock.sourceTopic, conflict: aj.sourceLock.sourceConflict || '' };\n  } catch(e) {}\n  return {\n    topic: safeStr(anchors.satireThemaKonkret || vj.topicPlain || j.thema || j.title),\n    conflict: safeStr(anchors.satireKonfliktKonkret || vj.conflictPlain || '')\n  };\n}\nconst { sl: _canonicalSL, valid: _canonicalSLValid } = getCanonicalSourceLock(j);\n\n// FIX 4.2: Abbruch wenn canonical Source-Lock fehlt oder ungültig\n// Kein Fallback auf Titel, Thema, satireThemaKonkret oder visualJson.topicPlain\nif (!_canonicalSL || !_canonicalSL.sourceTopic || !_canonicalSLValid) {\n  const blockReason = !_canonicalSL\n    ? 'blocked_by_source_lock: analysisJson.sourceLock fehlt oder unvollständig'\n    : !_canonicalSLValid\n      ? 'blocked_by_source_lock: analysisJson.sourceLockValid ist nicht true'\n      : 'blocked_by_source_lock: sourceTopic fehlt';\n  throw new Error(blockReason);\n}\n\nconst _topicConflict = getSourceLockMP(j, visualJson, anchors);\nconst topicPlain = _topicConflict.topic;\nconst conflictPlain = _topicConflict.conflict || safeStr(visualJson.conflictPlain || anchors.satireKonfliktKonkret);\n// FIX 4.3: imageTopicLock und imageConflictLock aus canonical SL setzen\nconst imageTopicLock = _canonicalSL ? _canonicalSL.sourceTopic : topicPlain;\nconst imageConflictLock = _canonicalSL ? (_canonicalSL.sourceConflict || conflictPlain) : conflictPlain;\nconst sourceLockJson = _canonicalSL ? JSON.stringify(_canonicalSL) : '{}';\nconst visibleAction = safeStr(visualJson.visibleAction || anchors.visualPflichthandlung);\nconst satiricalExaggeration = safeStr(visualJson.satiricalExaggeration || anchors.visualUeberzeichnung);\nconst recognitionSentence = safeStr(visualJson.recognitionSentence || anchors.visualErkennungssatz);\nconst satireMechanism = safeStr(visualJson.satireMechanism);\nconst whySatirical = safeStr(visualJson.whySatiricalWithoutText);\n\nconst prompt = [\n  'Erstelle ein quadratisches Bild (1024x1024 Pixel) als Grundlage für ein politisches Satire-Sharepic der Partei DIE PARTEI, Kreisverband Goslar.',\n  '',\n  'QUALITÄTSZIEL:',\n  'Das konkrete Sachthema soll durch reale Gegenstände und eine sichtbare Situation im Motiv erkennbar sein.',\n  'THEMENSPERRE: Zeige ausschließlich das folgende Thema und den folgenden Konflikt. Keine zusätzlichen politischen Themen, keine austauschbare Verwaltungssatire und keine neue Zielscheibe.',\n  'Headline und Subline dürfen den konkreten Konflikt erklären und die Satire vervollständigen. Entscheidend ist die verständliche Gesamtwirkung aus Text und Motiv.',\n  topicPlain ? 'Konkretes Thema: ' + short(topicPlain, 500) : '',\n  conflictPlain ? 'Konkreter Konflikt: ' + short(conflictPlain, 600) : '',\n  mustShow.length ? 'Zwingend sichtbar: ' + mustShow.slice(0, 6).join(' | ') : '',\n  visibleAction ? 'Zwingend sichtbare Handlung: ' + short(visibleAction, 600) : '',\n  satiricalExaggeration ? 'Satirische Überzeichnung: ' + short(satiricalExaggeration, 600) : '',\n  satireMechanism ? 'Satiremechanismus: ' + short(satireMechanism, 500) : '',\n  recognitionSentence ? 'Erkennungstest: ' + short(recognitionSentence, 600) : '',\n  whySatirical ? 'Satiretest ohne Text: ' + short(whySatirical, 600) : '',\n  '',\n  'AUFBAU DES BILDES (von oben nach unten):',\n  '',\n  '1. ROTER TEXTBALKEN (oberes Viertel, ca. 250px hoch):',\n  '   - Hintergrundfarbe: kräftiges Rot (#b7202a)',\n  '   - Headline (groß, fett, weiß, zentriert):',\n  '   ' + imageHeadline,\n  '   - Subline (mittelgroß, weiß, zentriert, direkt darunter):',\n  '   ' + imageSubline,\n  '   - Ausschließlich diese zwei Textzeilen; keine Small Note und keine Zusatzbeschriftung.',\n  '   - Text exakt wie vorgegeben, korrekte deutsche Rechtschreibung.',\n  '',\n  '2. BITTERBÖSES SATIRISCHES MOTIV (untere drei Viertel, ca. 750px hoch):',\n  '   - Inhalt: ' + basePrompt,\n  '   - Groteske kommunalpolitische Satire-Illustration im halb-realistischen Karikaturstil.',\n  '   - Das reale Thema muss sofort erkennbar sein; die sichtbare Überzeichnung muss eindeutig satirisch wirken.',\n  '   - Große ausdrucksstarke Augen und klare Körpersprache, soweit passend.',\n  '   - Goslar-/Harz-/Altstadt-Anmutung nur wenn thematisch passend.',\n  '   - Keine echten Personen, keine Logos, keine Wappen.',\n  '',\n  'ABSOLUT VERBOTEN IM MOTIVBEREICH:',\n  '   - KEIN Text, KEINE Schrift, KEINE Buchstaben, KEINE Zahlen.',\n  '   - Headline und Subline nicht im Motiv wiederholen.',\n  '   - Keine Beschriftungen auf Plakaten, Schildern oder Bannern.',\n  '   - Kein QR-Code, keine echten Personen oder Politikergesichter.'\n].filter(Boolean);\n\nif (attempt > 1) {\n  prompt.push('');\n  prompt.push('VERBINDLICHER NEUVERSUCH ' + attempt + ' VON ' + maxAttempts + ':');\n  prompt.push('Die vorherige Bildprüfung hat das Motiv abgelehnt. Korrigiere gezielt die folgenden Mängel:');\n  prompt.push(short(retryFeedback || 'Thema und Satire waren nicht eindeutig genug erkennbar.', 1400));\n  prompt.push('Headline und Subline wurden für diesen Versuch ebenfalls neu geprüft bzw. überarbeitet. Verwende exakt die aktuell vorgegebenen Textzeilen.');\n  prompt.push('Erzeuge eine deutlich andere, klarere Komposition. Pflichtobjekte und Sachthema dürfen nicht verloren gehen.');\n}\n\nif (negativeExtra) {\n  prompt.push('');\n  prompt.push('Zusätzlich vermeiden: ' + negativeExtra);\n}\n\nreturn [{\n  json: {\n    ...j,\n    vorgangKey,\n    // FIX 4.3: Canonical SL fields für QA und Topic-Lock\n    imageTopicLock,\n    imageConflictLock,\n    sourceLockJson,\n    _imageTopicLockFromCanonical: true,\n    nextcloudFolder,\n    instagramFolder,\n    imageHeadline,\n    imageSubline,\n    imageSmallNote,\n    imagePrompt: basePrompt,\n    imageNegativePrompt: negativeExtra,\n    motifPrompt: prompt.join('\\n'),\n    filenameRaw: 'raw_' + safeKey + imageRefreshSuffix + '.png',\n    filenameFinal: 'final_' + safeKey + imageRefreshSuffix + '.png',\n    imageWorkflowVersion: 'sharepic-mini-v17.2-qa-retry-same-image',\n    imageCreatedAt: new Date().toISOString(),\n    imageQaAttempt: attempt,\n    imageQaMaxAttempts: maxAttempts,\n    imageQaFeedback: retryFeedback\n  }\n}];"
+        "jsCode": "const j = $input.item.json || {};\nfunction safeStr(v) { return (v === null || v === undefined) ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try {\n    const p = JSON.parse(String(v));\n    return p && typeof p === 'object' && !Array.isArray(p) ? p : {};\n  } catch (e) { return {}; }\n}\nfunction short(v, max = 900) {\n  const s = safeStr(v);\n  return s.length > max ? s.substring(0, max) + '…' : s;\n}\n\nconst vorgangKey = safeStr(j.vorgangKey);\nif (!vorgangKey) throw new Error('vorgangKey fehlt.');\nif (!safeStr(j.imagePrompt)) throw new Error('imagePrompt fehlt in ' + vorgangKey);\n\nconst nextcloudFolder = safeStr(j.nextcloudFolder).replace(/\\/+$/, '');\nif (!nextcloudFolder) throw new Error('nextcloudFolder fehlt in ' + vorgangKey);\n\nconst instagramFolder = nextcloudFolder + '/02_reaktion/Instagram';\nconst basePrompt = safeStr(j.imagePrompt);\nconst negativeExtra = safeStr(j.imageNegativePrompt);\nconst imageHeadline = safeStr(j.imageHeadline);\nconst imageSubline = safeStr(j.imageSubline);\nconst imageSmallNote = '';\nif (!imageHeadline) throw new Error('imageHeadline fehlt in ' + vorgangKey);\nif (!imageSubline) throw new Error('imageSubline fehlt in ' + vorgangKey);\n\nconst visualJson = parseObj(j.visualJson);\nconst anchors = parseObj(visualJson.anchors);\nconst attempt = Math.max(1, Number(j.imageQaAttempt || 1));\nconst maxAttempts = Math.max(1, Number(visualJson.qualityGate?.maxAttempts || j.imageQaMaxAttempts || 3));\nconst retryFeedback = safeStr(j.imageQaFeedback || j.imageQaRetryInstruction);\nconst safeKey = vorgangKey.replace(/[^a-zA-Z0-9_-]/g, '_');\nconst imageRefreshRunId = safeStr(j.imageRefreshRunId || j._imageRefreshRunId || '');\nconst imageRefreshSuffix = imageRefreshRunId ? '_' + imageRefreshRunId.replace(/[^a-zA-Z0-9_-]/g, '_') : '';\n\nconst mustShow = Array.isArray(visualJson.mustShow)\n  ? visualJson.mustShow\n  : (Array.isArray(anchors.visualPflichtobjekte) ? anchors.visualPflichtobjekte : []);\n// Topic-Priority: sourceLock > visualJson.sourceLock > analysisJson.sourceLock > satireThemaKonkret > title\n// FIX 4.2/4.3: Canonical Source-Lock IMMER aus analysisJson\n// visualJson.sourceLock ist nur Fallback wenn analysisJson technisch nicht lesbar\nfunction getCanonicalSourceLock(j) {\n  // 1. analysisJson.sourceLock hat immer Vorrang\n  try {\n    const raw = j.analysisJson;\n    let aj = {};\n    if (raw && typeof raw === 'object') aj = raw;\n    else if (raw) aj = JSON.parse(String(raw));\n    if (aj.sourceLock && aj.sourceLock.sourceTopic) {\n      // FIX 2026-07-25: valid frisch aus faktenAgentJson ableiten statt aus dem eingefrorenen\n      // analysisJson.sourceLockValid - sl (Inhalt) bleibt bewusst aus analysisJson.sourceLock\n      // (siehe FIX 4.2/4.3 oben, canonical fuer den Prompt-Inhalt), nur die Gueltigkeits-\n      // Pruefung war anfaellig fuer denselben eingefrorenen-Flag-Bug wie ueberall sonst in\n      // der Kette (Repariere Legacy Visual-Status in P4 gibt Zeilen frei, ohne analysisJson\n      // selbst zu korrigieren).\n      let faktenValid = false;\n      try {\n        const rawFA = j.faktenAgentJson;\n        let fa = {};\n        if (rawFA && typeof rawFA === 'object') fa = rawFA;\n        else if (rawFA) fa = JSON.parse(String(rawFA));\n        faktenValid = !!(fa && fa.sourceTopic) && fa.parseError !== true;\n      } catch(e) {}\n      return { sl: aj.sourceLock, valid: faktenValid };\n    }\n  } catch(e) {}\n  // 2. Nur technischer Fallback: visualJson.sourceLock (falls analysisJson nicht lesbar)\n  try {\n    const raw = j.visualJson;\n    let vj = {};\n    if (raw && typeof raw === 'object') vj = raw;\n    else if (raw) vj = JSON.parse(String(raw));\n    if (vj.sourceLock && vj.sourceLock.sourceTopic) {\n      return { sl: vj.sourceLock, valid: false }; // visualJson-Fallback gilt nicht als validiert\n    }\n  } catch(e) {}\n  return { sl: null, valid: false };\n}\nfunction getSourceLockMP(j, vj, anchors) {\n  // imageTopicLock nur verwenden wenn bereits aus aktuellem canonical SL gebildet\n  if (j.imageTopicLock && j._imageTopicLockFromCanonical === true) {\n    return { topic: safeStr(j.imageTopicLock), conflict: safeStr(j.imageConflictLock) };\n  }\n  const { sl } = getCanonicalSourceLock(j);\n  if (sl && sl.sourceTopic) return { topic: sl.sourceTopic, conflict: sl.sourceConflict || '' };\n  // Kein canonical SL: nur Titel als letzter Fallback\n  return {\n    topic: safeStr(j.thema || j.title),\n    conflict: safeStr(anchors.satireKonfliktKonkret || vj.conflictPlain || '')\n  };\n}\nfunction _getSourceLockMP_UNUSED(j, vj, anchors) {\n  if (j.imageTopicLock) return { topic: safeStr(j.imageTopicLock), conflict: safeStr(j.imageConflictLock) };\n  if (vj.sourceLock && vj.sourceLock.sourceTopic) return { topic: vj.sourceLock.sourceTopic, conflict: vj.sourceLock.sourceConflict || '' };\n  try {\n    const aj = JSON.parse(j.analysisJson || '{}');\n    if (aj.sourceLock && aj.sourceLock.sourceTopic) return { topic: aj.sourceLock.sourceTopic, conflict: aj.sourceLock.sourceConflict || '' };\n  } catch(e) {}\n  return {\n    topic: safeStr(anchors.satireThemaKonkret || vj.topicPlain || j.thema || j.title),\n    conflict: safeStr(anchors.satireKonfliktKonkret || vj.conflictPlain || '')\n  };\n}\nconst { sl: _canonicalSL, valid: _canonicalSLValid } = getCanonicalSourceLock(j);\n\n// FIX 4.2: Abbruch wenn canonical Source-Lock fehlt oder ungültig\n// Kein Fallback auf Titel, Thema, satireThemaKonkret oder visualJson.topicPlain\nif (!_canonicalSL || !_canonicalSL.sourceTopic || !_canonicalSLValid) {\n  const blockReason = !_canonicalSL\n    ? 'blocked_by_source_lock: analysisJson.sourceLock fehlt oder unvollständig'\n    : !_canonicalSLValid\n      ? 'blocked_by_source_lock: analysisJson.sourceLockValid ist nicht true'\n      : 'blocked_by_source_lock: sourceTopic fehlt';\n  throw new Error(blockReason);\n}\n\nconst _topicConflict = getSourceLockMP(j, visualJson, anchors);\nconst topicPlain = _topicConflict.topic;\nconst conflictPlain = _topicConflict.conflict || safeStr(visualJson.conflictPlain || anchors.satireKonfliktKonkret);\n// FIX 4.3: imageTopicLock und imageConflictLock aus canonical SL setzen\nconst imageTopicLock = _canonicalSL ? _canonicalSL.sourceTopic : topicPlain;\nconst imageConflictLock = _canonicalSL ? (_canonicalSL.sourceConflict || conflictPlain) : conflictPlain;\nconst sourceLockJson = _canonicalSL ? JSON.stringify(_canonicalSL) : '{}';\nconst visibleAction = safeStr(visualJson.visibleAction || anchors.visualPflichthandlung);\nconst satiricalExaggeration = safeStr(visualJson.satiricalExaggeration || anchors.visualUeberzeichnung);\nconst recognitionSentence = safeStr(visualJson.recognitionSentence || anchors.visualErkennungssatz);\nconst satireMechanism = safeStr(visualJson.satireMechanism);\nconst whySatirical = safeStr(visualJson.whySatiricalWithoutText);\n\nconst prompt = [\n  'Erstelle ein quadratisches Bild (1024x1024 Pixel) als Grundlage für ein politisches Satire-Sharepic der Partei DIE PARTEI, Kreisverband Goslar.',\n  '',\n  'QUALITÄTSZIEL:',\n  'Das konkrete Sachthema soll durch reale Gegenstände und eine sichtbare Situation im Motiv erkennbar sein.',\n  'THEMENSPERRE: Zeige ausschließlich das folgende Thema und den folgenden Konflikt. Keine zusätzlichen politischen Themen, keine austauschbare Verwaltungssatire und keine neue Zielscheibe.',\n  'Headline und Subline dürfen den konkreten Konflikt erklären und die Satire vervollständigen. Entscheidend ist die verständliche Gesamtwirkung aus Text und Motiv.',\n  topicPlain ? 'Konkretes Thema: ' + short(topicPlain, 500) : '',\n  conflictPlain ? 'Konkreter Konflikt: ' + short(conflictPlain, 600) : '',\n  mustShow.length ? 'Zwingend sichtbar: ' + mustShow.slice(0, 6).join(' | ') : '',\n  visibleAction ? 'Zwingend sichtbare Handlung: ' + short(visibleAction, 600) : '',\n  satiricalExaggeration ? 'Satirische Überzeichnung: ' + short(satiricalExaggeration, 600) : '',\n  satireMechanism ? 'Satiremechanismus: ' + short(satireMechanism, 500) : '',\n  recognitionSentence ? 'Erkennungstest: ' + short(recognitionSentence, 600) : '',\n  whySatirical ? 'Satiretest ohne Text: ' + short(whySatirical, 600) : '',\n  '',\n  'AUFBAU DES BILDES (von oben nach unten):',\n  '',\n  '1. ROTER TEXTBALKEN (oberes Viertel, ca. 250px hoch):',\n  '   - Hintergrundfarbe: kräftiges Rot (#b7202a)',\n  '   - Headline (groß, fett, weiß, zentriert):',\n  '   ' + imageHeadline,\n  '   - Subline (mittelgroß, weiß, zentriert, direkt darunter):',\n  '   ' + imageSubline,\n  '   - Ausschließlich diese zwei Textzeilen; keine Small Note und keine Zusatzbeschriftung.',\n  '   - Text exakt wie vorgegeben, korrekte deutsche Rechtschreibung.',\n  '',\n  '2. BITTERBÖSES SATIRISCHES MOTIV (untere drei Viertel, ca. 750px hoch):',\n  '   - Inhalt: ' + basePrompt,\n  '   - Groteske kommunalpolitische Satire-Illustration im halb-realistischen Karikaturstil.',\n  '   - Das reale Thema muss sofort erkennbar sein; die sichtbare Überzeichnung muss eindeutig satirisch wirken.',\n  '   - Große ausdrucksstarke Augen und klare Körpersprache, soweit passend.',\n  '   - Goslar-/Harz-/Altstadt-Anmutung nur wenn thematisch passend.',\n  '   - Keine echten Personen, keine Logos, keine Wappen.',\n  '',\n  'ABSOLUT VERBOTEN IM MOTIVBEREICH:',\n  '   - KEIN Text, KEINE Schrift, KEINE Buchstaben, KEINE Zahlen.',\n  '   - Headline und Subline nicht im Motiv wiederholen.',\n  '   - Keine Beschriftungen auf Plakaten, Schildern oder Bannern.',\n  '   - Kein QR-Code, keine echten Personen oder Politikergesichter.'\n].filter(Boolean);\n\nif (attempt > 1) {\n  prompt.push('');\n  prompt.push('VERBINDLICHER NEUVERSUCH ' + attempt + ' VON ' + maxAttempts + ':');\n  prompt.push('Die vorherige Bildprüfung hat das Motiv abgelehnt. Korrigiere gezielt die folgenden Mängel:');\n  prompt.push(short(retryFeedback || 'Thema und Satire waren nicht eindeutig genug erkennbar.', 1400));\n  prompt.push('Headline und Subline wurden für diesen Versuch ebenfalls neu geprüft bzw. überarbeitet. Verwende exakt die aktuell vorgegebenen Textzeilen.');\n  prompt.push('Erzeuge eine deutlich andere, klarere Komposition. Pflichtobjekte und Sachthema dürfen nicht verloren gehen.');\n}\n\nif (negativeExtra) {\n  prompt.push('');\n  prompt.push('Zusätzlich vermeiden: ' + negativeExtra);\n}\n\nreturn [{\n  json: {\n    ...j,\n    vorgangKey,\n    // FIX 4.3: Canonical SL fields für QA und Topic-Lock\n    imageTopicLock,\n    imageConflictLock,\n    sourceLockJson,\n    _imageTopicLockFromCanonical: true,\n    nextcloudFolder,\n    instagramFolder,\n    imageHeadline,\n    imageSubline,\n    imageSmallNote,\n    imagePrompt: basePrompt,\n    imageNegativePrompt: negativeExtra,\n    motifPrompt: prompt.join('\\n'),\n    filenameRaw: 'raw_' + safeKey + imageRefreshSuffix + '.png',\n    filenameFinal: 'final_' + safeKey + imageRefreshSuffix + '.png',\n    imageWorkflowVersion: 'sharepic-mini-v17.2-qa-retry-same-image',\n    imageCreatedAt: new Date().toISOString(),\n    imageQaAttempt: attempt,\n    imageQaMaxAttempts: maxAttempts,\n    imageQaFeedback: retryFeedback\n  }\n}];"
       },
       "id": "041b5019-c9e8-49c8-89e7-e1306daa0f55",
       "name": "Bereite MotivPrompt vor",
@@ -4693,7 +4725,7 @@
           "name": "OpenAI account"
         }
       },
-      "onError": "continueRegularOutput",
+      "onError": "continueErrorOutput",
       "parameters": {
         "modelId": {
           "__rl": true,
@@ -4710,8 +4742,7 @@
         },
         "builtInTools": {},
         "options": {}
-      },
-      "onError": "continueErrorOutput"
+      }
     },
     {
       "id": "258ebfcf-a49e-481e-9cb5-b12c9168c497",
@@ -4848,7 +4879,10 @@
       "name": "History Bildfehler",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
-      "position": [1584, 368]
+      "position": [
+        1584,
+        368
+      ]
     },
     {
       "parameters": {
@@ -4859,7 +4893,10 @@
       "name": "Bereite Matrix Versandfehler vor",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2320, 1000]
+      "position": [
+        2320,
+        1000
+      ]
     },
     {
       "parameters": {
@@ -4897,7 +4934,10 @@
       "name": "DB Matrix Versandfehler",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
-      "position": [2560, 928]
+      "position": [
+        2560,
+        928
+      ]
     },
     {
       "parameters": {
@@ -4931,7 +4971,10 @@
       "name": "History Matrix Versandfehler",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
-      "position": [2560, 1088]
+      "position": [
+        2560,
+        1088
+      ]
     },
     {
       "parameters": {
@@ -4941,7 +4984,10 @@
       "name": "Bereite P6 Claims vor",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-600, 1168]
+      "position": [
+        -600,
+        1168
+      ]
     },
     {
       "parameters": {
@@ -4951,13 +4997,18 @@
           "mode": "list",
           "cachedResultName": "ALLRIS_Claim_Lease"
         },
-        "options": {"waitForSubWorkflow":true}
+        "options": {
+          "waitForSubWorkflow": true
+        }
       },
       "id": "293a4b5c-2222-4293-a4b5-000000000002",
       "name": "Erwerbe P6 Claim",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
-      "position": [-360, 1168]
+      "position": [
+        -360,
+        1168
+      ]
     },
     {
       "parameters": {
@@ -4967,7 +5018,10 @@
       "name": "Nur bestaetigte P6 Claims",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-120, 1168]
+      "position": [
+        -120,
+        1168
+      ]
     },
     {
       "parameters": {
@@ -4977,7 +5031,10 @@
       "name": "Bereite P6 Claim-Freigabe vor",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1328, 1200]
+      "position": [
+        1328,
+        1200
+      ]
     },
     {
       "parameters": {
@@ -4987,13 +5044,18 @@
           "mode": "list",
           "cachedResultName": "ALLRIS_Claim_Lease"
         },
-        "options": {"waitForSubWorkflow":true}
+        "options": {
+          "waitForSubWorkflow": true
+        }
       },
       "id": "293a4b5c-5555-4293-a4b5-000000000005",
       "name": "Release P6 Claim",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
-      "position": [1568, 1200]
+      "position": [
+        1568,
+        1200
+      ]
     }
   ],
   "pinData": {},
