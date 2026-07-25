@@ -491,7 +491,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const vorgangKey = String($json.vorgangKey || '').trim();\nif (!vorgangKey) return [];\nreturn [{ json: { vorgangKey, claimAction: 'release', claimOwner: `ALLRIS_P9_Mastodon_Publish:${$execution.id}` } }];"
+        "jsCode": "// FIX 2026-07-25: ALLRIS_Claim_Lease's \"Release eigener Claim\" matcht per id UND claim_owner -\n// ohne id laeuft die Freigabe stillschweigend ins Leere (0 Zeilen getroffen, kein Fehler), der\n// Claim bleibt bis zum natuerlichen 30-Minuten-Lease-Ablauf haengen (live beobachtet: 4 Testzeilen\n// blieben nach einem Testlauf dauerhaft geclaimt). Gleicher Fix in P3c/P3d/P3e/P5/P7/P8 nachgezogen.\nconst vorgangKey = String($json.vorgangKey || '').trim();\nconst id = $json.id;\nif (!vorgangKey || !id) return [];\nreturn [{ json: { id, vorgangKey, claimAction: 'release', claimOwner: `ALLRIS_P9_Mastodon_Publish:${$execution.id}` } }];"
       },
       "id": "f9a1b001-0000-4000-9000-000000000022",
       "name": "Bereite P9 Claim-Freigabe vor",

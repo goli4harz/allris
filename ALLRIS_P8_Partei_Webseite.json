@@ -892,7 +892,10 @@
       "name": "History Partei-Webseite Erfolg",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
-      "position": [1216, 1280]
+      "position": [
+        1216,
+        1280
+      ]
     },
     {
       "parameters": {
@@ -926,7 +929,10 @@
       "name": "History Partei-Webseite Fehler",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
-      "position": [1216, 1648]
+      "position": [
+        1216,
+        1648
+      ]
     },
     {
       "parameters": {
@@ -936,7 +942,10 @@
       "name": "Bereite P8 Claims vor",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [928, 1328]
+      "position": [
+        928,
+        1328
+      ]
     },
     {
       "parameters": {
@@ -954,7 +963,10 @@
       "name": "Erwerbe P8 Claim",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
-      "position": [1152, 1328]
+      "position": [
+        1152,
+        1328
+      ]
     },
     {
       "parameters": {
@@ -964,17 +976,23 @@
       "name": "Nur bestaetigte P8 Claims",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1376, 1328]
+      "position": [
+        1376,
+        1328
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const vorgangKey = String($json.vorgangKey || '').trim();\nif (!vorgangKey) throw new Error('[P8 Claim Release] vorgangKey fehlt.');\nreturn [{ json: { vorgangKey, claimAction: 'release', claimOwner: `ALLRIS_P8_Partei_Webseite:${$execution.id}` } }];"
+        "jsCode": "// FIX 2026-07-25 (systemweit gefunden ueber ALLRIS_P9_Mastodon_Publish): ALLRIS_Claim_Lease's\n// \"Release eigener Claim\" matcht per id UND claim_owner - ohne id lief die Freigabe bisher\n// stillschweigend ins Leere (0 Zeilen getroffen, kein Fehler), der Claim blieb bis zum\n// natuerlichen 30-Minuten-Lease-Ablauf haengen statt sofort freigegeben zu werden.\nconst vorgangKey = String($json.vorgangKey || '').trim();\nconst id = $json.id;\nif (!vorgangKey) throw new Error('[P8 Claim Release] vorgangKey fehlt.');\nif (!id) throw new Error('[P8 Claim Release] id fehlt - Release-Matching in ALLRIS_Claim_Lease braucht id + claim_owner, sonst laeuft die Freigabe stillschweigend ins Leere.');\nreturn [{ json: { id, vorgangKey, claimAction: 'release', claimOwner: `ALLRIS_P8_Partei_Webseite:${$execution.id}` } }];"
       },
       "id": "6fe86e58-8cb4-4ceb-8a99-7a8a5299e294",
       "name": "Bereite P8 Claim-Freigabe vor",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1456, 1600]
+      "position": [
+        1456,
+        1600
+      ]
     },
     {
       "parameters": {
@@ -992,7 +1010,10 @@
       "name": "Release P8 Claim",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
-      "position": [1680, 1600]
+      "position": [
+        1680,
+        1600
+      ]
     }
   ],
   "pinData": {},

@@ -1255,7 +1255,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const vorgangKey = String($json.vorgangKey || '').trim();\nif (!vorgangKey) throw new Error('[P7 Claim Release] vorgangKey fehlt.');\nreturn [{ json: { vorgangKey, claimAction: 'release', claimOwner: `ALLRIS_P7_WordPress_Publish:${$execution.id}` } }];"
+        "jsCode": "// FIX 2026-07-25 (systemweit gefunden ueber ALLRIS_P9_Mastodon_Publish): ALLRIS_Claim_Lease's\n// \"Release eigener Claim\" matcht per id UND claim_owner - ohne id lief die Freigabe bisher\n// stillschweigend ins Leere (0 Zeilen getroffen, kein Fehler), der Claim blieb bis zum\n// natuerlichen 30-Minuten-Lease-Ablauf haengen statt sofort freigegeben zu werden.\nconst vorgangKey = String($json.vorgangKey || '').trim();\nconst id = $json.id;\nif (!vorgangKey) throw new Error('[P7 Claim Release] vorgangKey fehlt.');\nif (!id) throw new Error('[P7 Claim Release] id fehlt - Release-Matching in ALLRIS_Claim_Lease braucht id + claim_owner, sonst laeuft die Freigabe stillschweigend ins Leere.');\nreturn [{ json: { id, vorgangKey, claimAction: 'release', claimOwner: `ALLRIS_P7_WordPress_Publish:${$execution.id}` } }];"
       },
       "id": "ac4a1195-82e8-45d1-a778-6c750ff145f3",
       "name": "Bereite P7 Claim-Freigabe vor",
