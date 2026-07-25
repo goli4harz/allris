@@ -887,7 +887,9 @@
           "id": "RiT1gwJpQWzSo6NO",
           "name": "OpenAI account"
         }
-      }
+      },
+      "retryOnFail": true,
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
