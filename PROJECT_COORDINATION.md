@@ -78,6 +78,47 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 | BLK-004 | TASK-011 | ALLRIS-Übersichtsrequest wird aus n8n sowohl direkt als auch über `172.16.1.5:3128` nach drei Timeouts abgebrochen; Zielserver/Firewall/WAF bzw. TLS-Verbindung extern prüfen. | Infrastruktur / Goslar-Server | offen |
 | BLK-005 | TASK-002 / TASK-009 / TASK-012 | Neu aktivierte n8n-Schedules erzeugen keine Ausführung: reguläres `:50`, explizites `hoursInterval=1` und kontrollierter Custom-Cron blieben ohne Execution. Workflow jeweils aktiv und `activeVersionId=versionId`; n8n Scheduler-/Worker-Logs und Dienstzustand auf dem Host prüfen beziehungsweise Dienst kontrolliert neu starten. | n8n-Infrastruktur | offen |
 
+### 2026-07-25 – Claude – Blockade-Alert im falschen Matrix-Raum; keine Rückmeldung bei unerkanntem Code
+
+- Ziel/Aufgabe: Nutzer meldete "cool wäre, wenn ich eine Antwort bekomme,
+  wenn der Reader 2026-109-01-OK einliest, ich weiß immer nicht, ob das
+  geklappt hat" - chronisches Problem, nicht nur dieser eine Fall.
+- Befund: `Send Matrix Blockiert-Alert` in `ALLRIS_P4_Content_Reaktion.json`
+  postete in Raum B (`!tMRdHxOLwIKDiQlIRz`, der normale Content-
+  Ankündigungsraum, gleiche URL wie `Send Matrix Raum B`), waehrend
+  `Matrix Nachrichten lesen`/`Sende Blockade-Bestätigung` in
+  `ALLRIS_P5b_Matrix_Headline_Reader.json` ausschliesslich den
+  interaktiven Antwort-Raum (`!COxTeLJyPszYlaHbIx`, denselben wie P3es
+  Kernbotschaft-Umfragen) lesen/beantworten. Der Nutzer antwortet
+  natuerlicherweise im Raum, in dem die Alert-Nachricht steht (Raum B) -
+  P5b hat diesen Raum nie gelesen, die Antwort verschwand spurlos. Kein
+  Zusammenhang mit den beiden fruehreren Raumfixes von heute Nacht
+  (P4-Content-Reaktion vs. P5b-Lesepfad fuer die Blockaden-Antwort
+  allgemein) - diese spezifische Fehlpaarung (Alert-Sende-Raum vs.
+  Antwort-Lese-Raum) bestand weiterhin.
+- Fix 1 (Root Cause): `Send Matrix Blockiert-Alert`s URL auf
+  `!COxTeLJyPszYlaHbIx` umgestellt - sendet jetzt in denselben Raum, den
+  P5b liest und in dem auch alle anderen interaktiven Matrix-Antworten
+  (Kernbotschaft-Umfrage) laufen.
+- Fix 2 (Rueckmeldungs-Garantie): `Finde Blockade-Antwort` (P5b) gab bei
+  einer wie `-OK`/`-SKIP` aussehenden, aber zu keiner aktuell offenen
+  Blockade passenden Nachricht (Tippfehler, falsche Vorgangsnummer, Zeile
+  inzwischen anderweitig nicht mehr blockiert) bisher `[]` zurueck -
+  komplette Stille, kein Unterschied zu "Nachricht nie gelesen". Jetzt wird
+  in diesem Fall eine Matrix-Rueckmeldung gesendet ("passt zu keiner
+  aktuell offenen Blockade").
+- Betroffene Dateien/Workflows: `ALLRIS_P4_Content_Reaktion.json` (Node
+  `Send Matrix Blockiert-Alert`), `ALLRIS_P5b_Matrix_Headline_Reader.json`
+  (Node `Finde Blockade-Antwort`).
+- Tests/Validierung: Node-Skript mit striktem `JSON.parse`, Drift-Check,
+  Live-PUT beider Workflows erfolgreich, Post-Push-GET bestaetigt neue
+  Raum-ID bzw. neuen Code-Pfad, Node-Zahl je Datei unveraendert (55 bzw.
+  17), 0 Mojibake. **Kein Live-Test mit einer echten Matrix-Antwort.**
+- Nächster konkreter Schritt: Nutzer antwortet erneut mit
+  `2026-109-01-OK` (jetzt im richtigen Raum sichtbar/lesbar) und bestaetigt,
+  dass eine Rueckmeldung ankommt - erster echter Test dieses gesamten
+  Blockaden-Feature-Zweigs inkl. der heutigen sourceLock-Konsolidierung.
+
 ### 2026-07-25 – Claude – Grosse Konsolidierung: sourceLock/visualAnchors-Gueltigkeit ueberall frisch aus faktenAgentJson
 
 - Ziel/Aufgabe: auf ausdruecklichen Nutzerwunsch ("wir muessen das
