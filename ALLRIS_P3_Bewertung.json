@@ -729,6 +729,11 @@
             "node": "Nächster Vorgang",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Bereite P3 Claim-Freigabe vor",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -749,6 +754,22 @@
         [
           {
             "node": "Sende Nextcloud-Fehler Matrix-Meldung",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sende Nextcloud-Fehler Matrix-Meldung": {
+      "main": [
+        [
+          {
+            "node": "Nächster Vorgang",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Bereite P3 Claim-Freigabe vor",
             "type": "main",
             "index": 0
           }
