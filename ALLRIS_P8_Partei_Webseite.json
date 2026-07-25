@@ -790,7 +790,8 @@
         "additionalFields": {
           "content": "={{ $json.wpContent }}",
           "slug": "={{ $json.wpSlug }}",
-          "status": "publish"
+          "status": "publish",
+          "featuredMedia": "={{ $json.wpFeaturedMediaId || 0 }}"
         }
       },
       "type": "n8n-nodes-base.wordpress",
