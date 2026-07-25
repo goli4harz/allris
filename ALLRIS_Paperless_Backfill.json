@@ -1917,7 +1917,10 @@
       "name": "History Paperless Erfolg",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
-      "position": [9984, 2864]
+      "position": [
+        9984,
+        2864
+      ]
     },
     {
       "parameters": {
@@ -1943,7 +1946,10 @@
       "name": "Lese Vorgang fuer Paperless Fehler",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
-      "position": [9728, 3264]
+      "position": [
+        9728,
+        3264
+      ]
     },
     {
       "parameters": {
@@ -1954,7 +1960,10 @@
       "name": "Bereite Paperless Fehler vor",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [9984, 3264]
+      "position": [
+        9984,
+        3264
+      ]
     },
     {
       "parameters": {
@@ -1992,7 +2001,10 @@
       "name": "DB Paperless Fehler",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
-      "position": [10240, 3184]
+      "position": [
+        10240,
+        3184
+      ]
     },
     {
       "parameters": {
@@ -2026,7 +2038,10 @@
       "name": "History Paperless Fehler",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
-      "position": [10240, 3360]
+      "position": [
+        10240,
+        3360
+      ]
     },
     {
       "parameters": {
@@ -2057,7 +2072,10 @@
       "name": "Bereite Paperless Claims vor",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [8896, 2784]
+      "position": [
+        8896,
+        2784
+      ]
     },
     {
       "parameters": {
@@ -2075,7 +2093,10 @@
       "name": "Erwerbe Paperless Claim",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
-      "position": [9120, 2784]
+      "position": [
+        9120,
+        2784
+      ]
     },
     {
       "parameters": {
@@ -2085,17 +2106,23 @@
       "name": "Nur bestaetigte Paperless Claims",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [9344, 2784]
+      "position": [
+        9344,
+        2784
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const vorgangKey = String($json.vorgangKey || '').trim();\nif (!vorgangKey) throw new Error('[Paperless Claim Release] vorgangKey fehlt.');\nreturn [{ json: { vorgangKey, claimAction: 'release', claimOwner: `ALLRIS_Paperless_Backfill:${$execution.id}` } }];"
+        "jsCode": "// FIX 2026-07-25 (systemweit gefunden ueber ALLRIS_P9_Mastodon_Publish, hier nachgezogen weil beim\n// gleichen Muster uebersehen): ALLRIS_Claim_Lease's \"Release eigener Claim\" matcht per id UND\n// claim_owner - ohne id lief die Freigabe bisher stillschweigend ins Leere (0 Zeilen getroffen,\n// kein Fehler), der Claim blieb bis zum natuerlichen Lease-Ablauf haengen statt sofort freigegeben\n// zu werden.\nconst vorgangKey = String($json.vorgangKey || '').trim();\nconst id = $json.id;\nif (!vorgangKey) throw new Error('[Paperless Claim Release] vorgangKey fehlt.');\nif (!id) throw new Error('[Paperless Claim Release] id fehlt - Release-Matching in ALLRIS_Claim_Lease braucht id + claim_owner, sonst laeuft die Freigabe stillschweigend ins Leere.');\nreturn [{ json: { id, vorgangKey, claimAction: 'release', claimOwner: `ALLRIS_Paperless_Backfill:${$execution.id}` } }];"
       },
       "id": "54ba449a-444b-4813-8a60-9fa145ae86f4",
       "name": "Bereite Paperless Claim-Freigabe vor",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [10496, 3264]
+      "position": [
+        10496,
+        3264
+      ]
     },
     {
       "parameters": {
@@ -2113,7 +2140,10 @@
       "name": "Release Paperless Claim",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
-      "position": [10720, 3264]
+      "position": [
+        10720,
+        3264
+      ]
     }
   ],
   "pinData": {},

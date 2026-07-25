@@ -2786,7 +2786,10 @@
       "name": "History P3 Fehler",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
-      "position": [25328, 7136]
+      "position": [
+        25328,
+        7136
+      ]
     },
     {
       "parameters": {
@@ -2796,7 +2799,10 @@
       "name": "Bereite P3 Claims vor",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [24016, 6144],
+      "position": [
+        24016,
+        6144
+      ],
       "notes": "Ueberspringt fremde, noch gueltige Leases. Freie und abgelaufene Claims werden mit exakt gelesenen Altwerten an den CAS-Helper gegeben."
     },
     {
@@ -2807,13 +2813,18 @@
           "mode": "list",
           "cachedResultName": "ALLRIS_Claim_Lease"
         },
-        "options": {"waitForSubWorkflow":true}
+        "options": {
+          "waitForSubWorkflow": true
+        }
       },
       "id": "d4e5f607-2222-4d4e-8f50-000000000002",
       "name": "Erwerbe P3 Claim",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
-      "position": [24272, 6144]
+      "position": [
+        24272,
+        6144
+      ]
     },
     {
       "parameters": {
@@ -2823,17 +2834,23 @@
       "name": "Nur bestaetigte P3 Claims",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [24528, 6144]
+      "position": [
+        24528,
+        6144
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const vorgangKey = String($json.vorgangKey || '').trim();\nif (!vorgangKey) throw new Error('[P3 Claim Release] vorgangKey fehlt.');\nreturn [{ json: { vorgangKey, claimAction: 'release', claimOwner: `ALLRIS_P3_Bewertung:${$execution.id}` } }];"
+        "jsCode": "// FIX 2026-07-25 (systemweit gefunden ueber ALLRIS_P9_Mastodon_Publish, hier nachgezogen weil beim\n// gleichen Muster uebersehen): ALLRIS_Claim_Lease's \"Release eigener Claim\" matcht per id UND\n// claim_owner - ohne id lief die Freigabe bisher stillschweigend ins Leere (0 Zeilen getroffen,\n// kein Fehler), der Claim blieb bis zum natuerlichen Lease-Ablauf haengen statt sofort freigegeben\n// zu werden.\nconst vorgangKey = String($json.vorgangKey || '').trim();\nconst id = $json.id;\nif (!vorgangKey) throw new Error('[P3 Claim Release] vorgangKey fehlt.');\nif (!id) throw new Error('[P3 Claim Release] id fehlt - Release-Matching in ALLRIS_Claim_Lease braucht id + claim_owner, sonst laeuft die Freigabe stillschweigend ins Leere.');\nreturn [{ json: { id, vorgangKey, claimAction: 'release', claimOwner: `ALLRIS_P3_Bewertung:${$execution.id}` } }];"
       },
       "id": "d4e5f607-4444-4d4e-8f50-000000000004",
       "name": "Bereite P3 Claim-Freigabe vor",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [26896, 7440]
+      "position": [
+        26896,
+        7440
+      ]
     },
     {
       "parameters": {
@@ -2843,13 +2860,18 @@
           "mode": "list",
           "cachedResultName": "ALLRIS_Claim_Lease"
         },
-        "options": {"waitForSubWorkflow":true}
+        "options": {
+          "waitForSubWorkflow": true
+        }
       },
       "id": "d4e5f607-5555-4d4e-8f50-000000000005",
       "name": "Release P3 Claim",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
-      "position": [27152, 7440]
+      "position": [
+        27152,
+        7440
+      ]
     }
   ],
   "pinData": {},

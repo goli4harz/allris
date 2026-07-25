@@ -5025,7 +5025,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const vorgangKey = String($json.vorgangKey || '').trim();\nif (!vorgangKey) throw new Error('[P6 Claim Release] vorgangKey fehlt.');\nreturn [{ json: { vorgangKey, claimAction: 'release', claimOwner: `ALLRIS_P6_Bildgenerierung:${$execution.id}` } }];"
+        "jsCode": "// FIX 2026-07-25 (systemweit gefunden ueber ALLRIS_P9_Mastodon_Publish, hier nachgezogen weil beim\n// gleichen Muster uebersehen): ALLRIS_Claim_Lease's \"Release eigener Claim\" matcht per id UND\n// claim_owner - ohne id lief die Freigabe bisher stillschweigend ins Leere (0 Zeilen getroffen,\n// kein Fehler), der Claim blieb bis zum natuerlichen Lease-Ablauf haengen statt sofort freigegeben\n// zu werden.\nconst vorgangKey = String($json.vorgangKey || '').trim();\nconst id = $json.id;\nif (!vorgangKey) throw new Error('[P6 Claim Release] vorgangKey fehlt.');\nif (!id) throw new Error('[P6 Claim Release] id fehlt - Release-Matching in ALLRIS_Claim_Lease braucht id + claim_owner, sonst laeuft die Freigabe stillschweigend ins Leere.');\nreturn [{ json: { id, vorgangKey, claimAction: 'release', claimOwner: `ALLRIS_P6_Bildgenerierung:${$execution.id}` } }];"
       },
       "id": "293a4b5c-4444-4293-a4b5-000000000004",
       "name": "Bereite P6 Claim-Freigabe vor",
