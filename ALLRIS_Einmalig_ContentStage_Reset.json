@@ -1,0 +1,130 @@
+{
+  "updatedAt": "2026-07-25T07:12:54.199Z",
+  "createdAt": "2026-07-25T07:12:54.199Z",
+  "id": "dxpxH4xxZKqwM7Da",
+  "name": "ALLRIS_Einmalig_ContentStage_Reset",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "e1a2b3c4-0001-4aaa-9bbb-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Traegt hier jeweils die Zeilen ein, deren contentStage manuell zurueckgesetzt werden soll\n// (z.B. Zeilen, die P7 mit blosser Kurzfassung \"erledigt\" hat, bevor P4 echten Content\n// erzeugen konnte - siehe Fix \"P7: Wettlauf gegen P4\" vom 2026-07-25). Ein Item pro Zeile,\n// die dataTable-Node darunter aktualisiert dann jede Zeile einzeln per vorgangKey-Match.\nconst TARGETS = [\n  { vorgangKey: 'vol_10644', vorgangsnummer: '2026/139' },\n  { vorgangKey: 'vol_10700', vorgangsnummer: '2026/175' },\n  { vorgangKey: 'vol_10707', vorgangsnummer: '2026/180' }\n];\n\nif (!TARGETS.length) {\n  throw new Error('[ContentStage-Reset] TARGETS im Node \"Konfiguriere Ziele\" befuellen.');\n}\n\nreturn TARGETS.map(t => ({ json: { vorgangKey: t.vorgangKey, vorgangsnummer: t.vorgangsnummer, contentStage: 'needs_content' } }));"
+      },
+      "id": "e1a2b3c4-0002-4aaa-9bbb-000000000002",
+      "name": "Konfiguriere Ziele",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "contentStage": "={{ $json.contentStage }}"
+          },
+          "matchingColumns": [
+            "vorgangKey"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "e1a2b3c4-0003-4aaa-9bbb-000000000003",
+      "name": "Setze contentStage zurueck",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        440,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Konfiguriere Ziele",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Konfiguriere Ziele": {
+      "main": [
+        [
+          {
+            "node": "Setze contentStage zurueck",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "33382d9c-15f4-4e6d-9aa2-b9c31b989680",
+  "activeVersionId": null,
+  "versionCounter": 1,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-07-25T07:12:54.199Z",
+      "createdAt": "2026-07-25T07:12:54.199Z",
+      "role": "workflow:owner",
+      "workflowId": "dxpxH4xxZKqwM7Da",
+      "projectId": "CrnegVcMvlcRU0OP",
+      "project": {
+        "updatedAt": "2026-05-23T11:38:39.411Z",
+        "createdAt": "2026-05-23T11:33:40.374Z",
+        "id": "CrnegVcMvlcRU0OP",
+        "name": "Oliver Lietz <oliver.lietz@golietz.de>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "66557ab1-dd68-4186-b616-ecaa8f1bea61"
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": null
+}
