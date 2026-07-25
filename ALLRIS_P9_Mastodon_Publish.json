@@ -1,0 +1,827 @@
+{
+  "updatedAt": "2026-07-25T07:42:26.016Z",
+  "createdAt": "2026-07-25T07:42:26.016Z",
+  "id": "Yy7W7WNmpJLnllr4",
+  "name": "ALLRIS_P9_Mastodon_Publish",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1,
+              "triggerAtMinute": 2
+            }
+          ]
+        }
+      },
+      "id": "f9a1b001-0000-4000-9000-000000000001",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": []
+        },
+        "returnAll": true
+      },
+      "id": "f9a1b001-0000-4000-9000-000000000002",
+      "name": "Hole alle fuer Mastodon-Pruefung",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction safeBool(v) {\n  if (v === true) return true;\n  if (typeof v === 'string') return v.trim().toLowerCase() === 'true';\n  return false;\n}\nconst items = $input.all();\nreturn items.filter(item => {\n  const j = item.json || {};\n  // Gleiche Kohorte wie ALLRIS_P8_Partei_Webseite: nur satiretaugliche Vorgaenge\n  // (sharepicNeedStage=topic_ok), erst wenn P4 echten Satire-Content erzeugt hat.\n  // instagramCaption direkt geprueft (der tatsaechlich gepostete Text), nicht nur\n  // contentStage - selbe Lehre wie aus dem P7-Wettlauf-Bug vom selben Tag: nur ein\n  // echtes Content-Feld ist ein verlaessliches Gate, kein Status-Enum.\n  if (safeStr(j.sharepicNeedStage) !== 'topic_ok') return false;\n  if (!safeStr(j.instagramCaption)) return false;\n  if (safeBool(j.mastodonPosted)) return false;\n  if (!safeStr(j.vorgangKey)) return false;\n  return true;\n});"
+      },
+      "id": "f9a1b001-0000-4000-9000-000000000003",
+      "name": "Filter Mastodon-Kandidaten",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [...items].sort((a, b) => {\n  const ta = Date.parse(a.json.lastAnalysisAt || '') || 0;\n  const tb = Date.parse(b.json.lastAnalysisAt || '') || 0;\n  return ta - tb;\n});"
+      },
+      "id": "f9a1b001-0000-4000-9000-000000000004",
+      "name": "Sortiere Vorgaenge",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = Date.now();\nconst owner = `ALLRIS_P9_Mastodon_Publish:${$execution.id}`;\nreturn items\n  .filter(item => {\n    const j = item.json || {};\n    const oldOwner = String(j.claim_owner || '').trim();\n    const expires = Date.parse(String(j.claim_expires_at || ''));\n    return !oldOwner || !Number.isFinite(expires) || expires <= now;\n  })\n  .map(item => ({ json: {\n    ...item.json,\n    claimAction: 'acquire',\n    claimOwner: owner,\n    claimStage: 'publication',\n    leaseMinutes: 30,\n    expectedClaimOwner: item.json.claim_owner ?? null,\n    expectedClaimExpiresAt: item.json.claim_expires_at ?? null\n  } }));"
+      },
+      "id": "f9a1b001-0000-4000-9000-000000000005",
+      "name": "Bereite P9 Claims vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D7cmBsy3exuOkBd9",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Claim_Lease"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "f9a1b001-0000-4000-9000-000000000006",
+      "name": "Erwerbe P9 Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1100,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.filter(item => item.json?.claimAcquired === true);"
+      },
+      "id": "f9a1b001-0000-4000-9000-000000000007",
+      "name": "Nur bestaetigte P9 Claims",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "f9a1b001-0000-4000-9000-000000000008",
+      "name": "Loop Vorgaenge",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1540,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n// Vorlaeufiger Wert, sobald die Ziel-Mastodon-Instanz feststeht ggf. anpassen\n// (Standard-Limit vieler Instanzen ist 500 Zeichen, manche erlauben mehr).\nconst MASTODON_CHAR_LIMIT = 500;\n\nconst j = $json;\nconst caption = safeStr(j.instagramCaption) || safeStr(j.facebookPost);\nlet tootText = caption;\n\nif (tootText.length > MASTODON_CHAR_LIMIT) {\n  const cut = tootText.slice(0, MASTODON_CHAR_LIMIT - 1);\n  const lastBreak = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('! '), cut.lastIndexOf('? '));\n  tootText = (lastBreak > MASTODON_CHAR_LIMIT * 0.5 ? cut.slice(0, lastBreak + 1) : cut) + '…';\n}\n\nconst hasImage = !!safeStr(j.imageFinalPath);\n\nreturn { json: { ...j, tootText, hasImage } };"
+      },
+      "id": "f9a1b001-0000-4000-9000-000000000009",
+      "name": "Baue Toot-Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "has-image",
+              "leftValue": "={{ $json.hasImage }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f9a1b001-0000-4000-9000-000000000010",
+      "name": "IF Bild vorhanden?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1980,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "path": "={{ $json.imageFinalPath }}"
+      },
+      "id": "f9a1b001-0000-4000-9000-000000000011",
+      "name": "NC Lade finales Bild",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [
+        2200,
+        -120
+      ],
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://MASTODON-INSTANZ-HIER-EINTRAGEN.example/api/v2/media",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "f9a1b001-0000-4000-9000-000000000012",
+      "name": "Upload Media zu Mastodon",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2420,
+        -120
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const original = $('Baue Toot-Text').itemMatching($itemIndex).json;\nconst uploadResult = $json || {};\nreturn { json: { ...original, mastodonMediaId: uploadResult.id || null } };"
+      },
+      "id": "f9a1b001-0000-4000-9000-000000000013",
+      "name": "Stelle Kontext nach Media-Upload wieder her",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://MASTODON-INSTANZ-HIER-EINTRAGEN.example/api/v1/statuses",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "jsonBody": "={{ JSON.stringify({ status: $json.tootText, visibility: \"public\", media_ids: $json.mastodonMediaId ? [$json.mastodonMediaId] : undefined }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "f9a1b001-0000-4000-9000-000000000014",
+      "name": "Poste Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2860,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const original = $('Baue Toot-Text').itemMatching($itemIndex).json;\nconst result = $json || {};\nreturn { json: {\n  ...original,\n  mastodonPostId: result.id || null,\n  mastodonPostUrl: result.url || '',\n  mastodonError: result.url ? '' : (result.error || result.message || 'Unbekannter Fehler beim Mastodon-Post')\n} };"
+      },
+      "id": "f9a1b001-0000-4000-9000-000000000015",
+      "name": "Stelle Kontext nach Post-Erstellung wieder her",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3080,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "post-ok",
+              "leftValue": "={{ $json.mastodonPostUrl }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f9a1b001-0000-4000-9000-000000000016",
+      "name": "IF Post erfolgreich?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3300,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "mastodonPosted": "={{ true }}",
+            "mastodonPostedAt": "={{ $now.toISO() }}",
+            "mastodonPostUrl": "={{ $json.mastodonPostUrl }}",
+            "mastodonError": ""
+          },
+          "matchingColumns": [
+            "vorgangKey"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "f9a1b001-0000-4000-9000-000000000017",
+      "name": "Speichere Erfolg (Mastodon)",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3520,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "mastodonPosted": "={{ false }}",
+            "mastodonError": "={{ String($json.mastodonError || \"\").slice(0, 500) }}"
+          },
+          "matchingColumns": [
+            "vorgangKey"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "f9a1b001-0000-4000-9000-000000000018",
+      "name": "Speichere Fehler (Mastodon)",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3520,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "value": "Q54kptpOrbug6bJu",
+          "mode": "list",
+          "cachedResultName": "allris_state_history"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_id": "={{ \"p9-\" + $execution.id + \"-\" + $json.vorgangKey + \"-success\" }}",
+            "vorgang_key": "={{ $json.vorgangKey }}",
+            "pipeline_stage": "mastodon",
+            "old_state": "",
+            "new_state": "posted",
+            "reason_code": "",
+            "reason_message": "={{ $json.mastodonPostUrl }}",
+            "workflow_name": "ALLRIS_P9_Mastodon_Publish",
+            "workflow_execution_id": "={{ $execution.id }}",
+            "created_at": "={{ $now.toISO() }}",
+            "metadata_json": "={{ JSON.stringify({ mastodonPostId: $json.mastodonPostId }) }}"
+          },
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "f9a1b001-0000-4000-9000-000000000019",
+      "name": "History Mastodon Erfolg",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3740,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "value": "Q54kptpOrbug6bJu",
+          "mode": "list",
+          "cachedResultName": "allris_state_history"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_id": "={{ \"p9-\" + $execution.id + \"-\" + $json.vorgangKey + \"-error\" }}",
+            "vorgang_key": "={{ $json.vorgangKey }}",
+            "pipeline_stage": "mastodon",
+            "old_state": "",
+            "new_state": "error",
+            "reason_code": "mastodon_publish_failed",
+            "reason_message": "={{ String($json.mastodonError || \"\").slice(0, 500) }}",
+            "workflow_name": "ALLRIS_P9_Mastodon_Publish",
+            "workflow_execution_id": "={{ $execution.id }}",
+            "created_at": "={{ $now.toISO() }}",
+            "metadata_json": "{}"
+          },
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "f9a1b001-0000-4000-9000-000000000020",
+      "name": "History Mastodon Fehler",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3740,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [$input.item];"
+      },
+      "id": "f9a1b001-0000-4000-9000-000000000021",
+      "name": "Naechster Vorgang",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3960,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const vorgangKey = String($json.vorgangKey || '').trim();\nif (!vorgangKey) return [];\nreturn [{ json: { vorgangKey, claimAction: 'release', claimOwner: `ALLRIS_P9_Mastodon_Publish:${$execution.id}` } }];"
+      },
+      "id": "f9a1b001-0000-4000-9000-000000000022",
+      "name": "Bereite P9 Claim-Freigabe vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3960,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D7cmBsy3exuOkBd9",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Claim_Lease"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "f9a1b001-0000-4000-9000-000000000023",
+      "name": "Release P9 Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        4180,
+        60
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hole alle fuer Mastodon-Pruefung",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole alle fuer Mastodon-Pruefung": {
+      "main": [
+        [
+          {
+            "node": "Filter Mastodon-Kandidaten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Mastodon-Kandidaten": {
+      "main": [
+        [
+          {
+            "node": "Sortiere Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sortiere Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Bereite P9 Claims vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereite P9 Claims vor": {
+      "main": [
+        [
+          {
+            "node": "Erwerbe P9 Claim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Erwerbe P9 Claim": {
+      "main": [
+        [
+          {
+            "node": "Nur bestaetigte P9 Claims",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nur bestaetigte P9 Claims": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Vorgaenge": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Baue Toot-Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue Toot-Text": {
+      "main": [
+        [
+          {
+            "node": "IF Bild vorhanden?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Bild vorhanden?": {
+      "main": [
+        [
+          {
+            "node": "NC Lade finales Bild",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Poste Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Lade finales Bild": {
+      "main": [
+        [
+          {
+            "node": "Upload Media zu Mastodon",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Media zu Mastodon": {
+      "main": [
+        [
+          {
+            "node": "Stelle Kontext nach Media-Upload wieder her",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stelle Kontext nach Media-Upload wieder her": {
+      "main": [
+        [
+          {
+            "node": "Poste Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Poste Status": {
+      "main": [
+        [
+          {
+            "node": "Stelle Kontext nach Post-Erstellung wieder her",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stelle Kontext nach Post-Erstellung wieder her": {
+      "main": [
+        [
+          {
+            "node": "IF Post erfolgreich?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Post erfolgreich?": {
+      "main": [
+        [
+          {
+            "node": "Speichere Erfolg (Mastodon)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Speichere Fehler (Mastodon)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Speichere Erfolg (Mastodon)": {
+      "main": [
+        [
+          {
+            "node": "History Mastodon Erfolg",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Bereite P9 Claim-Freigabe vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Speichere Fehler (Mastodon)": {
+      "main": [
+        [
+          {
+            "node": "History Mastodon Fehler",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Bereite P9 Claim-Freigabe vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "History Mastodon Erfolg": {
+      "main": [
+        [
+          {
+            "node": "Naechster Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "History Mastodon Fehler": {
+      "main": [
+        [
+          {
+            "node": "Naechster Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Naechster Vorgang": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereite P9 Claim-Freigabe vor": {
+      "main": [
+        [
+          {
+            "node": "Release P9 Claim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "86f28412-624c-4477-9f4a-2e6401ed7fdc",
+  "activeVersionId": null,
+  "versionCounter": 1,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-07-25T07:42:26.016Z",
+      "createdAt": "2026-07-25T07:42:26.016Z",
+      "role": "workflow:owner",
+      "workflowId": "Yy7W7WNmpJLnllr4",
+      "projectId": "CrnegVcMvlcRU0OP",
+      "project": {
+        "updatedAt": "2026-05-23T11:38:39.411Z",
+        "createdAt": "2026-05-23T11:33:40.374Z",
+        "id": "CrnegVcMvlcRU0OP",
+        "name": "Oliver Lietz <oliver.lietz@golietz.de>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "66557ab1-dd68-4186-b616-ecaa8f1bea61"
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": null
+}
