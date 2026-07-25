@@ -78,6 +78,94 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 | BLK-004 | TASK-011 | ALLRIS-Übersichtsrequest wird aus n8n sowohl direkt als auch über `172.16.1.5:3128` nach drei Timeouts abgebrochen; Zielserver/Firewall/WAF bzw. TLS-Verbindung extern prüfen. | Infrastruktur / Goslar-Server | offen |
 | BLK-005 | TASK-002 / TASK-009 / TASK-012 | Neu aktivierte n8n-Schedules erzeugen keine Ausführung: reguläres `:50`, explizites `hoursInterval=1` und kontrollierter Custom-Cron blieben ohne Execution. Workflow jeweils aktiv und `activeVersionId=versionId`; n8n Scheduler-/Worker-Logs und Dienstzustand auf dem Host prüfen beziehungsweise Dienst kontrolliert neu starten. | n8n-Infrastruktur | offen |
 
+### 2026-07-25 – Claude – Grosse Konsolidierung: sourceLock/visualAnchors-Gueltigkeit ueberall frisch aus faktenAgentJson
+
+- Ziel/Aufgabe: auf ausdruecklichen Nutzerwunsch ("wir muessen das
+  glattziehen, sonst hakt es immer wieder an dieser Stelle") die in den
+  beiden vorherigen Eintraegen dieses Tages als offen markierte P4-interne
+  Inkonsistenz (3 divergierende sourceLock-/visualAnchors-Gueltigkeits-
+  definitionen) vollstaendig durchgezogen, nicht nur den einen -OK-
+  Konsumenten in P5b.
+- Befund 1 (Datenfluss-Bug, hoechster Hebel): `Parse Content JSON` in P4
+  rekonstruiert `analysisJson` nach dem KI-Aufruf aus `Prepare AI Content
+  Input`/`Loop Reaktions-Vorgänge` - beide VOR `Prüfe Source-Lock
+  (Content)`, das dazwischen frisches `analysisJson.sourceLock`/
+  `sourceLockValid` aus `faktenAgentJson` schreibt. Der frisch berechnete
+  Wert wurde dadurch bei JEDEM erfolgreichen P4-Durchlauf stillschweigend
+  verworfen, nicht nur bei bereits blockierten Zeilen. Fix: `Prüfe
+  Source-Lock (Content)` als vorrangige Quelle in die Wiederherstellungs-
+  kette aufgenommen.
+- Befund 2: `Repariere Legacy Visual-Status` und `Filtere unbenachrichtigte
+  Blockaden` (P4) sowie `Bereite MotivPrompt vor`/`Filter gültige
+  Datensätze` (P6) und `Prüfe Content-Abschluss`/`Prepare Visual Prompt
+  Input` (P5) pruefen sourceLock/visualAnchors alle direkt gegen das
+  eingefrorene `analysisJson.sourceLock`/`sourceLockValid` bzw. hatten die
+  identische redundante `visualAnchorsValid`-Pruefung wie der P5b-
+  `-OK`-Handler vor dem allerersten Fix von heute. Besonders relevant:
+  `Repariere Legacy Visual-Status` (der einzige automatische, wieder-
+  kehrende Reparatur-Sweep) korrigiert bei Freigabe NICHT `analysisJson`
+  selbst - nur `sharepicNeedStage`/`visualDecisionReason` werden
+  geschrieben. Eine so reparierte Zeile waere in P5/P6 sofort wieder am
+  selben eingefrorenen Flag haengengeblieben, ohne den entsprechenden Fix
+  dort.
+- Befund 3: `Prüfe Repair-Bedarf`/`Prüfe Guard-Repair-Bedarf` (P3b) und
+  `Filter Abschluss-Kandidaten` (P3c) - Repair-Eligibility-Gates - hatten
+  dasselbe Muster (`slOk`/`vaOk` verlangten zusaetzlich das eingefrorene
+  Flag). Fehlerrichtung dort meist harmlos (verpasste statt faelschlich
+  ausgeloeste Reparatur), aber fuer Konsistenz mitgezogen.
+- NICHT veraendert, bewusst: `ALLRIS_P3_Bewertung`s "Parse Analyse JSON"
+  (Erstberechnung, keine faktenAgentJson-Alternative vorhanden zu diesem
+  Zeitpunkt), `ALLRIS_P3d_Agenten_Kette`s "Eignungs-Agent: Baue Eingabe"/
+  "Verarbeite Eignungs-Entscheidung" (laufen VOR dem Fakten-Agent in
+  derselben Pipeline-Passage, verwenden legitim P3s eigene Werte),
+  "QA-Shadow: Baue QA-Eingabe" (P3d, berechnet bereits korrekt frisch).
+- Fix (durchgaengiges Muster, additiv/subtraktiv, keine neue Verhaltens-
+  logik): ueberall wird `sourceLock` jetzt frisch als `{sourceTopic,
+  sourceConflict, requiredTerms, requiredObjects, requiredAction,
+  affectedGroups}` direkt aus `faktenAgentJson` gebaut statt aus dem
+  eingefrorenen `analysisJson.sourceLock` gelesen; die "gueltig"-Bedingung
+  ist `fakten.parseError !== true` (plus die jeweils schon vorhandenen
+  Feld-Vollstaendigkeits-Checks). `visualAnchorsValid`-Pruefungen wurden
+  ueberall entfernt, wo sie zusaetzlich zu den 7-8 ohnehin vorhandenen
+  frischen Feldchecks liefen (redundant, gleiches Bug-Muster).
+- Betroffene Dateien/Workflows (9 Nodes in 6 Workflows, je einzeln live
+  gepusht + committet, siehe Commit-Historie ab `c62535e` bis `174ba78`):
+  `ALLRIS_P4_Content_Reaktion.json` (Parse Content JSON, Prepare Visual
+  Decision unveraendert-aber-jetzt-korrekt-versorgt, Repariere Legacy
+  Visual-Status, Filtere unbenachrichtigte Blockaden, Repariere blockierte
+  Visual-Status), `ALLRIS_P3b_Repair_SourceLock_VisualGuard.json` (Prüfe
+  Repair-Bedarf, Prüfe Guard-Repair-Bedarf), `ALLRIS_P3c_Vorgangsabschluss.json`
+  (Filter Abschluss-Kandidaten), `ALLRIS_P5_Visual_Prompt_Builder.json`
+  (Prüfe Content-Abschluss, Prepare Visual Prompt Input),
+  `ALLRIS_P6_Bildgenerierung.json` (Filter gültige Datensätze, Bereite
+  MotivPrompt vor).
+- Tests/Validierung: jede Aenderung per Node-Skript mit striktem
+  `JSON.parse`, Drift-Check gegen Live-Stand vor jedem Push, Live-PUT
+  (durchgehend `settings.binaryMode` aus dem PUT-Payload entfernt, wo
+  vorhanden - PUT-Schema lehnt es ab, GET liefert es trotzdem zurueck),
+  Post-Push-GET bestaetigt Node-Zahl unveraendert je Datei und 0 Mojibake-
+  Fundstellen. Abschliessende Kontrollsuche ueber alle 9 urspruenglich
+  gefundenen Workflows bestaetigt: keine aktive blockierende Pruefung des
+  eingefrorenen Flags mehr uebrig, verbleibende Fundstellen sind entweder
+  architektonisch korrekt (s.o.) oder nur noch Text in Fehlermeldungen.
+  **Kein Live-Test mit einem echten End-to-End-Durchlauf** (z.B. eine
+  legacy-blockierte Zeile durch den kompletten reparierten Pfad P4-Repair
+  -> P5 -> P6 verfolgen).
+- Offene Risiken oder Blocker: `Prepare Visual Prompt Input`s
+  `currentSourceLock`/`slPresent` (P5) wurde bewusst NICHT umgestellt -
+  nur die `slValid`-Pruefung. Falls `analysisJson.sourceLock.sourceTopic`
+  selbst leer/uralt ist (nicht nur das Valid-Flag), wuerde `slPresent`
+  weiterhin blockieren, obwohl faktenAgentJson gut ist. Bisher kein
+  Realfall dafuer gefunden (2026/109-01 hatte einen nicht-leeren, nur
+  inhaltlich veralteten sourceTopic). Root-Cause-Alternative (Repair-Sweeps
+  sollten korrigiertes analysisJson selbst zurueckschreiben statt jeden
+  Konsumenten einzeln fresh-derivation beizubringen) erwogen, aber
+  bewusst nicht gewaehlt, um keine DB-Write-Spaltenzuordnungen anzufassen.
+- Nächster konkreter Schritt: 2026/109-01 nach `-OK`-Antwort und dem
+  naechsten P3e/P4/P5/P6-Zyklus tatsaechlich end-to-end verfolgen, um die
+  gesamte Fix-Kette einmal real zu bestaetigen statt nur pro Node isoliert
+  validiert zu haben.
+
 ### 2026-07-25 – Claude – Blockade-Antwort: visualAnchorsValid war weiterhin eingefroren
 
 - Ziel/Aufgabe: Matrix-Alert "Dauerhaft blockierter Visual-Vorgang 2026/109-01
