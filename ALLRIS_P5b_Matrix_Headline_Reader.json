@@ -32,12 +32,12 @@
       "main": [
         [
           {
-            "node": "Matrix Nachrichten lesen",
+            "node": "Finde erinnerungsfällige Vorgänge",
             "type": "main",
             "index": 0
           },
           {
-            "node": "Finde erinnerungsfällige Vorgänge",
+            "node": "Merge Matrix-Trigger",
             "type": "main",
             "index": 0
           }
@@ -169,7 +169,24 @@
     },
     "Finde wartende Blockaden": {
       "main": [
-        []
+        [
+          {
+            "node": "Merge Matrix-Trigger",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Matrix-Trigger": {
+      "main": [
+        [
+          {
+            "node": "Matrix Nachrichten lesen",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },
@@ -223,7 +240,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Filtert auf ALLE Zeilen, die auf eine Headline/Subline-Auswahl per Matrix\n// warten (koennen mehrere gleichzeitig sein - die Vorgangsnummer ist seit\n// V2 Teil des Codes, deshalb keine Mehrdeutigkeit mehr bei parallelen Wartern),\n// und liest je Zeile die Kandidaten sowie den Zeitstempel des Matrix-Posts aus\n// visualJson.headlineCandidates / visualJson.candidatesPostedAt.\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try {\n    const p = JSON.parse(String(v));\n    return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {};\n  } catch (e) {\n    return {};\n  }\n}\n\nconst waiting = items.filter(item => String(item.json.headlineChoiceStage || '').trim() === 'awaiting_headline_choice');\n\nif (waiting.length === 0) {\n  return [];\n}\n\nreturn waiting.map(item => {\n  const row = item.json;\n  const vj = parseObj(row.visualJson);\n  const candidates = Array.isArray(vj.headlineCandidates) ? vj.headlineCandidates : [];\n  const candidatesPostedAt = vj.candidatesPostedAt || null;\n  const lastReminderAt = vj.lastReminderAt || null;\n  const reminderCount = Number(vj.reminderCount || 0);\n  return {\n    json: {\n      ...row,\n      _headlineCandidates: candidates,\n      _candidatesPostedAt: candidatesPostedAt,\n      _lastReminderAt: lastReminderAt,\n      _reminderCount: reminderCount\n    }\n  };\n});\n"
+        "jsCode": "// Filtert auf ALLE Zeilen, die auf eine Headline/Subline-Auswahl per Matrix\n// warten (koennen mehrere gleichzeitig sein - die Vorgangsnummer ist seit\n// V2 Teil des Codes, deshalb keine Mehrdeutigkeit mehr bei parallelen Wartern),\n// und liest je Zeile die Kandidaten sowie den Zeitstempel des Matrix-Posts aus\n// visualJson.headlineCandidates / visualJson.candidatesPostedAt.\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try {\n    const p = JSON.parse(String(v));\n    return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {};\n  } catch (e) {\n    return {};\n  }\n}\n\nconst waiting = items.filter(item => String(item.json.headlineChoiceStage || '').trim() === 'awaiting_headline_choice');\n\n// FIX 2026-07-25: immer mindestens 1 Item zurueckgeben (Platzhalter ohne vorgangKey,\n// wird von \"Finde erinnerungsfällige Vorgänge\" automatisch uebersprungen und von\n// \"Finde Sat-Antwort\" ueber $()-Referenz separat gelesen), damit dieser Node\n// zuverlaessig als \"ausgefuehrt\" gilt, wenn Matrix Nachrichten lesen ueber den\n// Merge-Knoten darauf wartet - sonst race-abhaengiger 'Node hasnt been executed'-Fehler.\nif (waiting.length === 0) {\n  return [{ json: { _noHeadlinesWaiting: true } }];\n}\n\nreturn waiting.map(item => {\n  const row = item.json;\n  const vj = parseObj(row.visualJson);\n  const candidates = Array.isArray(vj.headlineCandidates) ? vj.headlineCandidates : [];\n  const candidatesPostedAt = vj.candidatesPostedAt || null;\n  const lastReminderAt = vj.lastReminderAt || null;\n  const reminderCount = Number(vj.reminderCount || 0);\n  return {\n    json: {\n      ...row,\n      _headlineCandidates: candidates,\n      _candidatesPostedAt: candidatesPostedAt,\n      _lastReminderAt: lastReminderAt,\n      _reminderCount: reminderCount\n    }\n  };\n});\n"
       },
       "id": "b1e2c3d4-0003-4aaa-8bbb-000000000003",
       "name": "Finde wartenden Vorgang",
@@ -258,7 +275,8 @@
           "name": "Header Auth account"
         }
       },
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "executeOnce": true
     },
     {
       "parameters": {
@@ -618,7 +636,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Filtert auf ALLE Zeilen, die dauerhaft blockiert sind (sharepicNeedStage\n// topic_error oder blocked_source_lock) und per Matrix-Antwort geklaert\n// werden koennen (2026-07-24 ergaenzt, siehe PROJECT_COORDINATION.md).\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst waiting = items.filter(item => ['topic_error', 'blocked_source_lock'].includes(safeStr(item.json.sharepicNeedStage)));\n\nif (waiting.length === 0) {\n  return [];\n}\n\nreturn waiting.map(item => ({ json: { ...item.json } }));"
+        "jsCode": "// Filtert auf ALLE Zeilen, die dauerhaft blockiert sind (sharepicNeedStage\n// topic_error oder blocked_source_lock) und per Matrix-Antwort geklaert\n// werden koennen (2026-07-24 ergaenzt, siehe PROJECT_COORDINATION.md).\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst waiting = items.filter(item => ['topic_error', 'blocked_source_lock'].includes(safeStr(item.json.sharepicNeedStage)));\n\n// FIX 2026-07-25: immer mindestens 1 Item zurueckgeben (Platzhalter ohne vorgangKey/\n// vorgangsnummer, wird von \"Finde Blockade-Antwort\" automatisch ignoriert), damit dieser\n// Node zuverlaessig als \"ausgefuehrt\" gilt, wenn Matrix Nachrichten lesen direkt danach\n// haengt - sonst race-abhaengiger 'Node hasnt been executed'-Fehler bei -Referenzen.\nif (waiting.length === 0) {\n  return [{ json: { _noBlockadesWaiting: true } }];\n}\n\nreturn waiting.map(item => ({ json: { ...item.json } }));"
       },
       "id": "c2d3e4f5-0001-4bbb-9ccc-000000000001",
       "name": "Finde wartende Blockaden",
@@ -762,6 +780,17 @@
         }
       },
       "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {},
+      "id": "a1b2c3d4-e5f6-4789-9abc-def012345678",
+      "name": "Merge Matrix-Trigger",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        1200,
+        400
+      ]
     }
   ],
   "pinData": {},
