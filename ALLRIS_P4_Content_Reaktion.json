@@ -1698,7 +1698,8 @@
           "name": "Header Auth account"
         }
       },
-      "continueOnFail": true
+      "continueOnFail": true,
+      "retryOnFail": true
     },
     {
       "parameters": {
@@ -3343,7 +3344,8 @@
           "name": "Header Auth account"
         }
       },
-      "continueOnFail": true
+      "continueOnFail": true,
+      "retryOnFail": true
     },
     {
       "parameters": {

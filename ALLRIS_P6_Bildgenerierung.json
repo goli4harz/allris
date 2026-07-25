@@ -2084,7 +2084,8 @@
           "id": "od1pN1F5wy2irSDs",
           "name": "Header Auth account"
         }
-      }
+      },
+      "retryOnFail": true
     },
     {
       "parameters": {
@@ -2154,7 +2155,8 @@
           "id": "od1pN1F5wy2irSDs",
           "name": "Header Auth account"
         }
-      }
+      },
+      "retryOnFail": true
     },
     {
       "parameters": {
@@ -2201,7 +2203,8 @@
           "id": "RiT1gwJpQWzSo6NO",
           "name": "OpenAI account"
         }
-      }
+      },
+      "retryOnFail": true
     },
     {
       "parameters": {
@@ -3377,7 +3380,8 @@
           "id": "RiT1gwJpQWzSo6NO",
           "name": "OpenAI account"
         }
-      }
+      },
+      "retryOnFail": true
     },
     {
       "parameters": {
@@ -4523,7 +4527,8 @@
           "id": "RiT1gwJpQWzSo6NO",
           "name": "OpenAI account"
         }
-      }
+      },
+      "retryOnFail": true
     },
     {
       "parameters": {
