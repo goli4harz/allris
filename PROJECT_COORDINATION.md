@@ -78,6 +78,62 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 | BLK-004 | TASK-011 | ALLRIS-Übersichtsrequest wird aus n8n sowohl direkt als auch über `172.16.1.5:3128` nach drei Timeouts abgebrochen; Zielserver/Firewall/WAF bzw. TLS-Verbindung extern prüfen. | Infrastruktur / Goslar-Server | offen |
 | BLK-005 | TASK-002 / TASK-009 / TASK-012 | Neu aktivierte n8n-Schedules erzeugen keine Ausführung: reguläres `:50`, explizites `hoursInterval=1` und kontrollierter Custom-Cron blieben ohne Execution. Workflow jeweils aktiv und `activeVersionId=versionId`; n8n Scheduler-/Worker-Logs und Dienstzustand auf dem Host prüfen beziehungsweise Dienst kontrolliert neu starten. | n8n-Infrastruktur | offen |
 
+### 2026-07-25 – Claude – Blockade-Antwort: visualAnchorsValid war weiterhin eingefroren
+
+- Ziel/Aufgabe: Matrix-Alert "Dauerhaft blockierter Visual-Vorgang 2026/109-01
+  (VOLFDNR 10697) — Source-Lock ungueltig: analysisJson.sourceLockValid ist
+  nicht true". Auf Nutzerwunsch die am 2026-07-24 offen gelassene
+  Doppeldefinition (siehe Eintrag "-OK pruefte gegen eingefrorenes sourceLock
+  statt frisch aus faktenAgentJson") jetzt in Ruhe nachgeprueft, statt nur
+  den einen Alarm zu quittieren.
+- Befund: `faktenAgentJson` fuer 2026/109-01 ist vollstaendig (5
+  requiredTerms, 5 requiredObjects, parseError:false) — der am 24.07.
+  gefixte, frisch aus faktenAgentJson abgeleitete sourceLock-Check in
+  `Finde Blockade-Antwort` (`ALLRIS_P5b_Matrix_Headline_Reader.json`) haette
+  hier also bereits gruenes Licht gegeben. Eine simulierte `-OK`-Antwort
+  waere aber trotzdem an der naechsten Pruefstufe gescheitert: alle 7
+  einzelnen `visualAnchors`-Felder (satireThemaKonkret, satireKonfliktKonkret,
+  visualPflichtobjekte, visualPflichthandlung, visualErkennungssatz,
+  visualUeberzeichnung, visualVerboteneErsatzmotive) sind inhaltlich
+  vollstaendig befuellt, aber `analysisJson.visualAnchorsValid` steht
+  eingefroren auf `false` — dasselbe Bug-Muster wie bei `sourceLockValid`,
+  nur beim letzten Fix nicht mitgezogen (damals nicht Ursache des
+  Falls, siehe Eintrag vom 24.07.). Ursprung von `visualAnchorsValid`
+  geprueft (`ALLRIS_P3_Bewertung.json`, Node "Parse Analyse JSON"): es ist
+  dort selbst nur `visualAnchorsErrors.length === 0` aus genau denselben 7
+  Feldern — keine zusaetzliche KI-Qualitaetsbewertung, die verloren ginge.
+  Der dedizierte Reparatur-Workflow `ALLRIS_P3b_Repair_SourceLock_VisualGuard`
+  haette das korrigiert, laeuft aber nur einmalig inline waehrend des
+  urspruenglichen P3-Durchlaufs, nicht als wiederkehrender Sweep ueber
+  bereits blockierte Zeilen — daher lief 2026/109-01 nie erneut durch.
+- Fix (mirror des 24.07.-Musters, additiv/subtraktiv, kein Verhalten fuer
+  echte Feldluecken geaendert): in `Finde Blockade-Antwort`s `wouldStillBlock`
+  wird die achte, redundante Pruefung `if (!safeBool(analysis.visualAnchorsValid))
+  anchorErrors.push(...)` entfernt. Die 7 Feld-Einzelchecks direkt darueber
+  SIND bereits die frische Neuableitung (identisch zu P3s eigener Berechnung)
+  und bleiben unveraendert — das eingefrorene Flag war die einzige zusaetzliche,
+  potenziell veraltete Huerde.
+- Betroffene Dateien/Workflows: `ALLRIS_P5b_Matrix_Headline_Reader.json`
+  (Node `Finde Blockade-Antwort`).
+- Tests/Validierung: Node-Skript mit striktem `JSON.parse`, Live-PUT (nach
+  Entfernen von `settings.binaryMode` aus dem PUT-Payload, wie beim
+  vorherigen Push heute), Post-Push-GET bestaetigt Fix-Kommentar vorhanden,
+  alten Check entfernt, 17 Nodes unveraendert, 0 Mojibake. Kein Live-Test
+  mit einer echten `-OK`-Matrix-Antwort durchgefuehrt.
+- Offene Risiken oder Blocker: die P4-interne Inkonsistenz zwischen
+  `Prüfe Source-Lock (Content)` (3-Check, frisch), `Prepare Visual Decision`
+  (liest das gefrorene Flag + 2 eigene Checks, Einbahnstrasse-Herabstufung)
+  und `Filtere unbenachrichtigte Blockaden`/`Repariere Legacy Visual-Status`
+  (5-Check, teils gefroren) bleibt bestehen — nur der `-OK`-Konsument in P5b
+  wurde jetzt fuer beide Flags (sourceLockValid + visualAnchorsValid) auf
+  frische Ableitung umgestellt. Eine echte Konsolidierung auf eine
+  kanonische Definition steht weiterhin aus.
+- Nächster konkreter Schritt: Nutzer antwortet mit "2026-109-01-OK" auf den
+  Matrix-Alert; sollte jetzt zu "✅ ... wird jetzt fuer den Bild-Prompt
+  freigegeben" statt "⛔ ... immer noch blockiert" fuehren. Falls doch noch
+  blockiert: die zurueckgegebene `reason` direkt zeigt, welche der beiden
+  Pruefstufen noch scheitert.
+
 ### 2026-07-25 – Claude – Satire-Agent: Kernbotschaft-Diagnose ergaenzt + Weiterleitungsluecke geschlossen
 
 - Ziel/Aufgabe: Matrix-Alert "Satire-Agent fehlgeschlagen: Vorgang 2026/131
