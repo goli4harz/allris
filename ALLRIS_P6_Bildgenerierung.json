@@ -272,7 +272,7 @@
       "main": [
         [
           {
-            "node": "DB Update Status image_composed",
+            "node": "Merge Bild-Status + Presseartikel-Final",
             "type": "main",
             "index": 0
           }
@@ -730,6 +730,11 @@
             "node": "Bereite Presseartikel Matrix-Post vor",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Merge Bild-Status + Presseartikel-Final",
+            "type": "main",
+            "index": 1
           }
         ]
       ]
@@ -767,6 +772,28 @@
           },
           {
             "node": "History Matrix Versandfehler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Bild-Status + Presseartikel-Final": {
+      "main": [
+        [
+          {
+            "node": "Waehle Bild-Kontext nach Presse-Sync",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Waehle Bild-Kontext nach Presse-Sync": {
+      "main": [
+        [
+          {
+            "node": "DB Update Status image_composed",
             "type": "main",
             "index": 0
           }
@@ -5062,6 +5089,30 @@
       "position": [
         1568,
         1200
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "f3e2d1c0-0001-4a00-9000-p6pressmerge1",
+      "name": "Merge Bild-Status + Presseartikel-Final",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        2128,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Beide Eingaenge sind fuer denselben einen Vorgang da (Sync-Barriere, kein echtes\n// Daten-Merge) - Input 0 (Nextcloud/Bild-Zweig, 'Stelle Kontext nach Nextcloud Upload\n// wieder her') traegt das Feld nextcloudUploaded, das Input 1 (Presseartikel-Final-Zweig,\n// rohe Data-Table-Zeile) nicht hat - damit robust gegen Ausfuehrungsreihenfolge das\n// richtige Item herausgreifen statt blind auf items[0] zu vertrauen.\nconst chosen = items.find(i => i.json && i.json.nextcloudUploaded !== undefined) || items[0];\nreturn [chosen];"
+      },
+      "id": "f3e2d1c0-0002-4a00-9000-p6pressmerge2",
+      "name": "Waehle Bild-Kontext nach Presse-Sync",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2320,
+        880
       ]
     }
   ],
