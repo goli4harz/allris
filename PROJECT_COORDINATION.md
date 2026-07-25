@@ -78,6 +78,64 @@ Aufgabenstatus: `offen`, `in Arbeit`, `blockiert`, `Review`, `erledigt`.
 | BLK-004 | TASK-011 | ALLRIS-Übersichtsrequest wird aus n8n sowohl direkt als auch über `172.16.1.5:3128` nach drei Timeouts abgebrochen; Zielserver/Firewall/WAF bzw. TLS-Verbindung extern prüfen. | Infrastruktur / Goslar-Server | offen |
 | BLK-005 | TASK-002 / TASK-009 / TASK-012 | Neu aktivierte n8n-Schedules erzeugen keine Ausführung: reguläres `:50`, explizites `hoursInterval=1` und kontrollierter Custom-Cron blieben ohne Execution. Workflow jeweils aktiv und `activeVersionId=versionId`; n8n Scheduler-/Worker-Logs und Dienstzustand auf dem Host prüfen beziehungsweise Dienst kontrolliert neu starten. | n8n-Infrastruktur | offen |
 
+### 2026-07-25 – Claude – Satire-Agent: Kernbotschaft-Diagnose ergaenzt + Weiterleitungsluecke geschlossen
+
+- Ziel/Aufgabe: Matrix-Alert "Satire-Agent fehlgeschlagen: Vorgang 2026/131
+  (vol_10631) — Kernbotschaft-Auswahl fehlgeschlagen". Claim wurde um 06:33
+  Uhr erworben, also NACH dem vorherigen Diagnose-Fix von heute Nacht
+  (00:41 Uhr) — ein frischer Fall, kein alter.
+- Befund 1: `Waehle Kernbotschaft` in `ALLRIS_Satire_Agent.json` hatte
+  dieselbe stillschweigende `catch (e) { return null; }`-Luecke wie
+  `Parse Satire JSON` vor dem letzten Fix — genau die Stelle, die im
+  vorherigen Eintrag als "bewusst nicht mitgeaendert" vermerkt war, ist
+  jetzt real aufgetreten (`kernbotschaftParseError:true` ohne jedes Detail
+  in `satireAgentJson`).
+- Befund 2 (der eigentliche Blocker): selbst der bereits live geschaltete
+  Diagnose-Fix von heute Nacht haette hier nichts genutzt. `Stelle Kontext
+  nach Satire-Agent wieder her` in `ALLRIS_P3e_Kernbotschaft.json` baut im
+  Fehlerfall ein eigenes `result`-Objekt mit fester Feldliste und laesst
+  dabei `variantsParseErrorDetail`/`variantsRawSnippet` (und jetzt auch die
+  neuen Kernbotschaft-Aequivalente) klammheimlich fallen, bevor
+  `satireAgentJson` in die Data Table geschrieben wird. Der Diagnose-Fix von
+  heute Nacht war dadurch bisher ein Blindgaenger — nie live durch einen
+  echten Fehlerfall verifiziert, siehe "kein Test des eigentlichen
+  Fehlerfalls" im vorherigen Eintrag.
+- Fix (rein additiv, kein Verhalten geaendert): `Waehle Kernbotschaft`
+  liefert jetzt `{value, error, snippet}` statt nur `value` (identisches
+  Muster zu `Parse Satire JSON`) und ergaenzt
+  `kernbotschaftParseErrorDetail`/`kernbotschaftRawSnippet`.
+  `Parse Satire JSON` reicht beide neuen Felder in beiden Zweigen durch.
+  `Stelle Kontext nach Satire-Agent wieder her` reicht jetzt alle vier
+  Diagnosefelder (`variantsParseErrorDetail`, `variantsRawSnippet`,
+  `kernbotschaftParseErrorDetail`, `kernbotschaftRawSnippet`) in sein
+  `result`-Objekt durch, damit sie tatsaechlich in `satireAgentJson` landen.
+- Betroffene Dateien/Workflows: `ALLRIS_Satire_Agent.json` (Nodes
+  `Waehle Kernbotschaft`, `Parse Satire JSON`), `ALLRIS_P3e_Kernbotschaft.json`
+  (Node `Stelle Kontext nach Satire-Agent wieder her`).
+- Tests/Validierung: Aenderung per Node-Skript (kein PowerShell-String-
+  Replace, siehe Mojibake-Vorfaelle) mit striktem `JSON.parse` nach jedem
+  Schritt vorgenommen. Live per API-PUT gepusht (Satire-Agent-Push mit
+  HTTP 400 wegen nicht erlaubtem `settings.binaryMode` im PUT-Body
+  fehlgeschlagen, nach Entfernen dieses einen Feldes aus dem Payload — nicht
+  aus der Datei — erfolgreich). Post-Push-GET bestaetigt neue Felder in
+  beiden Workflows, 0 Mojibake-Fundstellen, Node-Zahl unveraendert (6 bzw.
+  22). Kein Test des eigentlichen Fehlerfalls mit echten KI-Antworten.
+- Zeilenstatus 2026/131 (vol_10631) geprueft: `sharepicNeedStage=topic_ok`,
+  `headlineChoiceStage=null`, Claim-Lease um 07:03 Uhr abgelaufen (Pruefzeit
+  07:11 Uhr). `Filter Kernbotschaft-Kandidaten` behandelt ein leeres
+  `headlineChoiceStage` als foerderfaehig — **kein manueller Data-Table-
+  Reset noetig**, Zeile wird beim naechsten P3e-Lauf (stuendlich zur :33)
+  automatisch erneut versucht, diesmal mit Diagnosedaten falls es wieder
+  fehlschlaegt.
+- Offene Risiken oder Blocker: eigentliche Ursache des KI-Parse-Fehlers
+  selbst weiterhin unbekannt (Trunkierung? Rate-Limit trotz JSON-Modus?
+  Schema-Abweichung?) — jetzt aber zum ersten Mal mit echten Rohdaten
+  diagnostizierbar. Naechster `kernbotschaftParseError`- oder
+  `variantsParseError`-Fall liefert die Antwort.
+- Nächster konkreter Schritt: beim naechsten Fehlerfall
+  `kernbotschaftRawSnippet`/`variantsRawSnippet` in der betroffenen Zeile
+  ansehen und die tatsaechliche Ursache beheben statt nur zu diagnostizieren.
+
 ### 2026-07-25 – Claude – Satire-Agent: Diagnose-Daten fuer verbleibende JSON-Parse-Fehler ergaenzt
 
 - Ziel/Aufgabe: neuer `variantsParseError`-Fall (Vorgang 2026/131) trotz

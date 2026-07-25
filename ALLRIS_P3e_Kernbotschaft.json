@@ -35,16 +35,48 @@
       ]
     },
     "Bereite P3e Claims vor": {
-      "main": [[{"node":"Erwerbe P3e Claim","type":"main","index":0}]]
+      "main": [
+        [
+          {
+            "node": "Erwerbe P3e Claim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Erwerbe P3e Claim": {
-      "main": [[{"node":"Nur bestaetigte P3e Claims","type":"main","index":0}]]
+      "main": [
+        [
+          {
+            "node": "Nur bestaetigte P3e Claims",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Nur bestaetigte P3e Claims": {
-      "main": [[{"node":"Sortiere Vorgaenge","type":"main","index":0}]]
+      "main": [
+        [
+          {
+            "node": "Sortiere Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Bereite P3e Claim-Freigabe vor": {
-      "main": [[{"node":"Release P3e Claim","type":"main","index":0}]]
+      "main": [
+        [
+          {
+            "node": "Release P3e Claim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Sortiere Vorgaenge": {
       "main": [
@@ -333,7 +365,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction asArray(v) { return Array.isArray(v) ? v.filter(Boolean).map(safeStr) : []; }\n\nconst response = $json || {};\nconst original = $('Satire-Shadow: Baue Eingabe').itemMatching($itemIndex).json || {};\nconst hasVariants = Array.isArray(response.variants) && response.variants.length > 0;\n// Sub-workflow returns a 'variants' array (even if empty) whenever it actually ran to completion;\n// its total absence means the Execute Workflow node's onError=continueRegularOutput caught a real throw.\nconst subWorkflowRan = Array.isArray(response.variants);\n\nconst result = hasVariants ? response : {\n  vorgangKey: safeStr(original.vorgangKey),\n  vorgangsnummer: safeStr(original.vorgangsnummer),\n  variants: [],\n  kernbotschaft: safeStr(response.kernbotschaft),\n  parseError: true,\n  callFailed: !subWorkflowRan,\n  variantsParseError: subWorkflowRan ? !!response.variantsParseError : null,\n  kernbotschaftParseError: subWorkflowRan ? !!response.kernbotschaftParseError : null\n};\n\nreturn {\n  json: {\n    vorgangKey: safeStr(original.vorgangKey) || safeStr(response.vorgangKey),\n    vorgangsnummer: safeStr(original.vorgangsnummer),\n    satireAgentJson: JSON.stringify(result),\n    sourceTopic: safeStr(original.sourceTopic),\n    requiredObjects: asArray(original.requiredObjects),\n    requiredAction: safeStr(original.requiredAction),\n    affectedGroups: asArray(original.affectedGroups)\n  }\n};"
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction asArray(v) { return Array.isArray(v) ? v.filter(Boolean).map(safeStr) : []; }\n\nconst response = $json || {};\nconst original = $('Satire-Shadow: Baue Eingabe').itemMatching($itemIndex).json || {};\nconst hasVariants = Array.isArray(response.variants) && response.variants.length > 0;\n// Sub-workflow returns a 'variants' array (even if empty) whenever it actually ran to completion;\n// its total absence means the Execute Workflow node's onError=continueRegularOutput caught a real throw.\nconst subWorkflowRan = Array.isArray(response.variants);\n\nconst result = hasVariants ? response : {\n  vorgangKey: safeStr(original.vorgangKey),\n  vorgangsnummer: safeStr(original.vorgangsnummer),\n  variants: [],\n  kernbotschaft: safeStr(response.kernbotschaft),\n  parseError: true,\n  callFailed: !subWorkflowRan,\n  variantsParseError: subWorkflowRan ? !!response.variantsParseError : null,\n  kernbotschaftParseError: subWorkflowRan ? !!response.kernbotschaftParseError : null,\n  variantsParseErrorDetail: subWorkflowRan ? safeStr(response.variantsParseErrorDetail) : '',\n  variantsRawSnippet: subWorkflowRan ? safeStr(response.variantsRawSnippet) : '',\n  kernbotschaftParseErrorDetail: subWorkflowRan ? safeStr(response.kernbotschaftParseErrorDetail) : '',\n  kernbotschaftRawSnippet: subWorkflowRan ? safeStr(response.kernbotschaftRawSnippet) : ''\n};\n\nreturn {\n  json: {\n    vorgangKey: safeStr(original.vorgangKey) || safeStr(response.vorgangKey),\n    vorgangsnummer: safeStr(original.vorgangsnummer),\n    satireAgentJson: JSON.stringify(result),\n    sourceTopic: safeStr(original.sourceTopic),\n    requiredObjects: asArray(original.requiredObjects),\n    requiredAction: safeStr(original.requiredAction),\n    affectedGroups: asArray(original.affectedGroups)\n  }\n};"
       },
       "id": "768a5c39-2c8c-4432-a6d6-f4c9bdccd266",
       "name": "Stelle Kontext nach Satire-Agent wieder her",
@@ -642,7 +674,10 @@
       "name": "Bereite P3e Claims vor",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [680, 1160]
+      "position": [
+        680,
+        1160
+      ]
     },
     {
       "parameters": {
@@ -652,13 +687,18 @@
           "mode": "list",
           "cachedResultName": "ALLRIS_Claim_Lease"
         },
-        "options": {"waitForSubWorkflow":true}
+        "options": {
+          "waitForSubWorkflow": true
+        }
       },
       "id": "f6071829-2222-4f60-8172-000000000002",
       "name": "Erwerbe P3e Claim",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
-      "position": [920, 1160]
+      "position": [
+        920,
+        1160
+      ]
     },
     {
       "parameters": {
@@ -668,7 +708,10 @@
       "name": "Nur bestaetigte P3e Claims",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1160, 1160]
+      "position": [
+        1160,
+        1160
+      ]
     },
     {
       "parameters": {
@@ -678,7 +721,10 @@
       "name": "Bereite P3e Claim-Freigabe vor",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3560, 1340]
+      "position": [
+        3560,
+        1340
+      ]
     },
     {
       "parameters": {
@@ -688,13 +734,18 @@
           "mode": "list",
           "cachedResultName": "ALLRIS_Claim_Lease"
         },
-        "options": {"waitForSubWorkflow":true}
+        "options": {
+          "waitForSubWorkflow": true
+        }
       },
       "id": "f6071829-5555-4f60-8172-000000000005",
       "name": "Release P3e Claim",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
-      "position": [3800, 1340]
+      "position": [
+        3800,
+        1340
+      ]
     }
   ],
   "pinData": null,
