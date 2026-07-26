@@ -1,0 +1,133 @@
+{
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hole alle Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole alle Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Filtere geposteten Zeilen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtere geposteten Zeilen": {
+      "main": [
+        [
+          {
+            "node": "Setze Mastodon-Status zurueck",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "name": "ALLRIS_Einmalig_Mastodon_Status_Reset",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "mtr-0001-0000-4000-9000-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge"
+        },
+        "filters": {
+          "conditions": []
+        },
+        "returnAll": true
+      },
+      "id": "mtr-0001-0000-4000-9000-000000000002",
+      "name": "Hole alle Vorgaenge",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 2026-07-26: Mastodon-Toots wurden vom Nutzer von Hand geloescht (gleicher\n// Grund wie beim WordPress-Reset zuvor) - mastodonPosted stand aber weiter auf\n// true, wodurch P9 diese Zeilen fuer immer als 'schon erledigt' uebersprungen haette.\nfunction truthy(v) { return v === true || v === 'true'; }\nreturn items\n  .filter(i => truthy((i.json||{}).mastodonPosted))\n  .map(i => ({ json: { id: i.json.id, vorgangKey: i.json.vorgangKey, vorgangsnummer: i.json.vorgangsnummer } }));"
+      },
+      "id": "mtr-0001-0000-4000-9000-000000000003",
+      "name": "Filtere geposteten Zeilen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "mastodonPosted": false,
+            "mastodonPostedAt": "",
+            "mastodonPostUrl": "",
+            "mastodonError": ""
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "mtr-0001-0000-4000-9000-000000000004",
+      "name": "Setze Mastodon-Status zurueck",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        672,
+        0
+      ]
+    }
+  ],
+  "pinData": null,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
