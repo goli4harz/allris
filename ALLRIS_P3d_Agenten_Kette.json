@@ -884,7 +884,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction asArr(v) { return Array.isArray(v) ? v : []; }\n\nconst j = $json;\nconst violations = asArr(j.violations).map(v => safeStr(v && v.message)).filter(Boolean);\nconst hallucinations = asArr(j.hallucinationSuspects).map(h => safeStr(h && h.claim)).filter(Boolean);\nconst reasons = [...violations, ...hallucinations];\n\nconst lines = [\n  '⚠️ QA-Block: Vorgang ' + safeStr(j.vorgangsnummer) + ' (' + safeStr(j.vorgangKey) + ')',\n  reasons.length ? 'Grund: ' + reasons.join(' | ') : 'Grund: unbekannt (QA-Agent-Aufruf evtl. fehlgeschlagen)',\n  'Bitte in der Data Table pruefen und contentStage/sharepicNeedStage nach Korrektur manuell zuruecksetzen.'\n];\n\nreturn {\n  json: {\n    ...j,\n    txnId: 'qa-block-' + Date.now() + '-' + Math.random().toString(36).slice(2),\n    summaryMessage: lines.join('\\n')\n  }\n};"
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction asArr(v) { return Array.isArray(v) ? v : []; }\n\nconst j = $json;\nconst violations = asArr(j.violations);\nconst hallucinations = asArr(j.hallucinationSuspects);\n\n// FIX 2026-07-26: ein QA-Einwand, der ausschliesslich das Bild-Motiv betrifft (guard_*/anchors_*/\n// visual_mustshow_mismatch), soll nur das Sharepic blockieren, nicht auch die Text-Reaktion -\n// analog zum bereits bestehenden topic_error-Fix in P4 (\"Prüfe Content-Freigabe\"). Faktische\n// Einwaende (sourcelock_*, content_no_sourcelock_match, KI-Halluzinationen) blockieren weiterhin\n// beides, da sie auch den Text betreffen wuerden. Realfall: Vorgang 2026/109, guard_sensitive_scene\n// (Kita-Kinder als Bild-Pointe) hat bislang auch die laengst freigegebene Text-Reaktion blockiert.\nconst VISUAL_ONLY_CODES = new Set([\n  'guard_sensitive_object', 'guard_sensitive_scene', 'guard_sensitive_metaphor', 'guard_symbol_drift',\n  'anchors_missing_thema', 'anchors_missing_konflikt', 'anchors_few_objects', 'anchors_missing_handlung',\n  'anchors_missing_erkennungssatz', 'anchors_few_forbidden', 'visual_mustshow_mismatch'\n]);\n\nconst hasTextBlockingViolation = violations.some(v => !VISUAL_ONLY_CODES.has(safeStr(v && v.code)))\n  || hallucinations.length > 0;\n\nconst reasonTexts = [...violations.map(v => safeStr(v && v.message)), ...hallucinations.map(h => safeStr(h && h.claim))].filter(Boolean);\n\nconst lines = [\n  '⚠️ QA-Block: Vorgang ' + safeStr(j.vorgangsnummer) + ' (' + safeStr(j.vorgangKey) + ')',\n  reasonTexts.length ? 'Grund: ' + reasonTexts.join(' | ') : 'Grund: unbekannt (QA-Agent-Aufruf evtl. fehlgeschlagen)',\n  hasTextBlockingViolation\n    ? 'Bitte in der Data Table pruefen und contentStage/sharepicNeedStage nach Korrektur manuell zuruecksetzen.'\n    : 'Betrifft nur das Bild-Motiv - Text-Reaktion (Website/Facebook/Instagram/Presse) laeuft normal weiter. Bitte sharepicNeedStage nach Korrektur manuell zuruecksetzen, falls eine neue Bildidee gewuenscht ist.'\n];\n\nreturn {\n  json: {\n    ...j,\n    txnId: 'qa-block-' + Date.now() + '-' + Math.random().toString(36).slice(2),\n    summaryMessage: lines.join('\\n'),\n    _hasTextBlockingViolation: hasTextBlockingViolation,\n    _qaBlockContentStage: hasTextBlockingViolation ? 'error' : safeStr(j.contentStage),\n    _qaBlockSharepicNeedStage: 'topic_error'\n  }\n};\n"
       },
       "id": "b4744c5a-efcb-4f95-aaa4-b667aaee1116",
       "name": "Baue QA-Block Nachricht",
@@ -916,14 +916,15 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "contentStage": "error",
+            "contentStage": "={{ $json._qaBlockContentStage }}",
             "contentErrorReason": "qa_blocked",
             "last_error_code": "FACTS_QA_FAILED",
             "last_error_message": "={{ String($json.summaryMessage || 'Fakten-/QA-Prüfung nicht bestanden').slice(0, 4000) }}",
             "last_error_stage": "judgment",
             "last_error_at": "={{ $now.toISO() }}",
             "retry_count": "={{ Number($json.retry_count || 0) + 1 }}",
-            "next_retry_at": ""
+            "next_retry_at": "",
+            "sharepicNeedStage": "={{ $json._qaBlockSharepicNeedStage }}"
           },
           "matchingColumns": [
             "vorgangKey"
@@ -942,6 +943,16 @@
             {
               "id": "contentErrorReason",
               "displayName": "contentErrorReason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "sharepicNeedStage",
+              "displayName": "sharepicNeedStage",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1238,9 +1249,8 @@
   ],
   "pinData": {},
   "settings": {
-    "executionOrder": "v1",
-    "binaryMode": "separate"
+    "executionOrder": "v1"
   },
   "tags": [],
-  "versionId": "fdc50fd9-5355-4edc-b970-41cf222b7dfd"
+  "versionId": "4c98874b-7fda-45d7-852e-7fd0d4b2b890"
 }

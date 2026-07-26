@@ -1,11 +1,32 @@
 {
-  "updatedAt": "2026-07-25T07:12:54.199Z",
-  "createdAt": "2026-07-25T07:12:54.199Z",
-  "id": "dxpxH4xxZKqwM7Da",
-  "name": "ALLRIS_Einmalig_ContentStage_Reset",
-  "description": null,
   "active": false,
-  "isArchived": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Konfiguriere Ziele",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Konfiguriere Ziele": {
+      "main": [
+        [
+          {
+            "node": "Setze contentStage zurueck",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "dxpxH4xxZKqwM7Da",
+  "meta": null,
+  "name": "ALLRIS_Einmalig_ContentStage_Reset",
   "nodes": [
     {
       "parameters": {},
@@ -20,7 +41,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Traegt hier jeweils die Zeilen ein, deren contentStage manuell zurueckgesetzt werden soll\n// (z.B. Zeilen, die P7 mit blosser Kurzfassung \"erledigt\" hat, bevor P4 echten Content\n// erzeugen konnte - siehe Fix \"P7: Wettlauf gegen P4\" vom 2026-07-25). Ein Item pro Zeile,\n// die dataTable-Node darunter aktualisiert dann jede Zeile einzeln per vorgangKey-Match.\nconst TARGETS = [\n  { vorgangKey: 'vol_10644', vorgangsnummer: '2026/139' },\n  { vorgangKey: 'vol_10700', vorgangsnummer: '2026/175' },\n  { vorgangKey: 'vol_10707', vorgangsnummer: '2026/180' }\n];\n\nif (!TARGETS.length) {\n  throw new Error('[ContentStage-Reset] TARGETS im Node \"Konfiguriere Ziele\" befuellen.');\n}\n\nreturn TARGETS.map(t => ({ json: { vorgangKey: t.vorgangKey, vorgangsnummer: t.vorgangsnummer, contentStage: 'needs_content' } }));"
+        "jsCode": "// Traegt hier jeweils die Zeilen ein, deren contentStage manuell zurueckgesetzt werden soll.\n// 2026-07-26 (3. Verwendung, erweitert): 2026/109 haengt bei contentStage=needs_content mit\n// last_error_code CONTENT_JSON_INVALID (in Wahrheit: QA-Agent-Guard 'guard_sensitive_scene' -\n// Kita-Kinder als Bild-Pointe). Auf Nutzerwunsch: komplette Neuauflage der Satire-Variante statt\n// nur Retry. Reset auf needs_summary allein reicht nicht - P3s \"Speichere Analyse\" setzt weder\n// judgmentChainProcessedAt noch headlineChoiceStage zurueck, beide muessen hier explizit leer\n// werden, sonst ueberspringen P3d (Agenten-Kette) und P3e (Satire-Agent) die Zeile weiterhin\n// wegen ihrer Guard-Bedingungen (judgmentChainProcessedAt muss leer sein, headlineChoiceStage\n// muss leer/'needs_kernbotschaft' sein).\nconst TARGETS = [\n  { vorgangKey: 'vol_10600', vorgangsnummer: '2026/109', targetStage: 'needs_summary' }\n];\n\nif (!TARGETS.length) {\n  throw new Error('[ContentStage-Reset] TARGETS im Node \"Konfiguriere Ziele\" befuellen.');\n}\n\nreturn TARGETS.map(t => ({\n  json: {\n    vorgangKey: t.vorgangKey,\n    vorgangsnummer: t.vorgangsnummer,\n    contentStage: t.targetStage || 'needs_summary',\n    headlineChoiceStage: '',\n    visualPromptStage: '',\n    judgmentChainProcessedAt: '',\n    imageHeadline: '',\n    imageSubline: '',\n    contentErrorReason: '',\n    last_error_code: '',\n    last_error_message: '',\n    last_error_stage: '',\n    last_error_at: '',\n    next_retry_at: '',\n    retry_count: 0\n  }\n}));\n"
       },
       "id": "e1a2b3c4-0002-4aaa-9bbb-000000000002",
       "name": "Konfiguriere Ziele",
@@ -53,7 +74,19 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "contentStage": "={{ $json.contentStage }}"
+            "contentStage": "={{ $json.contentStage }}",
+            "headlineChoiceStage": "={{ $json.headlineChoiceStage }}",
+            "visualPromptStage": "={{ $json.visualPromptStage }}",
+            "judgmentChainProcessedAt": "={{ $json.judgmentChainProcessedAt }}",
+            "imageHeadline": "={{ $json.imageHeadline }}",
+            "imageSubline": "={{ $json.imageSubline }}",
+            "contentErrorReason": "={{ $json.contentErrorReason }}",
+            "last_error_code": "={{ $json.last_error_code }}",
+            "last_error_message": "={{ $json.last_error_message }}",
+            "last_error_stage": "={{ $json.last_error_stage }}",
+            "last_error_at": "={{ $json.last_error_at }}",
+            "next_retry_at": "={{ $json.next_retry_at }}",
+            "retry_count": "={{ $json.retry_count }}"
           },
           "matchingColumns": [
             "vorgangKey"
@@ -72,59 +105,10 @@
       ]
     }
   ],
-  "connections": {
-    "Manual Trigger": {
-      "main": [
-        [
-          {
-            "node": "Konfiguriere Ziele",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Konfiguriere Ziele": {
-      "main": [
-        [
-          {
-            "node": "Setze contentStage zurueck",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
+  "pinData": {},
   "settings": {
     "executionOrder": "v1"
   },
-  "staticData": null,
-  "meta": null,
-  "pinData": null,
-  "versionId": "33382d9c-15f4-4e6d-9aa2-b9c31b989680",
-  "activeVersionId": null,
-  "versionCounter": 1,
-  "triggerCount": 0,
-  "shared": [
-    {
-      "updatedAt": "2026-07-25T07:12:54.199Z",
-      "createdAt": "2026-07-25T07:12:54.199Z",
-      "role": "workflow:owner",
-      "workflowId": "dxpxH4xxZKqwM7Da",
-      "projectId": "CrnegVcMvlcRU0OP",
-      "project": {
-        "updatedAt": "2026-05-23T11:38:39.411Z",
-        "createdAt": "2026-05-23T11:33:40.374Z",
-        "id": "CrnegVcMvlcRU0OP",
-        "name": "Oliver Lietz <oliver.lietz@golietz.de>",
-        "type": "personal",
-        "icon": null,
-        "description": null,
-        "creatorId": "66557ab1-dd68-4186-b616-ecaa8f1bea61"
-      }
-    }
-  ],
   "tags": [],
-  "activeVersion": null
+  "versionId": "73bbb4e4-d174-45bd-93cb-f628648e12ad"
 }

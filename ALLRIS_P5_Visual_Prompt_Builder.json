@@ -332,7 +332,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Filtert die breit gelesene Data Table auf die Ziel-Status des Visual\n// Prompt Builders. Die Data Table kann kein OR über mehrere Werte desselben\n// Feldes - deshalb wird hier gefiltert statt in der DB-Abfrage direkt\n// (siehe \"Hole needs_visual_prompt\", vorher AND-verknüpfte Bedingungen == 0 Treffer).\n// 'headline_selected' = Nutzer hat per Matrix-Antwort eine Headline/Subline-Variante\n// gewählt; für diese Zeilen wird nur noch der Bildprompt gebaut, keine neuen\n// Headline-Varianten mehr erzeugt (siehe \"IF Headline bereits gewählt?\").\nconst ZIEL_PROMPT_STAGE = ['needs_prompt', 'prompt_error'];\nconst ZIEL_HEADLINE_STAGE = ['headline_selected'];\n\nreturn items.filter(item => {\n  const promptStage = String(item.json.visualPromptStage || '').trim();\n  const headlineStage = String(item.json.headlineChoiceStage || '').trim();\n  return ZIEL_PROMPT_STAGE.includes(promptStage) || ZIEL_HEADLINE_STAGE.includes(headlineStage);\n});\n"
+        "jsCode": "// Filtert die breit gelesene Data Table auf die Ziel-Status des Visual\n// Prompt Builders. Die Data Table kann kein OR über mehrere Werte desselben\n// Feldes - deshalb wird hier gefiltert statt in der DB-Abfrage direkt\n// (siehe \"Hole needs_visual_prompt\", vorher AND-verknüpfte Bedingungen == 0 Treffer).\n// 'headline_selected' = Nutzer hat per Matrix-Antwort eine Headline/Subline-Variante\n// gewählt; für diese Zeilen wird nur noch der Bildprompt gebaut, keine neuen\n// Headline-Varianten mehr erzeugt (siehe \"IF Headline bereits gewählt?\").\nconst ZIEL_PROMPT_STAGE = ['needs_prompt', 'prompt_error'];\nconst ZIEL_HEADLINE_STAGE = ['headline_selected'];\n\n// FIX 2026-07-26: Zeilen, deren Sharepic bereits als nicht noetig (not_applicable) oder\n// blockiert (topic_error, z.B. durch einen QA-Guard) markiert wurden, sollen hier gar nicht\n// mehr ankommen - sonst prueft \"Pruefe Content-Abschluss\" endlos gegen ein Bild, das nie\n// entstehen wird, und ueberschreibt dabei jedes Mal den eigentlichen (aussagekraeftigeren)\n// Blockierungsgrund mit einer generischen CONTENT_JSON_INVALID-Meldung (Realfall Vorgang 2026/109).\nconst BLOCKED_SHAREPIC_STAGES = new Set(['not_applicable', 'topic_error']);\n\nreturn items.filter(item => {\n  const promptStage = String(item.json.visualPromptStage || '').trim();\n  const headlineStage = String(item.json.headlineChoiceStage || '').trim();\n  const sharepicNeedStage = String(item.json.sharepicNeedStage || '').trim();\n  if (BLOCKED_SHAREPIC_STAGES.has(sharepicNeedStage)) return false;\n  return ZIEL_PROMPT_STAGE.includes(promptStage) || ZIEL_HEADLINE_STAGE.includes(headlineStage);\n});\n"
       },
       "id": "b7c9e2f1-6d4a-4c8e-9f1a-2e5d7c3b8a90",
       "name": "Filtere Visual-Status",
@@ -1606,9 +1606,8 @@
   ],
   "pinData": {},
   "settings": {
-    "executionOrder": "v1",
-    "binaryMode": "separate"
+    "executionOrder": "v1"
   },
   "tags": [],
-  "versionId": "94a0fbe7-43a8-4448-8e1b-79bfa461e295"
+  "versionId": "0784a748-06b2-4e06-b63c-f5fd99e8a656"
 }
