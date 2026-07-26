@@ -172,8 +172,8 @@
             {
               "field": "days",
               "daysInterval": 1,
-              "triggerAtHour": 6,
-              "triggerAtMinute": 0
+              "triggerAtHour": 17,
+              "triggerAtMinute": 30
             }
           ]
         }
@@ -537,10 +537,10 @@
       ]
     }
   ],
-  "pinData": null,
+  "pinData": {},
   "settings": {
     "executionOrder": "v1"
   },
   "tags": [],
-  "versionId": "95ec3839-7b48-4c31-8e05-500d7b5df564"
+  "versionId": "aa40b812-f277-444f-8666-95cef8faf27a"
 }
