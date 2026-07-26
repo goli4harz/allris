@@ -172,8 +172,8 @@
             {
               "field": "days",
               "daysInterval": 1,
-              "triggerAtHour": 17,
-              "triggerAtMinute": 30
+              "triggerAtHour": 6,
+              "triggerAtMinute": 0
             }
           ]
         }
@@ -542,5 +542,5 @@
     "executionOrder": "v1"
   },
   "tags": [],
-  "versionId": "aa40b812-f277-444f-8666-95cef8faf27a"
+  "versionId": "70d7498a-3871-4d6a-9c74-f13276f9084c"
 }

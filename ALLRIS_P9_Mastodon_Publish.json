@@ -278,9 +278,10 @@
         "rule": {
           "interval": [
             {
-              "field": "hours",
-              "hoursInterval": 1,
-              "triggerAtMinute": 58
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 17,
+              "triggerAtMinute": 30
             }
           ]
         }
@@ -2139,5 +2140,5 @@
     "executionOrder": "v1"
   },
   "tags": [],
-  "versionId": "c0c8c674-e115-45cc-abd6-d04e24ae5e58"
+  "versionId": "4ea62520-ce78-4a8a-91bd-eb4a4637ce11"
 }
