@@ -1,0 +1,237 @@
+{
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Konfiguriere Ziel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Konfiguriere Ziel": {
+      "main": [
+        [
+          {
+            "node": "NC Lade Bild",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Lade Bild": {
+      "main": [
+        [
+          {
+            "node": "Upload Media zu Partei-Webseite",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Media zu Partei-Webseite": {
+      "main": [
+        [
+          {
+            "node": "Stelle Kontext nach Upload wieder her",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stelle Kontext nach Upload wieder her": {
+      "main": [
+        [
+          {
+            "node": "Setze Featured Image auf Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Setze Featured Image auf Post": {
+      "main": [
+        [
+          {
+            "node": "Aktualisiere DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "name": "ALLRIS_Einmalig_WordPress_Bild_Nachtragen",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "bnt-0001-0000-4000-9000-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Traegt hier das eine Ziel ein, dessen Bild nachtraeglich auf die\n// Partei-Webseite hochgeladen und als Featured Image gesetzt werden soll.\n// Grund: P8 hat keine Update-Logik fuer bereits existierende Posts (Slug-Suche\n// dient nur als Duplikat-Schutz) - ein erneuter P8-Lauf haette hier nichts bewirkt.\nconst TARGET = {\n  vorgangKey: 'vol_10583',\n  vorgangsnummer: '2026/100',\n  wordpressGoslarPostId: 262,\n  imageFinalPath: '/DiePARTEI/Allris/2026/vol_10583_2026_100_-_Vorlage_-_Investitionszuschuss_an_den_Ev.-luth._Propsteiverband_Braun/02_reaktion/Instagram/final_vol_10583.png'\n};\nreturn [{ json: TARGET }];"
+      },
+      "id": "bnt-0001-0000-4000-9000-000000000002",
+      "name": "Konfiguriere Ziel",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "path": "={{ $json.imageFinalPath }}"
+      },
+      "id": "bnt-0001-0000-4000-9000-000000000003",
+      "name": "NC Lade Bild",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [
+        448,
+        0
+      ],
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://die-partei.net/goslar/wp-json/wp/v2/media",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Disposition",
+              "value": "={{ 'attachment; filename=\"' + ($json.vorgangKey || 'sharepic') + '.png\"' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "data",
+        "options": {}
+      },
+      "id": "bnt-0001-0000-4000-9000-000000000004",
+      "name": "Upload Media zu Partei-Webseite",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        672,
+        0
+      ],
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const original = $('Konfiguriere Ziel').item.json;\nconst uploadResult = $json;\nfunction extractErrorText(v) {\n  if (!v) return '';\n  if (typeof v === 'string') return v;\n  if (typeof v === 'object') return String(v.message || v.description || v.error || JSON.stringify(v));\n  return String(v);\n}\nconst mediaId = uploadResult && uploadResult.id ? uploadResult.id : null;\nconst mediaUrl = uploadResult && uploadResult.source_url ? uploadResult.source_url : null;\nif (!mediaId) {\n  throw new Error('Medien-Upload fehlgeschlagen: ' + (extractErrorText(uploadResult && uploadResult.error) || extractErrorText(uploadResult && uploadResult.message) || 'keine Media-ID erhalten'));\n}\nreturn [{ json: { ...original, wpFeaturedMediaId: mediaId, wpFeaturedMediaUrl: mediaUrl } }];"
+      },
+      "id": "bnt-0001-0000-4000-9000-000000000005",
+      "name": "Stelle Kontext nach Upload wieder her",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://die-partei.net/goslar/wp-json/wp/v2/posts/' + $json.wordpressGoslarPostId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ featured_media: $json.wpFeaturedMediaId }) }}",
+        "options": {}
+      },
+      "id": "bnt-0001-0000-4000-9000-000000000006",
+      "name": "Setze Featured Image auf Post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        0
+      ],
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $('Stelle Kontext nach Upload wieder her').item.json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "wordpressGoslarImageUrl": "={{ $('Stelle Kontext nach Upload wieder her').item.json.wpFeaturedMediaUrl || '' }}",
+            "wordpressGoslarError": ""
+          },
+          "matchingColumns": [
+            "vorgangKey"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "bnt-0001-0000-4000-9000-000000000007",
+      "name": "Aktualisiere DB",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        1344,
+        0
+      ]
+    }
+  ],
+  "pinData": null,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
