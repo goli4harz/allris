@@ -826,7 +826,7 @@
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ title: $json.wpTitle, content: $json.wpContent, slug: $json.wpSlug, status: 'publish', featured_media: $json.wpFeaturedMediaId || 0 }) }}",
+        "jsonBody": "={{ JSON.stringify({ title: $json.wpTitle, content: ($json.wpFeaturedMediaUrl ? '<img src=\"' + $json.wpFeaturedMediaUrl + '\" alt=\"\" style=\"max-width:100%;height:auto;\" />\\n\\n' : '') + $json.wpContent, slug: $json.wpSlug, status: 'publish', featured_media: $json.wpFeaturedMediaId || 0 }) }}",
         "options": {}
       },
       "id": "0baf7385-9ef7-4720-8280-7549b10e9bbc",
@@ -1056,5 +1056,5 @@
     "binaryMode": "separate"
   },
   "tags": [],
-  "versionId": "f71cf2e4-500d-49cd-98ad-b09081ece33d"
+  "versionId": "039d29f9-81d4-4618-9893-f81542eddcf1"
 }
