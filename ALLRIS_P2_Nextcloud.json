@@ -553,8 +553,8 @@
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.1,
       "position": [
-        23632,
-        6640
+        96,
+        912
       ]
     },
     {
@@ -591,8 +591,8 @@
               "responseFormat": "text"
             }
           },
-          "timeout": 90000,
-          "proxy": "172.16.1.5:3128"
+          "proxy": "172.16.1.5:3128",
+          "timeout": 90000
         }
       },
       "id": "c9b6fe04-73b5-4dd1-818a-dec8d36122e4",
@@ -600,8 +600,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        23840,
-        6640
+        304,
+        912
       ],
       "retryOnFail": true
     },
@@ -614,8 +614,8 @@
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        24688,
-        6640
+        1152,
+        912
       ]
     },
     {
@@ -627,8 +627,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        24304,
-        6832
+        768,
+        1104
       ]
     },
     {
@@ -670,11 +670,12 @@
           "response": {
             "response": {
               "neverError": true,
-              "responseFormat": "file"
+              "responseFormat": "file",
+              "fullResponse": true
             }
           },
-          "timeout": 90000,
-          "proxy": "172.16.1.5:3128"
+          "proxy": "172.16.1.5:3128",
+          "timeout": 90000
         }
       },
       "id": "552772ed-a338-4bf7-8770-d1cb97da9cce",
@@ -682,8 +683,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        24528,
-        6832
+        992,
+        1104
       ],
       "retryOnFail": true,
       "waitBetweenTries": 5000,
@@ -699,8 +700,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        24896,
-        6640
+        1360,
+        912
       ]
     },
     {
@@ -713,8 +714,8 @@
       "type": "n8n-nodes-base.nextCloud",
       "typeVersion": 1,
       "position": [
-        25056,
-        6640
+        1520,
+        912
       ],
       "credentials": {
         "nextCloudApi": {
@@ -735,8 +736,8 @@
       "type": "n8n-nodes-base.nextCloud",
       "typeVersion": 1,
       "position": [
-        25248,
-        6640
+        1712,
+        912
       ],
       "credentials": {
         "nextCloudApi": {
@@ -757,8 +758,8 @@
       "type": "n8n-nodes-base.nextCloud",
       "typeVersion": 1,
       "position": [
-        25456,
-        6640
+        1920,
+        912
       ],
       "credentials": {
         "nextCloudApi": {
@@ -779,8 +780,8 @@
       "type": "n8n-nodes-base.nextCloud",
       "typeVersion": 1,
       "position": [
-        24080,
-        7040
+        544,
+        1312
       ],
       "retryOnFail": false,
       "alwaysOutputData": true,
@@ -878,8 +879,8 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        25184,
-        6960
+        1648,
+        1232
       ]
     },
     {
@@ -889,8 +890,8 @@
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        25664,
-        7040
+        2128,
+        1312
       ]
     },
     {
@@ -910,8 +911,8 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
       "position": [
-        24240,
-        6640
+        704,
+        912
       ]
     },
     {
@@ -923,8 +924,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        24464,
-        6640
+        928,
+        912
       ]
     },
     {
@@ -937,8 +938,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        24736,
-        6832
+        1200,
+        1104
       ]
     },
     {
@@ -950,11 +951,11 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        24736,
-        7040
+        1200,
+        1312
       ],
-      "notes": "F9 (Architekturpruefung 2026-07-22): RESET_CONTENT_STAGES/RESET_ERROR_REASONS dupliziert dieselbe Regel wie ALLRIS_P1_Ingestion.json, Node 'Update bekannter Vorgang' (contentStage/contentErrorReason-Spaltenausdruck). Zwei unabhaengige Implementierungen derselben Regel - bei Aenderung IMMER beide Stellen synchron halten. Echte Code-Konsolidierung (gemeinsamer Sub-Workflow) bewusst noch nicht umgesetzt, siehe Umsetzungsplan Paket 2/7.",
-      "notesInFlow": true
+      "notesInFlow": true,
+      "notes": "F9 (Architekturpruefung 2026-07-22): RESET_CONTENT_STAGES/RESET_ERROR_REASONS dupliziert dieselbe Regel wie ALLRIS_P1_Ingestion.json, Node 'Update bekannter Vorgang' (contentStage/contentErrorReason-Spaltenausdruck). Zwei unabhaengige Implementierungen derselben Regel - bei Aenderung IMMER beide Stellen synchron halten. Echte Code-Konsolidierung (gemeinsamer Sub-Workflow) bewusst noch nicht umgesetzt, siehe Umsetzungsplan Paket 2/7."
     },
     {
       "parameters": {
@@ -986,8 +987,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        24960,
-        7040
+        1424,
+        1312
       ]
     },
     {
@@ -1061,8 +1062,8 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
       "position": [
-        25184,
-        7120
+        1648,
+        1392
       ]
     },
     {
@@ -1108,8 +1109,8 @@
               "responseFormat": "text"
             }
           },
-          "timeout": 90000,
-          "proxy": "172.16.1.5:3128"
+          "proxy": "172.16.1.5:3128",
+          "timeout": 90000
         }
       },
       "id": "eea9d26e-7844-4316-8fd9-5ff6466fda05",
@@ -1117,8 +1118,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        23808,
-        6832
+        272,
+        1104
       ],
       "retryOnFail": true
     },
@@ -1131,8 +1132,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        23968,
-        6832
+        432,
+        1104
       ]
     },
     {
@@ -1144,22 +1145,22 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        23648,
-        6832
+        112,
+        1104
       ]
     },
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "// Prüft den Download. Akzeptiert jetzt PDF, JPG, JPEG, PNG und andere echte Binary-Dateien.\n// Läuft im Modus: Run Once for Each Item\n// V2: Verifiziert PDF-Dateien zusätzlich per Magic-Byte-Prüfung (%PDF-) und lässt\n// unbekannte Dateigrößen nicht mehr automatisch durch, um leere/kaputte Downloads\n// zu erkennen, bevor sie als erfolgreich nach Nextcloud hochgeladen werden.\n\nconst item = $input.item;\nconst j = item.json || {};\nconst binary = item.binary || {};\nconst bin = binary.data || {};\n\nfunction parseSize(value) {\n  if (typeof value === 'number') return value;\n\n  const s = String(value || '').trim().toLowerCase().replace(',', '.');\n  const n = parseFloat(s);\n\n  if (!Number.isFinite(n)) return 0;\n\n  if (s.includes('mb')) return Math.round(n * 1024 * 1024);\n  if (s.includes('kb')) return Math.round(n * 1024);\n\n  return Math.round(n);\n}\n\nconst hasBinary = !!binary.data;\n\n// Tatsächliche Bytes laden, wenn möglich – zuverlässiger als gemeldete Metadaten.\nlet realBuffer = null;\nif (hasBinary) {\n  try {\n    realBuffer = await this.helpers.getBinaryDataBuffer(0, 'data');\n  } catch (e) {\n    console.warn(`[Prüfe Download] Konnte Binärdaten nicht laden (${j.vorgangKey || '?'} / ${j.nc_fileName || '?'}): ${e.message}`);\n  }\n}\n\nconst mimeType = String(\n  bin.mimeType ||\n  bin.mime ||\n  j.mimeType ||\n  ''\n).toLowerCase();\n\nconst fileName = String(\n  j.nc_fileName ||\n  bin.fileName ||\n  ''\n).toLowerCase();\n\nconst fileExtension = String(\n  bin.fileExtension ||\n  fileName.split('.').pop() ||\n  ''\n).toLowerCase();\n\nconst reportedFileSize = parseSize(\n  bin.fileSize ||\n  bin.fileSizeBytes ||\n  j.fileSize ||\n  0\n);\nconst fileSize = realBuffer ? realBuffer.length : reportedFileSize;\n\nconst isPdf =\n  mimeType.includes('pdf') ||\n  fileName.endsWith('.pdf') ||\n  fileExtension === 'pdf';\n\nconst isImage =\n  mimeType.includes('image/jpeg') ||\n  mimeType.includes('image/jpg') ||\n  mimeType.includes('image/png') ||\n  mimeType.includes('image/gif') ||\n  fileName.endsWith('.jpg') ||\n  fileName.endsWith('.jpeg') ||\n  fileName.endsWith('.png') ||\n  fileName.endsWith('.gif') ||\n  ['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension);\n\nconst isOfficeOrOtherAllowed =\n  fileName.endsWith('.doc') ||\n  fileName.endsWith('.docx') ||\n  fileName.endsWith('.xls') ||\n  fileName.endsWith('.xlsx') ||\n  fileName.endsWith('.ppt') ||\n  fileName.endsWith('.pptx') ||\n  fileName.endsWith('.odt') ||\n  fileName.endsWith('.ods') ||\n  fileName.endsWith('.zip') ||\n  ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods', 'zip'].includes(fileExtension);\n\nconst isHtml =\n  mimeType.includes('text/html') ||\n  mimeType.includes('html') ||\n  fileName.endsWith('.html') ||\n  fileName.endsWith('.htm');\n\n// Magic-Byte-Prüfung: eine als PDF erkannte Datei muss tatsächlich mit %PDF- beginnen.\n// Fängt mislabelte oder kaputte Downloads ab, die Metadaten/Endung nicht verraten.\nlet magicBytesOk = true;\nif (isPdf && realBuffer) {\n  const header = realBuffer.subarray(0, 5).toString('latin1');\n  magicBytesOk = header === '%PDF-';\n  if (!magicBytesOk) {\n    console.warn(`[Prüfe Download] Magic-Byte-Check fehlgeschlagen (${j.vorgangKey || '?'} / ${j.nc_fileName || '?'}): erwartet %PDF-, erhalten ${header}`);\n  }\n}\n\n// Keine Freikarte mehr für unbekannte Größe: eine Datei mit fileSize=0 ist verdächtig,\n// nicht automatisch gültig. Für PDFs gilt eine höhere Mindestgröße, weil selbst ein\n// einzelnes Deckblatt praktisch nie kleiner als ein paar hundert Byte ist.\nconst minSize = isPdf ? 800 : 300;\nconst sizeOk = fileSize > minSize;\n\nconst downloadOk =\n  hasBinary &&\n  sizeOk &&\n  !isHtml &&\n  magicBytesOk &&\n  (\n    isPdf ||\n    isImage ||\n    isOfficeOrOtherAllowed ||\n    fileSize > 2000\n  );\n\nif (!downloadOk) {\n  console.warn(\n    `[Prüfe Download] FEHLER: ${j.vorgangKey || '?'} / ${j.nc_fileName || '?'} ` +\n    `mime=${mimeType}, ext=${fileExtension}, size=${fileSize}, hasBinary=${hasBinary}, magicBytesOk=${magicBytesOk}`\n  );\n}\n\nreturn {\n  json: {\n    ...j,\n    downloadOk,\n    _downloadOk: downloadOk,\n    _downloadMimeType: mimeType,\n    _downloadFileName: fileName,\n    _downloadFileExtension: fileExtension,\n    _downloadFileSize: fileSize,\n    _downloadHasBinary: hasBinary,\n    _downloadMagicBytesOk: magicBytesOk,\n    _downloadRejectedReason: downloadOk\n      ? ''\n      : `Nicht akzeptiert: mime=${mimeType}, ext=${fileExtension}, size=${fileSize}, hasBinary=${hasBinary}, magicBytesOk=${magicBytesOk}`\n  },\n  binary\n};\n"
+        "jsCode": "// Prüft den Download. Akzeptiert jetzt PDF, JPG, JPEG, PNG und andere echte Binary-Dateien.\n// Läuft im Modus: Run Once for Each Item\n// V2: Verifiziert PDF-Dateien zusätzlich per Magic-Byte-Prüfung (%PDF-) und lässt\n// unbekannte Dateigrößen nicht mehr automatisch durch, um leere/kaputte Downloads\n// zu erkennen, bevor sie als erfolgreich nach Nextcloud hochgeladen werden.\n\nconst item = $input.item;\nconst j = item.json || {};\nconst binary = item.binary || {};\nconst bin = binary.data || {};\nconst httpStatusCode = j.statusCode ?? null;\n\nfunction parseSize(value) {\n  if (typeof value === 'number') return value;\n\n  const s = String(value || '').trim().toLowerCase().replace(',', '.');\n  const n = parseFloat(s);\n\n  if (!Number.isFinite(n)) return 0;\n\n  if (s.includes('mb')) return Math.round(n * 1024 * 1024);\n  if (s.includes('kb')) return Math.round(n * 1024);\n\n  return Math.round(n);\n}\n\nconst hasBinary = !!binary.data;\n\n// Tatsächliche Bytes laden, wenn möglich – zuverlässiger als gemeldete Metadaten.\nlet realBuffer = null;\nif (hasBinary) {\n  try {\n    realBuffer = await this.helpers.getBinaryDataBuffer(0, 'data');\n  } catch (e) {\n    console.warn(`[Prüfe Download] Konnte Binärdaten nicht laden (${j.vorgangKey || '?'} / ${j.nc_fileName || '?'}): ${e.message}`);\n  }\n}\n\nconst mimeType = String(\n  bin.mimeType ||\n  bin.mime ||\n  j.mimeType ||\n  ''\n).toLowerCase();\n\nconst fileName = String(\n  j.nc_fileName ||\n  bin.fileName ||\n  ''\n).toLowerCase();\n\nconst fileExtension = String(\n  bin.fileExtension ||\n  fileName.split('.').pop() ||\n  ''\n).toLowerCase();\n\nconst reportedFileSize = parseSize(\n  bin.fileSize ||\n  bin.fileSizeBytes ||\n  j.fileSize ||\n  0\n);\nconst fileSize = realBuffer ? realBuffer.length : reportedFileSize;\n\nconst isPdf =\n  mimeType.includes('pdf') ||\n  fileName.endsWith('.pdf') ||\n  fileExtension === 'pdf';\n\nconst isImage =\n  mimeType.includes('image/jpeg') ||\n  mimeType.includes('image/jpg') ||\n  mimeType.includes('image/png') ||\n  mimeType.includes('image/gif') ||\n  fileName.endsWith('.jpg') ||\n  fileName.endsWith('.jpeg') ||\n  fileName.endsWith('.png') ||\n  fileName.endsWith('.gif') ||\n  ['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension);\n\nconst isOfficeOrOtherAllowed =\n  fileName.endsWith('.doc') ||\n  fileName.endsWith('.docx') ||\n  fileName.endsWith('.xls') ||\n  fileName.endsWith('.xlsx') ||\n  fileName.endsWith('.ppt') ||\n  fileName.endsWith('.pptx') ||\n  fileName.endsWith('.odt') ||\n  fileName.endsWith('.ods') ||\n  fileName.endsWith('.zip') ||\n  ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods', 'zip'].includes(fileExtension);\n\nconst isHtml =\n  mimeType.includes('text/html') ||\n  mimeType.includes('html') ||\n  fileName.endsWith('.html') ||\n  fileName.endsWith('.htm');\n\n// Magic-Byte-Prüfung: eine als PDF erkannte Datei muss tatsächlich mit %PDF- beginnen.\n// Fängt mislabelte oder kaputte Downloads ab, die Metadaten/Endung nicht verraten.\nlet magicBytesOk = true;\nif (isPdf && realBuffer) {\n  const header = realBuffer.subarray(0, 5).toString('latin1');\n  magicBytesOk = header === '%PDF-';\n  if (!magicBytesOk) {\n    console.warn(`[Prüfe Download] Magic-Byte-Check fehlgeschlagen (${j.vorgangKey || '?'} / ${j.nc_fileName || '?'}): erwartet %PDF-, erhalten ${header}`);\n  }\n}\n\n// Keine Freikarte mehr für unbekannte Größe: eine Datei mit fileSize=0 ist verdächtig,\n// nicht automatisch gültig. Für PDFs gilt eine höhere Mindestgröße, weil selbst ein\n// einzelnes Deckblatt praktisch nie kleiner als ein paar hundert Byte ist.\nconst minSize = isPdf ? 800 : 300;\nconst sizeOk = fileSize > minSize;\n\nconst downloadOk =\n  hasBinary &&\n  sizeOk &&\n  !isHtml &&\n  magicBytesOk &&\n  (\n    isPdf ||\n    isImage ||\n    isOfficeOrOtherAllowed ||\n    fileSize > 2000\n  );\n\nif (!downloadOk) {\n  console.warn(\n    `[Prüfe Download] FEHLER: ${j.vorgangKey || '?'} / ${j.nc_fileName || '?'} ` +\n    `mime=${mimeType}, ext=${fileExtension}, size=${fileSize}, hasBinary=${hasBinary}, magicBytesOk=${magicBytesOk}`\n  );\n}\n\nreturn {\n  json: {\n    ...j,\n    downloadOk,\n    _downloadHttpStatus: httpStatusCode,\n    _downloadOk: downloadOk,\n    _downloadMimeType: mimeType,\n    _downloadFileName: fileName,\n    _downloadFileExtension: fileExtension,\n    _downloadFileSize: fileSize,\n    _downloadHasBinary: hasBinary,\n    _downloadMagicBytesOk: magicBytesOk,\n    _downloadRejectedReason: downloadOk\n      ? ''\n      : `Nicht akzeptiert: httpStatus=${httpStatusCode ?? 'n/a'}, mime=${mimeType}, ext=${fileExtension}, size=${fileSize}, hasBinary=${hasBinary}, magicBytesOk=${magicBytesOk}`\n  },\n  binary\n};\n"
       },
       "id": "4137e30c-a76c-4cf6-9869-3718c396360d",
       "name": "Prüfe Download",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        24960,
-        6832
+        1424,
+        1104
       ]
     },
     {
@@ -1192,8 +1193,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        25184,
-        6832
+        1648,
+        1104
       ]
     },
     {
@@ -1206,22 +1207,22 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        24288,
-        7040
+        752,
+        1312
       ]
     },
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "\n// ── pairedItem-Index sicher extrahieren ──────────────────────────────────────\n// n8n liefert pairedItem in verschiedenen Formen je nach Version:\n//   - Zahl:               pairedItem = 0\n//   - Objekt mit .item:   pairedItem = { item: 0 }\n//   - Array:              pairedItem = [{ item: 0 }]\n//   - undefined:          nicht gesetzt (ältere n8n-Versionen)\nfunction getPairedIndex(pairedItem) {\n  if (pairedItem === undefined || pairedItem === null) return null;\n  if (typeof pairedItem === 'number')                  return pairedItem;\n  if (Array.isArray(pairedItem) && pairedItem.length)  return pairedItem[0]?.item ?? pairedItem[0] ?? null;\n  if (typeof pairedItem === 'object')                  return pairedItem.item ?? null;\n  return null;\n}\n\n// ── Markiere Upload Fehler ───────────────────────────────────────────────────\n// Kommt vom:\n//   a) false-Ausgang von 'IF Download OK?'\n//      → item.json ist vollständig (direkt aus Prüfe Download, kein NC-Upload)\n//   b) ERROR-Ausgang (out1) von 'Upload Original to Nextcloud'\n//      → NC-Node kann JSON ersetzen → pairedItem nötig\n//\n// Metadaten-Strategie:\n//   1. item.json vollständig → direkt nutzen\n//   2. pairedItem → Index in $('Upload Kontext sichern').all()\n//   3. docRunKey-Suche in $('Upload Kontext sichern').all()\n//   4. Kein src[0]-Fallback – expliziter Fehler\n\nconst item = $input.item;\nconst j    = item.json;\n\nconst REQUIRED = ['vorgangKey','documentCount','nc_pathVorg','nc_pathOrig',\n                  'nc_fileName','nc_docIndex','docRunKey'];\nconst hasFullMeta = REQUIRED.every(f => j[f] !== undefined && j[f] !== '' && j[f] !== null);\n\nlet meta   = null;\nlet source = '';\n\n// ── Priorität 1: item.json vollständig ───────────────────────────────────────\n// Gilt immer für Fall a (Download-Fehler-Branch – NC-Node nie durchlaufen)\nif (hasFullMeta) {\n  meta   = j;\n  source = 'item.json direkt';\n  console.log(`[UploadFehler] P1 – Metadaten direkt: ${j.docRunKey}`);\n}\n\n// ── Priorität 2: pairedItem → Upload Kontext sichern ─────────────────────────\n// Gilt für Fall b (NC-Upload-Fehler – NC-Node kann JSON ersetzen)\nif (!meta) {\n  const pIdx = getPairedIndex(item.pairedItem);\n  if (pIdx !== null) {\n    const ctxItems = $('Upload Kontext sichern').all();\n    const ctx      = ctxItems[pIdx];\n    if (ctx?.json?.vorgangKey) {\n      meta   = ctx.json;\n      source = `pairedItem[${pIdx}] → Upload Kontext`;\n      console.log(`[UploadFehler] P2 – Metadaten via ${source}: ${meta.docRunKey}`);\n    } else {\n      console.warn(`[UploadFehler] P2 – pairedItem[${pIdx}] in Upload Kontext sichern leer/ungültig.`);\n    }\n  } else {\n    console.warn('[UploadFehler] P2 – kein pairedItem verfügbar.');\n  }\n}\n\n// ── Priorität 3: docRunKey-Suche ─────────────────────────────────────────────\nif (!meta) {\n  const key = j.docRunKey || '';\n  if (key) {\n    const ctxItems = $('Upload Kontext sichern').all();\n    const found    = ctxItems.find(i => i.json.docRunKey === key);\n    if (found?.json?.vorgangKey) {\n      meta   = found.json;\n      source = `docRunKey=\"${key}\" → Upload Kontext`;\n      console.log(`[UploadFehler] P3 – Metadaten via ${source}`);\n    } else {\n      console.warn(`[UploadFehler] P3 – docRunKey \"${key}\" nicht in Upload Kontext sichern.`);\n    }\n  } else {\n    console.warn('[UploadFehler] P3 – kein docRunKey in item.json.');\n  }\n}\n\n// ── Keine Zuordnung → expliziter Fehler ──────────────────────────────────────\nif (!meta || !meta.vorgangKey) {\n  const errMsg = `Metadaten nach Fehler nicht rekonstruierbar (pairedItem=${JSON.stringify(item.pairedItem)}, docRunKey=\"${j.docRunKey||'?'}\")`;\n  console.error(`[UploadFehler] KRITISCH: ${errMsg}`);\n  return [{\n    json: {\n      vorgangKey:    j.vorgangKey    || '_unbekannt_',\n      documentCount: j.documentCount || 0,\n      nc_pathVorg:   j.nc_pathVorg   || '',\n      nc_pathOrig:   j.nc_pathOrig   || '',\n      nc_fileName:   j.nc_fileName   || '',\n      nc_docIndex:   j.nc_docIndex   ?? -1,\n      docRunKey:     j.docRunKey     || '',\n      _uploadOk:     false,\n      _uploadError:  errMsg\n    }\n  }];\n}\n\n// ── Fehlerursache bestimmen ───────────────────────────────────────────────────\n// Fall a: _downloadOk ist false (aus Prüfe Download)\n// Fall b: _downloadOk ist true, aber NC-Upload fehlgeschlagen\nconst downloadFailed = meta._downloadOk === false || j._downloadOk === false;\nconst uploadErrMsg   =\n  item.error?.message ||\n  j.error?.message    ||\n  j.message           || '';\n\nconst uploadError = downloadFailed\n  ? `Download fehlgeschlagen: ${meta._downloadError || j._downloadError || 'unbekannt'}`\n  : `Upload fehlgeschlagen: ${uploadErrMsg || 'Nextcloud-Fehler (kein Detail)'}`;\n\nconsole.warn(`[UploadFehler] ✗ ${meta.nc_fileName} – ${meta.vorgangKey}: ${uploadError} [via ${source}]`);\n\nreturn {\n  json: {\n    vorgangKey:     meta.vorgangKey,\n    volfdnr:        meta.volfdnr        || '',\n    title:          meta.title          || '',\n    vorgangsnummer: meta.vorgangsnummer || '',\n    allrisUrl:      meta.allrisUrl      || '',\n    sourceUrl:      meta.sourceUrl      || '',\n    documentCount:  meta.documentCount  || 0,\n    documentsJson:  meta.documentsJson  || '[]',\n    nc_pathYear:    meta.nc_pathYear    || '',\n    nc_pathVorg:    meta.nc_pathVorg    || '',\n    nc_pathOrig:    meta.nc_pathOrig    || '',\n    nc_folder:      meta.nc_folder      || '',\n    nc_fileName:    meta.nc_fileName    || '',\n    nc_docIndex:    meta.nc_docIndex    ?? 0,\n    docRunKey:      meta.docRunKey      || '',\n    firstseen:      meta.firstseen      || '',\n    existingContentStage: meta.existingContentStage || j.existingContentStage || '',\n    existingContentErrorReason: meta.existingContentErrorReason || j.existingContentErrorReason || '',\n    _uploadOk:      false,\n    _uploadError:   uploadError\n  }\n};\n"
+        "jsCode": "\n// ── pairedItem-Index sicher extrahieren ──────────────────────────────────────\n// n8n liefert pairedItem in verschiedenen Formen je nach Version:\n//   - Zahl:               pairedItem = 0\n//   - Objekt mit .item:   pairedItem = { item: 0 }\n//   - Array:              pairedItem = [{ item: 0 }]\n//   - undefined:          nicht gesetzt (ältere n8n-Versionen)\nfunction getPairedIndex(pairedItem) {\n  if (pairedItem === undefined || pairedItem === null) return null;\n  if (typeof pairedItem === 'number')                  return pairedItem;\n  if (Array.isArray(pairedItem) && pairedItem.length)  return pairedItem[0]?.item ?? pairedItem[0] ?? null;\n  if (typeof pairedItem === 'object')                  return pairedItem.item ?? null;\n  return null;\n}\n\n// ── Markiere Upload Fehler ───────────────────────────────────────────────────\n// Kommt vom:\n//   a) false-Ausgang von 'IF Download OK?'\n//      → item.json ist vollständig (direkt aus Prüfe Download, kein NC-Upload)\n//   b) ERROR-Ausgang (out1) von 'Upload Original to Nextcloud'\n//      → NC-Node kann JSON ersetzen → pairedItem nötig\n//\n// Metadaten-Strategie:\n//   1. item.json vollständig → direkt nutzen\n//   2. pairedItem → Index in $('Upload Kontext sichern').all()\n//   3. docRunKey-Suche in $('Upload Kontext sichern').all()\n//   4. Kein src[0]-Fallback – expliziter Fehler\n\nconst item = $input.item;\nconst j    = item.json;\n\nconst REQUIRED = ['vorgangKey','documentCount','nc_pathVorg','nc_pathOrig',\n                  'nc_fileName','nc_docIndex','docRunKey'];\nconst hasFullMeta = REQUIRED.every(f => j[f] !== undefined && j[f] !== '' && j[f] !== null);\n\nlet meta   = null;\nlet source = '';\n\n// ── Priorität 1: item.json vollständig ───────────────────────────────────────\n// Gilt immer für Fall a (Download-Fehler-Branch – NC-Node nie durchlaufen)\nif (hasFullMeta) {\n  meta   = j;\n  source = 'item.json direkt';\n  console.log(`[UploadFehler] P1 – Metadaten direkt: ${j.docRunKey}`);\n}\n\n// ── Priorität 2: pairedItem → Upload Kontext sichern ─────────────────────────\n// Gilt für Fall b (NC-Upload-Fehler – NC-Node kann JSON ersetzen)\nif (!meta) {\n  const pIdx = getPairedIndex(item.pairedItem);\n  if (pIdx !== null) {\n    const ctxItems = $('Upload Kontext sichern').all();\n    const ctx      = ctxItems[pIdx];\n    if (ctx?.json?.vorgangKey) {\n      meta   = ctx.json;\n      source = `pairedItem[${pIdx}] → Upload Kontext`;\n      console.log(`[UploadFehler] P2 – Metadaten via ${source}: ${meta.docRunKey}`);\n    } else {\n      console.warn(`[UploadFehler] P2 – pairedItem[${pIdx}] in Upload Kontext sichern leer/ungültig.`);\n    }\n  } else {\n    console.warn('[UploadFehler] P2 – kein pairedItem verfügbar.');\n  }\n}\n\n// ── Priorität 3: docRunKey-Suche ─────────────────────────────────────────────\nif (!meta) {\n  const key = j.docRunKey || '';\n  if (key) {\n    const ctxItems = $('Upload Kontext sichern').all();\n    const found    = ctxItems.find(i => i.json.docRunKey === key);\n    if (found?.json?.vorgangKey) {\n      meta   = found.json;\n      source = `docRunKey=\"${key}\" → Upload Kontext`;\n      console.log(`[UploadFehler] P3 – Metadaten via ${source}`);\n    } else {\n      console.warn(`[UploadFehler] P3 – docRunKey \"${key}\" nicht in Upload Kontext sichern.`);\n    }\n  } else {\n    console.warn('[UploadFehler] P3 – kein docRunKey in item.json.');\n  }\n}\n\n// ── Keine Zuordnung → expliziter Fehler ──────────────────────────────────────\nif (!meta || !meta.vorgangKey) {\n  const errMsg = `Metadaten nach Fehler nicht rekonstruierbar (pairedItem=${JSON.stringify(item.pairedItem)}, docRunKey=\"${j.docRunKey||'?'}\")`;\n  console.error(`[UploadFehler] KRITISCH: ${errMsg}`);\n  return [{\n    json: {\n      vorgangKey:    j.vorgangKey    || '_unbekannt_',\n      documentCount: j.documentCount || 0,\n      nc_pathVorg:   j.nc_pathVorg   || '',\n      nc_pathOrig:   j.nc_pathOrig   || '',\n      nc_fileName:   j.nc_fileName   || '',\n      nc_docIndex:   j.nc_docIndex   ?? -1,\n      docRunKey:     j.docRunKey     || '',\n      _uploadOk:     false,\n      _uploadError:  errMsg\n    }\n  }];\n}\n\n// ── Fehlerursache bestimmen ───────────────────────────────────────────────────\n// Fall a: _downloadOk ist false (aus Prüfe Download)\n// Fall b: _downloadOk ist true, aber NC-Upload fehlgeschlagen\nconst downloadFailed = meta._downloadOk === false || j._downloadOk === false;\nconst uploadErrMsg   =\n  item.error?.message ||\n  j.error?.message    ||\n  j.message           || '';\n\nconst uploadError = downloadFailed\n  ? `Download fehlgeschlagen: ${meta._downloadRejectedReason || j._downloadRejectedReason || meta._downloadError || j._downloadError || 'unbekannt'}`\n  : `Upload fehlgeschlagen: ${uploadErrMsg || 'Nextcloud-Fehler (kein Detail)'}`;\n\nconsole.warn(`[UploadFehler] ✗ ${meta.nc_fileName} – ${meta.vorgangKey}: ${uploadError} [via ${source}]`);\n\nreturn {\n  json: {\n    vorgangKey:     meta.vorgangKey,\n    volfdnr:        meta.volfdnr        || '',\n    title:          meta.title          || '',\n    vorgangsnummer: meta.vorgangsnummer || '',\n    allrisUrl:      meta.allrisUrl      || '',\n    sourceUrl:      meta.sourceUrl      || '',\n    documentCount:  meta.documentCount  || 0,\n    documentsJson:  meta.documentsJson  || '[]',\n    nc_pathYear:    meta.nc_pathYear    || '',\n    nc_pathVorg:    meta.nc_pathVorg    || '',\n    nc_pathOrig:    meta.nc_pathOrig    || '',\n    nc_folder:      meta.nc_folder      || '',\n    nc_fileName:    meta.nc_fileName    || '',\n    nc_docIndex:    meta.nc_docIndex    ?? 0,\n    docRunKey:      meta.docRunKey      || '',\n    firstseen:      meta.firstseen      || '',\n    existingContentStage: meta.existingContentStage || j.existingContentStage || '',\n    existingContentErrorReason: meta.existingContentErrorReason || j.existingContentErrorReason || '',\n    _uploadOk:      false,\n    _uploadError:   uploadError\n  }\n};\n"
       },
       "id": "66cc8de7-9ea3-4169-b3c3-abc3da3c2b6c",
       "name": "Markiere Upload Fehler",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        24288,
-        7248
+        752,
+        1520
       ]
     },
     {
@@ -1231,8 +1232,8 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
       "position": [
-        24512,
-        7040
+        976,
+        1312
       ]
     },
     {
@@ -1245,8 +1246,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        25408,
-        6832
+        1872,
+        1104
       ]
     },
     {
@@ -1258,8 +1259,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        24048,
-        6640
+        512,
+        912
       ]
     },
     {
@@ -1272,8 +1273,8 @@
       "type": "n8n-nodes-base.nextCloud",
       "typeVersion": 1,
       "position": [
-        23648,
-        7040
+        112,
+        1312
       ],
       "credentials": {
         "nextCloudApi": {
@@ -1293,8 +1294,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        23856,
-        7040
+        320,
+        1312
       ]
     },
     {
@@ -1327,8 +1328,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        25616,
-        6832
+        2080,
+        1104
       ]
     },
     {
@@ -1338,8 +1339,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        24128,
-        6832
+        592,
+        1104
       ],
       "id": "a110c85e-e59c-4384-8e4f-0a45d4f849b6",
       "name": "Aktualisiere Dokumentlinks aus Warmup"
@@ -1354,8 +1355,8 @@
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1,
       "position": [
-        23872,
-        6832
+        336,
+        1104
       ],
       "webhookId": "0e6e3787-0fd6-4e1e-a3aa-2aa0b68d83b9"
     },
@@ -1551,8 +1552,8 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        25424,
-        6880
+        1888,
+        1152
       ]
     },
     {
@@ -1588,8 +1589,8 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        25424,
-        7248
+        1888,
+        1520
       ]
     },
     {
@@ -1601,8 +1602,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        24704,
-        6800
+        1072,
+        800
       ]
     },
     {
@@ -1622,8 +1623,8 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        24928,
-        6800
+        1344,
+        784
       ]
     },
     {
@@ -1635,8 +1636,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        25152,
-        6800
+        1616,
+        1072
       ]
     },
     {
@@ -1648,8 +1649,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        25424,
-        7120
+        1888,
+        1392
       ]
     },
     {
@@ -1669,8 +1670,8 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        25648,
-        7120
+        2112,
+        1392
       ]
     }
   ],
@@ -1680,5 +1681,5 @@
     "binaryMode": "separate"
   },
   "tags": [],
-  "versionId": "be795faf-00d8-44d2-96df-a4ce884c46a8"
+  "versionId": "6e2aec06-4fef-4910-ae12-3a75d800fd96"
 }
