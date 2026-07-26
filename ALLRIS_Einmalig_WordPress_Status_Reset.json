@@ -1,0 +1,139 @@
+{
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hole alle Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole alle Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Filtere gepostete Zeilen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtere gepostete Zeilen": {
+      "main": [
+        [
+          {
+            "node": "Setze WordPress-Status zurueck",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "name": "ALLRIS_Einmalig_WordPress_Status_Reset",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "wpr-0001-0000-4000-9000-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge"
+        },
+        "filters": {
+          "conditions": []
+        },
+        "returnAll": true
+      },
+      "id": "wpr-0001-0000-4000-9000-000000000002",
+      "name": "Hole alle Vorgaenge",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 2026-07-26: beide WordPress-Seiten wurden komplett von Hand geleert\n// (golietz.de und die-partei.net/goslar), die Data Table wusste davon nichts -\n// wordpressPosted/wordpressGoslarPosted standen bei allen echten Posts weiter auf\n// true, wodurch P7/P8 die Zeilen fuer immer als 'schon erledigt' uebersprungen\n// haetten. Setzt beide Post-Status-Gruppen zurueck, wo jeweils gesetzt.\nfunction truthy(v) { return v === true || v === 'true'; }\nreturn items\n  .filter(i => truthy((i.json||{}).wordpressPosted) || truthy((i.json||{}).wordpressGoslarPosted))\n  .map(i => ({ json: { id: i.json.id, vorgangKey: i.json.vorgangKey, vorgangsnummer: i.json.vorgangsnummer } }));"
+      },
+      "id": "wpr-0001-0000-4000-9000-000000000003",
+      "name": "Filtere gepostete Zeilen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "wordpressPosted": false,
+            "wordpressPostId": "",
+            "wordpressPostLink": "",
+            "wordpressPostedAt": "",
+            "wordpressGoslarPosted": false,
+            "wordpressGoslarPostId": "",
+            "wordpressGoslarPostLink": "",
+            "wordpressGoslarPostedAt": "",
+            "wordpressGoslarImageUrl": "",
+            "wordpressGoslarError": ""
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "wpr-0001-0000-4000-9000-000000000004",
+      "name": "Setze WordPress-Status zurueck",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        672,
+        0
+      ]
+    }
+  ],
+  "pinData": null,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
