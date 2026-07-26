@@ -326,10 +326,9 @@
         "rule": {
           "interval": [
             {
-              "field": "days",
-              "daysInterval": 1,
-              "triggerAtHour": 6,
-              "triggerAtMinute": 0
+              "field": "hours",
+              "hoursInterval": 1,
+              "triggerAtMinute": 52
             }
           ]
         }
@@ -366,7 +365,7 @@
     },
     {
       "parameters": {
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction safeBool(v) {\n  if (v === true) return true;\n  if (typeof v === 'string') return v.trim().toLowerCase() === 'true';\n  return false;\n}\nconst items = $input.all();\nreturn items.filter(item => {\n  const j = item.json || {};\n  const publicationRetryAt = Date.parse(safeStr(j.next_retry_at));\n  const publicationRetryPending =\n    safeStr(j.last_error_stage) === 'publication' &&\n    Number.isFinite(publicationRetryAt) &&\n    publicationRetryAt > Date.now();\n  if (publicationRetryPending) return false;\n  if (!safeStr(j.websiteArticle)) return false;\n  if (safeBool(j.wordpressGoslarPosted)) return false;\n  if (!safeStr(j.vorgangKey)) return false;\n  // FIX 2026-07-25 (Nutzerfund, gleiches Muster wie P9 vs. P6 vom selben Tag): P8 lief vor P6\n  // (Bildgenerierung) her - Vorgaenge mit sharepicNeedStage=topic_ok wollen ein Bild, wurden\n  // aber schon gepostet, bevor es fertig war (wordpressGoslarPosted=true verhindert seither\n  // jede Nachbesserung). Nur bei 'topic_error_final' (Bildkonzept endgueltig gescheitert) wird\n  // bewusst ohne Bild gepostet, sonst wird gewartet.\n  if (safeStr(j.sharepicNeedStage) === 'topic_ok') {\n    const hasImage = !!safeStr(j.imageFinalPath);\n    const imageGivenUp = safeStr(j.imageStage) === 'topic_error_final';\n    if (!hasImage && !imageGivenUp) return false;\n  }\n  return true;\n});\n"
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction safeBool(v) {\n  if (v === true) return true;\n  if (typeof v === 'string') return v.trim().toLowerCase() === 'true';\n  return false;\n}\nconst items = $input.all();\nreturn items.filter(item => {\n  const j = item.json || {};\n  const publicationRetryAt = Date.parse(safeStr(j.next_retry_at));\n  const publicationRetryPending =\n    safeStr(j.last_error_stage) === 'publication' &&\n    Number.isFinite(publicationRetryAt) &&\n    publicationRetryAt > Date.now();\n  if (publicationRetryPending) return false;\n  if (!safeStr(j.websiteArticle)) return false;\n  if (safeBool(j.wordpressGoslarPosted)) return false;\n  // Nutzerwunsch 2026-07-26: alle fertigen Vorgaenge sofort als Draft anlegen, aber nur\n  // 1x taeglich um 6:00 (separater Workflow ALLRIS_P8b_Tagesveroeffentlichung) tatsaechlich\n  // veroeffentlichen - schon angelegte Drafts nicht nochmal erzeugen.\n  if (safeStr(j.wordpressGoslarDraftId)) return false;\n  if (!safeStr(j.vorgangKey)) return false;\n  // FIX 2026-07-25 (Nutzerfund, gleiches Muster wie P9 vs. P6 vom selben Tag): P8 lief vor P6\n  // (Bildgenerierung) her - Vorgaenge mit sharepicNeedStage=topic_ok wollen ein Bild, wurden\n  // aber schon gepostet, bevor es fertig war (wordpressGoslarPosted=true verhindert seither\n  // jede Nachbesserung). Nur bei 'topic_error_final' (Bildkonzept endgueltig gescheitert) wird\n  // bewusst ohne Bild gepostet, sonst wird gewartet.\n  if (safeStr(j.sharepicNeedStage) === 'topic_ok') {\n    const hasImage = !!safeStr(j.imageFinalPath);\n    const imageGivenUp = safeStr(j.imageStage) === 'topic_error_final';\n    if (!hasImage && !imageGivenUp) return false;\n  }\n  return true;\n});\n"
       },
       "id": "4948afa1-ba9c-4bdc-956b-70253ae8eb9a",
       "name": "Filter Partei-Webseite-Kandidaten",
@@ -379,7 +378,7 @@
     },
     {
       "parameters": {
-        "jsCode": "function parseDate(v) { if (!v) return 0; const t = Date.parse(String(v)); return Number.isFinite(t) ? t : 0; }\nconst items = $input.all();\nitems.sort((a, b) => parseDate((a.json||{}).firstseen) - parseDate((b.json||{}).firstseen));\n// Nutzerwunsch 2026-07-26: nur noch 1 Veroeffentlichung pro Tag (gleichmaessiger Rhythmus\n// statt Batch-Postings) - der Rest der Warteschlange wartet auf den naechsten Tag.\nreturn items.slice(0, 1);"
+        "jsCode": "function parseDate(v) { if (!v) return 0; const t = Date.parse(String(v)); return Number.isFinite(t) ? t : 0; }\nconst items = $input.all();\nitems.sort((a, b) => parseDate((a.json||{}).firstseen) - parseDate((b.json||{}).firstseen));\n// 2026-07-26: die 1x-taeglich-Drosselung sitzt jetzt beim tatsaechlichen Veroeffentlichen\n// (ALLRIS_P8b_Tagesveroeffentlichung), nicht mehr hier - dieser Workflow legt wieder alle\n// fertigen Vorgaenge als Draft an, sortiert bleibt nur fuer eine sinnvolle Verarbeitungsreihenfolge.\nreturn items;"
       },
       "id": "897b540b-3532-464c-be85-9fb659323b72",
       "name": "Sortiere Vorgaenge",
@@ -539,10 +538,6 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "wordpressGoslarPosted": "={{ true }}",
-            "wordpressGoslarPostedAt": "={{ $now.toISO() }}",
-            "wordpressGoslarPostId": "={{ $json.wpPostId }}",
-            "wordpressGoslarPostLink": "={{ $json.wpPostLink || '' }}",
             "last_error_code": "={{ $json.last_error_stage === 'publication' ? '' : ($json.last_error_code || '') }}",
             "last_error_message": "={{ $json.last_error_stage === 'publication' ? '' : ($json.last_error_message || '') }}",
             "last_error_stage": "={{ $json.last_error_stage === 'publication' ? '' : ($json.last_error_stage || '') }}",
@@ -550,7 +545,9 @@
             "retry_count": "={{ $json.last_error_stage === 'publication' ? 0 : Number($json.retry_count || 0) }}",
             "next_retry_at": "={{ $json.last_error_stage === 'publication' ? '' : ($json.next_retry_at || '') }}",
             "wordpressGoslarImageUrl": "={{ $json.wpFeaturedMediaUrl || '' }}",
-            "wordpressGoslarError": "={{ $json.wpMediaUploadError || '' }}"
+            "wordpressGoslarError": "={{ $json.wpMediaUploadError || '' }}",
+            "wordpressGoslarDraftId": "={{ $json.wpPostId }}",
+            "wordpressGoslarDraftCreatedAt": "={{ $now.toISO() }}"
           },
           "schema": [
             {
@@ -606,6 +603,26 @@
             {
               "id": "wordpressGoslarError",
               "displayName": "wordpressGoslarError",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wordpressGoslarDraftId",
+              "displayName": "wordpressGoslarDraftId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wordpressGoslarDraftCreatedAt",
+              "displayName": "wordpressGoslarDraftCreatedAt",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -827,7 +844,7 @@
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ title: $json.wpTitle, content: ($json.wpFeaturedMediaUrl ? '<img src=\"' + $json.wpFeaturedMediaUrl + '\" alt=\"\" style=\"max-width:100%;height:auto;\" />\\n\\n' : '') + $json.wpContent, slug: $json.wpSlug, status: 'publish', featured_media: $json.wpFeaturedMediaId || 0 }) }}",
+        "jsonBody": "={{ JSON.stringify({ title: $json.wpTitle, content: ($json.wpFeaturedMediaUrl ? '<img src=\"' + $json.wpFeaturedMediaUrl + '\" alt=\"\" style=\"max-width:100%;height:auto;\" />\\n\\n' : '') + $json.wpContent, slug: $json.wpSlug, status: 'draft', featured_media: $json.wpFeaturedMediaId || 0 }) }}",
         "options": {}
       },
       "id": "0baf7385-9ef7-4720-8280-7549b10e9bbc",
@@ -1057,5 +1074,5 @@
     "binaryMode": "separate"
   },
   "tags": [],
-  "versionId": "34e6558a-dc1c-4566-89e9-507d008bc435"
+  "versionId": "9ec62b08-0e22-45b7-835a-1fa8bb348945"
 }
