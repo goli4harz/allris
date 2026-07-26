@@ -547,7 +547,8 @@
             "last_error_stage": "={{ $json.last_error_stage === 'publication' ? '' : ($json.last_error_stage || '') }}",
             "last_error_at": "={{ $json.last_error_stage === 'publication' ? '' : ($json.last_error_at || '') }}",
             "retry_count": "={{ $json.last_error_stage === 'publication' ? 0 : Number($json.retry_count || 0) }}",
-            "next_retry_at": "={{ $json.last_error_stage === 'publication' ? '' : ($json.next_retry_at || '') }}"
+            "next_retry_at": "={{ $json.last_error_stage === 'publication' ? '' : ($json.next_retry_at || '') }}",
+            "wordpressGoslarImageUrl": "={{ $json.wpFeaturedMediaUrl || '' }}"
           },
           "schema": [
             {
@@ -583,6 +584,16 @@
             {
               "id": "wordpressGoslarPostLink",
               "displayName": "wordpressGoslarPostLink",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wordpressGoslarImageUrl",
+              "displayName": "wordpressGoslarImageUrl",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -861,7 +872,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const idx = $itemIndex;\nconst original = $('Baue Post-Body').itemMatching(idx).json;\nconst uploadResult = $json;\nconst mediaId = uploadResult && uploadResult.id ? uploadResult.id : null;\nreturn { json: { ...original, wpFeaturedMediaId: mediaId } };\n"
+        "jsCode": "const idx = $itemIndex;\nconst original = $('Baue Post-Body').itemMatching(idx).json;\nconst uploadResult = $json;\nconst mediaId = uploadResult && uploadResult.id ? uploadResult.id : null;\nconst mediaUrl = uploadResult && uploadResult.source_url ? uploadResult.source_url : null;\nreturn { json: { ...original, wpFeaturedMediaId: mediaId, wpFeaturedMediaUrl: mediaUrl } };"
       },
       "id": "7dc1edea-1e5e-4cc0-9f84-6590475964b3",
       "name": "Stelle Kontext nach Media-Upload wieder her",
@@ -1034,5 +1045,5 @@
     "binaryMode": "separate"
   },
   "tags": [],
-  "versionId": "fa417b8b-eb9e-4a10-a49c-c09f9a2fae57"
+  "versionId": "72f853d8-1832-4d0d-a16d-052454ff1e7f"
 }
