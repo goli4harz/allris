@@ -819,30 +819,30 @@
     },
     {
       "parameters": {
-        "title": "={{ $json.wpTitle }}",
-        "additionalFields": {
-          "content": "={{ $json.wpContent }}",
-          "slug": "={{ $json.wpSlug }}",
-          "status": "publish",
-          "featuredMedia": "={{ $json.wpFeaturedMediaId || 0 }}"
-        }
+        "method": "POST",
+        "url": "https://die-partei.net/goslar/wp-json/wp/v2/posts",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ title: $json.wpTitle, content: $json.wpContent, slug: $json.wpSlug, status: 'publish', featured_media: $json.wpFeaturedMediaId || 0 }) }}",
+        "options": {}
       },
-      "type": "n8n-nodes-base.wordpress",
-      "typeVersion": 1,
+      "id": "0baf7385-9ef7-4720-8280-7549b10e9bbc",
+      "name": "Create a post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         288,
         1408
       ],
-      "id": "0baf7385-9ef7-4720-8280-7549b10e9bbc",
-      "name": "Create a post",
-      "alwaysOutputData": true,
       "credentials": {
         "wordpressApi": {
           "id": "tzwuM0QBLpYYZfXQ",
           "name": "DiePARTEI Wordpress"
         }
-      },
-      "onError": "continueRegularOutput"
+      }
     },
     {
       "parameters": {
@@ -1056,5 +1056,5 @@
     "binaryMode": "separate"
   },
   "tags": [],
-  "versionId": "6bef5c6a-d859-4fc6-9bd4-442b3c2d9066"
+  "versionId": "f71cf2e4-500d-49cd-98ad-b09081ece33d"
 }
