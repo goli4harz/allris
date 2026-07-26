@@ -548,7 +548,8 @@
             "last_error_at": "={{ $json.last_error_stage === 'publication' ? '' : ($json.last_error_at || '') }}",
             "retry_count": "={{ $json.last_error_stage === 'publication' ? 0 : Number($json.retry_count || 0) }}",
             "next_retry_at": "={{ $json.last_error_stage === 'publication' ? '' : ($json.next_retry_at || '') }}",
-            "wordpressGoslarImageUrl": "={{ $json.wpFeaturedMediaUrl || '' }}"
+            "wordpressGoslarImageUrl": "={{ $json.wpFeaturedMediaUrl || '' }}",
+            "wordpressGoslarError": "={{ $json.wpMediaUploadError || '' }}"
           },
           "schema": [
             {
@@ -594,6 +595,16 @@
             {
               "id": "wordpressGoslarImageUrl",
               "displayName": "wordpressGoslarImageUrl",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wordpressGoslarError",
+              "displayName": "wordpressGoslarError",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -872,7 +883,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const idx = $itemIndex;\nconst original = $('Baue Post-Body').itemMatching(idx).json;\nconst uploadResult = $json;\nconst mediaId = uploadResult && uploadResult.id ? uploadResult.id : null;\nconst mediaUrl = uploadResult && uploadResult.source_url ? uploadResult.source_url : null;\nreturn { json: { ...original, wpFeaturedMediaId: mediaId, wpFeaturedMediaUrl: mediaUrl } };"
+        "jsCode": "const idx = $itemIndex;\nconst original = $('Baue Post-Body').itemMatching(idx).json;\nconst uploadResult = $json;\nfunction extractErrorText(v) {\n  if (!v) return '';\n  if (typeof v === 'string') return v;\n  if (typeof v === 'object') return String(v.message || v.description || v.error || JSON.stringify(v));\n  return String(v);\n}\nconst mediaId = uploadResult && uploadResult.id ? uploadResult.id : null;\nconst mediaUrl = uploadResult && uploadResult.source_url ? uploadResult.source_url : null;\n// FIX 2026-07-26: der Upload-Node hat onError:continueRegularOutput, ein Fehlschlag wurde\n// bisher aber nirgends erfasst - der Artikel ging dann klaglos ohne Bild raus (live an\n// 2026/100 gefunden: Bild fertig, Post erfolgreich, aber weder Media-URL noch Fehlermeldung).\nconst mediaUploadError = mediaId ? '' : (\n  extractErrorText(uploadResult && uploadResult.error) ||\n  extractErrorText(uploadResult && uploadResult.message) ||\n  'Medien-Upload zur Partei-Webseite lieferte keine Media-ID (Ursache unbekannt).'\n);\nreturn { json: { ...original, wpFeaturedMediaId: mediaId, wpFeaturedMediaUrl: mediaUrl, wpMediaUploadError: mediaUploadError } };"
       },
       "id": "7dc1edea-1e5e-4cc0-9f84-6590475964b3",
       "name": "Stelle Kontext nach Media-Upload wieder her",
@@ -1045,5 +1056,5 @@
     "binaryMode": "separate"
   },
   "tags": [],
-  "versionId": "72f853d8-1832-4d0d-a16d-052454ff1e7f"
+  "versionId": "6bef5c6a-d859-4fc6-9bd4-442b3c2d9066"
 }
