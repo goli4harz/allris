@@ -4814,7 +4814,8 @@
           "name": "OpenAI account"
         }
       },
-      "onError": "continueErrorOutput",
+      "notes": "FIX 2026-07-27 (Nutzerfrage 'warum tauchen Presseartikel mit falschem Vorgang auf'): onError war continueErrorOutput OHNE verbundenen Error-Output - ein fehlgeschlagener AI-Call liess das betroffene Item aus dem Datenstrom verschwinden, wodurch die nachfolgende itemMatching($itemIndex)-Verknuepfung gegen 'Presseartikel Final: Baue Eingabe' fuer ALLE folgenden Items im selben Lauf um eins verschoben war (Presseartikel-Text landete dauerhaft beim falschen Vorgang). Parse Presseartikel Final faengt eine leere/fehlerhafte AI-Antwort bereits ab (Fallback auf pressStatementBisher) - continueRegularOutput haelt die Item-Anzahl/Reihenfolge stabil und behebt die Verschiebung.",
+      "onError": "continueRegularOutput",
       "parameters": {
         "modelId": {
           "__rl": true,
