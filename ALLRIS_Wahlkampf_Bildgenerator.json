@@ -9,7 +9,7 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "0c3b2ebe-a091-454e-9cab-d381893092f5",
+      "id": "929dc0ac-4e49-4f2a-b716-784b3d0edf5d",
       "name": "Webhook GET (Formular)",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
@@ -17,14 +17,14 @@
         0,
         0
       ],
-      "webhookId": "4266f092-64cd-4d68-889d-ada2edee1444"
+      "webhookId": "295ee293-d200-4818-8916-b21a7f9e83e2"
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
         "jsCode": "const html = `<!DOCTYPE html>\n<html lang=\"de\">\n<head>\n<meta charset=\"UTF-8\">\n<title>Wahlkampf-Bildgenerator (Entwurf)</title>\n<style>\n  body { font-family: Arial, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; background: #f4f4f4; color: #222; }\n  h1 { color: #b7202a; }\n  form { background: #fff; padding: 24px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.15); }\n  label { display: block; margin-top: 16px; font-weight: bold; }\n  textarea, select { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; font-size: 14px; }\n  textarea { min-height: 80px; }\n  button { margin-top: 24px; background: #b7202a; color: #fff; border: none; padding: 12px 24px; font-size: 16px; border-radius: 4px; cursor: pointer; }\n  button:hover { background: #8f1a20; }\n  .hinweis { font-size: 13px; color: #555; margin-top: 8px; }\n</style>\n</head>\n<body>\n<h1>Wahlkampf-Bildgenerator (Entwurf)</h1>\n<p class=\"hinweis\">Erzeugt ein satirisches Sharepic zu einem frei gewaehlten Thema ueber die bestehende Fakten-/Satire-/Bild-Agenten-Kette. Das Ergebnis wird ausschliesslich in Matrix gepostet - es gibt KEINE automatische Veroeffentlichung auf WordPress, Mastodon oder Instagram, und es werden KEINE echten ALLRIS-Vorgaenge beruehrt. Das Bild ist deutlich als \"ENTWURF\" gekennzeichnet.</p>\n<form method=\"POST\" action=\"/webhook/wahlkampf-bild\">\n  <label for=\"thema\">Thema *</label>\n  <textarea id=\"thema\" name=\"thema\" required placeholder=\"z.B. Sanierung des Marktplatzes verzoegert sich erneut\"></textarea>\n\n  <label for=\"zusatzkontext\">Zusatzkontext (optional)</label>\n  <textarea id=\"zusatzkontext\" name=\"zusatzkontext\" placeholder=\"Zusaetzliche Details, die der generierte Text beruecksichtigen soll\"></textarea>\n\n  <label for=\"sprengstoff\">Sprengstoff (Satire-Intensitaet)</label>\n  <select id=\"sprengstoff\" name=\"sprengstoff\">\n    <option value=\"GERING\">GERING</option>\n    <option value=\"MITTEL\" selected>MITTEL</option>\n    <option value=\"HOCH\">HOCH</option>\n  </select>\n\n  <button type=\"submit\">Bild generieren</button>\n</form>\n</body>\n</html>`;\n\nreturn [{ json: { html } }];"
       },
-      "id": "d736287c-1403-44f6-9f76-1d3986c6a05a",
+      "id": "1ba68bca-2a9e-4000-a7c7-2a14aa90332e",
       "name": "Baue Formular-HTML",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -48,7 +48,7 @@
           }
         }
       },
-      "id": "a9357962-00dc-4dc8-9147-01e88b869be0",
+      "id": "63d45deb-c1b2-4a4f-9fb2-d6ff5447bfff",
       "name": "Antwort Formular",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
@@ -65,7 +65,7 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "2e205abd-5491-431e-af3f-9e6b8f9ef298",
+      "id": "112dbe93-1a9e-4417-a526-4fc4554e4ea0",
       "name": "Webhook POST (Generieren)",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
@@ -73,14 +73,14 @@
         0,
         320
       ],
-      "webhookId": "c9f5e8d2-a491-486d-91c3-82f0750eaffa"
+      "webhookId": "8fa6c2f2-85a3-47b6-ac5e-6aa52bc38536"
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
         "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst body = $input.first().json.body || {};\nconst thema = safeStr(body.thema);\nif (!thema) throw new Error('Thema fehlt - Formular ohne Thema abgeschickt.');\n\nconst zusatzkontext = safeStr(body.zusatzkontext);\nconst sprengstoffRaw = safeStr(body.sprengstoff).toUpperCase();\nconst sprengstoff = ['GERING', 'MITTEL', 'HOCH'].includes(sprengstoffRaw) ? sprengstoffRaw : 'MITTEL';\n\nconst ts = Date.now();\nconst vorgangKey = 'wk-' + ts;\nconst vorgangsnummer = 'ENTWURF';\n\nreturn [{\n  json: {\n    thema,\n    zusatzkontext,\n    sprengstoff,\n    vorgangKey,\n    vorgangsnummer\n  }\n}];"
       },
-      "id": "bc6fcf9f-dd23-4ee4-8fa8-4436a66e3a18",
+      "id": "11f510ef-6ddd-4665-bfc3-ef1f54a83236",
       "name": "Normalisiere Eingabe",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -115,7 +115,7 @@
         440,
         320
       ],
-      "id": "14b5afaa-3c21-4fb2-9413-17e48664a679",
+      "id": "47684d9b-6113-4a6c-9aee-47afa064bcd7",
       "name": "KI: Generiere Sachverhalt",
       "credentials": {
         "openAiApi": {
@@ -132,7 +132,7 @@
         "mode": "runOnceForAllItems",
         "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nfunction getAiText(j) {\n  if (typeof j.content === 'string') return j.content;\n  if (typeof j.text === 'string') return j.text;\n  if (j.message && typeof j.message.content === 'string') return j.message.content;\n  if (Array.isArray(j.choices) && j.choices[0] && j.choices[0].message) return safeStr(j.choices[0].message.content);\n  if (Array.isArray(j.output)) {\n    const msg = j.output.find(function(o) { return o && o.type === 'message' && Array.isArray(o.content); });\n    const part = msg && msg.content.find(function(c) { return c && typeof c.text === 'string'; });\n    if (part) return part.text;\n  }\n  return safeStr(JSON.stringify(j));\n}\n\nconst base = $('Normalisiere Eingabe').first().json;\nconst aiJson = $input.first().json;\nconst summaryText = safeStr(getAiText(aiJson));\nif (!summaryText) throw new Error('Sachverhalt-Generierung lieferte keinen Text.');\n\nreturn [{\n  json: {\n    ...base,\n    title: base.thema,\n    summaryText,\n    combinedText: base.thema + '\\n\\n' + summaryText\n  }\n}];"
       },
-      "id": "5da5357b-05b0-42b4-81b1-8f40e815b700",
+      "id": "d665d215-dfb8-47d9-9082-b3033facc013",
       "name": "Parse Sachverhalt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -153,7 +153,7 @@
           "waitForSubWorkflow": true
         }
       },
-      "id": "a4cac252-c60a-4367-a8b5-d3bd0ae2518d",
+      "id": "7f317bcd-0813-42c2-bda2-15921ca75142",
       "name": "Execute Workflow: Fakten-Agent",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 2,
@@ -167,7 +167,7 @@
         "mode": "runOnceForAllItems",
         "jsCode": "const before = $('Parse Sachverhalt').first().json;\nconst after = $input.first().json;\n\nreturn [{\n  json: {\n    ...before,\n    sourceTopic: after.sourceTopic,\n    sourceConflict: after.sourceConflict,\n    requiredTerms: after.requiredTerms,\n    requiredObjects: after.requiredObjects,\n    requiredAction: after.requiredAction,\n    affectedGroups: after.affectedGroups,\n    concreteNumbers: after.concreteNumbers,\n    responsibilities: after.responsibilities,\n    documentType: after.documentType,\n    quotesVerbatim: after.quotesVerbatim,\n    faktenParseError: after.parseError\n  }\n}];"
       },
-      "id": "1bd5a418-0800-4c4c-a91a-2d49da1a41e1",
+      "id": "cd5d0280-4e1f-41ec-a04e-0e6117f161af",
       "name": "Stelle Kontext wieder her (Fakten)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -188,7 +188,7 @@
           "waitForSubWorkflow": true
         }
       },
-      "id": "9c14009f-9ec1-4899-90ed-5c5c534b85b0",
+      "id": "254db42f-c81c-4262-879f-ef25692b7875",
       "name": "Execute Workflow: Satire-Agent",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 2,
@@ -202,7 +202,7 @@
         "mode": "runOnceForAllItems",
         "jsCode": "const before = $('Stelle Kontext wieder her (Fakten)').first().json;\nconst after = $input.first().json;\n\nreturn [{\n  json: {\n    ...before,\n    variants: after.variants,\n    kernbotschaft: after.kernbotschaft,\n    satireParseError: after.parseError\n  }\n}];"
       },
-      "id": "05d2b64a-ecc9-4b73-b72d-5991207255ec",
+      "id": "1cd7f3c2-12c7-4323-9346-ffe383d0c459",
       "name": "Stelle Kontext wieder her (Satire)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -216,7 +216,7 @@
         "mode": "runOnceForAllItems",
         "jsCode": "const j = $input.first().json;\nconst variants = Array.isArray(j.variants) ? j.variants : [];\nif (variants.length === 0) throw new Error('Satire-Agent lieferte keine Varianten (variants leer).');\n\n// Automatische Wahl: mittlere Intensitaet (sortiert nach satireIntensity, Median-Index).\nconst sorted = variants.slice().sort((a, b) => (Number(a.satireIntensity) || 0) - (Number(b.satireIntensity) || 0));\nconst chosen = sorted[Math.floor((sorted.length - 1) / 2)];\n\nreturn [{\n  json: {\n    ...j,\n    satireBrief: chosen.satireBrief,\n    satireAngle: chosen.satireAngle,\n    satirePunchlines: chosen.satirePunchlines,\n    satireTarget: chosen.satireTarget,\n    satireIntensity: chosen.satireIntensity,\n    satireDoNotClaim: chosen.satireDoNotClaim,\n    satireSafetyNote: chosen.satireSafetyNote,\n    imageHeadline: chosen.imageHeadline,\n    imageSubline: chosen.imageSubline\n  }\n}];"
       },
-      "id": "6f40b1ac-ecad-4c53-8283-9abc534e2dc7",
+      "id": "6d4d36f3-725d-471d-b4d6-ae1ae06f2c08",
       "name": "Waehle Variante",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -237,7 +237,7 @@
           "waitForSubWorkflow": true
         }
       },
-      "id": "760a09e4-210e-49fd-9ae7-27afbcbba49b",
+      "id": "352bf472-0f95-48aa-9a50-9e9584886af8",
       "name": "Execute Workflow: Bild-Agent",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 2,
@@ -251,7 +251,7 @@
         "mode": "runOnceForAllItems",
         "jsCode": "const before = $('Waehle Variante').first().json;\nconst after = $input.first().json;\n\nreturn [{\n  json: {\n    ...before,\n    visualMetaphor: after.visualMetaphor,\n    visualPflichtobjekte: after.visualPflichtobjekte,\n    visualPflichthandlung: after.visualPflichthandlung,\n    visualUeberzeichnung: after.visualUeberzeichnung,\n    visualErkennungssatz: after.visualErkennungssatz,\n    imagePrompt: after.imagePrompt,\n    imageNegativePrompt: after.imageNegativePrompt,\n    altText: after.altText,\n    bildParseError: after.parseError\n  }\n}];"
       },
-      "id": "238526f1-3800-4d15-9a19-75c510d38439",
+      "id": "b74a4df4-7559-4f0c-bdd4-34a3e74e2cb1",
       "name": "Stelle Kontext wieder her (Bild)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -263,9 +263,9 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const j = $input.first().json;\nfunction safeStr(v) { return (v === null || v === undefined) ? '' : String(v).trim(); }\nfunction short(v, max = 900) {\n  const s = safeStr(v);\n  return s.length > max ? s.substring(0, max) + '…' : s;\n}\n\nconst vorgangKey = safeStr(j.vorgangKey);\nconst safeKey = vorgangKey.replace(/[^a-zA-Z0-9_-]/g, '_');\nconst basePrompt = safeStr(j.imagePrompt);\nconst negativeExtra = safeStr(j.imageNegativePrompt);\nconst imageHeadline = safeStr(j.imageHeadline);\nconst imageSubline = safeStr(j.imageSubline);\nif (!basePrompt) throw new Error('imagePrompt fehlt.');\nif (!imageHeadline) throw new Error('imageHeadline fehlt.');\nif (!imageSubline) throw new Error('imageSubline fehlt.');\n\nconst mustShow = Array.isArray(j.visualPflichtobjekte) ? j.visualPflichtobjekte : [];\nconst topicPlain = safeStr(j.sourceTopic || j.thema);\nconst conflictPlain = safeStr(j.sourceConflict || j.visualUeberzeichnung);\nconst visibleAction = safeStr(j.requiredAction || j.visualPflichthandlung);\nconst satiricalExaggeration = safeStr(j.visualUeberzeichnung);\nconst recognitionSentence = safeStr(j.visualErkennungssatz);\n\nconst prompt = [\n  'Erstelle ein quadratisches Bild (1024x1024 Pixel) als Grundlage fuer ein satirisches Wahlkampf-UEBUNGS-Sharepic der Partei DIE PARTEI, Kreisverband Goslar. Dieses Bild ist ausdruecklich ein ENTWURF/UEBUNGSMATERIAL, keine echte Berichterstattung ueber einen realen Vorgang.',\n  '',\n  'QUALITAETSZIEL:',\n  'Das gewaehlte Thema soll durch reale Gegenstaende und eine sichtbare Situation im Motiv erkennbar sein.',\n  'THEMENSPERRE: Zeige ausschliesslich das folgende Thema und den folgenden Konflikt. Keine zusaetzlichen politischen Themen, keine austauschbare Verwaltungssatire und keine neue Zielscheibe.',\n  topicPlain ? 'Konkretes Thema: ' + short(topicPlain, 500) : '',\n  conflictPlain ? 'Konkreter Konflikt: ' + short(conflictPlain, 600) : '',\n  mustShow.length ? 'Zwingend sichtbar: ' + mustShow.slice(0, 6).join(' | ') : '',\n  visibleAction ? 'Zwingend sichtbare Handlung: ' + short(visibleAction, 600) : '',\n  satiricalExaggeration ? 'Satirische Ueberzeichnung: ' + short(satiricalExaggeration, 600) : '',\n  recognitionSentence ? 'Erkennungstest: ' + short(recognitionSentence, 600) : '',\n  '',\n  'AUFBAU DES BILDES (von oben nach unten):',\n  '',\n  '1. ROTER TEXTBALKEN (oberes Viertel, ca. 250px hoch):',\n  '   - Hintergrundfarbe: kraeftiges Rot (#b7202a)',\n  '   - Headline (gross, fett, weiss, zentriert):',\n  '   ' + imageHeadline,\n  '   - Subline (mittelgross, weiss, zentriert, direkt darunter):',\n  '   ' + imageSubline,\n  '   - Ausschliesslich diese zwei Textzeilen; keine Zusatzbeschriftung.',\n  '   - Text exakt wie vorgegeben, korrekte deutsche Rechtschreibung.',\n  '',\n  '2. BITTERBOESES SATIRISCHES MOTIV (untere drei Viertel, ca. 750px hoch):',\n  '   - Inhalt: ' + basePrompt,\n  '   - Groteske kommunalpolitische Satire-Illustration im halb-realistischen Karikaturstil.',\n  '   - Das Thema muss sofort erkennbar sein; die sichtbare Ueberzeichnung muss eindeutig satirisch wirken.',\n  '   - Grosse ausdrucksstarke Augen und klare Koerpersprache, soweit passend.',\n  '   - Goslar-/Harz-/Altstadt-Anmutung nur wenn thematisch passend.',\n  '   - Keine echten Personen, keine Logos, keine Wappen.',\n  '',\n  'ABSOLUT VERBOTEN IM MOTIVBEREICH:',\n  '   - KEIN Text, KEINE Schrift, KEINE Buchstaben, KEINE Zahlen.',\n  '   - Headline und Subline nicht im Motiv wiederholen.',\n  '   - Keine Beschriftungen auf Plakaten, Schildern oder Bannern.',\n  '   - Kein QR-Code, keine echten Personen oder Politikergesichter.'\n].filter(Boolean);\n\nif (negativeExtra) {\n  prompt.push('');\n  prompt.push('Zusaetzlich vermeiden: ' + negativeExtra);\n}\n\nreturn [{\n  json: {\n    ...j,\n    imageHeadline,\n    imageSubline,\n    motifPrompt: prompt.join('\\n'),\n    filenameRaw: 'raw_' + safeKey + '.png',\n    filenameFinal: 'final_' + safeKey + '.png'\n  }\n}];"
+        "jsCode": "const j = $input.first().json;\nfunction safeStr(v) { return (v === null || v === undefined) ? '' : String(v).trim(); }\nfunction short(v, max = 900) {\n  const s = safeStr(v);\n  return s.length > max ? s.substring(0, max) + '…' : s;\n}\n\nconst vorgangKey = safeStr(j.vorgangKey);\nconst safeKey = vorgangKey.replace(/[^a-zA-Z0-9_-]/g, '_');\nconst basePrompt = safeStr(j.imagePrompt);\nconst negativeExtra = safeStr(j.imageNegativePrompt);\nconst imageHeadline = safeStr(j.imageHeadline);\nconst imageSubline = safeStr(j.imageSubline);\nif (!basePrompt) throw new Error('imagePrompt fehlt.');\nif (!imageHeadline) throw new Error('imageHeadline fehlt.');\nif (!imageSubline) throw new Error('imageSubline fehlt.');\n\nconst attempt = Math.max(1, Number(j.imageQaAttempt || 1));\nconst maxAttempts = Math.max(1, Number(j.imageQaMaxAttempts || 3));\nconst retryFeedback = safeStr(j.imageQaFeedback);\n\nconst mustShow = Array.isArray(j.visualPflichtobjekte) ? j.visualPflichtobjekte : [];\nconst topicPlain = safeStr(j.sourceTopic || j.thema);\nconst conflictPlain = safeStr(j.sourceConflict || j.visualUeberzeichnung);\nconst visibleAction = safeStr(j.requiredAction || j.visualPflichthandlung);\nconst satiricalExaggeration = safeStr(j.visualUeberzeichnung);\nconst recognitionSentence = safeStr(j.visualErkennungssatz);\n\nconst prompt = [\n  'Erstelle ein quadratisches Bild (1024x1024 Pixel) als Grundlage fuer ein satirisches Wahlkampf-UEBUNGS-Sharepic der Partei DIE PARTEI, Kreisverband Goslar. Dieses Bild ist ausdruecklich ein ENTWURF/UEBUNGSMATERIAL, keine echte Berichterstattung ueber einen realen Vorgang.',\n  '',\n  'QUALITAETSZIEL:',\n  'Das gewaehlte Thema soll durch reale Gegenstaende und eine sichtbare Situation im Motiv erkennbar sein.',\n  'THEMENSPERRE: Zeige ausschliesslich das folgende Thema und den folgenden Konflikt. Keine zusaetzlichen politischen Themen, keine austauschbare Verwaltungssatire und keine neue Zielscheibe.',\n  topicPlain ? 'Konkretes Thema: ' + short(topicPlain, 500) : '',\n  conflictPlain ? 'Konkreter Konflikt: ' + short(conflictPlain, 600) : '',\n  mustShow.length ? 'Zwingend sichtbar: ' + mustShow.slice(0, 6).join(' | ') : '',\n  visibleAction ? 'Zwingend sichtbare Handlung: ' + short(visibleAction, 600) : '',\n  satiricalExaggeration ? 'Satirische Ueberzeichnung: ' + short(satiricalExaggeration, 600) : '',\n  recognitionSentence ? 'Erkennungstest: ' + short(recognitionSentence, 600) : '',\n  '',\n  'AUFBAU DES BILDES (von oben nach unten):',\n  '',\n  '1. ROTER TEXTBALKEN (oberes Viertel, ca. 250px hoch):',\n  '   - Hintergrundfarbe: kraeftiges Rot (#b7202a)',\n  '   - Headline (gross, fett, weiss, zentriert):',\n  '   ' + imageHeadline,\n  '   - Subline (mittelgross, weiss, zentriert, direkt darunter):',\n  '   ' + imageSubline,\n  '   - Ausschliesslich diese zwei Textzeilen; keine Zusatzbeschriftung.',\n  '   - Text exakt wie vorgegeben, korrekte deutsche Rechtschreibung.',\n  '',\n  '2. BITTERBOESES SATIRISCHES MOTIV (untere drei Viertel, ca. 750px hoch):',\n  '   - Inhalt: ' + basePrompt,\n  '   - Groteske kommunalpolitische Satire-Illustration im halb-realistischen Karikaturstil.',\n  '   - Das Thema muss sofort erkennbar sein; die sichtbare Ueberzeichnung muss eindeutig satirisch wirken.',\n  '   - Grosse ausdrucksstarke Augen und klare Koerpersprache, soweit passend.',\n  '   - Goslar-/Harz-/Altstadt-Anmutung nur wenn thematisch passend.',\n  '   - Keine echten Personen, keine Logos, keine Wappen.',\n  '',\n  'ABSOLUT VERBOTEN IM MOTIVBEREICH:',\n  '   - KEIN Text, KEINE Schrift, KEINE Buchstaben, KEINE Zahlen.',\n  '   - Headline und Subline nicht im Motiv wiederholen.',\n  '   - Keine Beschriftungen auf Plakaten, Schildern oder Bannern.',\n  '   - Kein QR-Code, keine echten Personen oder Politikergesichter.'\n].filter(Boolean);\n\nif (attempt > 1) {\n  prompt.push('');\n  prompt.push('VERBINDLICHER NEUVERSUCH ' + attempt + ' VON ' + maxAttempts + ':');\n  prompt.push('Der vorherige Versuch hat den roten Textbalken mit Headline/Subline nicht ausreichend sichtbar oder lesbar dargestellt. ' + (retryFeedback || 'Stelle sicher, dass der rote Textbalken oben eindeutig sichtbar ist und Headline sowie Subline vollstaendig und lesbar zeigt.'));\n}\n\nif (negativeExtra) {\n  prompt.push('');\n  prompt.push('Zusaetzlich vermeiden: ' + negativeExtra);\n}\n\nreturn [{\n  json: {\n    ...j,\n    imageHeadline,\n    imageSubline,\n    motifPrompt: prompt.join('\\n'),\n    filenameRaw: 'raw_' + safeKey + '.png',\n    filenameFinal: 'final_' + safeKey + '.png',\n    imageQaAttempt: attempt,\n    imageQaMaxAttempts: maxAttempts\n  }\n}];"
       },
-      "id": "800eef8e-4edd-4cdd-aea2-6f42bf5559e4",
+      "id": "f590b6c2-05c1-4ea8-8dd0-279e524aecc3",
       "name": "Bereite MotivPrompt vor",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -292,7 +292,7 @@
         2640,
         320
       ],
-      "id": "de0d4dbc-0fab-4e48-b4f6-1df85eec3a88",
+      "id": "215174c7-668e-4b46-8374-5756439c7460",
       "name": "OpenAI Generate Image",
       "credentials": {
         "openAiApi": {
@@ -307,7 +307,7 @@
       "parameters": {
         "jsCode": "const item = $input.item;\nconst j = item.json || {};\nconst bin = item.binary || {};\nconst binKey = Object.keys(bin).find(k => bin[k] && bin[k].mimeType);\nif (!binKey) {\n  const errMsg = j.error\n    ? 'OpenAI Fehler: ' + (j.error.message || JSON.stringify(j.error)).substring(0, 300)\n    : 'Kein Bild erhalten: ' + JSON.stringify(j).substring(0, 500);\n  throw new Error(errMsg);\n}\nconst ctx = $('Bereite MotivPrompt vor').first().json || {};\nconst srcBin = { ...bin[binKey] };\nsrcBin.fileName = ctx.filenameRaw || 'raw_image.png';\nsrcBin.fileExtension = 'png';\nsrcBin.mimeType = srcBin.mimeType || 'image/png';\nreturn [{ json: { ...ctx }, binary: { rawImage: srcBin } }];"
       },
-      "id": "98880e48-0c89-42bc-a1f3-4ad5dcb356f6",
+      "id": "9082c6fa-1bd0-47e6-9ad1-31d5daa1b0df",
       "name": "Pruefe rawImage",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -326,7 +326,7 @@
         "resizeOption": "ignoreAspectRatio",
         "options": {}
       },
-      "id": "878cb016-082e-4f61-99e3-2a0221e3701f",
+      "id": "f13ac8e9-ffdd-4964-b1da-bf977beab90b",
       "name": "Resize auf 1036x1000",
       "type": "n8n-nodes-base.editImage",
       "typeVersion": 1,
@@ -347,7 +347,7 @@
         3300,
         320
       ],
-      "id": "29a867ae-1cbf-4aa9-aff2-1a710f962f1c",
+      "id": "eccdee90-f00a-4c61-9cac-52758976d934",
       "name": "Download overlay",
       "credentials": {
         "nextCloudApi": {
@@ -360,7 +360,7 @@
       "parameters": {
         "jsCode": "const rawItem = $input.item;\nconst bin = rawItem.binary || {};\nconst ctx = rawItem.json || {};\n\nif (!bin.rawImage)     throw new Error('rawImage fehlt. Keys: '    + Object.keys(bin).join(', '));\nif (!bin.overlayImage) throw new Error('overlayImage fehlt. Keys: ' + Object.keys(bin).join(', '));\n\nreturn [{\n  json: { ...ctx },\n  binary: {\n    rawImage:     bin.overlayImage,\n    overlayImage: bin.rawImage\n  }\n}];"
       },
-      "id": "141ae112-3582-407a-a9e1-c2c7dd51a081",
+      "id": "5acc889d-58f3-4fb3-8e56-6f2b4c1eb0e2",
       "name": "Bereite Canvas vor",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -378,7 +378,7 @@
         "positionY": 12,
         "options": {}
       },
-      "id": "d31f7c81-5cd8-4166-9be6-44e59bdfebb9",
+      "id": "8b35b148-897e-450c-a07b-79923747ec56",
       "name": "Setze KI-Bild in Overlay ein",
       "type": "n8n-nodes-base.editImage",
       "typeVersion": 1,
@@ -399,7 +399,7 @@
         "positionY": 1330,
         "options": {}
       },
-      "id": "9f3e30ff-9be3-4c08-8a56-f11d530564f7",
+      "id": "70b963fb-ca79-4af5-8cd1-2baf4b8d7607",
       "name": "Zeichne ENTWURF-Kennzeichnung",
       "type": "n8n-nodes-base.editImage",
       "typeVersion": 1,
@@ -412,7 +412,7 @@
       "parameters": {
         "jsCode": "const item = $input.first();\nconst bin = item.binary || {};\nconst ctx = item.json || {};\n\nif (!bin.rawImage) throw new Error('rawImage fehlt nach Composite. Keys: ' + Object.keys(bin).join(', '));\n\nconst vorgangKey = String(ctx.vorgangKey || '').trim();\nif (!vorgangKey) throw new Error('vorgangKey fehlt.');\n\nconst finalBin = { ...bin.rawImage };\nfinalBin.fileName = ctx.filenameFinal || ('final_' + vorgangKey.replace(/[^a-zA-Z0-9_-]/g, '_') + '.png');\nfinalBin.fileExtension = 'png';\nfinalBin.mimeType = finalBin.mimeType || 'image/png';\n\nreturn [{\n  json: {\n    ...ctx,\n    filenameFinal: finalBin.fileName\n  },\n  binary: { finalImage: finalBin }\n}];"
       },
-      "id": "ebf85b26-1900-4c11-8123-ddfc28a68773",
+      "id": "4b116053-8215-4a46-9ad2-92be99b242ac",
       "name": "Pruefe finalImage",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -423,14 +423,143 @@
     },
     {
       "parameters": {
-        "jsCode": "const item   = $input.item;\nconst j      = item.json || {};\nconst binary = item.binary || {};\n\nif (!binary.finalImage) {\n  throw new Error('[Matrix] finalImage fehlt fuer Matrix-Post.');\n}\n\nconst vorgangKey = String(j.vorgangKey || '').trim();\nif (!vorgangKey) {\n  throw new Error('[Matrix] vorgangKey fehlt.');\n}\n\nconst filenameFinal = j.filenameFinal || ('final_' + vorgangKey.replace(/[^a-zA-Z0-9_-]/g, '_') + '.png');\n\nreturn {\n  json: {\n    ...j,\n    matrixFilename: filenameFinal,\n    matrixTxnId: ('wahlkampf_' + vorgangKey.replace(/[^a-zA-Z0-9_-]/g, '_')).substring(0, 120),\n    matrixCaption: 'Wahlkampf-Entwurf (nicht veroeffentlicht) - Thema: ' + String(j.thema || '').substring(0, 200)\n  },\n  binary\n};"
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "text": "={{ 'Du bist Bildredakteur fuer ein Satire-Sharepic. Pruefe NUR, ob im oberen Bereich des Bildes ein roter Textbalken zu sehen ist, der folgende Headline und Subline VOLLSTAENDIG, LESBAR und nicht abgeschnitten zeigt:\\nHeadline: ' + $json.imageHeadline + '\\nSubline: ' + $json.imageSubline + '\\n\\nAntworte AUSSCHLIESSLICH mit einem JSON-Objekt in genau diesem Schema, keine Markdown-Codebloecke, kein Text davor oder danach:\\n{\"headlineVisible\": false, \"sublineVisible\": false, \"reason\": \"\"}' }}",
+        "inputType": "base64",
+        "binaryPropertyName": "finalImage",
+        "options": {
+          "detail": "high",
+          "maxTokens": 400
+        }
       },
-      "id": "d8e0439f-337b-4126-a75b-21f1c62ba76f",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        4400,
+        320
+      ],
+      "id": "6eb50f6b-6b3b-4180-af0d-adbca999083a",
+      "name": "Pruefe Textbanner",
+      "credentials": {
+        "openAiApi": {
+          "id": "RiT1gwJpQWzSo6NO",
+          "name": "OpenAI account"
+        }
+      },
+      "retryOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nfunction getAiText(j) {\n  if (typeof j.content === 'string') return j.content;\n  if (typeof j.text === 'string') return j.text;\n  if (j.message && typeof j.message.content === 'string') return j.message.content;\n  if (Array.isArray(j.choices) && j.choices[0] && j.choices[0].message) return safeStr(j.choices[0].message.content);\n  if (Array.isArray(j.output)) {\n    const msg = j.output.find(function(o) { return o && o.type === 'message' && Array.isArray(o.content); });\n    const part = msg && msg.content.find(function(c) { return c && typeof c.text === 'string'; });\n    if (part) return part.text;\n  }\n  return safeStr(JSON.stringify(j));\n}\n\nfunction extractJson(text) {\n  const t = safeStr(text).replace(/```json/gi, '```').replace(/```/g, '');\n  const start = t.indexOf('{');\n  const end = t.lastIndexOf('}');\n  if (start === -1 || end === -1 || end < start) return null;\n  try { return JSON.parse(t.substring(start, end + 1)); } catch (e) { return null; }\n}\n\nconst finalImageItem = $('Pruefe finalImage').first();\nconst ctx = finalImageItem.json || {};\nconst binary = finalImageItem.binary || {};\n\nconst aiText = getAiText($input.first().json);\nconst parsed = extractJson(aiText);\n\nconst attempt = Math.max(1, Number(ctx.imageQaAttempt || 1));\nconst maxAttempts = Math.max(1, Number(ctx.imageQaMaxAttempts || 3));\n\nconst headlineVisible = parsed ? parsed.headlineVisible === true : false;\nconst sublineVisible = parsed ? parsed.sublineVisible === true : false;\nconst textOk = headlineVisible && sublineVisible;\nconst canRetry = !textOk && attempt < maxAttempts;\n\nreturn [{\n  json: {\n    ...ctx,\n    textBannerOk: textOk,\n    textBannerCanRetry: canRetry,\n    textBannerReason: parsed ? safeStr(parsed.reason) : 'Pruefantwort nicht lesbar',\n    imageQaAttempt: attempt,\n    imageQaMaxAttempts: maxAttempts,\n    imageQaFeedback: 'Roter Textbalken mit Headline \"' + safeStr(ctx.imageHeadline) + '\" und Subline \"' + safeStr(ctx.imageSubline) + '\" war beim letzten Versuch nicht vollstaendig sichtbar oder lesbar.'\n  },\n  binary\n}];"
+      },
+      "id": "df3f5355-9719-4327-914a-89a1ff1296e5",
+      "name": "Parse Textbanner-Pruefung",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4620,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "c11d28b1-9613-4a63-a917-ba0b3dc1824e",
+              "leftValue": "={{ $json.textBannerOk }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "73d6f69f-b769-407a-82fe-f0135bc65817",
+      "name": "Textbanner sichtbar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        4840,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "65fe4584-b184-4950-b5b1-60e0b2f4051f",
+              "leftValue": "={{ $json.textBannerCanRetry }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "282e8cd2-9c89-4c37-b18c-bd792e5b1836",
+      "name": "Weiterer Textbanner-Versuch?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        5060,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const j = $input.first().json;\nreturn [{\n  json: {\n    ...j,\n    imageQaAttempt: Math.max(2, Number(j.imageQaAttempt || 1) + 1)\n  }\n}];"
+      },
+      "id": "700c058a-fa76-4030-a90f-b1d9f267b4b3",
+      "name": "Bereite Textbanner-Wiederholung vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5060,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item   = $input.item;\nconst j      = item.json || {};\nconst binary = item.binary || {};\n\nif (!binary.finalImage) {\n  throw new Error('[Matrix] finalImage fehlt fuer Matrix-Post.');\n}\n\nconst vorgangKey = String(j.vorgangKey || '').trim();\nif (!vorgangKey) {\n  throw new Error('[Matrix] vorgangKey fehlt.');\n}\n\nconst filenameFinal = j.filenameFinal || ('final_' + vorgangKey.replace(/[^a-zA-Z0-9_-]/g, '_') + '.png');\n\nconst textWarning = (j.textBannerOk === false)\n  ? '\\n\\nACHTUNG: Headline/Subline waren bei der automatischen Pruefung nicht sicher lesbar - bitte Bild manuell kontrollieren.'\n  : '';\n\nreturn {\n  json: {\n    ...j,\n    matrixFilename: filenameFinal,\n    matrixTxnId: ('wahlkampf_' + vorgangKey.replace(/[^a-zA-Z0-9_-]/g, '_')).substring(0, 120),\n    matrixCaption: 'Wahlkampf-Entwurf (nicht veroeffentlicht) - Thema: ' + String(j.thema || '').substring(0, 200) + textWarning\n  },\n  binary\n};"
+      },
+      "id": "cad9c8df-7b64-489d-9f67-7e2de9caba2a",
       "name": "Bereite Matrix Post vor",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4400,
+        5280,
         320
       ]
     },
@@ -461,12 +590,12 @@
           "timeout": 60000
         }
       },
-      "id": "b4695876-729f-4b27-acd6-cdab15da647d",
+      "id": "0263fa9a-9d69-42b1-9578-07f9b42029e8",
       "name": "Matrix Upload Media",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        4620,
+        5500,
         320
       ],
       "credentials": {
@@ -481,12 +610,12 @@
       "parameters": {
         "jsCode": "const upload = $input.item.json || {};\nconst ctxItem = $('Bereite Matrix Post vor').item;\nconst ctx = ctxItem.json || {};\n\nconst contentUri = upload.content_uri || upload.contentUri;\nif (!contentUri) {\n  throw new Error('[Matrix] Media Upload hat keine content_uri geliefert: ' + JSON.stringify(upload).substring(0, 500));\n}\n\nreturn {\n  json: {\n    ...ctx,\n    matrixContentUri: contentUri\n  },\n  binary: ctxItem.binary || {}\n};"
       },
-      "id": "b1c2d2b8-00d7-4775-b5aa-6624fd6fb3f9",
+      "id": "75dcd8ad-885c-4050-9ee0-c4b3b46c591c",
       "name": "Bereite Matrix Message vor",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4840,
+        5720,
         320
       ]
     },
@@ -517,12 +646,12 @@
           "timeout": 30000
         }
       },
-      "id": "0e8ffb3d-d43e-4fca-b9e2-69a79ab8d042",
+      "id": "4969eca5-63fa-43c9-81f6-0c3c6127019d",
       "name": "Matrix Sende Hinweistext",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        5060,
+        5940,
         320
       ],
       "credentials": {
@@ -560,12 +689,12 @@
           "timeout": 30000
         }
       },
-      "id": "66377138-a86a-487b-a902-a07528cda714",
+      "id": "ed734a87-e5be-42b2-953c-9fc43c6e2553",
       "name": "Matrix Sende Bild",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        5280,
+        6160,
         320
       ],
       "credentials": {
@@ -581,12 +710,12 @@
         "mode": "runOnceForAllItems",
         "jsCode": "const html = `<!DOCTYPE html>\n<html lang=\"de\"><head><meta charset=\"UTF-8\"><title>Bild erstellt</title>\n<style>body{font-family:Arial,sans-serif;max-width:640px;margin:60px auto;padding:0 16px;text-align:center;}\nh1{color:#2e7d32;} a{color:#b7202a;}</style></head>\n<body><h1>Fertig</h1><p>Das Entwurfs-Sharepic wurde erstellt und in Matrix gepostet.</p>\n<p><a href=\"/webhook/wahlkampf-bild\">Neues Thema eingeben</a></p></body></html>`;\nreturn [{ json: { html } }];"
       },
-      "id": "1dc19726-6531-4618-b40a-1ef28efc0a4f",
+      "id": "5efe73f6-ad05-46ec-ab93-574f8b312bc1",
       "name": "Baue Antwort-HTML",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5500,
+        6380,
         320
       ]
     },
@@ -605,12 +734,12 @@
           }
         }
       },
-      "id": "8d76bdf5-b0e5-442a-bca1-a07f18524be8",
+      "id": "98b23554-fbb3-4ee1-9ecf-b685f56c5554",
       "name": "Antwort Generieren",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        5720,
+        6600,
         320
       ]
     }
@@ -851,7 +980,76 @@
       "main": [
         [
           {
+            "node": "Pruefe Textbanner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pruefe Textbanner": {
+      "main": [
+        [
+          {
+            "node": "Parse Textbanner-Pruefung",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Textbanner-Pruefung": {
+      "main": [
+        [
+          {
+            "node": "Textbanner sichtbar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Textbanner sichtbar?": {
+      "main": [
+        [
+          {
             "node": "Bereite Matrix Post vor",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Weiterer Textbanner-Versuch?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weiterer Textbanner-Versuch?": {
+      "main": [
+        [
+          {
+            "node": "Bereite Textbanner-Wiederholung vor",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Bereite Matrix Post vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereite Textbanner-Wiederholung vor": {
+      "main": [
+        [
+          {
+            "node": "Bereite MotivPrompt vor",
             "type": "main",
             "index": 0
           }
