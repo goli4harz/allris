@@ -1,0 +1,106 @@
+{
+  "name": "ALLRIS_Einmalig_ImageStage_Reset",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "63754292-1ae7-443b-90a5-39f17c6be3e7",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Traegt hier jeweils die Zeilen ein, deren Bild-bezogener Fehlerzustand\n// manuell zurueckgesetzt werden soll, damit P6 (Bildgenerierung) sie beim\n// naechsten Lauf erneut aufgreift.\n// 2026-07-27 (1. Verwendung): 2026/109-01 (vol_10697) hing in imageStage=\n// topic_error_final fest, weil P6s Konfliktsperre faelschlich als \"fehlt\"\n// galt (analysisJson.sourceLock.sourceConflict leer, obwohl visualAnchors.\n// satireKonfliktKonkret laengst einen brauchbaren Konflikt hatte) - siehe\n// Fix in \"Bereite Bildkonzept-Reparatur vor\" (getSourceLockBKR-Fallback).\nconst TARGETS = [\n  { vorgangKey: 'vol_10697', vorgangsnummer: '2026/109-01' }\n];\n\nif (!TARGETS.length) {\n  throw new Error('[ImageStage-Reset] TARGETS im Node \"Konfiguriere Ziele\" befuellen.');\n}\n\nreturn TARGETS.map(t => ({\n  json: {\n    vorgangKey: t.vorgangKey,\n    vorgangsnummer: t.vorgangsnummer,\n    imageStage: 'not_started',\n    visualPromptStage: 'needs_prompt',\n    visualDecisionReason: '',\n    contentErrorReason: '',\n    last_error_code: '',\n    last_error_message: '',\n    last_error_stage: '',\n    last_error_at: '',\n    next_retry_at: '',\n    retry_count: 0\n  }\n}));"
+      },
+      "id": "8b9e11a1-282d-48c1-bb15-487f87a29064",
+      "name": "Konfiguriere Ziele",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "imageStage": "={{ $json.imageStage }}",
+            "visualPromptStage": "={{ $json.visualPromptStage }}",
+            "visualDecisionReason": "={{ $json.visualDecisionReason }}",
+            "contentErrorReason": "={{ $json.contentErrorReason }}",
+            "last_error_code": "={{ $json.last_error_code }}",
+            "last_error_message": "={{ $json.last_error_message }}",
+            "last_error_stage": "={{ $json.last_error_stage }}",
+            "last_error_at": "={{ $json.last_error_at }}",
+            "next_retry_at": "={{ $json.next_retry_at }}",
+            "retry_count": "={{ $json.retry_count }}"
+          },
+          "matchingColumns": [
+            "vorgangKey"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "288f1627-898d-4135-80e4-1daeaa6fbfba",
+      "name": "Setze imageStage zurueck",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        440,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Konfiguriere Ziele",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Konfiguriere Ziele": {
+      "main": [
+        [
+          {
+            "node": "Setze imageStage zurueck",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
