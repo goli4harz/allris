@@ -1,0 +1,241 @@
+{
+  "name": "ALLRIS_Einmalig_Presseartikel_Reparatur",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "presseartikel-reparatur-einmalig",
+        "authentication": "none",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "597fa4fe-5f91-4aba-a76f-f75098bdad2a",
+      "name": "Webhook Trigger (einmalig)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "06a978a6-88b8-426e-a20a-fdffa1fbb8ac"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "returnAll": true
+      },
+      "id": "b37cfb5c-662f-44e3-8afa-c16c50ad5e8d",
+      "name": "Hole alle Vorgaenge",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const TARGET_VORGANGKEYS = [\"vol_10631\",\"vol_10639\",\"vol_10646\",\"vol_10660\",\"vol_10640\",\"vol_10654\",\"vol_10616\",\"vol_10641\"];\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst rows = $input.all().map(i => i.json || {});\nconst targets = rows.filter(r => TARGET_VORGANGKEYS.includes(safeStr(r.vorgangKey)));\n\nif (targets.length !== TARGET_VORGANGKEYS.length) {\n  const found = targets.map(r => r.vorgangKey);\n  const missing = TARGET_VORGANGKEYS.filter(k => !found.includes(k));\n  throw new Error('Nicht alle Ziel-Vorgaenge gefunden. Fehlend: ' + missing.join(', '));\n}\n\nreturn targets.map(r => ({ json: r }));"
+      },
+      "id": "e79415f1-c0fe-480f-9775-89f1ad801c69",
+      "name": "Filtere Ziel-Vorgaenge",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nconst j = $json;\nreturn {\n  json: {\n    vorgangKey: safeStr(j.vorgangKey),\n    vorgangsnummer: safeStr(j.vorgangsnummer),\n    title: safeStr(j.title),\n    sprengstoff: safeStr(j.sprengstoff),\n    satireBrief: safeStr(j.satireBrief),\n    satireAngle: safeStr(j.satireAngle),\n    satirePunchlines: safeStr(j.satirePunchlines),\n    imageHeadline: safeStr(j.imageHeadline),\n    imageSubline: safeStr(j.imageSubline),\n    pressStatementBisher: safeStr(j.pressStatement),\n    absurdeForderung: safeStr(j.absurdeForderung)\n  }\n};"
+      },
+      "id": "1775dfe6-d2bc-4ab2-a2bb-8fb29c926567",
+      "name": "Baue Presseartikel-Eingabe",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=Du schreibst ein finales Pressestatement fuer DIE PARTEI Kreisverband Goslar zu einem kommunalpolitischen Vorgang, passend zu einem bereits fertigen Sharepic-Bild.\n\nWICHTIG: Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt {\"pressStatement\": \"...\"}. Kein Markdown, kein Text davor oder danach.\n\nKONTEXT (das fertige Bild zeigt genau diese Schlagzeile/Variante - der Text MUSS dazu passen, nicht zu einer anderen Zuspitzung):\nVorgangsnummer: {{ $json.vorgangsnummer }}\nTitel: {{ $json.title }}\nBild-Headline: {{ $json.imageHeadline }}\nBild-Subline: {{ $json.imageSubline }}\nSatire-Brief: {{ $json.satireBrief }}\nSatire-Winkel: {{ $json.satireAngle }}\nPointen: {{ $json.satirePunchlines }}\nAbsurde Forderung: {{ $json.absurdeForderung }}\nSprengstoff: {{ $json.sprengstoff }}\n\nANFORDERUNGEN an pressStatement:\n* 2 bis 4 Saetze.\n* Witzig-satirisch, im Duktus der Partei-Kommunikation - deutlich pointierter/humorvoller als eine gewoehnliche serioese Pressemitteilung.\n* Nicht zynisch, nicht verstoerend: soll amuesieren, niemanden abschrecken oder vor den Kopf stossen.\n* Muss inhaltlich zur Bild-Headline/Subline oben passen (gleiche Zuspitzung, gleicher Winkel), nicht zu einer anderen Variante.\n* Muss die oben genannte absurde Forderung sinngemaess aufgreifen, sofern vorhanden - nicht zwingend wortgleich zitieren.\n* Muss die Vorgangsnummer nennen, sofern vorhanden.\n* Muss das konkrete Hauptthema nennen.\n* Muss ohne weiteren Kontext verstaendlich sein.\n* Keine erfundenen Sprecherinnen oder Sprecher, kein direktes Personen-Zitat.\n* Formuliere allgemein, zum Beispiel: „DIE PARTEI Goslar sieht darin ...“\n* Wenn sprengstoff = KEINER, sehr mild.\n"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        880,
+        0
+      ],
+      "id": "1c57aefa-502f-4a02-91db-17d1b881e515",
+      "name": "AI Presseartikel Final (Reparatur)",
+      "credentials": {
+        "openAiApi": {
+          "id": "RiT1gwJpQWzSo6NO",
+          "name": "OpenAI account"
+        }
+      },
+      "retryOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function __repairJsonText(text) {\n  var out = [];\n  var inString = false, escaped = false;\n  for (var i = 0; i < text.length; i++) {\n    var ch = text[i];\n    if (inString) {\n      if (escaped) { out.push(ch); escaped = false; continue; }\n      if (ch === '\\\\') { out.push(ch); escaped = true; continue; }\n      if (ch === '\"') { out.push(ch); inString = false; continue; }\n      if (ch === '\\n' || ch === '\\r') {\n        var rest = text.slice(i);\n        var m = /^[\\r\\n]+\\s*\"[A-Za-z_][A-Za-z0-9_]*\"\\s*:/.exec(rest);\n        if (m) {\n          out.push('\",'); inString = false; i += 1;\n          while (i < text.length && (text[i] === '\\r' || text[i] === '\\n')) i++;\n          i -= 1;\n          continue;\n        }\n        out.push(ch === '\\n' ? '\\\\n' : '\\\\r');\n        continue;\n      }\n      if (ch === '\\t') { out.push('\\\\t'); continue; }\n      out.push(ch);\n    } else {\n      if (ch === '\"') inString = true;\n      out.push(ch);\n    }\n  }\n  var stage1 = out.join('');\n\n  var out2 = [];\n  var stack = [];\n  inString = false; escaped = false;\n  var pairs = { '}': '{', ']': '[' };\n  for (var j = 0; j < stage1.length; j++) {\n    var c = stage1[j];\n    if (inString) {\n      out2.push(c);\n      if (escaped) { escaped = false; }\n      else if (c === '\\\\') { escaped = true; }\n      else if (c === '\"') { inString = false; }\n      continue;\n    }\n    if (c === '\"') { inString = true; out2.push(c); continue; }\n    if (c === '{' || c === '[') { stack.push(c); out2.push(c); continue; }\n    if (c === '}' || c === ']') {\n      if (stack.length && stack[stack.length - 1] === pairs[c]) { stack.pop(); out2.push(c); }\n      continue;\n    }\n    out2.push(c);\n  }\n  return out2.join('');\n}\n\nfunction __robustJsonParse(raw) {\n  try {\n    return JSON.parse(raw);\n  } catch (e1) {\n    try {\n      return JSON.parse(__repairJsonText(raw));\n    } catch (e2) {\n      throw e1;\n    }\n  }\n}\n\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction getAiText(j) {\n  if (typeof j.content === 'string') return j.content;\n  if (typeof j.text === 'string') return j.text;\n  if (j.message && typeof j.message.content === 'string') return j.message.content;\n  if (Array.isArray(j.choices) && j.choices[0] && j.choices[0].message) return safeStr(j.choices[0].message.content);\n  if (Array.isArray(j.output)) {\n    const msg = j.output.find(function(o) { return o && o.type === 'message' && Array.isArray(o.content); });\n    const part = msg && msg.content.find(function(c) { return c && typeof c.text === 'string'; });\n    if (part) return part.text;\n  }\n  return '';\n}\nconst original = $('Baue Presseartikel-Eingabe').itemMatching($itemIndex).json;\nconst raw = $json;\nlet text = '';\ntry {\n  const content = getAiText(raw);\n  const cleaned = String(content).replace(/```json/gi, '').replace(/```/g, '').trim();\n  const parsed = __robustJsonParse(cleaned);\n  text = safeStr(parsed.pressStatement);\n} catch (e) {}\n// Statt bei einem einzelnen Fehlschlag den ganzen Reparaturlauf abzubrechen: dieses\n// Item ueberspringen (repairSkipped=true, alter Text bleibt unangetastet), die uebrigen\n// 7 trotzdem reparieren. Sicherheitscheck verhindert zusaetzlich, dass ein reparierter\n// Text erneut versehentlich eine FREMDE Vorgangsnummer nennt (dieselbe Fehlerklasse,\n// die hier gerade behoben wird).\nconst ownNumber = safeStr(original.vorgangsnummer);\nconst mentioned = (text.match(/2026\\/\\d{2,4}(-\\d{1,2})?/g) || []);\nconst mentionsOther = mentioned.some(m => m !== ownNumber);\nconst looksWrong = mentioned.length > 0 && !mentioned.includes(ownNumber) && mentionsOther;\n\nif (!text || looksWrong) {\n  return { json: { ...original, pressStatementFinal: original.pressStatementBisher, repairSkipped: true, repairSkipReason: !text ? 'keine gueltige AI-Antwort' : ('neu erzeugter Text nennt fremde Nummer: ' + mentioned.join(', ')) } };\n}\n\nreturn { json: { ...original, pressStatementFinal: text, repairSkipped: false } };"
+      },
+      "id": "5e8e4af8-d277-422b-87ce-90966f4cc695",
+      "name": "Parse Presseartikel Final (Reparatur)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "pressStatement": "={{ $json.pressStatementFinal }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "pressStatement",
+              "displayName": "pressStatement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5453f95c-c68b-4c4b-9f06-a6173a09ae58",
+      "name": "Schreibe korrigiertes pressStatement",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1320,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger (einmalig)": {
+      "main": [
+        [
+          {
+            "node": "Hole alle Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole alle Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Filtere Ziel-Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtere Ziel-Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Baue Presseartikel-Eingabe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue Presseartikel-Eingabe": {
+      "main": [
+        [
+          {
+            "node": "AI Presseartikel Final (Reparatur)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Presseartikel Final (Reparatur)": {
+      "main": [
+        [
+          {
+            "node": "Parse Presseartikel Final (Reparatur)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Presseartikel Final (Reparatur)": {
+      "main": [
+        [
+          {
+            "node": "Schreibe korrigiertes pressStatement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
