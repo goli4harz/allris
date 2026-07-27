@@ -94,7 +94,7 @@
       "main": [
         [
           {
-            "node": "Suche Partei-Beitrag per Slug",
+            "node": "HTTP Suche WP Tags (Partei)",
             "type": "main",
             "index": 0
           }
@@ -313,6 +313,61 @@
           }
         ]
       ]
+    },
+    "HTTP Suche WP Tags (Partei)": {
+      "main": [
+        [
+          {
+            "node": "Ermittle fehlende Tags (Partei)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ermittle fehlende Tags (Partei)": {
+      "main": [
+        [
+          {
+            "node": "Split fehlende Tags (Partei)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split fehlende Tags (Partei)": {
+      "main": [
+        [
+          {
+            "node": "HTTP Erstelle WP Tag (Partei)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Erstelle WP Tag (Partei)": {
+      "main": [
+        [
+          {
+            "node": "Baue finale Tag-Liste (Partei)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue finale Tag-Liste (Partei)": {
+      "main": [
+        [
+          {
+            "node": "Suche Partei-Beitrag per Slug",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "id": "3pAntGoWcG2uAig4",
@@ -405,7 +460,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction esc(v) { return safeStr(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }\nfunction slugify(v) {\n  return safeStr(v).toLowerCase()\n    .replace(/[ä]/g,'ae').replace(/[ö]/g,'oe').replace(/[ü]/g,'ue').replace(/[ß]/g,'ss')\n    .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').substring(0,80);\n}\nconst j = $json;\nconst title = safeStr(j.websiteHeadline) || (safeStr(j.vorgangsnummer) + ' - ' + safeStr(j.title));\nconst paragraphs = safeStr(j.websiteArticle).split(/\\n\\s*\\n/).filter(Boolean).map(p => '<p>' + esc(p).replace(/\\n/g, '<br>') + '</p>').join('\\n');\nconst footer = '<p><em>Vorgangsnummer: ' + esc(j.vorgangsnummer) + ' | <a href=\"' + esc(j.allrisUrl) + '\">Original bei ALLRIS</a></em></p>';\nconst content = paragraphs + '\\n' + footer;\nconst slug = slugify(safeStr(j.vorgangsnummer) + ' ' + title);\nconst hasImage = !!safeStr(j.imageFinalPath);\nreturn {\n  json: {\n    ...j,\n    wpTitle: title,\n    wpContent: content,\n    wpSlug: slug,\n    hasImage: hasImage\n  }\n};\n"
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction esc(v) { return safeStr(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }\nfunction slugify(v) {\n  return safeStr(v).toLowerCase()\n    .replace(/[ä]/g,'ae').replace(/[ö]/g,'oe').replace(/[ü]/g,'ue').replace(/[ß]/g,'ss')\n    .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').substring(0,80);\n}\n// Tags: Themen-Erkennung per Schluesselwort (identische Kategorien wie in\n// ALLRIS_P7_WordPress_Publish \"Code in JavaScript\", damit beide WordPress-Seiten\n// dieselbe Themen-Taxonomie fuer denselben Ratsinhalt verwenden) + auf Nutzerwunsch\n// (2026-07-27) immer feste Kampagnen-Tags dazu, unabhaengig vom Inhalt.\nfunction uniqueTags(tags) {\n  return Array.from(new Set(\n    tags.map(t => safeStr(t)).filter(Boolean).filter(t => t.length <= 50)\n  ));\n}\nfunction topicTagsFromText(text) {\n  const t = String(text || '').toLowerCase();\n  const tags = [];\n  function hasAny(words) { return words.some(w => t.indexOf(String(w).toLowerCase()) !== -1); }\n  if (hasAny(['bus','stadtbus','linie','liniennetz','haltestelle','oepnv','öpnv','fahrplan','verkehr','umleitung','sperrung','radweg','parkplatz'])) tags.push('Verkehr','ÖPNV');\n  if (hasAny(['bauschutt','baustelle','bauzaun','abbruch','abriss','baustellensicherheit','absperrung'])) tags.push('Baustelle','Sicherheit');\n  if (hasAny(['stadtbus','haltestelle','fahrgast','fahrgäste','linienfuehrung','schuljahresbeginn'])) tags.push('Stadtbus');\n  if (hasAny(['denkmalschutz','altstadt','unesco','welterbe','denkmal','sanierung','historisch'])) tags.push('Altstadt','Denkmalschutz','UNESCO');\n  if (hasAny(['haushalt','kosten','finanz','haushaltsmittel','foerderung','investition','gebühr','zuschuss'])) tags.push('Haushalt','Finanzen','Kosten');\n  if (hasAny(['schule','schüler','schülerinnen','kita','kindergarten','bildung','jugend','schulweg'])) tags.push('Schule','Bildung');\n  if (hasAny(['mülleimer','papierkorb','abfall','bänke','bank','sitzbank','stadtbild','aufenthaltsqualität','innenstadt','standort'])) tags.push('Stadtbild','Aufenthaltsqualität');\n  if (hasAny(['digitalisierung','software','open source','verwaltung','transparenz','daten','portal','online','it'])) tags.push('Verwaltung','Digitalisierung','Transparenz');\n  if (hasAny(['energie','wärme','wärmeplanung','klima','klimaschutz','heizung','wärmenetz','fernwärme'])) tags.push('Energie','Wärmeplanung','Klimaschutz');\n  if (hasAny(['barriere','barrierefreiheit','inklusion','teilhabe','behinderung','senioren','ältere menschen'])) tags.push('Barrierefreiheit','Inklusion');\n  if (hasAny(['wahl','wahlwerbung','plakat','plakate','sondernutzung','wahlvorschlag','kandidierende','einzelbewerbung','chancengleichheit'])) tags.push('Wahl','Wahlwerbung','Chancengleichheit');\n  return tags;\n}\nconst ALWAYS_TAGS = ['Goslar', 'MeinGoslar', 'MeinKlüngelKannMehr'];\n\nconst j = $json;\nconst title = safeStr(j.websiteHeadline) || (safeStr(j.vorgangsnummer) + ' - ' + safeStr(j.title));\nconst paragraphs = safeStr(j.websiteArticle).split(/\\n\\s*\\n/).filter(Boolean).map(p => '<p>' + esc(p).replace(/\\n/g, '<br>') + '</p>').join('\\n');\nconst footer = '<p><em>Vorgangsnummer: ' + esc(j.vorgangsnummer) + ' | <a href=\"' + esc(j.allrisUrl) + '\">Original bei ALLRIS</a></em></p>';\nconst content = paragraphs + '\\n' + footer;\nconst slug = slugify(safeStr(j.vorgangsnummer) + ' ' + title);\nconst hasImage = !!safeStr(j.imageFinalPath);\n\nconst combinedTagText = [title, j.vorgangsnummer, j.thema, j.betroffene, j.kostenHaushalt, j.buergerwirkung, j.websiteArticle].map(safeStr).join(' ');\nconst wpTags = uniqueTags([...ALWAYS_TAGS, ...topicTagsFromText(combinedTagText)]);\n\nreturn {\n  json: {\n    ...j,\n    wpTitle: title,\n    wpContent: content,\n    wpSlug: slug,\n    hasImage: hasImage,\n    wpTags: wpTags\n  }\n};\n"
       },
       "id": "c10eb5d2-9d82-4fae-95e6-e16a8615c260",
       "name": "Baue Post-Body",
@@ -844,7 +899,7 @@
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ title: $json.wpTitle, content: ($json.wpFeaturedMediaUrl ? '<img src=\"' + $json.wpFeaturedMediaUrl + '\" alt=\"\" style=\"max-width:100%;height:auto;\" />\\n\\n' : '') + $json.wpContent, slug: $json.wpSlug, status: 'draft', featured_media: $json.wpFeaturedMediaId || 0 }) }}",
+        "jsonBody": "={{ JSON.stringify({ title: $json.wpTitle, content: ($json.wpFeaturedMediaUrl ? '<img src=\"' + $json.wpFeaturedMediaUrl + '\" alt=\"\" style=\"max-width:100%;height:auto;\" />\\n\\n' : '') + $json.wpContent, slug: $json.wpSlug, status: 'draft', featured_media: $json.wpFeaturedMediaId || 0, tags: $json.wordpressTagIds || [] }) }}",
         "options": {}
       },
       "id": "0baf7385-9ef7-4720-8280-7549b10e9bbc",
@@ -1065,6 +1120,102 @@
       "position": [
         1680,
         1600
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://die-partei.net/goslar/wp-json/wp/v2/tags",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "per_page",
+              "value": "100"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6f9a504d-fb96-4afb-8f0a-5d81219d08be",
+      "name": "HTTP Suche WP Tags (Partei)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1408,
+        1360
+      ],
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Ermittle fehlende Tags (Partei) - vergleicht wpTags (aus \"Baue Post-Body\") mit den\n// bereits existierenden WordPress-Tags von die-partei.net/goslar und trennt in bereits\n// vorhandene Tag-IDs und noch anzulegende Tag-Namen. Gleiches Muster wie in\n// ALLRIS_P7_WordPress_Publish \"Ermittle fehlende Tags\".\nconst current = $('Baue Post-Body').first().json;\nconst wpTags = Array.isArray(current.wpTags) ? current.wpTags : [];\n\nfunction norm(v) { return String(v || '').trim().toLowerCase(); }\n\nconst rawExisting = $input.all().map(i => i.json);\nlet existingList = rawExisting;\nif (rawExisting.length === 1 && Array.isArray(rawExisting[0])) {\n  existingList = rawExisting[0];\n}\n\nconst existingByName = new Map();\nfor (const t of existingList) {\n  if (t && t.name) existingByName.set(norm(t.name), t.id);\n}\n\nconst resolvedTagIds = [];\nconst missingTagNames = [];\nconst seen = new Set();\n\nfor (const rawName of wpTags) {\n  const name = String(rawName || '').trim();\n  if (!name) continue;\n  const n = norm(name);\n  if (seen.has(n)) continue;\n  seen.add(n);\n  if (existingByName.has(n)) {\n    resolvedTagIds.push(existingByName.get(n));\n  } else {\n    missingTagNames.push(name);\n  }\n}\n\nreturn [{\n  json: {\n    ...current,\n    resolvedTagIds,\n    missingTagNames\n  }\n}];"
+      },
+      "id": "872bbfe5-52ea-4aea-bbf1-318ddf397660",
+      "name": "Ermittle fehlende Tags (Partei)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1408,
+        1440
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Split fehlende Tags (Partei) - ein Item pro anzulegendem Tag. Sentinel-Item bei 0\n// fehlenden Tags, damit die Kette nie mit 0 Items weiterlaeuft.\nconst current = $input.first().json;\nconst missing = Array.isArray(current.missingTagNames) ? current.missingTagNames : [];\n\nif (missing.length === 0) {\n  return [{ json: { tagName: '', isSentinel: true } }];\n}\n\nreturn missing.map(name => ({ json: { tagName: name, isSentinel: false } }));"
+      },
+      "id": "7dff936a-4edc-49a6-b037-a8275ad4d47e",
+      "name": "Split fehlende Tags (Partei)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1408,
+        1520
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://die-partei.net/goslar/wp-json/wp/v2/tags",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ name: $json.tagName }) }}",
+        "options": {}
+      },
+      "id": "95b03005-2df9-41e8-8573-12ef64f2007b",
+      "name": "HTTP Erstelle WP Tag (Partei)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1408,
+        1600
+      ],
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Baue finale Tag-Liste (Partei) - holt den urspruenglichen Beitrags-Kontext von\n// \"Ermittle fehlende Tags (Partei)\" zurueck und ergaenzt die neu angelegten Tag-IDs um\n// die bereits vorhandenen. Faengt term_exists-Fehlerantworten ab (Tag wurde zwischen\n// Suche und Anlage von woanders bereits erstellt), statt den Tag stillschweigend zu\n// verlieren - identisches Muster wie in ALLRIS_P7_WordPress_Publish.\nconst original = $('Ermittle fehlende Tags (Partei)').first().json;\nconst resolvedTagIds = Array.isArray(original.resolvedTagIds) ? original.resolvedTagIds : [];\n\nfunction extractTagId(j) {\n  if (!j) return null;\n  if (j.id) return j.id;\n  if (j.body && j.body.id) return j.body.id;\n  if (j.data && j.data.term_id) return j.data.term_id;\n  if (j.error && j.error.data && j.error.data.term_id) return j.error.data.term_id;\n  return null;\n}\n\nconst newTagIds = [];\nfor (const item of $input.all()) {\n  const id = extractTagId(item.json || {});\n  if (id) newTagIds.push(id);\n}\n\nreturn [{\n  json: {\n    ...original,\n    wordpressTagIds: [...new Set([...resolvedTagIds, ...newTagIds])]\n  }\n}];"
+      },
+      "id": "c5d17f7c-c54a-43a9-9beb-959bea78de29",
+      "name": "Baue finale Tag-Liste (Partei)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1408,
+        1680
       ]
     }
   ],
