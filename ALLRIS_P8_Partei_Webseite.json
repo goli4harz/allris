@@ -1151,7 +1151,8 @@
           "id": "tzwuM0QBLpYYZfXQ",
           "name": "DiePARTEI Wordpress"
         }
-      }
+      },
+      "alwaysOutputData": true
     },
     {
       "parameters": {

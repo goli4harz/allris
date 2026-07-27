@@ -1,0 +1,267 @@
+{
+  "name": "ALLRIS_Einmalig_P8_Tags_Nachtrag",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "b3f553e2-a9cb-41c8-bccc-6a5744dbe691",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "returnAll": true
+      },
+      "id": "96161a25-9ac3-4e21-87f1-b1c2c02bece9",
+      "name": "Hole alle Vorgaenge",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Berechnet wpTags fuer die Ziel-Posts genau wie \"Baue Post-Body\" in\n// ALLRIS_P8_Partei_Webseite (gleiche topicTagsFromText()-Kategorien + immer\n// Goslar/MeinGoslar/MeinKlüngelKannMehr), fuer bereits veroeffentlichte Posts,\n// die vor dem Tag-Fix (2026-07-27) erstellt wurden.\n// Nutzer-Korrektur (2026-07-27): betrifft auch Entwuerfe, nicht nur bereits\n// veroeffentlichte Posts - jede Zeile mit wordpressGoslarDraftId braucht Tags,\n// unabhaengig vom Veroeffentlichungsstatus (WordPress erlaubt Tag-Updates auch\n// auf Drafts).\n\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction uniqueTags(tags) {\n  return Array.from(new Set(tags.map(t => safeStr(t)).filter(Boolean).filter(t => t.length <= 50)));\n}\nfunction topicTagsFromText(text) {\n  const t = String(text || '').toLowerCase();\n  const tags = [];\n  function hasAny(words) { return words.some(w => t.indexOf(String(w).toLowerCase()) !== -1); }\n  if (hasAny(['bus','stadtbus','linie','liniennetz','haltestelle','oepnv','öpnv','fahrplan','verkehr','umleitung','sperrung','radweg','parkplatz'])) tags.push('Verkehr','ÖPNV');\n  if (hasAny(['bauschutt','baustelle','bauzaun','abbruch','abriss','baustellensicherheit','absperrung'])) tags.push('Baustelle','Sicherheit');\n  if (hasAny(['stadtbus','haltestelle','fahrgast','fahrgäste','linienfuehrung','schuljahresbeginn'])) tags.push('Stadtbus');\n  if (hasAny(['denkmalschutz','altstadt','unesco','welterbe','denkmal','sanierung','historisch'])) tags.push('Altstadt','Denkmalschutz','UNESCO');\n  if (hasAny(['haushalt','kosten','finanz','haushaltsmittel','foerderung','investition','gebühr','zuschuss'])) tags.push('Haushalt','Finanzen','Kosten');\n  if (hasAny(['schule','schüler','schülerinnen','kita','kindergarten','bildung','jugend','schulweg'])) tags.push('Schule','Bildung');\n  if (hasAny(['mülleimer','papierkorb','abfall','bänke','bank','sitzbank','stadtbild','aufenthaltsqualität','innenstadt','standort'])) tags.push('Stadtbild','Aufenthaltsqualität');\n  if (hasAny(['digitalisierung','software','open source','verwaltung','transparenz','daten','portal','online','it'])) tags.push('Verwaltung','Digitalisierung','Transparenz');\n  if (hasAny(['energie','wärme','wärmeplanung','klima','klimaschutz','heizung','wärmenetz','fernwärme'])) tags.push('Energie','Wärmeplanung','Klimaschutz');\n  if (hasAny(['barriere','barrierefreiheit','inklusion','teilhabe','behinderung','senioren','ältere menschen'])) tags.push('Barrierefreiheit','Inklusion');\n  if (hasAny(['wahl','wahlwerbung','plakat','plakate','sondernutzung','wahlvorschlag','kandidierende','einzelbewerbung','chancengleichheit'])) tags.push('Wahl','Wahlwerbung','Chancengleichheit');\n  return tags;\n}\nconst ALWAYS_TAGS = ['Goslar', 'MeinGoslar', 'MeinKlüngelKannMehr'];\n\nconst rows = $input.all().map(i => i.json || {});\nconst targets = [];\nfor (const r of rows) {\n  const postId = safeStr(r.wordpressGoslarPostId) || safeStr(r.wordpressGoslarDraftId);\n  if (!postId) continue;\n  const title = safeStr(r.websiteHeadline) || (safeStr(r.vorgangsnummer) + ' - ' + safeStr(r.title));\n  const combinedTagText = [title, r.vorgangsnummer, r.thema, r.betroffene, r.kostenHaushalt, r.buergerwirkung, r.websiteArticle].map(safeStr).join(' ');\n  const wpTags = uniqueTags([...ALWAYS_TAGS, ...topicTagsFromText(combinedTagText)]);\n  targets.push({ vorgangsnummer: safeStr(r.vorgangsnummer), postId, wpTags });\n}\n\nconst allNeededTagNames = uniqueTags(targets.flatMap(t => t.wpTags));\n\nreturn [{ json: { targets, allNeededTagNames } }];"
+      },
+      "id": "6ac98c69-bfa7-47d0-9a3f-81dd25060e2b",
+      "name": "Berechne Tags je Ziel-Post",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://die-partei.net/goslar/wp-json/wp/v2/tags",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "per_page",
+              "value": "100"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "28e87b54-d341-4bfa-8300-e9b2f5a4e3c2",
+      "name": "HTTP Suche WP Tags",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const current = $('Berechne Tags je Ziel-Post').first().json;\nconst allNeededTagNames = Array.isArray(current.allNeededTagNames) ? current.allNeededTagNames : [];\n\nfunction norm(v) { return String(v || '').trim().toLowerCase(); }\n\nconst rawExisting = $input.all().map(i => i.json);\nlet existingList = rawExisting;\nif (rawExisting.length === 1 && Array.isArray(rawExisting[0])) {\n  existingList = rawExisting[0];\n}\n\nconst existingByName = new Map();\nfor (const t of existingList) {\n  if (t && t.name) existingByName.set(norm(t.name), t.id);\n}\n\nconst resolvedByName = {};\nconst missingTagNames = [];\nfor (const name of allNeededTagNames) {\n  const n = norm(name);\n  if (existingByName.has(n)) resolvedByName[name] = existingByName.get(n);\n  else missingTagNames.push(name);\n}\n\nreturn [{ json: { ...current, resolvedByName, missingTagNames } }];"
+      },
+      "id": "2a98348c-5f93-487f-b045-565dfc920cbd",
+      "name": "Ermittle fehlende Tags (Backfill)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const current = $input.first().json;\nconst missing = Array.isArray(current.missingTagNames) ? current.missingTagNames : [];\n\nif (missing.length === 0) {\n  return [{ json: { tagName: '', isSentinel: true } }];\n}\n\nreturn missing.map(name => ({ json: { tagName: name, isSentinel: false } }));"
+      },
+      "id": "066ec42d-3345-4ee0-92db-0ce66521a5fa",
+      "name": "Split fehlende Tags",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://die-partei.net/goslar/wp-json/wp/v2/tags",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ name: $json.tagName }) }}",
+        "options": {}
+      },
+      "id": "e4aab9b0-1e1b-4300-b220-2ca6e742ad60",
+      "name": "HTTP Erstelle WP Tag",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        0
+      ],
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const original = $('Ermittle fehlende Tags (Backfill)').first().json;\nconst resolvedByName = original.resolvedByName || {};\n\nfunction extractTagResult(j) {\n  if (!j) return null;\n  if (j.id && j.name) return { id: j.id, name: j.name };\n  if (j.error && j.error.data && j.error.data.term_id) return { id: j.error.data.term_id, name: null };\n  return null;\n}\n\nconst createdByName = { ...resolvedByName };\nfor (const item of $input.all()) {\n  const r = extractTagResult(item.json || {});\n  if (r && r.name) createdByName[r.name] = r.id;\n}\n\n// Falls ein term_exists-Fallback ohne Namen kam, ordnen wir ihn ueber die Split-Reihenfolge zu.\nconst splitItems = $('Split fehlende Tags').all().map(i => i.json);\n$input.all().forEach((item, idx) => {\n  const r = extractTagResult(item.json || {});\n  if (r && !r.name && splitItems[idx] && splitItems[idx].tagName) {\n    createdByName[splitItems[idx].tagName] = r.id;\n  }\n});\n\nconst targets = Array.isArray(original.targets) ? original.targets : [];\nconst updates = targets.map(t => ({\n  postId: t.postId,\n  vorgangsnummer: t.vorgangsnummer,\n  tagIds: [...new Set(t.wpTags.map(name => createdByName[name]).filter(Boolean))]\n}));\n\nreturn updates.map(u => ({ json: u }));"
+      },
+      "id": "a2a67cf8-7406-4270-afb3-137db11a9c2d",
+      "name": "Baue Updates je Post",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://die-partei.net/goslar/wp-json/wp/v2/posts/{{ $json.postId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ tags: $json.tagIds }) }}",
+        "options": {}
+      },
+      "id": "e5b7a98c-df27-475c-a398-cbf7086b0d82",
+      "name": "HTTP Update WP Post Tags",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        0
+      ],
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hole alle Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole alle Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Berechne Tags je Ziel-Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Berechne Tags je Ziel-Post": {
+      "main": [
+        [
+          {
+            "node": "HTTP Suche WP Tags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Suche WP Tags": {
+      "main": [
+        [
+          {
+            "node": "Ermittle fehlende Tags (Backfill)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ermittle fehlende Tags (Backfill)": {
+      "main": [
+        [
+          {
+            "node": "Split fehlende Tags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split fehlende Tags": {
+      "main": [
+        [
+          {
+            "node": "HTTP Erstelle WP Tag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Erstelle WP Tag": {
+      "main": [
+        [
+          {
+            "node": "Baue Updates je Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue Updates je Post": {
+      "main": [
+        [
+          {
+            "node": "HTTP Update WP Post Tags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
