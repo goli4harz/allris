@@ -1,0 +1,97 @@
+{
+  "name": "ALLRIS_Einmalig_ImageStage_Fix_20260728",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "a1b2c3d4-0001-4000-8000-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Einmalige Korrektur 2026-07-28: 10 Zeilen hatten trotz erfolgreich fertiggestelltem\n// Bild (imageFinalPath + imageCreatedAt korrekt gesetzt, teils schon wordpressPosted)\n// faelschlich imageStage='not_started' stehen - Ursache war eine Ausfuehrungsreihenfolge-\n// Race in P6s 'Waehle Bild-Kontext nach Presse-Sync' (siehe Fix im selben Commit), die\n// den Presseartikel-Zweig statt des Bild-Zweigs fuer den finalen Status-Schreibvorgang\n// ausgewaehlt hat. Diese Zeilen waeren sonst von P6 (Filter gueltige Datensaetze) erneut\n// als 'noch nicht versucht' erkannt und ein zweites Mal (kostenpflichtig) generiert worden.\nconst TARGETS = [\n  { vorgangKey: 'vol_10641', vorgangsnummer: '2026/136' },\n  { vorgangKey: 'vol_10581', vorgangsnummer: '2026/098' },\n  { vorgangKey: 'vol_10646', vorgangsnummer: '2026/141' },\n  { vorgangKey: 'vol_10660', vorgangsnummer: '2026/143-01' },\n  { vorgangKey: 'vol_10699', vorgangsnummer: '2026/174' },\n  { vorgangKey: 'vol_10591', vorgangsnummer: '2026/103' },\n  { vorgangKey: 'vol_10697', vorgangsnummer: '2026/109-01' },\n  { vorgangKey: 'vol_10701', vorgangsnummer: '2026/176' },\n  { vorgangKey: 'vol_10677', vorgangsnummer: '2026/157' },\n  { vorgangKey: 'vol_10583', vorgangsnummer: '2026/100' }\n];\n\nreturn TARGETS.map(t => ({\n  json: {\n    vorgangKey: t.vorgangKey,\n    vorgangsnummer: t.vorgangsnummer,\n    imageStage: 'composed'\n  }\n}));"
+      },
+      "id": "a1b2c3d4-0002-4000-8000-000000000002",
+      "name": "Konfiguriere Ziele",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "imageStage": "={{ $json.imageStage }}"
+          },
+          "matchingColumns": [
+            "vorgangKey"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-0003-4000-8000-000000000003",
+      "name": "Setze imageStage auf composed",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        440,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Konfiguriere Ziele",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Konfiguriere Ziele": {
+      "main": [
+        [
+          {
+            "node": "Setze imageStage auf composed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
