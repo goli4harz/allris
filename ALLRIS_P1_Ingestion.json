@@ -415,6 +415,17 @@
       "main": [
         [
           {
+            "node": "Einzelrequest ALLRIS Uebersicht",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Einzelrequest ALLRIS Uebersicht": {
+      "main": [
+        [
+          {
             "node": "HTTP ALLRIS Übersicht",
             "type": "main",
             "index": 0
@@ -623,7 +634,7 @@
     },
     {
       "parameters": {
-        "jsCode": "\nfunction extractVorgangsnummer(text) {\n  if (!text) return '';\n  const m = String(text).match(/\\b(\\d{4})\\s*\\/\\s*(\\d+)(?:-(\\d+))?\\b/);\n  if (!m) return '';\n  return m[1] + '/' + m[2] + (m[3] ? '-' + m[3] : '');\n}\n\nconst HTTP_ERROR_TITLE_RE = /^\\s*(?:400[\\s:-]+bad\\s+request|401[\\s:-]+unauthorized|403[\\s:-]+forbidden|404[\\s:-]+not\\s+found|408[\\s:-]+request\\s+time[- ]?out|429[\\s:-]+too\\s+many\\s+requests|500[\\s:-]+internal\\s+server\\s+error|501[\\s:-]+not\\s+implemented|502[\\s:-]+bad\\s+gateway|503[\\s:-]+service\\s+unavailable|504[\\s:-]+gateway\\s*time[- ]?out)\\s*$/i;\n\nconst TECH_ERROR_PHRASE_RE = /gateway\\s*time[- ]?out|bad\\s+gateway|service\\s+unavailable|internal\\s+server\\s+error|request\\s+time[- ]?out|upstream\\s+timed\\s+out|proxy\\s+error|temporarily\\s+unavailable|too\\s+many\\s+requests|serverfehler|nginx\\s+error|cloudflare\\s+error/i;\n\nfunction isTechnicalTitle(value) {\n  const text = String(value || '').trim();\n  return HTTP_ERROR_TITLE_RE.test(text) || TECH_ERROR_PHRASE_RE.test(text);\n}\n\nfunction containsTechnicalErrorPhrase(value) {\n  return TECH_ERROR_PHRASE_RE.test(String(value || ''));\n}\n\nfunction isValidVorgangsnummer(v) {\n  return /^\\d{4}\\/\\d+(?:-\\d+)?$/.test(String(v || '').trim());\n}\n\n// Gruppierung nach Vorgang – V29.1\nconst groups = {};\n\nfunction parseVorgangsbeziehung(vorgangsnummer) {\n  const value = String(vorgangsnummer || '').trim();\n  const match = value.match(/^(\\d{4})\\s*\\/\\s*(\\d+)(?:-(\\d+))?$/);\n  if (!match) {\n    return { stammVorgangsnummer: value, folgeNummer: '', istFolgevorgang: false };\n  }\n  const jahr   = match[1];\n  const nummer = match[2];\n  const suffix = match[3] || '';\n  return {\n    stammVorgangsnummer: `${jahr}/${nummer}`,\n    folgeNummer:         suffix,\n    istFolgevorgang:     suffix !== ''\n  };\n}\n\nfor (const item of items) {\n  const title = item.json.title || '';\n\n  const volfdnr =\n    item.json.volfdnr ||\n    (item.json.sourceUrl || '').match(/VOLFDNR=(\\d+)/i)?.[1] ||\n    (item.json.allrisUrl || '').match(/VOLFDNR=(\\d+)/i)?.[1] ||\n    '';\n\n  // Vorgangsnummer: bevorzugt aus item.json, dann aus title/html\n  const vorgangsnummer =\n    extractVorgangsnummer(item.json.vorgangsnummer || '') ||\n    extractVorgangsnummer(title) ||\n    extractVorgangsnummer(item.json.html || '');\n\n  // vorgangKey immer vol_<VOLFDNR>\n  const rawKey     = volfdnr ? `vol_${volfdnr}` : (vorgangsnummer || title);\n  const vorgangKey = rawKey.replace(/[\\/\\-\\s]/g, '_');\n\n  const sourceUrl = volfdnr\n    ? `https://www.goslar.de/stadt/politik/allris/vo020_r.asp?VOLFDNR=${volfdnr}`\n    : (item.json.sourceUrl || item.json.allrisUrl || '');\n\n  if (!groups[vorgangKey]) {\n    groups[vorgangKey] = {\n      vorgangKey,\n      title,\n      vorgangsnummer,\n      volfdnr,\n      sourceUrl,\n      allrisUrl: sourceUrl,\n      vorfilterThemen:   [],\n      vorfilterKeywords: [],\n      vorfilterScore:    0,\n      documents:         [],\n      ...parseVorgangsbeziehung(vorgangsnummer)\n    };\n  }\n\n  for (const t of (item.json.vorfilterThemen || [])) {\n    if (!groups[vorgangKey].vorfilterThemen.includes(t))\n      groups[vorgangKey].vorfilterThemen.push(t);\n  }\n  for (const k of (item.json.vorfilterKeywords || [])) {\n    if (!groups[vorgangKey].vorfilterKeywords.includes(k))\n      groups[vorgangKey].vorfilterKeywords.push(k);\n  }\n  if ((item.json.vorfilterScore || 0) > groups[vorgangKey].vorfilterScore) {\n    groups[vorgangKey].vorfilterScore = item.json.vorfilterScore;\n  }\n  if (item.json.documentUrl) {\n    groups[vorgangKey].documents.push({\n      url:    item.json.documentUrl,\n      type:   item.json.type  || 'document_candidate',\n      label:  item.json.label || '',\n      docKey: item.json.docKey || ''\n    });\n  }\n}\n\nreturn Object.values(groups).map(v => ({\n  json: {\n    vorgangKey:          v.vorgangKey,\n    volfdnr:             v.volfdnr           || '',\n    title:               v.title,\n    vorgangsnummer:      v.vorgangsnummer,\n    sourceUrl:           v.sourceUrl         || '',\n    allrisUrl:           v.allrisUrl         || v.sourceUrl || '',\n    vorfilterThemen:     v.vorfilterThemen,\n    vorfilterKeywords:   v.vorfilterKeywords,\n    vorfilterScore:      v.vorfilterScore,\n    documentsJson:       JSON.stringify(v.documents),\n    documentCount:       v.documents.length,\n    stammVorgangsnummer: v.stammVorgangsnummer || v.vorgangsnummer || '',\n    folgeNummer:         v.folgeNummer        || '',\n    istFolgevorgang:     v.istFolgevorgang    === true,\n    debug_loopPhase:     'gruppierung_done',\n    debug_currentVolfdnr: v.volfdnr || ''\n  }\n}));\n"
+        "jsCode": "\nfunction extractVorgangsnummer(text) {\n  if (!text) return '';\n  const m = String(text).match(/\\b(\\d{4})\\s*\\/\\s*(\\d+)(?:-(\\d+))?\\b/);\n  if (!m) return '';\n  return m[1] + '/' + m[2] + (m[3] ? '-' + m[3] : '');\n}\n\nconst HTTP_ERROR_TITLE_RE = /^\\s*(?:400[\\s:-]+bad\\s+request|401[\\s:-]+unauthorized|403[\\s:-]+forbidden|404[\\s:-]+not\\s+found|408[\\s:-]+request\\s+time[- ]?out|429[\\s:-]+too\\s+many\\s+requests|500[\\s:-]+internal\\s+server\\s+error|501[\\s:-]+not\\s+implemented|502[\\s:-]+bad\\s+gateway|503[\\s:-]+service\\s+unavailable|504[\\s:-]+gateway\\s*time[- ]?out)\\s*$/i;\n\nconst TECH_ERROR_PHRASE_RE = /gateway\\s*time[- ]?out|bad\\s+gateway|service\\s+unavailable|internal\\s+server\\s+error|request\\s+time[- ]?out|upstream\\s+timed\\s+out|proxy\\s+error|temporarily\\s+unavailable|too\\s+many\\s+requests|serverfehler|nginx\\s+error|cloudflare\\s+error/i;\n\nfunction isTechnicalTitle(value) {\n  const text = String(value || '').trim();\n  return HTTP_ERROR_TITLE_RE.test(text) || TECH_ERROR_PHRASE_RE.test(text);\n}\n\nfunction containsTechnicalErrorPhrase(value) {\n  return TECH_ERROR_PHRASE_RE.test(String(value || ''));\n}\n\nfunction isValidVorgangsnummer(v) {\n  return /^\\d{4}\\/\\d+(?:-\\d+)?$/.test(String(v || '').trim());\n}\n\n// Nutzerwunsch 2026-07-28: Datum der Vorlage ermitteln, um spaeter die WordPress-\n// Veroeffentlichungsreihenfolge danach zu bestimmen statt nach Verarbeitungsreihenfolge.\n// Fruehester Termin aus der Beratungsfolge-Tabelle im Detailseiten-HTML (<td class=\"date\">\n// <div>TT.MM.JJJJ</div></td>) - live an echtem HTML bestaetigt. Nur ein Signal von zweien\n// (das andere kommt aus dem Vorlagen-PDF selbst via Tika in P3), dient dort als Abgleich.\nfunction extractBeratungsfolgeEarliestDate(html) {\n  const text = String(html || '');\n  const bfIdx = text.indexOf('id=\"beratungsfolge\"');\n  if (bfIdx === -1) return '';\n  const endIdx = text.indexOf('id=\"allrisSV\"', bfIdx);\n  const section = text.slice(bfIdx, endIdx === -1 ? bfIdx + 20000 : endIdx);\n  const matches = [...section.matchAll(/class=\"date\">\\s*<div>(\\d{2})\\.(\\d{2})\\.(\\d{4})<\\/div>/g)];\n  if (!matches.length) return '';\n  const isoDates = matches.map(m => `${m[3]}-${m[2]}-${m[1]}`);\n  isoDates.sort();\n  return isoDates[0];\n}\n\n// Gruppierung nach Vorgang – V29.1\nconst groups = {};\n\nfunction parseVorgangsbeziehung(vorgangsnummer) {\n  const value = String(vorgangsnummer || '').trim();\n  const match = value.match(/^(\\d{4})\\s*\\/\\s*(\\d+)(?:-(\\d+))?$/);\n  if (!match) {\n    return { stammVorgangsnummer: value, folgeNummer: '', istFolgevorgang: false };\n  }\n  const jahr   = match[1];\n  const nummer = match[2];\n  const suffix = match[3] || '';\n  return {\n    stammVorgangsnummer: `${jahr}/${nummer}`,\n    folgeNummer:         suffix,\n    istFolgevorgang:     suffix !== ''\n  };\n}\n\nfor (const item of items) {\n  const title = item.json.title || '';\n\n  const volfdnr =\n    item.json.volfdnr ||\n    (item.json.sourceUrl || '').match(/VOLFDNR=(\\d+)/i)?.[1] ||\n    (item.json.allrisUrl || '').match(/VOLFDNR=(\\d+)/i)?.[1] ||\n    '';\n\n  // Vorgangsnummer: bevorzugt aus item.json, dann aus title/html\n  const vorgangsnummer =\n    extractVorgangsnummer(item.json.vorgangsnummer || '') ||\n    extractVorgangsnummer(title) ||\n    extractVorgangsnummer(item.json.html || '');\n\n  // vorgangKey immer vol_<VOLFDNR>\n  const rawKey     = volfdnr ? `vol_${volfdnr}` : (vorgangsnummer || title);\n  const vorgangKey = rawKey.replace(/[\\/\\-\\s]/g, '_');\n\n  const sourceUrl = volfdnr\n    ? `https://www.goslar.de/stadt/politik/allris/vo020_r.asp?VOLFDNR=${volfdnr}`\n    : (item.json.sourceUrl || item.json.allrisUrl || '');\n\n  if (!groups[vorgangKey]) {\n    groups[vorgangKey] = {\n      vorgangKey,\n      title,\n      vorgangsnummer,\n      volfdnr,\n      sourceUrl,\n      allrisUrl: sourceUrl,\n      vorfilterThemen:   [],\n      vorfilterKeywords: [],\n      vorfilterScore:    0,\n      documents:         [],\n      vorlageDatumWeb:   extractBeratungsfolgeEarliestDate(item.json.html || ''),\n      ...parseVorgangsbeziehung(vorgangsnummer)\n    };\n  }\n\n  for (const t of (item.json.vorfilterThemen || [])) {\n    if (!groups[vorgangKey].vorfilterThemen.includes(t))\n      groups[vorgangKey].vorfilterThemen.push(t);\n  }\n  for (const k of (item.json.vorfilterKeywords || [])) {\n    if (!groups[vorgangKey].vorfilterKeywords.includes(k))\n      groups[vorgangKey].vorfilterKeywords.push(k);\n  }\n  if ((item.json.vorfilterScore || 0) > groups[vorgangKey].vorfilterScore) {\n    groups[vorgangKey].vorfilterScore = item.json.vorfilterScore;\n  }\n  if (item.json.documentUrl) {\n    groups[vorgangKey].documents.push({\n      url:    item.json.documentUrl,\n      type:   item.json.type  || 'document_candidate',\n      label:  item.json.label || '',\n      docKey: item.json.docKey || ''\n    });\n  }\n}\n\nreturn Object.values(groups).map(v => ({\n  json: {\n    vorgangKey:          v.vorgangKey,\n    volfdnr:             v.volfdnr           || '',\n    title:               v.title,\n    vorgangsnummer:      v.vorgangsnummer,\n    sourceUrl:           v.sourceUrl         || '',\n    allrisUrl:           v.allrisUrl         || v.sourceUrl || '',\n    vorfilterThemen:     v.vorfilterThemen,\n    vorfilterKeywords:   v.vorfilterKeywords,\n    vorfilterScore:      v.vorfilterScore,\n    documentsJson:       JSON.stringify(v.documents),\n    documentCount:       v.documents.length,\n    stammVorgangsnummer: v.stammVorgangsnummer || v.vorgangsnummer || '',\n    folgeNummer:         v.folgeNummer        || '',\n    istFolgevorgang:     v.istFolgevorgang    === true,\n    vorlageDatumWeb:     v.vorlageDatumWeb    || '',\n    debug_loopPhase:     'gruppierung_done',\n    debug_currentVolfdnr: v.volfdnr || ''\n  }\n}));\n"
       },
       "id": "0746787b-40d9-4e0c-9ef4-96d5225ed6b1",
       "name": "Gruppierung nach Vorgang",
@@ -834,7 +845,8 @@
             "combinedText": "={{ $json.combinedText || '' }}",
             "stammVorgangsnummer": "={{ $json.stammVorgangsnummer || $json.vorgangsnummer || '' }}",
             "folgeNummer": "={{ $json.folgeNummer || '' }}",
-            "istFolgevorgang": "={{ $json.istFolgevorgang === true }}"
+            "istFolgevorgang": "={{ $json.istFolgevorgang === true }}",
+            "vorlageDatumWeb": "={{ $json.vorlageDatumWeb || '' }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -1644,7 +1656,8 @@
             "contentErrorReason": "={{ ($json.documentsChanged === true || ['', 'new', 'needs_summary'].includes($json.oldContentStage) || ($json.oldContentStage === 'error' && ['detail_failed', 'metadata_error', 'analysis_error', 'summary_input_error'].includes($json.oldContentErrorReason))) ? '' : ($json.oldContentErrorReason || '') }}",
             "stammVorgangsnummer": "={{ $json.stammVorgangsnummer || $json.vorgangsnummer || '' }}",
             "folgeNummer": "={{ $json.folgeNummer || '' }}",
-            "istFolgevorgang": "={{ $json.istFolgevorgang === true }}"
+            "istFolgevorgang": "={{ $json.istFolgevorgang === true }}",
+            "vorlageDatumWeb": "={{ $json.vorlageDatumWeb || '' }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -2418,6 +2431,19 @@
         48
       ],
       "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { overviewRequest: true, knownVolfdnrCount: items.length } }];"
+      },
+      "id": "8b0c1d2e-3f40-4a51-9263-748596a7b8c9",
+      "name": "Einzelrequest ALLRIS Uebersicht",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        48
+      ]
     }
   ],
   "pinData": {},
