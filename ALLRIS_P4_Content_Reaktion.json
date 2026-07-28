@@ -2160,7 +2160,7 @@
             "contentCreatedAt": "={{ $now.toISO() }}",
             "contentStage": "error",
             "contentErrorReason": "content_error",
-            "imageStage": "={{ $json.imageFinalPath ? 'composed' : 'not_started' }}",
+            "imageStage": "={{ $json.imageStage === 'composed' ? 'composed' : ($json.imageFinalPath ? 'composed' : 'not_started') }}",
             "visualNeeded": "false",
             "visualDecisionReason": "={{ $json.visualDecisionReason || 'Content-Erstellung fehlgeschlagen' }}",
             "textExtractionError": "={{ $json.textExtractionError || ($json.contentValidationErrors || []).join(' | ') || 'Content-Erstellung fehlgeschlagen' }}",
