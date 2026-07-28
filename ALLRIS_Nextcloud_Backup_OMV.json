@@ -1,0 +1,62 @@
+{
+  "name": "ALLRIS_Nextcloud_Backup_OMV",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "weeksInterval": 1,
+              "triggerAtDay": [0],
+              "triggerAtHour": 3,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "ncbkp-0001-4000-8000-000000000001",
+      "name": "Schedule Trigger (woechentlich So 03:00)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "authentication": "password",
+        "command": "=set -e\n\n# ==========================================================================\n# TEMPLATE - vor dem ersten Lauf ausfuellen:\n# ==========================================================================\nSRC=\"__NEXTCLOUD_DATA_PATH__\"        # z.B. /var/www/nextcloud/data oder Docker-Volume-Pfad\nDEST_BASE=\"__OMV_MOUNT_PATH__\"       # lokal gemounteter OMV-Freigabepfad, z.B. /mnt/omv-backup/nextcloud\nRETENTION_COUNT=6                    # wie viele woechentliche Backups behalten (4-8 laut Absprache)\n# ==========================================================================\n\nif [ ! -d \"$SRC\" ]; then\n  echo \"FEHLER: Quellverzeichnis $SRC existiert nicht.\" >&2\n  exit 1\nfi\nif [ ! -d \"$DEST_BASE\" ]; then\n  echo \"FEHLER: OMV-Zielverzeichnis $DEST_BASE existiert nicht (Mount nicht aktiv?).\" >&2\n  exit 1\nfi\n\nTS=$(date +%Y-%m-%d_%H%M)\nNEW_DIR=\"$DEST_BASE/backup_$TS\"\nLATEST_LINK=\"$DEST_BASE/latest\"\n\nmkdir -p \"$NEW_DIR\"\n\n# Inkrementelles Backup per Hardlinks gegen den letzten Stand (spart Platz,\n# jedes backup_*/-Verzeichnis bleibt trotzdem vollstaendig durchsuchbar).\nif [ -d \"$LATEST_LINK\" ]; then\n  rsync -a --delete --link-dest=\"$LATEST_LINK\" \"$SRC/\" \"$NEW_DIR/\"\nelse\n  rsync -a --delete \"$SRC/\" \"$NEW_DIR/\"\nfi\n\nrm -f \"$LATEST_LINK\"\nln -s \"$NEW_DIR\" \"$LATEST_LINK\"\n\n# Retention: nur die letzten RETENTION_COUNT Backups behalten.\ncd \"$DEST_BASE\"\nls -1dt backup_*/ 2>/dev/null | tail -n +$((RETENTION_COUNT + 1)) | xargs -r rm -rf\n\necho \"OK: Backup nach $NEW_DIR abgeschlossen. Aktuell vorhandene Backups:\"\nls -1dt backup_*/ 2>/dev/null"
+      },
+      "id": "ncbkp-0002-4000-8000-000000000002",
+      "name": "Fuehre Backup aus (SSH)",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [220, 0],
+      "notesInFlow": true,
+      "notes": "TEMPLATE: SRC/DEST_BASE im Command-Text ausfuellen, SSH-Credential fuer den Nextcloud-Host im Node auswaehlen (manuell in der UI - noch keine Credential angelegt).",
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const out = $input.item.json || {};\nconst stdout = String(out.stdout || '');\nconst stderr = String(out.stderr || '');\nconst exitCode = out.code ?? out.exitCode ?? null;\nconst ok = !out.error && (exitCode === 0 || exitCode === null) && stdout.includes('OK:');\n\nif (!ok) {\n  console.error('[Nextcloud-Backup] FEHLGESCHLAGEN:', stderr || out.error || stdout);\n} else {\n  console.log('[Nextcloud-Backup] Erfolgreich:', stdout);\n}\n\nreturn [{ json: { ok, stdout, stderr, exitCode, checkedAt: new Date().toISOString() } }];"
+      },
+      "id": "ncbkp-0003-4000-8000-000000000003",
+      "name": "Pruefe Ergebnis",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 0]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger (woechentlich So 03:00)": {
+      "main": [[{ "node": "Fuehre Backup aus (SSH)", "type": "main", "index": 0 }]]
+    },
+    "Fuehre Backup aus (SSH)": {
+      "main": [[{ "node": "Pruefe Ergebnis", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
