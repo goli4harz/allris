@@ -1,0 +1,422 @@
+{
+  "name": "ALLRIS_Einmalig_Nextcloud_Unvollstaendig_Reset",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "e5f6a7b8-0001-4000-8000-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": { "conditions": [] },
+        "returnAll": true
+      },
+      "id": "e5f6a7b8-0002-4000-8000-000000000002",
+      "name": "Hole alle Vorgaenge",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Einmaliger Nachtrag 2026-07-28: findet Vorgaenge, bei denen documentsJson mehr\n// Dokumente enthaelt als beim letzten erfolgreichen Nextcloud-Archivlauf bekannt war\n// (documentCount). Root cause war P2s Filter 'nur Vorgaenge mit leerem nextcloudFolder' -\n// jetzt in P1 gefixt (Update bekannter Vorgang setzt nextcloudFolder bei documentsChanged\n// zurueck), aber die 37 bereits davor haengengebliebenen Vorgaenge (alle bereits\n// content_posted/wordpressPosted) brauchen einen sicheren Nachtrag OHNE contentStage\n// anzufassen, damit P4 nicht unnoetig teuren Content fuer bereits gepostete Vorgaenge\n// neu generiert.\n//\n// TEST_ONLY_VORGANGKEYS: leer lassen = alle 37 betroffenen Vorgaenge verarbeiten.\n// Zum Testen einzelne vorgangKeys eintragen, z.B. ['vol_10442'].\nconst TEST_ONLY_VORGANGKEYS = [];\n\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst out = [];\nfor (const item of items) {\n  const j = item.json || {};\n  let docs = [];\n  try { docs = JSON.parse(j.documentsJson || '[]'); } catch (e) { docs = []; }\n  const actualCount = Array.isArray(docs) ? docs.length : 0;\n  const storedCount = Number.parseInt(String(j.documentCount || '0'), 10) || 0;\n\n  if (actualCount > 0 && actualCount > storedCount && safeStr(j.nextcloudFolder)) {\n    if (TEST_ONLY_VORGANGKEYS.length && !TEST_ONLY_VORGANGKEYS.includes(j.vorgangKey)) continue;\n    out.push({ json: { ...j, _actualDocumentCount: actualCount } });\n  }\n}\nconsole.log(`[Reset] ${out.length} von ${items.length} Vorgaengen betroffen (documentsJson laenger als documentCount).`);\nreturn out;"
+      },
+      "id": "e5f6a7b8-0003-4000-8000-000000000003",
+      "name": "Identifiziere betroffene Vorgaenge",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "e5f6a7b8-0004-4000-8000-000000000004",
+      "name": "Loop Vorgaenge",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $input.item.json }];"
+      },
+      "id": "e5f6a7b8-0005-4000-8000-000000000005",
+      "name": "Prepare Summary Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, -80]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Vereinfachte Kopie von P2s 'Expand Documents': baut die Upload-Kandidatenliste aus\n// documentsJson, verwendet aber IMMER den bereits bestehenden nextcloudFolder-Pfad\n// (Force-Refresh-Reuse), da diese Vorgaenge schon einen Ordner haben - es fehlen nur\n// einzelne, spaeter von ALLRIS nachgereichte Dokumente darin.\n\nconst j = $input.first().json;\n\nconst ALLOWED_EXTENSIONS = ['pdf','jpg','jpeg','png','gif','tif','tiff','doc','docx','xls','xlsx','ppt','pptx','odt','ods','zip'];\n\nfunction sanitizeFilePart(str, maxLen = 90) {\n  return String(str || '').replace(/[\\/\\\\:*?\"<>|\\r\\n]/g, '_').replace(/\\s+/g, '_').replace(/_+/g, '_').replace(/^_+|_+$/g, '').substring(0, maxLen);\n}\nfunction getExtensionFromText(str) {\n  const clean = String(str || '').split('?')[0].split('#')[0];\n  const m = clean.match(/\\.([a-zA-Z0-9]{2,6})$/);\n  if (!m) return '';\n  const ext = m[1].toLowerCase();\n  return ALLOWED_EXTENSIONS.includes(ext) ? ext : '';\n}\nfunction getExtension(doc) {\n  const candidates = [doc.url || '', doc.label || '', doc.docKey || ''];\n  for (const c of candidates) { const ext = getExtensionFromText(c); if (ext) return ext; }\n  const url = String(doc.url || '').toLowerCase();\n  if (url.includes('do027.asp') || url.includes('dolfdnr=')) return 'pdf';\n  return 'bin';\n}\nfunction isUploadCandidate(doc) {\n  const url = String(doc.url || '').toLowerCase();\n  if (!url) return false;\n  if (url.includes('/stadt/politik/allris/do027.asp')) return true;\n  if (url.includes('dolfdnr=')) return true;\n  if (url.includes('/stadt/politik/allris/___tmp/tmp/')) return true;\n  if (url.includes('/allris/___tmp/tmp/')) return true;\n  const ext = getExtension(doc);\n  if (ext && ext !== 'bin') return true;\n  return false;\n}\n\nlet docs = [];\ntry { docs = JSON.parse(j.documentsJson || '[]'); } catch (e) { docs = []; }\n\nconst nc_pathOrig = String(j.nextcloudFolder || '').replace(/\\/+$/, '') + '/01_originale';\nconst referer = j.allrisUrl || j.sourceUrl || 'https://www.goslar.de/stadt/politik/allris/vo040_r.asp';\n\nconst out = [];\nlet uploadIndex = 0;\nfor (const doc of docs) {\n  if (!isUploadCandidate(doc)) continue;\n  uploadIndex++;\n  const url = doc.url || '';\n  const dolfdnr = url.match(/DOLFDNR=(\\d+)/i)?.[1];\n  const ext = getExtension(doc);\n  const paddedIdx = String(uploadIndex).padStart(2, '0');\n  const docType = doc.type || 'document';\n  let suffix = 'dokument';\n  if (docType === 'original') suffix = 'original';\n  if (docType === 'anlage') suffix = 'anlage';\n  let cleanDocKey = sanitizeFilePart(doc.docKey || '', 100).replace(/^anlage_/, '').replace(/^original_/, '').replace(/^document_/, '').replace(/\\.[a-zA-Z0-9]{2,6}$/, '');\n  let nc_fileName;\n  if (dolfdnr) nc_fileName = `dol_${dolfdnr}.pdf`;\n  else if (cleanDocKey) nc_fileName = `${paddedIdx}_${suffix}_${cleanDocKey}.${ext}`;\n  else nc_fileName = `${paddedIdx}_${suffix}.${ext}`;\n\n  out.push({ json: { url, referer, nc_fileName, nc_pathOrig, vorgangKey: j.vorgangKey } });\n}\nconsole.log(`[Upload] ${j.vorgangKey}: ${out.length} Dokumente zum (Re-)Upload.`);\nreturn out;"
+      },
+      "id": "e5f6a7b8-0006-4000-8000-000000000006",
+      "name": "Baue Upload-Liste",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, -80]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "e5f6a7b8-0007-4000-8000-000000000007",
+      "name": "Loop Dokumente Upload",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [1340, -80]
+    },
+    {
+      "parameters": {
+        "url": "={{$json.url}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Referer", "value": "={{ $json.referer }}" },
+            { "name": "User-Agent", "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36" },
+            { "name": "Accept", "value": "application/pdf,application/octet-stream,*/*" },
+            { "name": "Accept-Language", "value": "de-DE,de;q=0.9,en;q=0.8" }
+          ]
+        },
+        "options": {
+          "batching": { "batch": { "batchSize": 1, "batchInterval": 3000 } },
+          "redirect": { "redirect": { "maxRedirects": 5 } },
+          "response": { "response": { "neverError": true, "responseFormat": "file" } },
+          "proxy": "172.16.1.5:3128",
+          "timeout": 90000
+        }
+      },
+      "id": "e5f6a7b8-0008-4000-8000-000000000008",
+      "name": "HTTP Dokument laden",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, -160]
+    },
+    {
+      "parameters": {
+        "path": "={{ $json.nc_pathOrig }}/{{ $json.nc_fileName }}",
+        "binaryDataUpload": true
+      },
+      "id": "e5f6a7b8-0009-4000-8000-000000000009",
+      "name": "Upload Original to Nextcloud",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [1780, -160],
+      "credentials": {
+        "nextCloudApi": { "id": "jlZlwASXZbJyNpfA", "name": "NextCloud account" }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $input.item.json }];"
+      },
+      "id": "e5f6a7b8-0010-4000-8000-000000000010",
+      "name": "Naechstes Dokument",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2000, -160]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $('Prepare Summary Input').item.json }];"
+      },
+      "id": "e5f6a7b8-0011-4000-8000-000000000011",
+      "name": "Stelle Vorgang-Kontext wieder her",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Bereinigt einen Ordnerpfad-Wert aus der DataTable.\n// Erkennt String-\"null\", \"undefined\", \"-\" als leere Werte.\nfunction sanitizeFolder(raw) {\n  const s = (raw || '').trim();\n  if (s.toLowerCase() === 'null' ||\n      s.toLowerCase() === 'undefined' ||\n      s === '-') {\n    return '';\n  }\n  return s;\n}\n\nconst raw = $input.all();\n\nlet items_to_process = [];\nfor (const item of raw) {\n  const j = item.json;\n  if (Array.isArray(j)) {\n    for (const el of j) {\n      items_to_process.push(typeof el === 'object' && el !== null ? el : {});\n    }\n  } else if (j && typeof j === 'object') {\n    items_to_process.push(j);\n  }\n}\n\nif (items_to_process.length === 0) {\n  return [{ json: { _error: 'no_valid_input' } }];\n}\n\nfunction extractYear(val) {\n  if (!val) return null;\n  const m = String(val).match(/\\b(20\\d{2})\\b/);\n  return m ? m[1] : null;\n}\n\nreturn items_to_process.map(j => {\n  const year = extractYear(j.firstseen)\n    || extractYear(j.lastseen)\n    || extractYear(j.summaryCreatedAt)\n    || new Date().getFullYear().toString();\n\n  let base = (j.nextcloudFolder || '').trim().replace(/\\/+$/, '');\n  let nc_originale_path;\n\n  if (base.startsWith('/DiePARTEI/Allris/')) {\n    nc_originale_path = base.endsWith('/01_originale') ? base : base + '/01_originale';\n  } else if (base.endsWith('/01_originale')) {\n    nc_originale_path = '/DiePARTEI/Allris/' + year + '/' + base;\n  } else if (base !== '') {\n    nc_originale_path = '/DiePARTEI/Allris/' + year + '/' + base + '/01_originale';\n  } else {\n    const vgnr = (j.vorgangKey || 'unbekannt').replace(/\\//g, '_');\n    nc_originale_path = '/DiePARTEI/Allris/' + year + '/' + vgnr + '/01_originale';\n  }\n\n  nc_originale_path = nc_originale_path.replace(/\\/+/g, '/');\n\n  return { json: { ...j, nc_originale_path, _ncYear: year } };\n});\n"
+      },
+      "id": "e5f6a7b8-0012-4000-8000-000000000012",
+      "name": "Build NC Originale Path",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 0]
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "operation": "list",
+        "path": "={{ $json.nc_originale_path }}"
+      },
+      "id": "e5f6a7b8-0013-4000-8000-000000000013",
+      "name": "NC Liste Dokumente",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [2000, 0],
+      "credentials": {
+        "nextCloudApi": { "id": "jlZlwASXZbJyNpfA", "name": "NextCloud account" }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// NC Split Dateien – V11.7 NON-PDF SAFE (Kopie aus P3)\n// Nur echte PDF-Kandidaten werden in den Download-/Tika-Loop gegeben.\n\nconst base = $('Prepare Summary Input').item.json;\nconst nc_originale_path = $input.first()?.json?.nc_originale_path || '';\n\nfunction safeStr(v) {\n  return v === null || v === undefined ? '' : String(v).trim();\n}\n\nfunction decodePath(rawPath) {\n  try { return decodeURIComponent(rawPath); }\n  catch (e) { return rawPath; }\n}\n\nfunction getName(item) {\n  const rawPath = safeStr(item?.json?.path || item?.json?.name);\n  const decodedPath = decodePath(rawPath);\n  return decodedPath.split('/').pop() || safeStr(item?.json?.name);\n}\n\nfunction getExtension(name) {\n  const m = safeStr(name).toLowerCase().match(/\\.([a-z0-9]+)$/i);\n  return m ? m[1] : '';\n}\n\nconst allFiles = items.filter(i => {\n  const type = safeStr(i?.json?.type).toLowerCase();\n  const name = getName(i);\n  return type === 'file' || (!type && /\\.[a-z0-9]{1,8}$/i.test(name));\n});\n\nconst pdfFiles = [];\nconst skippedFiles = [];\n\nfor (const item of allFiles) {\n  const name = getName(item);\n  const ext = getExtension(name);\n\n  if (ext === 'pdf') {\n    pdfFiles.push(item);\n  } else {\n    skippedFiles.push({\n      name,\n      extension: ext || 'ohne_endung',\n      reason: 'non_pdf_skipped'\n    });\n  }\n}\n\nconst skippedNonPdfFiles = skippedFiles.map(f => f.name);\nconst skippedNonPdfCount = skippedFiles.length;\n\nif (pdfFiles.length === 0) {\n  return [{\n    json: {\n      ...base,\n      nc_originale_path,\n      combinedText: '',\n      combinedTextLength: 0,\n      _docCount: 0,\n      pdfFilesFound: 0,\n      pdfFilesExtracted: 0,\n      pdfExtractErrors: 0,\n      skippedNonPdfCount,\n      skippedNonPdfFiles,\n      summaryInputOk: false,\n      summaryInputProblem: 'no_pdf_found',\n      summaryInputSource: 'nextcloud_no_pdf'\n    }\n  }];\n}\n\nconst currentVorgangKey = safeStr(base.vorgangKey);\nconst ncLoopBatchId = `${currentVorgangKey}::${$runIndex}`;\n\nreturn pdfFiles.map(f => {\n  const rawPath = safeStr(f.json.path || f.json.name);\n  const decodedPath = decodePath(rawPath);\n  const name = decodedPath.split('/').pop();\n  const ncFilePath = '/' + decodedPath.replace(/^\\/+/, '');\n\n  return {\n    json: {\n      ...base,\n      nc_originale_path,\n      _ncFileName: name,\n      _ncFilePath: ncFilePath,\n      _ncExpectedType: 'pdf',\n      _ncLoopInit: true,\n      _ncLoopVorgangKey: currentVorgangKey,\n      _ncLoopBatchId: ncLoopBatchId,\n      skippedNonPdfCount,\n      skippedNonPdfFiles\n    }\n  };\n});\n"
+      },
+      "id": "e5f6a7b8-0014-4000-8000-000000000014",
+      "name": "NC Split Dateien",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2220, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
+          "conditions": [
+            {
+              "id": "nc-datei-check-001",
+              "leftValue": "={{ typeof $json._ncFilePath === 'string' && $json._ncFilePath.trim() !== '' }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e5f6a7b8-0015-4000-8000-000000000015",
+      "name": "IF NC Datei vorhanden?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2440, 0]
+    },
+    {
+      "parameters": {
+        "options": { "reset": "={{ $json._ncLoopInit === true }}" }
+      },
+      "id": "e5f6a7b8-0016-4000-8000-000000000016",
+      "name": "NC Loop Dateien",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [2660, 0]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "path": "={{ $json._ncFilePath }}"
+      },
+      "id": "e5f6a7b8-0017-4000-8000-000000000017",
+      "name": "NC Lade Datei",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [2880, -120],
+      "credentials": {
+        "nextCloudApi": { "id": "jlZlwASXZbJyNpfA", "name": "NextCloud account" }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// NC Prüfe Binary – V11.7 NON-PDF SAFE (Kopie aus P3)\nasync function checkItem(item, index) {\n  const j = item.json || {};\n  const binData = item.binary?.data;\n  const mimeType = String(binData?.mimeType || '').toLowerCase();\n  const ncFileName = String(j._ncFileName || '').trim();\n  const ncFilePath = String(j._ncFilePath || '').trim();\n  const vorgangKey = String(j.vorgangKey || '').trim();\n  const lowerName = ncFileName.toLowerCase();\n  const lowerPath = ncFilePath.toLowerCase();\n\n  function skipped(method, reason, extra = {}) {\n    console.warn(`[NC Prüfe Binary] Übersprungen. method=${method} vorgangKey=${vorgangKey} file=${ncFileName} mimeType=${mimeType}`);\n    return {\n      ...j,\n      ...extra,\n      sendToTika: false,\n      textExtractionSkipped: true,\n      textExtractionSuccess: false,\n      textLength: 0,\n      textExtractionMethod: method,\n      textExtractionError: reason || ''\n    };\n  }\n\n  function failed(method, reason, extra = {}) {\n    console.warn(`[NC Prüfe Binary] Fehler. method=${method} vorgangKey=${vorgangKey} file=${ncFileName} mimeType=${mimeType}`);\n    return {\n      ...j,\n      ...extra,\n      sendToTika: false,\n      textExtractionSkipped: false,\n      textExtractionSuccess: false,\n      textLength: 0,\n      textExtractionMethod: method,\n      textExtractionError: reason || ''\n    };\n  }\n\n  const hasPdfExtension = lowerName.endsWith('.pdf') || lowerPath.endsWith('.pdf');\n  if (!hasPdfExtension) {\n    return skipped('non_pdf_skipped', `Nicht-PDF-Datei wurde nicht verarbeitet: ${ncFileName || ncFilePath}`);\n  }\n\n  if (!binData) {\n    return failed('download_failed', 'Kein Binary-Feld im Nextcloud-Download vorhanden');\n  }\n\n  let buffer;\n  try {\n    buffer = await this.helpers.getBinaryDataBuffer(index, 'data');\n  } catch (e) {\n    return failed('binary_read_error', `Binary-Buffer nicht lesbar: ${e.message}`);\n  }\n\n  if (!buffer || buffer.length === 0) {\n    return failed('binary_empty', 'Heruntergeladene Datei ist leer (0 Byte)');\n  }\n\n  const first16 = buffer.slice(0, 16);\n  const head1024 = buffer.slice(0, 1024).toString('latin1');\n  const headLower = head1024.trimStart().toLowerCase();\n\n  const isPdfMagic = head1024.includes('%PDF-');\n  const isJpeg = first16[0] === 0xFF && first16[1] === 0xD8 && first16[2] === 0xFF;\n  const isPng = first16.length >= 8 &&\n    first16[0] === 0x89 && first16[1] === 0x50 && first16[2] === 0x4E && first16[3] === 0x47 &&\n    first16[4] === 0x0D && first16[5] === 0x0A && first16[6] === 0x1A && first16[7] === 0x0A;\n  const isGif = head1024.startsWith('GIF87a') || head1024.startsWith('GIF89a');\n  const isTiff = (first16[0] === 0x49 && first16[1] === 0x49 && first16[2] === 0x2A && first16[3] === 0x00) ||\n                 (first16[0] === 0x4D && first16[1] === 0x4D && first16[2] === 0x00 && first16[3] === 0x2A);\n  const isPkZip = first16[0] === 0x50 && first16[1] === 0x4B;\n  const isHtml = headLower.startsWith('<!doctype html') ||\n                 headLower.startsWith('<html') ||\n                 headLower.startsWith('<head') ||\n                 headLower.startsWith('<body');\n\n  if (isJpeg || isPng || isGif || isTiff || mimeType.startsWith('image/')) {\n    return skipped(\n      'image_skipped',\n      `Datei trägt eine PDF-Endung, enthält aber Bilddaten und wird nicht an Tika gesendet (mimeType=${mimeType || 'unbekannt'})`,\n      { detectedBinaryType: isJpeg ? 'jpeg' : isPng ? 'png' : isGif ? 'gif' : isTiff ? 'tiff' : 'image' }\n    );\n  }\n\n  if (isPkZip || mimeType.includes('zip')) {\n    return skipped('zip_skipped', `ZIP-/Office-Container wird in diesem PDF-Pfad nicht verarbeitet (mimeType=${mimeType || 'unbekannt'})`);\n  }\n\n  if (isHtml || mimeType.includes('text/html')) {\n    return failed('html_received', `HTML-Fehlerseite statt PDF empfangen (mimeType=${mimeType || 'unbekannt'})`);\n  }\n\n  if (!isPdfMagic) {\n    return skipped(\n      'invalid_pdf_skipped',\n      `Datei besitzt die Endung .pdf, hat aber keine erkennbare PDF-Signatur (mimeType=${mimeType || 'unbekannt'})`\n    );\n  }\n\n  console.log(`[NC Prüfe Binary] PDF OK. vorgangKey=${vorgangKey} file=${ncFileName} size=${buffer.length} mimeType=${mimeType}`);\n  return {\n    ...j,\n    sendToTika: true,\n    textExtractionSkipped: false,\n    detectedBinaryType: 'pdf'\n  };\n}\n\nconst results = [];\nfor (let i = 0; i < items.length; i++) {\n  try {\n    const result = await checkItem.call(this, items[i], i);\n    results.push({ json: result, binary: items[i].binary });\n  } catch (e) {\n    results.push({\n      json: {\n        ...items[i].json,\n        sendToTika: false,\n        textExtractionSkipped: false,\n        textExtractionSuccess: false,\n        textLength: 0,\n        textExtractionMethod: 'binary_check_failed',\n        textExtractionError: `Unerwarteter Prüfungsfehler: ${e.message}`\n      },\n      binary: items[i].binary\n    });\n  }\n}\n\nreturn results;"
+      },
+      "id": "e5f6a7b8-0018-4000-8000-000000000018",
+      "name": "NC Prüfe Binary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3100, -120]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
+          "conditions": [
+            {
+              "id": "nc-sendtotika-001",
+              "leftValue": "={{ $json.sendToTika }}",
+              "rightValue": "",
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e5f6a7b8-0019-4000-8000-000000000019",
+      "name": "NC IF sendToTika?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [3320, -120]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "http://tika:9998/tika",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Accept", "value": "text/plain" },
+            { "name": "Content-Type", "value": "={{ $binary.data.mimeType || 'application/octet-stream' }}" },
+            { "name": "X-Tika-PDFOcrStrategy", "value": "auto" },
+            { "name": "X-Tika-OCRLanguage", "value": "deu" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "data",
+        "options": {
+          "response": { "response": { "responseFormat": "text", "outputPropertyName": "tikaText" } },
+          "timeout": 300000
+        }
+      },
+      "id": "e5f6a7b8-0020-4000-8000-000000000020",
+      "name": "NC Tika",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [3540, -200],
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const meta = $('NC IF sendToTika?').item.json;\n\nconst tikaText =\n  typeof $json.tikaText === 'string' ? $json.tikaText :\n  typeof $json.data     === 'string' ? $json.data     :\n  typeof $json.body     === 'string' ? $json.body     :\n  '';\n\nconst tikaError =\n  $json.error?.message ||\n  $json.message        ||\n  '';\n\nreturn {\n  json: {\n    ...meta,\n    sendToTika: true,\n    tikaText,\n    tikaError\n  }\n};\n"
+      },
+      "id": "e5f6a7b8-0021-4000-8000-000000000021",
+      "name": "NC Metadaten nach Tika",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3760, -200]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// NC Handle PDF Text – V11.7 NON-PDF SAFE (Kopie aus P3)\nconst j = $json || {};\n\nif (j.sendToTika === false && j.textExtractionSkipped === true) {\n  return {\n    json: {\n      ...j,\n      _ncLoopInit: false,\n      _textExtracted: false,\n      _pdfText: '',\n      _extractReason: j.textExtractionMethod || 'file_skipped',\n      _extractSkipped: true,\n      textExtractionSuccess: false,\n      textLength: 0,\n      textExtractionError: j.textExtractionError || ''\n    }\n  };\n}\n\nif (j.sendToTika === false) {\n  return {\n    json: {\n      ...j,\n      _ncLoopInit: false,\n      _textExtracted: false,\n      _pdfText: '',\n      _extractReason: j.textExtractionMethod || 'download_failed',\n      _extractSkipped: false,\n      textExtractionSuccess: false,\n      textLength: 0,\n      textExtractionError: j.textExtractionError || 'Datei konnte nicht verarbeitet werden'\n    }\n  };\n}\n\nconst tikaError = String(j.tikaError || j.error?.message || '').trim();\n\nconst rawText =\n  typeof j.tikaText === 'string' ? j.tikaText :\n  typeof j.data === 'string' ? j.data :\n  typeof j.body === 'string' ? j.body :\n  '';\n\nconst text = rawText.trim();\n\nlet _textExtracted = false;\nlet _extractReason = '';\nlet _pdfText = '';\nlet textExtractionSuccess = false;\nlet textExtractionMethod = '';\nlet textExtractionError = '';\n\nif (text.length >= 30) {\n  _textExtracted = true;\n  _extractReason = 'ok';\n  _pdfText = text;\n  textExtractionSuccess = true;\n  textExtractionMethod = 'tika_pdf';\n} else if (tikaError) {\n  _extractReason = 'tika_error';\n  textExtractionMethod = 'tika_error';\n  textExtractionError = tikaError;\n} else if (text.length > 0) {\n  _extractReason = 'tika_too_short';\n  textExtractionMethod = 'tika_too_short';\n  textExtractionError = `Tika lieferte nur ${text.length} Zeichen (Minimum: 30)`;\n} else {\n  _extractReason = 'tika_empty';\n  textExtractionMethod = 'tika_empty';\n  textExtractionError = 'Tika lieferte keinen Dokumenttext';\n}\n\nreturn {\n  json: {\n    ...j,\n    _ncLoopInit: false,\n    _textExtracted,\n    _pdfText,\n    _extractReason,\n    _extractSkipped: false,\n    textExtractionSuccess,\n    textExtractionMethod,\n    textLength: text.length,\n    textExtractionError\n  }\n};"
+      },
+      "id": "e5f6a7b8-0022-4000-8000-000000000022",
+      "name": "NC Handle PDF Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3980, -120]
+    },
+    {
+      "parameters": {
+        "jsCode": "// NC Aggregiere Texte – V11.7 NON-PDF SAFE (Kopie aus P3, inkl. Vorlagen-Metadaten-Extraktion)\nconst inputItems = $input.all(0, $runIndex);\nif (!Array.isArray(inputItems) || inputItems.length === 0) return [];\n\nfunction safeStr(v) {\n  return v === null || v === undefined ? '' : String(v).trim();\n}\n\nfunction getVorgangKey(item) {\n  const j = item?.json || {};\n  const direct = safeStr(j.vorgangKey || j._ncLoopVorgangKey);\n  if (direct) return direct;\n  const batchId = safeStr(j._ncLoopBatchId);\n  return batchId.includes('::') ? batchId.split('::')[0].trim() : '';\n}\n\nconst noPdfItem = inputItems.find(item => item?.json?.summaryInputProblem === 'no_pdf_found');\nconst hasDocumentResult = inputItems.some(item => {\n  const j = item?.json || {};\n  return Boolean(j._ncFilePath || j._ncFileName || j._textExtracted !== undefined || j._pdfText);\n});\n\nif (noPdfItem && !hasDocumentResult) {\n  const base0 = noPdfItem.json || {};\n  return [{\n    json: {\n      ...base0,\n      combinedText: '',\n      combinedTextLength: 0,\n      pdfFilesFound: 0,\n      pdfFilesExtracted: 0,\n      pdfExtractErrors: 0,\n      skippedPdfCandidates: 0,\n      skippedNonPdfCount: Number(base0.skippedNonPdfCount || 0),\n      skippedNonPdfFiles: Array.isArray(base0.skippedNonPdfFiles) ? base0.skippedNonPdfFiles : [],\n      summaryInputOk: false,\n      summaryInputProblem: 'no_pdf_found',\n      summaryInputSource: 'nextcloud_no_pdf',\n      vorlageDatum: safeStr(base0.vorlageDatumWeb)\n    }\n  }];\n}\n\nlet currentVorgangKey = '';\nfor (let i = inputItems.length - 1; i >= 0; i--) {\n  const key = getVorgangKey(inputItems[i]);\n  if (key) { currentVorgangKey = key; break; }\n}\n\nconst onlyEmptyControlItems = inputItems.every(item => {\n  const j = item?.json || {};\n  return !getVorgangKey(item) && !j._ncLoopBatchId && !j._ncFileName && !j._ncFilePath &&\n         !j.summaryInputProblem && !j._pdfText && j._textExtracted === undefined;\n});\n\nif (!currentVorgangKey) {\n  if (onlyEmptyControlItems) return [];\n  throw new Error(`NC Aggregiere Texte: Eingangsitem ohne vorgangKey. runIndex=${$runIndex} items=${inputItems.length}`);\n}\n\nlet currentBatchId = '';\nfor (let i = inputItems.length - 1; i >= 0; i--) {\n  const j = inputItems[i]?.json || {};\n  const batchId = safeStr(j._ncLoopBatchId);\n  if (batchId && getVorgangKey(inputItems[i]) === currentVorgangKey) {\n    currentBatchId = batchId;\n    break;\n  }\n}\n\nlet currentItems = inputItems.filter(item => {\n  const j = item?.json || {};\n  const sameVorgang = getVorgangKey(item) === currentVorgangKey;\n  const sameBatch = !currentBatchId || j._ncLoopBatchId === currentBatchId;\n  return sameVorgang && sameBatch;\n});\nif (currentItems.length === 0) {\n  currentItems = inputItems.filter(item => getVorgangKey(item) === currentVorgangKey);\n}\n\nconst documentItems = currentItems.filter(item => {\n  const j = item?.json || {};\n  return Boolean(j._ncFilePath || j._ncFileName || j._textExtracted !== undefined || j._pdfText);\n});\n\nconst seenKeys = new Set();\nconst dedupedItems = [];\nlet fallbackIndex = 0;\nfor (const item of documentItems) {\n  const j = item?.json || {};\n  const dedupeKey = safeStr(j._ncFilePath || j._ncFileName || `${currentVorgangKey}::fallback::${fallbackIndex++}`);\n  if (!seenKeys.has(dedupeKey)) {\n    seenKeys.add(dedupeKey);\n    dedupedItems.push(item);\n  }\n}\n\nconst baseItem =\n  currentItems.find(item => item?.json?.title && getVorgangKey(item)) ||\n  currentItems[0] || inputItems[0];\nconst base = baseItem?.json || {};\n\nconst nc_originale_path =\n  currentItems.find(item => item?.json?.nc_originale_path)?.json?.nc_originale_path ||\n  base.nc_originale_path || '';\n\nconst textItems = dedupedItems.filter(item => {\n  const j = item?.json || {};\n  return j._textExtracted === true && safeStr(j._pdfText) !== '';\n});\n\nconst skippedItems = dedupedItems.filter(item => {\n  const j = item?.json || {};\n  return j._extractSkipped === true || j.textExtractionSkipped === true;\n});\n\nconst errorItems = dedupedItems.filter(item => {\n  const j = item?.json || {};\n  return j._textExtracted !== true && j._extractSkipped !== true && j.textExtractionSkipped !== true;\n});\n\nconst pdfFilesFound = dedupedItems.length;\nconst pdfFilesExtracted = textItems.length;\nconst pdfExtractErrors = errorItems.length;\nconst skippedPdfCandidates = skippedItems.length;\n\nconst parts = textItems.map(item => {\n  const j = item.json || {};\n  const fileName = safeStr(j._ncFileName) || 'unbekannt';\n  const text = safeStr(j._pdfText);\n  return `--- Dokument: ${fileName} ---\\n${text}`;\n});\n\nconst combinedText = parts.join('\\n\\n').slice(0, 60000);\nconst combinedTextLength = combinedText.length;\nconst combinedTextLower = combinedText.toLowerCase();\nconst placeholderTerms = [\n  '(kein dokumenttext',\n  '(dokumentlinks gefunden, aber kein dokumenttext extrahierbar)',\n  'kein text extrahiert',\n  'no text',\n  'keine inhalte'\n];\nconst isPlaceholder = placeholderTerms.some(term => combinedTextLower.includes(term));\n\nlet summaryInputOk = false;\nlet summaryInputProblem = '';\nlet summaryInputSource = 'nextcloud_tika_pdf';\n\nif (pdfFilesFound === 0) {\n  summaryInputProblem = 'no_pdf_found';\n  summaryInputSource = 'nextcloud_no_pdf';\n} else if (pdfFilesExtracted === 0) {\n  summaryInputProblem = skippedPdfCandidates === pdfFilesFound\n    ? 'no_valid_pdf_content'\n    : 'document_text_error';\n  summaryInputSource = 'nextcloud_tika_failed';\n} else if (combinedTextLength < 300 || isPlaceholder) {\n  summaryInputProblem = 'combined_text_too_short';\n  summaryInputSource = 'nextcloud_tika_failed';\n} else {\n  summaryInputOk = true;\n}\n\nconst skippedNonPdfCount = Math.max(...currentItems.map(i => Number(i?.json?.skippedNonPdfCount || 0)), 0);\nconst skippedNonPdfFiles = currentItems.find(i => Array.isArray(i?.json?.skippedNonPdfFiles))?.json?.skippedNonPdfFiles || [];\n\nfunction extractVorlagenMeta(text) {\n  const t = safeStr(text);\n  const verfasserMatch = t.match(/([^\\n]+)\\n\\s*Verfasser\\/in/);\n  const datumMatch = t.match(/Stadt Goslar Goslar,\\s*(\\d{1,2})\\.(\\d{1,2})\\.(\\d{4})/);\n  let fachdienst = '';\n  if (datumMatch) {\n    const rest = t.slice(datumMatch.index + datumMatch[0].length);\n    const fdMatch = rest.match(/^\\s*\\n([^\\n]+)\\n/);\n    if (fdMatch) fachdienst = fdMatch[1].trim();\n  }\n  const vorlageDatumPdf = datumMatch\n    ? `${datumMatch[3]}-${datumMatch[2].padStart(2, '0')}-${datumMatch[1].padStart(2, '0')}`\n    : '';\n  return { verfasser: verfasserMatch ? verfasserMatch[1].trim() : '', fachdienst, vorlageDatumPdf };\n}\nconst vorlagenMeta = extractVorlagenMeta(combinedText);\n\nconst vorlageDatumWeb = safeStr(base.vorlageDatumWeb);\nlet vorlageDatum = '';\nif (vorlagenMeta.vorlageDatumPdf && vorlageDatumWeb) {\n  vorlageDatum = vorlagenMeta.vorlageDatumPdf <= vorlageDatumWeb ? vorlagenMeta.vorlageDatumPdf : vorlageDatumWeb;\n} else {\n  vorlageDatum = vorlagenMeta.vorlageDatumPdf || vorlageDatumWeb || '';\n}\n\nreturn [{\n  json: {\n    ...base,\n    vorgangKey: currentVorgangKey,\n    nc_originale_path,\n    combinedText,\n    combinedTextLength,\n    pdfFilesFound,\n    pdfFilesExtracted,\n    pdfExtractErrors,\n    skippedPdfCandidates,\n    skippedNonPdfCount,\n    skippedNonPdfFiles,\n    summaryInputOk,\n    summaryInputProblem: summaryInputOk ? '' : summaryInputProblem,\n    summaryInputSource,\n    verfasser: vorlagenMeta.verfasser,\n    fachdienst: vorlagenMeta.fachdienst,\n    vorlageDatumPdf: vorlagenMeta.vorlageDatumPdf,\n    vorlageDatum\n  }\n}];"
+      },
+      "id": "e5f6a7b8-0023-4000-8000-000000000023",
+      "name": "NC Aggregiere Texte",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2660, 200]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            { "keyName": "vorgangKey", "keyValue": "={{ $json.vorgangKey }}" }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "combinedText": "={{ $json.combinedText || '' }}",
+            "documentCount": "={{ $json._actualDocumentCount || $json.pdfFilesFound || 0 }}",
+            "extractedDocumentCount": "={{ $json.pdfFilesExtracted || 0 }}",
+            "failedExtractionCount": "={{ $json.pdfExtractErrors || 0 }}",
+            "verfasser": "={{ $json.verfasser || '' }}",
+            "fachdienst": "={{ $json.fachdienst || '' }}",
+            "vorlageDatumPdf": "={{ $json.vorlageDatumPdf || '' }}",
+            "vorlageDatum": "={{ $json.vorlageDatum || $json.vorlageDatumWeb || '' }}"
+          },
+          "matchingColumns": ["vorgangKey"],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "e5f6a7b8-0024-4000-8000-000000000024",
+      "name": "Schreibe Ergebnis zurueck",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [2880, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $input.item.json }];"
+      },
+      "id": "e5f6a7b8-0025-4000-8000-000000000025",
+      "name": "Naechster Vorgang",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3100, 200]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": { "main": [[{ "node": "Hole alle Vorgaenge", "type": "main", "index": 0 }]] },
+    "Hole alle Vorgaenge": { "main": [[{ "node": "Identifiziere betroffene Vorgaenge", "type": "main", "index": 0 }]] },
+    "Identifiziere betroffene Vorgaenge": { "main": [[{ "node": "Loop Vorgaenge", "type": "main", "index": 0 }]] },
+    "Loop Vorgaenge": { "main": [[], [{ "node": "Prepare Summary Input", "type": "main", "index": 0 }]] },
+    "Prepare Summary Input": { "main": [[{ "node": "Baue Upload-Liste", "type": "main", "index": 0 }]] },
+    "Baue Upload-Liste": { "main": [[{ "node": "Loop Dokumente Upload", "type": "main", "index": 0 }]] },
+    "Loop Dokumente Upload": {
+      "main": [
+        [{ "node": "Stelle Vorgang-Kontext wieder her", "type": "main", "index": 0 }],
+        [{ "node": "HTTP Dokument laden", "type": "main", "index": 0 }]
+      ]
+    },
+    "HTTP Dokument laden": { "main": [[{ "node": "Upload Original to Nextcloud", "type": "main", "index": 0 }]] },
+    "Upload Original to Nextcloud": { "main": [[{ "node": "Naechstes Dokument", "type": "main", "index": 0 }]] },
+    "Naechstes Dokument": { "main": [[{ "node": "Loop Dokumente Upload", "type": "main", "index": 0 }]] },
+    "Stelle Vorgang-Kontext wieder her": { "main": [[{ "node": "Build NC Originale Path", "type": "main", "index": 0 }]] },
+    "Build NC Originale Path": { "main": [[{ "node": "NC Liste Dokumente", "type": "main", "index": 0 }]] },
+    "NC Liste Dokumente": { "main": [[{ "node": "NC Split Dateien", "type": "main", "index": 0 }]] },
+    "NC Split Dateien": { "main": [[{ "node": "IF NC Datei vorhanden?", "type": "main", "index": 0 }]] },
+    "IF NC Datei vorhanden?": {
+      "main": [
+        [{ "node": "NC Loop Dateien", "type": "main", "index": 0 }],
+        [{ "node": "NC Aggregiere Texte", "type": "main", "index": 0 }]
+      ]
+    },
+    "NC Loop Dateien": {
+      "main": [
+        [{ "node": "NC Aggregiere Texte", "type": "main", "index": 0 }],
+        [{ "node": "NC Lade Datei", "type": "main", "index": 0 }]
+      ]
+    },
+    "NC Lade Datei": { "main": [[{ "node": "NC Prüfe Binary", "type": "main", "index": 0 }]] },
+    "NC Prüfe Binary": { "main": [[{ "node": "NC IF sendToTika?", "type": "main", "index": 0 }]] },
+    "NC IF sendToTika?": {
+      "main": [
+        [{ "node": "NC Tika", "type": "main", "index": 0 }],
+        [{ "node": "NC Handle PDF Text", "type": "main", "index": 0 }]
+      ]
+    },
+    "NC Tika": { "main": [[{ "node": "NC Metadaten nach Tika", "type": "main", "index": 0 }]] },
+    "NC Metadaten nach Tika": { "main": [[{ "node": "NC Handle PDF Text", "type": "main", "index": 0 }]] },
+    "NC Handle PDF Text": { "main": [[{ "node": "NC Loop Dateien", "type": "main", "index": 0 }]] },
+    "NC Aggregiere Texte": { "main": [[{ "node": "Schreibe Ergebnis zurueck", "type": "main", "index": 0 }]] },
+    "Schreibe Ergebnis zurueck": { "main": [[{ "node": "Naechster Vorgang", "type": "main", "index": 0 }]] },
+    "Naechster Vorgang": { "main": [[{ "node": "Loop Vorgaenge", "type": "main", "index": 0 }]] }
+  },
+  "pinData": {},
+  "settings": { "executionOrder": "v1" }
+}
