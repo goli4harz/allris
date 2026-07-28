@@ -1,0 +1,269 @@
+{
+  "name": "ALLRIS_Einmalig_Partei_Backlog_Publish",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "bklg-0001-4000-8000-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": { "conditions": [] },
+        "returnAll": true
+      },
+      "id": "bklg-0002-4000-8000-000000000002",
+      "name": "Hole alle Vorgaenge",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Einmaliger Katch-up 2026-07-28: veroeffentlicht den kompletten Rueckstau bereits fertiger,\n// aber noch nicht veroeffentlichter die-partei.net-Entwuerfe in einem Rutsch (Nutzerwunsch:\n// 'als waeren die schon lange da' -> Datum kommt aus vorlageDatum+3 Tage, aeltestes zuerst,\n// exakt dieselbe Logik wie P8b's normaler 2x/Tag-Betrieb, nur alle auf einmal statt 1 pro Lauf).\n// LIMIT: leer lassen = kompletten Rueckstau nehmen, sonst Zahl eintragen zum Testen.\nconst LIMIT = null;\n\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction safeBool(v) { if (v === true) return true; if (typeof v === 'string') return v.trim().toLowerCase() === 'true'; return false; }\nfunction parseDate(v) { const t = Date.parse(safeStr(v)); return Number.isFinite(t) ? t : Infinity; }\n\nconst candidates = items.filter(item => {\n  const j = item.json || {};\n  return safeStr(j.wordpressGoslarDraftId) && !safeBool(j.wordpressGoslarPosted);\n});\n\ncandidates.sort((a, b) => {\n  const ja = a.json || {}, jb = b.json || {};\n  const da = parseDate(ja.vorlageDatum), db = parseDate(jb.vorlageDatum);\n  if (da !== db) return da - db;\n  return parseDate(ja.wordpressGoslarDraftCreatedAt) - parseDate(jb.wordpressGoslarDraftCreatedAt);\n});\n\nconst selected = LIMIT ? candidates.slice(0, LIMIT) : candidates;\nconsole.log(`[Backlog-Publish] ${selected.length} von ${candidates.length} Rueckstau-Kandidaten ausgewaehlt.`);\nreturn selected;"
+      },
+      "id": "bklg-0003-4000-8000-000000000003",
+      "name": "Identifiziere Rueckstau",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "bklg-0004-4000-8000-000000000004",
+      "name": "Loop Vorgaenge",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = Date.now();\nconst owner = `ALLRIS_Einmalig_Partei_Backlog_Publish:${$execution.id}`;\nreturn items\n  .filter(item => {\n    const j = item.json || {};\n    const oldOwner = String(j.claim_owner || '').trim();\n    const expires = Date.parse(String(j.claim_expires_at || ''));\n    return !oldOwner || !Number.isFinite(expires) || expires <= now;\n  })\n  .map(item => ({ json: {\n    ...item.json,\n    claimAction: 'acquire',\n    claimOwner: owner,\n    claimStage: 'publication_final',\n    leaseMinutes: 30,\n    expectedClaimOwner: item.json.claim_owner ?? null,\n    expectedClaimExpiresAt: item.json.claim_expires_at ?? null\n  } }));"
+      },
+      "id": "bklg-0005-4000-8000-000000000005",
+      "name": "Bereite Claim vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, -80]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D7cmBsy3exuOkBd9",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Claim_Lease"
+        },
+        "options": { "waitForSubWorkflow": true }
+      },
+      "id": "bklg-0006-4000-8000-000000000006",
+      "name": "Erwerbe Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [1120, -80]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.filter(item => item.json?.claimAcquired === true);"
+      },
+      "id": "bklg-0007-4000-8000-000000000007",
+      "name": "Nur bestaetigte Claims",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, -80]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://die-partei.net/goslar/wp-json/wp/v2/posts/' + $json.wordpressGoslarDraftId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ status: 'publish', ...($json.vorlageDatum ? { date_gmt: new Date(new Date($json.vorlageDatum).getTime() + 3*24*60*60*1000).toISOString() } : {}) }) }}",
+        "options": { "timeout": 60000 }
+      },
+      "id": "bklg-0008-4000-8000-000000000008",
+      "name": "Veroeffentliche Draft",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, -80],
+      "retryOnFail": false,
+      "credentials": {
+        "wordpressApi": { "id": "tzwuM0QBLpYYZfXQ", "name": "DiePARTEI Wordpress" }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const idx = $itemIndex;\nconst original = $('Nur bestaetigte Claims').itemMatching(idx).json;\nconst resp = $json || {};\nfunction extractErrorText(v) {\n  if (!v) return '';\n  if (typeof v === 'string') return v;\n  if (typeof v === 'object') return String(v.message || v.description || v.error || JSON.stringify(v));\n  return String(v);\n}\nconst postId = resp.id || null;\nconst postLink = resp.link || '';\nconst publishOk = !!postId && resp.status === 'publish';\nconst publishError = publishOk ? '' : (\n  extractErrorText(resp.error) ||\n  extractErrorText(resp.message) ||\n  'Veroeffentlichung fehlgeschlagen (kein publish-Status in Antwort).'\n);\nreturn { json: { ...original, publishedPostId: postId, publishedPostLink: postLink, publishOk, publishError } };"
+      },
+      "id": "bklg-0009-4000-8000-000000000009",
+      "name": "Stelle Kontext nach Veroeffentlichung wieder her",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, -80]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
+          "conditions": [
+            {
+              "id": "pub-ok",
+              "leftValue": "={{ $json.publishOk }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "bklg-0010-4000-8000-000000000010",
+      "name": "IF Veroeffentlichung erfolgreich?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2000, -80]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [{ "keyName": "vorgangKey", "keyValue": "={{ $json.vorgangKey }}" }]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "wordpressGoslarPosted": "={{ true }}",
+            "wordpressGoslarPostedAt": "={{ $now.toISO() }}",
+            "wordpressGoslarPostId": "={{ $json.publishedPostId }}",
+            "wordpressGoslarPostLink": "={{ $json.publishedPostLink || '' }}"
+          },
+          "matchingColumns": ["vorgangKey"],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "bklg-0011-4000-8000-000000000011",
+      "name": "Speichere Erfolg",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [2220, -160]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [{ "keyName": "vorgangKey", "keyValue": "={{ $json.vorgangKey }}" }]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "last_error_code": "PUBLICATION_FAILED",
+            "last_error_message": "={{ String($json.publishError || '').slice(0, 4000) }}",
+            "last_error_stage": "publication",
+            "last_error_at": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": ["vorgangKey"],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "bklg-0012-4000-8000-000000000012",
+      "name": "Speichere Fehler",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [2220, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const vorgangKey = String($json.vorgangKey || '').trim();\nconst id = $json.id;\nif (!vorgangKey || !id) return [];\nreturn [{ json: { id, vorgangKey, claimAction: 'release', claimOwner: `ALLRIS_Einmalig_Partei_Backlog_Publish:${$execution.id}` } }];"
+      },
+      "id": "bklg-0013-4000-8000-000000000013",
+      "name": "Bereite Claim-Freigabe vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2440, -80]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D7cmBsy3exuOkBd9",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Claim_Lease"
+        },
+        "options": { "waitForSubWorkflow": true }
+      },
+      "id": "bklg-0014-4000-8000-000000000014",
+      "name": "Release Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [2660, -80]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $input.item.json }];"
+      },
+      "id": "bklg-0015-4000-8000-000000000015",
+      "name": "Naechster Eintrag",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2880, -80]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": { "main": [[{ "node": "Hole alle Vorgaenge", "type": "main", "index": 0 }]] },
+    "Hole alle Vorgaenge": { "main": [[{ "node": "Identifiziere Rueckstau", "type": "main", "index": 0 }]] },
+    "Identifiziere Rueckstau": { "main": [[{ "node": "Loop Vorgaenge", "type": "main", "index": 0 }]] },
+    "Loop Vorgaenge": { "main": [[], [{ "node": "Bereite Claim vor", "type": "main", "index": 0 }]] },
+    "Bereite Claim vor": { "main": [[{ "node": "Erwerbe Claim", "type": "main", "index": 0 }]] },
+    "Erwerbe Claim": { "main": [[{ "node": "Nur bestaetigte Claims", "type": "main", "index": 0 }]] },
+    "Nur bestaetigte Claims": { "main": [[{ "node": "Veroeffentliche Draft", "type": "main", "index": 0 }]] },
+    "Veroeffentliche Draft": { "main": [[{ "node": "Stelle Kontext nach Veroeffentlichung wieder her", "type": "main", "index": 0 }]] },
+    "Stelle Kontext nach Veroeffentlichung wieder her": { "main": [[{ "node": "IF Veroeffentlichung erfolgreich?", "type": "main", "index": 0 }]] },
+    "IF Veroeffentlichung erfolgreich?": {
+      "main": [
+        [{ "node": "Speichere Erfolg", "type": "main", "index": 0 }],
+        [{ "node": "Speichere Fehler", "type": "main", "index": 0 }]
+      ]
+    },
+    "Speichere Erfolg": { "main": [[{ "node": "Bereite Claim-Freigabe vor", "type": "main", "index": 0 }]] },
+    "Speichere Fehler": { "main": [[{ "node": "Bereite Claim-Freigabe vor", "type": "main", "index": 0 }]] },
+    "Bereite Claim-Freigabe vor": { "main": [[{ "node": "Release Claim", "type": "main", "index": 0 }]] },
+    "Release Claim": { "main": [[{ "node": "Naechster Eintrag", "type": "main", "index": 0 }]] },
+    "Naechster Eintrag": { "main": [[{ "node": "Loop Vorgaenge", "type": "main", "index": 0 }]] }
+  },
+  "pinData": {},
+  "settings": { "executionOrder": "v1" }
+}
