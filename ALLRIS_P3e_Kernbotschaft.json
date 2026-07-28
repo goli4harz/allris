@@ -616,8 +616,7 @@
           "mappingMode": "defineBelow",
           "value": {
             "headlineChoiceStage": "={{ $json.headlineChoiceStage }}",
-            "visualJson": "={{ $json.visualJson }}",
-            "imageStage": "={{ $json.imageStage }}"
+            "visualJson": "={{ $json.visualJson }}"
           },
           "matchingColumns": [],
           "schema": [

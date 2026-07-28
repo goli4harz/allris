@@ -1261,7 +1261,6 @@
             "satireIntensity": "={{ $json.satireIntensity || 0 }}",
             "satireDoNotClaim": "={{ $json.satireDoNotClaim || '[]' }}",
             "satireSafetyNote": "={{ $json.satireSafetyNote || '' }}",
-            "imageStage": "={{ $json.imageStage }}",
             "satireWorkflowVersion": "satire-chain-v2-content-gated",
             "retry_count": "={{ $json.retry_count ?? 0 }}",
             "last_error_code": "={{ $json.last_error_code || '' }}",
