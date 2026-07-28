@@ -75,7 +75,7 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ date_gmt: $json.targetDate }) }}",
-        "options": { "timeout": 60000 }
+        "options": { "batching": { "batch": { "batchSize": 1, "batchInterval": 1500 } }, "timeout": 60000 }
       },
       "id": "c1d2e3f4-0005-4000-8000-000000000005",
       "name": "PATCH golietz.de Datum",
