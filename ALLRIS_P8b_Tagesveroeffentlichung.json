@@ -172,7 +172,13 @@
             {
               "field": "days",
               "daysInterval": 1,
-              "triggerAtHour": 6,
+              "triggerAtHour": 7,
+              "triggerAtMinute": 30
+            },
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 17,
               "triggerAtMinute": 0
             }
           ]
