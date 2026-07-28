@@ -1644,12 +1644,15 @@
         8400,
         2680
       ],
+      "retryOnFail": false,
       "credentials": {
         "httpHeaderAuth": {
-          "id": "jlZlwASXZbJyNpfA",
-          "name": "NextCloud account"
+          "id": "XZ0dfa9bGWssam8f",
+          "name": "Paperless API"
         }
-      }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -1705,12 +1708,15 @@
         8700,
         2750
       ],
+      "retryOnFail": false,
       "credentials": {
         "httpHeaderAuth": {
-          "id": "jlZlwASXZbJyNpfA",
-          "name": "NextCloud account"
+          "id": "XZ0dfa9bGWssam8f",
+          "name": "Paperless API"
         }
-      }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
