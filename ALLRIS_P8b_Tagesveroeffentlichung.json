@@ -212,7 +212,7 @@
     },
     {
       "parameters": {
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction safeBool(v) {\n  if (v === true) return true;\n  if (typeof v === 'string') return v.trim().toLowerCase() === 'true';\n  return false;\n}\nfunction parseDate(v) { const t = Date.parse(safeStr(v)); return Number.isFinite(t) ? t : 0; }\n\nconst items = $input.all();\nconst candidates = items.filter(item => {\n  const j = item.json || {};\n  if (!safeStr(j.wordpressGoslarDraftId)) return false;\n  if (safeBool(j.wordpressGoslarPosted)) return false;\n  return true;\n});\ncandidates.sort((a, b) => parseDate((a.json||{}).wordpressGoslarDraftCreatedAt) - parseDate((b.json||{}).wordpressGoslarDraftCreatedAt));\nreturn candidates.slice(0, 1);"
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction safeBool(v) {\n  if (v === true) return true;\n  if (typeof v === 'string') return v.trim().toLowerCase() === 'true';\n  return false;\n}\nfunction parseDate(v) { const t = Date.parse(safeStr(v)); return Number.isFinite(t) ? t : 0; }\n\nconst items = $input.all();\nconst candidates = items.filter(item => {\n  const j = item.json || {};\n  if (!safeStr(j.wordpressGoslarDraftId)) return false;\n  if (safeBool(j.wordpressGoslarPosted)) return false;\n  return true;\n});\nfunction sortKey(j) { return parseDate(j.vorlageDatum) || parseDate(j.wordpressGoslarDraftCreatedAt); }\ncandidates.sort((a, b) => sortKey(a.json||{}) - sortKey(b.json||{}));\nreturn candidates.slice(0, 1);"
       },
       "id": "p8b-0001-0000-4000-9000-000000000003",
       "name": "Waehle naechsten Draft",
