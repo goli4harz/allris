@@ -280,6 +280,12 @@
             {
               "field": "days",
               "daysInterval": 1,
+              "triggerAtHour": 8,
+              "triggerAtMinute": 0
+            },
+            {
+              "field": "days",
+              "daysInterval": 1,
               "triggerAtHour": 17,
               "triggerAtMinute": 30
             }
@@ -334,7 +340,7 @@
     },
     {
       "parameters": {
-        "jsCode": "return [...items].sort((a, b) => {\n  const ta = Date.parse(a.json.lastAnalysisAt || '') || 0;\n  const tb = Date.parse(b.json.lastAnalysisAt || '') || 0;\n  return ta - tb;\n});"
+        "jsCode": "// FIX 2026-07-28: P9 hatte bisher kein 'nur 1 pro Lauf'-Limit (im Unterschied zu P8b) -\n// es postete bei jedem Lauf ALLE gerade faelligen Kandidaten. Jetzt auf genau 1 pro Lauf\n// begrenzt (aeltestes lastAnalysisAt zuerst), damit die zwei taeglichen Zeitpunkte\n// zuverlaessig 2 Posts/Tag ergeben statt einer variablen Anzahl.\nreturn [...items].sort((a, b) => {\n  const ta = Date.parse(a.json.lastAnalysisAt || '') || 0;\n  const tb = Date.parse(b.json.lastAnalysisAt || '') || 0;\n  return ta - tb;\n}).slice(0, 1);"
       },
       "id": "f9a1b001-0000-4000-9000-000000000004",
       "name": "Sortiere Vorgaenge",
