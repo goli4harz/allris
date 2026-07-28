@@ -519,6 +519,11 @@
             "node": "Nächster Reaktions-Vorgang",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Bereite P4 Claim-Freigabe vor",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
