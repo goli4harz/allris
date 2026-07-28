@@ -1195,6 +1195,7 @@
       "name": "HTTP Erstelle WP Tag (Partei)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
+      "onError": "continueRegularOutput",
       "position": [
         1408,
         1600
