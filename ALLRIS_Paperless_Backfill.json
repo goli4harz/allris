@@ -411,7 +411,7 @@
       "main": [
         [
           {
-            "node": "Paperless Titel bauen (Backfill)",
+            "node": "IF Fachdienst vorhanden? (Backfill)",
             "type": "main",
             "index": 0
           }
@@ -419,6 +419,97 @@
         [
           {
             "node": "Code Log Download Fehler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Fachdienst vorhanden? (Backfill)": {
+      "main": [
+        [
+          {
+            "node": "Paperless GET Tag Fachdienst (Backfill)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Kein Fachdienst-Tag (Backfill)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless GET Tag Fachdienst (Backfill)": {
+      "main": [
+        [
+          {
+            "node": "IF Tag Fachdienst existiert? (Backfill)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Tag Fachdienst existiert? (Backfill)": {
+      "main": [
+        [
+          {
+            "node": "Paperless Normalize Tag Fachdienst (Backfill)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Paperless POST Tag Fachdienst (Backfill)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless POST Tag Fachdienst (Backfill)": {
+      "main": [
+        [
+          {
+            "node": "Paperless Normalize Tag Fachdienst (Backfill)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless Normalize Tag Fachdienst (Backfill)": {
+      "main": [
+        [
+          {
+            "node": "Paperless Titel bauen (Backfill)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kein Fachdienst-Tag (Backfill)": {
+      "main": [
+        [
+          {
+            "node": "Paperless Titel bauen (Backfill)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code Log Download Fehler": {
+      "main": [
+        [
+          {
+            "node": "Aggregiere Backfill-Ergebnis",
             "type": "main",
             "index": 0
           }
@@ -1491,6 +1582,166 @@
     },
     {
       "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "bf-if-fd-001",
+              "leftValue": "={{ $('Loop Vorgänge').item.json.fachdienst }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d1e2f3a4-0001-4b00-8000-000000000001",
+      "name": "IF Fachdienst vorhanden? (Backfill)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        8250,
+        2750
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://dm.diepartei-goslar.de/api/tags/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "name__iexact",
+              "value": "={{ $('Loop Vorgänge').item.json.fachdienst }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "d1e2f3a4-0002-4b00-8000-000000000002",
+      "name": "Paperless GET Tag Fachdienst (Backfill)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        8400,
+        2680
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "bf-if-fdtag-001",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d1e2f3a4-0003-4b00-8000-000000000003",
+      "name": "IF Tag Fachdienst existiert? (Backfill)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        8550,
+        2680
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dm.diepartei-goslar.de/api/tags/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ name: $('Loop Vorgänge').item.json.fachdienst }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "d1e2f3a4-0004-4b00-8000-000000000004",
+      "name": "Paperless POST Tag Fachdienst (Backfill)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        8700,
+        2750
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Analog zu 'Paperless Normalize Tag ALLRIS', aber laeuft PRO DOKUMENT innerhalb der\n// Vorgangs-Schleife (Fachdienst ist dynamisch, nicht wie ALLRIS/Correspondent/DocType\n// einmalig fix) - deshalb muss hier zusaetzlich der urspruengliche Datei-/Vorgangskontext\n// wiederhergestellt werden (paired-item ueber 'IF Download OK?'), sonst verliert\n// 'Paperless Titel bauen (Backfill)' Dateiname/Binaerdaten.\nconst j = $input.item.json;\nlet id = null;\nif (Array.isArray(j.results)) {\n  id = j.results[0]?.id ?? null;\n} else if (j.id !== undefined) {\n  id = j.id;\n}\nconst original = $('IF Download OK?').item;\nreturn {\n  json: { ...original.json, paperlessFachdienstTagId: id },\n  binary: original.binary || {}\n};"
+      },
+      "id": "d1e2f3a4-0005-4b00-8000-000000000005",
+      "name": "Paperless Normalize Tag Fachdienst (Backfill)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8850,
+        2680
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return {\n  json: { ...$input.item.json, paperlessFachdienstTagId: null },\n  binary: $input.item.binary || {}\n};"
+      },
+      "id": "d1e2f3a4-0006-4b00-8000-000000000006",
+      "name": "Kein Fachdienst-Tag (Backfill)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8400,
+        2900
+      ]
+    },
+    {
+      "parameters": {
         "mode": "runOnceForEachItem",
         "jsCode": "console.warn(`[Backfill] Übersprungen wegen Downloadfehler: ${$input.item.json.vorgangKey} / ${$input.item.json.fileName}`);\nreturn { json: { vorgangKey: $input.item.json.vorgangKey, fileName: $input.item.json.fileName, _skippedReason: 'download_failed' } };"
       },
@@ -1506,7 +1757,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "\n// Baut den Paperless-Dubletten-Titel und löst Tag/Correspondent/DocumentType-IDs auf.\n// Analog zu 'Paperless Titel bauen' im Haupt-Nextcloud-Workflow, aber mit Dateiname\n// aus dem Nextcloud-Listing statt aus documentsJson.\n\nconst j = $input.item.json;\n\nfunction sanitize(str, maxLen) {\n  return String(str || '')\n    .replace(/[\\/\\\\:*?\"<>|\\r\\n]/g, '_')\n    .replace(/\\s+/g, '_')\n    .replace(/_+/g, '_')\n    .replace(/^_+|_+$/g, '')\n    .substring(0, maxLen || 150);\n}\n\nconst paperlessTitle = sanitize(`${j.vorgangKey || 'unbekannt'}_${j.fileName || ''}`, 150);\n\nfunction inferDocType(fileName) {\n  const f = String(fileName || '').toLowerCase();\n  if (f.includes('_original')) return 'original';\n  if (f.includes('_anlage')) return 'anlage';\n  return 'document';\n}\n\nconst tagId = $('Paperless Normalize Tag ALLRIS').first()?.json?.id || null;\nconst correspondentId = $('Paperless Normalize Correspondent Stadt Goslar').first()?.json?.id || null;\n\nconst docType = inferDocType(j.fileName);\nlet documentTypeId = null;\nif (docType === 'original') {\n  documentTypeId = $('Paperless Normalize DocType Original').first()?.json?.id || null;\n} else if (docType === 'anlage') {\n  documentTypeId = $('Paperless Normalize DocType Anlage').first()?.json?.id || null;\n} else {\n  documentTypeId = $('Paperless Normalize DocType Dokument').first()?.json?.id || null;\n}\n\nconst paperlessMetaOk = !!(tagId && correspondentId && documentTypeId);\nif (!paperlessMetaOk) {\n  console.warn(`[Backfill] Metadaten (Tag/Correspondent/DocType) unvollständig für ${paperlessTitle} - Upload läuft nur mit Titel.`);\n}\n\nreturn {\n  json: {\n    ...j,\n    paperlessTitle,\n    paperlessTagId: tagId,\n    paperlessCorrespondentId: correspondentId,\n    paperlessDocumentTypeId: documentTypeId,\n    paperlessMetaOk\n  },\n  binary: $input.item.binary || {}\n};\n"
+        "jsCode": "\n// Baut den Paperless-Dubletten-Titel und löst Tag/Correspondent/DocumentType-IDs auf.\n// Analog zu 'Paperless Titel bauen' im Haupt-Nextcloud-Workflow, aber mit Dateiname\n// aus dem Nextcloud-Listing statt aus documentsJson.\n\nconst j = $input.item.json;\n\nfunction sanitize(str, maxLen) {\n  return String(str || '')\n    .replace(/[\\/\\\\:*?\"<>|\\r\\n]/g, '_')\n    .replace(/\\s+/g, '_')\n    .replace(/_+/g, '_')\n    .replace(/^_+|_+$/g, '')\n    .substring(0, maxLen || 150);\n}\n\nconst paperlessTitle = sanitize(`${j.vorgangKey || 'unbekannt'}_${j.fileName || ''}`, 150);\n\nfunction inferDocType(fileName) {\n  const f = String(fileName || '').toLowerCase();\n  if (f.includes('_original')) return 'original';\n  if (f.includes('_anlage')) return 'anlage';\n  return 'document';\n}\n\nconst tagId = $('Paperless Normalize Tag ALLRIS').first()?.json?.id || null;\nconst correspondentId = $('Paperless Normalize Correspondent Stadt Goslar').first()?.json?.id || null;\n\nconst docType = inferDocType(j.fileName);\nlet documentTypeId = null;\nif (docType === 'original') {\n  documentTypeId = $('Paperless Normalize DocType Original').first()?.json?.id || null;\n} else if (docType === 'anlage') {\n  documentTypeId = $('Paperless Normalize DocType Anlage').first()?.json?.id || null;\n} else {\n  documentTypeId = $('Paperless Normalize DocType Dokument').first()?.json?.id || null;\n}\n\nconst paperlessMetaOk = !!(tagId && correspondentId && documentTypeId);\nif (!paperlessMetaOk) {\n  console.warn(`[Backfill] Metadaten (Tag/Correspondent/DocType) unvollständig für ${paperlessTitle} - Upload läuft nur mit Titel.`);\n}\n\nreturn {\n  json: {\n    ...j,\n    paperlessTitle,\n    paperlessTagId: tagId,\n    paperlessFachdienstTagId: j.paperlessFachdienstTagId || null,\n    paperlessCorrespondentId: correspondentId,\n    paperlessDocumentTypeId: documentTypeId,\n    paperlessMetaOk\n  },\n  binary: $input.item.binary || {}\n};\n"
       },
       "id": "65c9fe73-0f1f-4e85-b6a1-2be25b1a18b2",
       "name": "Paperless Titel bauen (Backfill)",
