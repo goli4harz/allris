@@ -593,7 +593,7 @@
       "main": [
         [
           {
-            "node": "Paperless Upload Dokument (mit Metadaten) (Backfill)",
+            "node": "IF Fachdienst-Tag fuer Upload vorhanden? (Backfill)",
             "type": "main",
             "index": 0
           }
@@ -601,6 +601,35 @@
         [
           {
             "node": "Paperless Upload Dokument (nur Titel) (Backfill)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Fachdienst-Tag fuer Upload vorhanden? (Backfill)": {
+      "main": [
+        [
+          {
+            "node": "Paperless Upload Dokument (mit Fachdienst-Tag) (Backfill)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Paperless Upload Dokument (mit Metadaten) (Backfill)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paperless Upload Dokument (mit Fachdienst-Tag) (Backfill)": {
+      "main": [
+        [
+          {
+            "node": "Paperless Log Ergebnis (Backfill)",
             "type": "main",
             "index": 0
           }
@@ -1919,6 +1948,98 @@
         9104,
         2896
       ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "bf-if-uploadfd-001",
+              "leftValue": "={{ $('Paperless Titel bauen (Backfill)').item.json.paperlessFachdienstTagId }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d1e2f3a4-0007-4b00-8000-000000000007",
+      "name": "IF Fachdienst-Tag fuer Upload vorhanden? (Backfill)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        9260,
+        2820
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dm.diepartei-goslar.de/api/documents/post_document/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "document",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "title",
+              "value": "={{ $('Paperless Titel bauen (Backfill)').item.json.paperlessTitle }}"
+            },
+            {
+              "name": "tags",
+              "value": "={{ $('Paperless Titel bauen (Backfill)').item.json.paperlessTagId }}"
+            },
+            {
+              "name": "tags",
+              "value": "={{ $('Paperless Titel bauen (Backfill)').item.json.paperlessFachdienstTagId }}"
+            },
+            {
+              "name": "correspondent",
+              "value": "={{ $('Paperless Titel bauen (Backfill)').item.json.paperlessCorrespondentId }}"
+            },
+            {
+              "name": "document_type",
+              "value": "={{ $('Paperless Titel bauen (Backfill)').item.json.paperlessDocumentTypeId }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 90000
+        }
+      },
+      "id": "d1e2f3a4-0008-4b00-8000-000000000008",
+      "name": "Paperless Upload Dokument (mit Fachdienst-Tag) (Backfill)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        9260,
+        2980
+      ],
+      "retryOnFail": false,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "XZ0dfa9bGWssam8f",
+          "name": "Paperless API"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {

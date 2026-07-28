@@ -1,0 +1,204 @@
+{
+  "name": "ALLRIS_Einmalig_Paperless_MultiTag_Test",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "b1a2c3d4-0001-4000-8000-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Einmaliger Test 2026-07-28: prueft, ob Paperless-ngx' post_document/ Endpoint\n// mehrere 'tags'-Formularfelder im selben multipart-Request korrekt als\n// mehrere Tags uebernimmt (dokumentiertes Paperless-Verhalten, aber n8n's\n// konkrete FormData-Erzeugung noch nicht live gegen diese Instanz verifiziert).\nconst buffer = Buffer.from('ALLRIS Fachdienst-Tag Testdokument - erzeugt am ' + new Date().toISOString(), 'utf-8');\nconst binary = await this.helpers.prepareBinaryData(buffer, 'zz_test_multitag.txt', 'text/plain');\nconst testTagName = 'ZZ_TEST_FACHDIENST_' + Date.now();\nconst testTitle = 'ZZ_TEST_MultiTag_' + Date.now();\nreturn [{ json: { testTagName, testTitle }, binary: { data: binary } }];"
+      },
+      "id": "b1a2c3d4-0002-4000-8000-000000000002",
+      "name": "Baue Test-Datei",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dm.diepartei-goslar.de/api/tags/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ name: $json.testTagName }) }}",
+        "options": { "timeout": 30000 }
+      },
+      "id": "b1a2c3d4-0003-4000-8000-000000000003",
+      "name": "POST Test-Tag erstellen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0],
+      "retryOnFail": false,
+      "credentials": {
+        "httpHeaderAuth": { "id": "XZ0dfa9bGWssam8f", "name": "Paperless API" }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const j = $input.item.json;\nconst original = $('Baue Test-Datei').item;\nreturn { json: { ...original.json, testTagId: j.id ?? null }, binary: original.binary || {} };"
+      },
+      "id": "b1a2c3d4-0004-4000-8000-000000000004",
+      "name": "Extrahiere Test-Tag-ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "url": "https://dm.diepartei-goslar.de/api/tags/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [{ "name": "name__iexact", "value": "ALLRIS" }]
+        },
+        "options": {
+          "response": { "response": { "responseFormat": "json" } },
+          "timeout": 30000
+        }
+      },
+      "id": "b1a2c3d4-0005-4000-8000-000000000005",
+      "name": "GET ALLRIS-Tag",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 0],
+      "retryOnFail": false,
+      "credentials": {
+        "httpHeaderAuth": { "id": "XZ0dfa9bGWssam8f", "name": "Paperless API" }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const j = $input.item.json;\nconst prev = $('Extrahiere Test-Tag-ID').item;\nlet allrisTagId = null;\nif (Array.isArray(j.results)) { allrisTagId = j.results[0]?.id ?? null; }\nreturn { json: { ...prev.json, allrisTagId }, binary: prev.binary || {} };"
+      },
+      "id": "b1a2c3d4-0006-4000-8000-000000000006",
+      "name": "Extrahiere ALLRIS-Tag-ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dm.diepartei-goslar.de/api/documents/post_document/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            { "parameterType": "formBinaryData", "name": "document", "inputDataFieldName": "data" },
+            { "name": "title", "value": "={{ $json.testTitle }}" },
+            { "name": "tags", "value": "={{ $json.allrisTagId }}" },
+            { "name": "tags", "value": "={{ $json.testTagId }}" }
+          ]
+        },
+        "options": { "timeout": 90000 }
+      },
+      "id": "b1a2c3d4-0007-4000-8000-000000000007",
+      "name": "POST Test-Dokument hochladen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 0],
+      "retryOnFail": false,
+      "credentials": {
+        "httpHeaderAuth": { "id": "XZ0dfa9bGWssam8f", "name": "Paperless API" }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const uploadResult = $input.item.json;\nconst ctx = $('Extrahiere ALLRIS-Tag-ID').item.json;\nreturn { json: { ...ctx, uploadResult } };"
+      },
+      "id": "b1a2c3d4-0008-4000-8000-000000000008",
+      "name": "Log Upload-Ergebnis",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 0]
+    },
+    {
+      "parameters": {
+        "amount": 45,
+        "unit": "seconds"
+      },
+      "id": "b1a2c3d4-0009-4000-8000-000000000009",
+      "name": "Warte auf Paperless-Consumer",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1760, 0],
+      "webhookId": "b1a2c3d4-0009-webhook-000000000009"
+    },
+    {
+      "parameters": {
+        "url": "https://dm.diepartei-goslar.de/api/documents/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "title__icontains", "value": "={{ $json.testTitle }}" },
+            { "name": "ordering", "value": "-id" }
+          ]
+        },
+        "options": {
+          "response": { "response": { "responseFormat": "json" } },
+          "timeout": 30000
+        }
+      },
+      "id": "b1a2c3d4-0010-4000-8000-000000000010",
+      "name": "GET Test-Dokument suchen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1980, 0],
+      "retryOnFail": false,
+      "credentials": {
+        "httpHeaderAuth": { "id": "XZ0dfa9bGWssam8f", "name": "Paperless API" }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const j = $input.item.json;\nconst ctx = $('Log Upload-Ergebnis').item.json;\nconst doc = Array.isArray(j.results) ? j.results[0] : null;\nconst erwartet = [ctx.allrisTagId, ctx.testTagId].filter(Boolean);\nlet ergebnis;\nif (!doc) {\n  ergebnis = 'Dokument nach 45s noch nicht gefunden - Consumer evtl. noch nicht fertig, in ~1 Min per GET erneut pruefen (title__icontains=' + ctx.testTitle + ')';\n} else {\n  const tags = Array.isArray(doc.tags) ? doc.tags : [];\n  const beideVorhanden = erwartet.length === 2 && erwartet.every(id => tags.includes(id));\n  ergebnis = beideVorhanden\n    ? 'ERFOLG: beide Tags (ALLRIS=' + ctx.allrisTagId + ', Test=' + ctx.testTagId + ') am Dokument gesetzt'\n    : 'FEHLER: erwartete Tags ' + JSON.stringify(erwartet) + ' aber Dokument hat tags=' + JSON.stringify(tags);\n}\nreturn { json: { testTitle: ctx.testTitle, erwarteteTagIds: erwartet, gefundenesDokument: doc ? { id: doc.id, title: doc.title, tags: doc.tags } : null, ergebnis } };"
+      },
+      "id": "b1a2c3d4-0011-4000-8000-000000000011",
+      "name": "Ergebnis auswerten",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2200, 0]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": { "main": [[{ "node": "Baue Test-Datei", "type": "main", "index": 0 }]] },
+    "Baue Test-Datei": { "main": [[{ "node": "POST Test-Tag erstellen", "type": "main", "index": 0 }]] },
+    "POST Test-Tag erstellen": { "main": [[{ "node": "Extrahiere Test-Tag-ID", "type": "main", "index": 0 }]] },
+    "Extrahiere Test-Tag-ID": { "main": [[{ "node": "GET ALLRIS-Tag", "type": "main", "index": 0 }]] },
+    "GET ALLRIS-Tag": { "main": [[{ "node": "Extrahiere ALLRIS-Tag-ID", "type": "main", "index": 0 }]] },
+    "Extrahiere ALLRIS-Tag-ID": { "main": [[{ "node": "POST Test-Dokument hochladen", "type": "main", "index": 0 }]] },
+    "POST Test-Dokument hochladen": { "main": [[{ "node": "Log Upload-Ergebnis", "type": "main", "index": 0 }]] },
+    "Log Upload-Ergebnis": { "main": [[{ "node": "Warte auf Paperless-Consumer", "type": "main", "index": 0 }]] },
+    "Warte auf Paperless-Consumer": { "main": [[{ "node": "GET Test-Dokument suchen", "type": "main", "index": 0 }]] },
+    "GET Test-Dokument suchen": { "main": [[{ "node": "Ergebnis auswerten", "type": "main", "index": 0 }]] }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
