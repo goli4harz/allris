@@ -804,6 +804,17 @@
           }
         ]
       ]
+    },
+    "Release P3 Claim": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgänge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "id": "cAjWIjnZ8BCt3dFX",
@@ -3009,7 +3020,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// FIX 2026-07-25 (systemweit gefunden ueber ALLRIS_P9_Mastodon_Publish, hier nachgezogen weil beim\n// gleichen Muster uebersehen): ALLRIS_Claim_Lease's \"Release eigener Claim\" matcht per id UND\n// claim_owner - ohne id lief die Freigabe bisher stillschweigend ins Leere (0 Zeilen getroffen,\n// kein Fehler), der Claim blieb bis zum natuerlichen Lease-Ablauf haengen statt sofort freigegeben\n// zu werden.\nconst vorgangKey = String($json.vorgangKey || '').trim();\nconst id = $json.id;\nif (!vorgangKey) throw new Error('[P3 Claim Release] vorgangKey fehlt.');\nif (!id) throw new Error('[P3 Claim Release] id fehlt - Release-Matching in ALLRIS_Claim_Lease braucht id + claim_owner, sonst laeuft die Freigabe stillschweigend ins Leere.');\nreturn [{ json: { id, vorgangKey, claimAction: 'release', claimOwner: `ALLRIS_P3_Bewertung:${$execution.id}` } }];"
+        "jsCode": "// FIX 2026-07-25 (systemweit gefunden ueber ALLRIS_P9_Mastodon_Publish, hier nachgezogen weil beim\n// gleichen Muster uebersehen): ALLRIS_Claim_Lease's \"Release eigener Claim\" matcht per id UND\n// claim_owner - ohne id lief die Freigabe bisher stillschweigend ins Leere (0 Zeilen getroffen,\n// kein Fehler), der Claim blieb bis zum natuerlichen Lease-Ablauf haengen statt sofort freigegeben\n// zu werden.\n//\n// FIX 2026-07-30 (live gefunden: JEDE stuendliche P3-Ausfuehrung endete seit Tagen mit Status\n// \"error\" genau an diesem Node - $json.vorgangKey/.id waren leer, vermutlich weil \"Speichere\n// Analyse\" davor unter bestimmten Bedingungen 0 Zeilen trifft und dadurch ein leeres Item liefert.\n// Der bisherige throw war als Diagnose gedacht, hat aber unbeabsichtigt JEDEN kompletten P3-Lauf\n// abgebrochen, sobald irgendein Vorgang das traf - alle anderen Vorgaenge im selben Lauf wurden\n// dadurch mitgerissen, obwohl sie laengst fertig analysiert waren (Speichere Analyse hatte bereits\n// geschrieben). Jetzt: robuster Fallback auf $('Parse Analyse JSON'), das vorgangKey/id\n// zuverlaessig aus dem urspruenglichen Datensatz durchreicht (bestaetigt live). Wenn selbst das\n// fehlschlaegt, wird die Freigabe uebersprungen (Claim laeuft nach 30 Min natuerlich ab) statt die\n// gesamte Ausfuehrung zu killen.\nfunction getFallback() {\n  try { return $('Parse Analyse JSON').item.json || {}; } catch (e) { return {}; }\n}\n\nconst fallback = getFallback();\nconst vorgangKey = String($json.vorgangKey || fallback.vorgangKey || '').trim();\nconst id = $json.id ?? fallback.id;\n\nif (!vorgangKey || !id) {\n  console.warn(`[P3 Claim Release] Ueberspringe Freigabe - vorgangKey=${vorgangKey || '(leer)'} id=${id ?? '(leer)'}. Claim laeuft nach Lease-Ablauf (30 Min) automatisch ab.`);\n  return [];\n}\n\nreturn [{ json: { id, vorgangKey, claimAction: 'release', claimOwner: `ALLRIS_P3_Bewertung:${$execution.id}` } }];"
       },
       "id": "d4e5f607-4444-4d4e-8f50-000000000004",
       "name": "Bereite P3 Claim-Freigabe vor",
@@ -3018,7 +3029,8 @@
       "position": [
         26896,
         7440
-      ]
+      ],
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
