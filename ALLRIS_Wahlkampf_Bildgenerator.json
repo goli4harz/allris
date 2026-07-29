@@ -22,7 +22,42 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const html = `<!DOCTYPE html>\n<html lang=\"de\">\n<head>\n<meta charset=\"UTF-8\">\n<title>Wahlkampf-Bildgenerator (Entwurf)</title>\n<style>\n  body { font-family: Arial, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; background: #f4f4f4; color: #222; }\n  h1 { color: #b7202a; }\n  form { background: #fff; padding: 24px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.15); }\n  label { display: block; margin-top: 16px; font-weight: bold; }\n  textarea, select, input[type=\"text\"] { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; font-size: 14px; }\n  textarea { min-height: 80px; }\n  button { margin-top: 24px; background: #b7202a; color: #fff; border: none; padding: 12px 24px; font-size: 16px; border-radius: 4px; cursor: pointer; }\n  button:hover { background: #8f1a20; }\n  .hinweis { font-size: 13px; color: #555; margin-top: 8px; }\n  .nav-btn { display:inline-block; background:#333; color:#fff; text-decoration:none; font-weight:bold; font-size:13px; padding:8px 16px; border-radius:4px; margin-bottom:16px; }\n  .nav-btn:hover { background:#555; }\n</style>\n</head>\n<body>\n<h1>Wahlkampf-Bildgenerator (Entwurf)</h1>\n<a class=\"nav-btn\" href=\"/webhook/allris-status\">&larr; Status-Uebersicht</a>\n<p class=\"hinweis\">Erzeugt ein satirisches Sharepic zu einem frei gewaehlten Thema ueber die bestehende Fakten-/Satire-/Bild-Agenten-Kette. Das Ergebnis wird ausschliesslich in Matrix gepostet - es gibt KEINE automatische Veroeffentlichung auf WordPress, Mastodon oder Instagram, und es werden KEINE echten ALLRIS-Vorgaenge beruehrt. Das Bild ist deutlich als \"ENTWURF\" gekennzeichnet.</p>\n<form method=\"POST\" action=\"/webhook/wahlkampf-bild\">\n  <label for=\"thema\">Thema *</label>\n  <textarea id=\"thema\" name=\"thema\" required placeholder=\"z.B. Sanierung des Marktplatzes verzoegert sich erneut\"></textarea>\n\n  <label for=\"zusatzkontext\">Zusatzkontext (optional)</label>\n  <textarea id=\"zusatzkontext\" name=\"zusatzkontext\" placeholder=\"Zusaetzliche Details, die der generierte Text beruecksichtigen soll\"></textarea>\n\n  <label for=\"sprengstoff\">Sprengstoff (Satire-Intensitaet)</label>\n  <select id=\"sprengstoff\" name=\"sprengstoff\">\n    <option value=\"GERING\">GERING</option>\n    <option value=\"MITTEL\" selected>MITTEL</option>\n    <option value=\"HOCH\">HOCH</option>\n  </select>\n\n  <label for=\"headline\">Headline (optional, max. 38 Zeichen)</label>\n  <input type=\"text\" id=\"headline\" name=\"headline\" maxlength=\"38\" placeholder=\"Leer lassen = automatisch generiert\">\n\n  <label for=\"subline\">Subline (optional, max. 55 Zeichen)</label>\n  <input type=\"text\" id=\"subline\" name=\"subline\" maxlength=\"55\" placeholder=\"Leer lassen = automatisch generiert\">\n\n  <label for=\"bildidee\">Bildidee (optional)</label>\n  <textarea id=\"bildidee\" name=\"bildidee\" placeholder=\"Beschreibe kurz, was im Bild zu sehen sein soll - fliesst als Zusatzwunsch in die Bildgestaltung ein\"></textarea>\n\n  <button type=\"submit\">Bild generieren</button>\n</form>\n</body>\n</html>`;\n\nreturn [{ json: { html } }];"
+        "jsCode": "return [{ json: { currentPage: 'wahlkampf', theme: 'light' } }];"
+      },
+      "id": "b2c3d4e5-1111-4a2b-8c3d-000000000101",
+      "name": "Setze Nav-Parameter (Formular)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "5IWtZjZ7pnMAZGAO",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Web_NavBar"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "b2c3d4e5-1111-4a2b-8c3d-000000000102",
+      "name": "Nav laden (Formular)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 2,
+      "position": [
+        150,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const nav = $input.first().json;\nconst html = `<!DOCTYPE html>\n<html lang=\"de\">\n<head>\n<meta charset=\"UTF-8\">\n<title>Wahlkampf-Bildgenerator (Entwurf)</title>\n<style>\n  body { font-family: Arial, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; background: #f4f4f4; color: #222; }\n  h1 { color: #b7202a; }\n  form { background: #fff; padding: 24px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.15); }\n  label { display: block; margin-top: 16px; font-weight: bold; }\n  textarea, select, input[type=\"text\"] { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; font-size: 14px; }\n  textarea { min-height: 80px; }\n  button { margin-top: 24px; background: #b7202a; color: #fff; border: none; padding: 12px 24px; font-size: 16px; border-radius: 4px; cursor: pointer; }\n  button:hover { background: #8f1a20; }\n  .hinweis { font-size: 13px; color: #555; margin-top: 8px; }\n  ${nav.navCss}\n</style>\n</head>\n<body>\n<h1>Wahlkampf-Bildgenerator (Entwurf)</h1>\n${nav.navHtml}\n<p class=\"hinweis\">Erzeugt ein satirisches Sharepic zu einem frei gewaehlten Thema ueber die bestehende Fakten-/Satire-/Bild-Agenten-Kette. Das Ergebnis wird ausschliesslich in Matrix gepostet - es gibt KEINE automatische Veroeffentlichung auf WordPress, Mastodon oder Instagram, und es werden KEINE echten ALLRIS-Vorgaenge beruehrt. Das Bild ist deutlich als \"ENTWURF\" gekennzeichnet.</p>\n<form method=\"POST\" action=\"/webhook/wahlkampf-bild\">\n  <label for=\"thema\">Thema *</label>\n  <textarea id=\"thema\" name=\"thema\" required placeholder=\"z.B. Sanierung des Marktplatzes verzoegert sich erneut\"></textarea>\n\n  <label for=\"zusatzkontext\">Zusatzkontext (optional)</label>\n  <textarea id=\"zusatzkontext\" name=\"zusatzkontext\" placeholder=\"Zusaetzliche Details, die der generierte Text beruecksichtigen soll\"></textarea>\n\n  <label for=\"sprengstoff\">Sprengstoff (Satire-Intensitaet)</label>\n  <select id=\"sprengstoff\" name=\"sprengstoff\">\n    <option value=\"GERING\">GERING</option>\n    <option value=\"MITTEL\" selected>MITTEL</option>\n    <option value=\"HOCH\">HOCH</option>\n  </select>\n\n  <label for=\"headline\">Headline (optional, max. 38 Zeichen)</label>\n  <input type=\"text\" id=\"headline\" name=\"headline\" maxlength=\"38\" placeholder=\"Leer lassen = automatisch generiert\">\n\n  <label for=\"subline\">Subline (optional, max. 55 Zeichen)</label>\n  <input type=\"text\" id=\"subline\" name=\"subline\" maxlength=\"55\" placeholder=\"Leer lassen = automatisch generiert\">\n\n  <label for=\"bildidee\">Bildidee (optional)</label>\n  <textarea id=\"bildidee\" name=\"bildidee\" placeholder=\"Beschreibe kurz, was im Bild zu sehen sein soll - fliesst als Zusatzwunsch in die Bildgestaltung ein\"></textarea>\n\n  <button type=\"submit\">Bild generieren</button>\n</form>\n</body>\n</html>`;\n\nreturn [{ json: { html } }];"
       },
       "id": "106f9448-96e5-4a8d-b2fc-5b30ac3ce300",
       "name": "Baue Formular-HTML",
@@ -74,6 +109,41 @@
         320
       ],
       "webhookId": "c64578bd-f649-45c0-ae65-6910d7c6fe63"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return [{ json: { currentPage: 'wahlkampf', theme: 'light' } }];"
+      },
+      "id": "b2c3d4e5-2222-4a2b-8c3d-000000000201",
+      "name": "Setze Nav-Parameter (Antwort)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "5IWtZjZ7pnMAZGAO",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Web_NavBar"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "b2c3d4e5-2222-4a2b-8c3d-000000000202",
+      "name": "Nav laden (Antwort)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 2,
+      "position": [
+        220,
+        480
+      ]
     },
     {
       "parameters": {
@@ -708,7 +778,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const html = `<!DOCTYPE html>\n<html lang=\"de\"><head><meta charset=\"UTF-8\"><title>Bild erstellt</title>\n<style>body{font-family:Arial,sans-serif;max-width:640px;margin:60px auto;padding:0 16px;text-align:center;}\nh1{color:#2e7d32;} a{color:#b7202a;}</style></head>\n<body><h1>Fertig</h1><p>Das Entwurfs-Sharepic wurde erstellt und in Matrix gepostet.</p>\n<p><a href=\"/webhook/wahlkampf-bild\">Neues Thema eingeben</a> &middot; <a href=\"/webhook/allris-status\">Status-Uebersicht</a></p></body></html>`;\nreturn [{ json: { html } }];"
+        "jsCode": "const nav = $('Nav laden (Antwort)').first().json;\nconst html = `<!DOCTYPE html>\n<html lang=\"de\"><head><meta charset=\"UTF-8\"><title>Bild erstellt</title>\n<style>body{font-family:Arial,sans-serif;max-width:640px;margin:60px auto;padding:0 16px;text-align:center;}\nh1{color:#2e7d32;} a{color:#b7202a;}\n${nav.navCss}\n</style></head>\n<body><h1>Fertig</h1><p>Das Entwurfs-Sharepic wurde erstellt und in Matrix gepostet.</p>\n<p><a href=\"/webhook/wahlkampf-bild\">Neues Thema eingeben</a></p>\n${nav.navHtml}\n</body></html>`;\nreturn [{ json: { html } }];"
       },
       "id": "43c63c78-cd40-4ca8-97dc-da07d78cdac1",
       "name": "Baue Antwort-HTML",
@@ -749,6 +819,28 @@
       "main": [
         [
           {
+            "node": "Setze Nav-Parameter (Formular)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Setze Nav-Parameter (Formular)": {
+      "main": [
+        [
+          {
+            "node": "Nav laden (Formular)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nav laden (Formular)": {
+      "main": [
+        [
+          {
             "node": "Baue Formular-HTML",
             "type": "main",
             "index": 0
@@ -772,6 +864,22 @@
         [
           {
             "node": "Normalisiere Eingabe",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Setze Nav-Parameter (Antwort)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Setze Nav-Parameter (Antwort)": {
+      "main": [
+        [
+          {
+            "node": "Nav laden (Antwort)",
             "type": "main",
             "index": 0
           }

@@ -1,0 +1,49 @@
+{
+  "name": "ALLRIS_Web_NavBar",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "f1a00000-0000-0000-0000-000000000001",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Zentrale Seiten-Registrierung fuer alle ALLRIS-Web-Seiten (Dashboard/Formulare).\n// Neue Seite hinzufuegen = hier ein Eintrag mehr, alle bestehenden Seiten zeigen\n// den Link automatisch (jede Seite ruft diesen Sub-Workflow bei jedem Aufruf auf).\nconst PAGES = [\n  { key: 'status', label: 'Status-Uebersicht', path: '/webhook/allris-status' },\n  { key: 'wahlkampf', label: 'Wahlkampf-Bildgenerator', path: '/webhook/wahlkampf-bild' }\n];\n\nconst THEMES = {\n  dark: { bg: '#5b8def', fg: '#0f1115', hoverBg: '#7ba3f5' },\n  light: { bg: '#333333', fg: '#ffffff', hoverBg: '#555555' }\n};\n\nfunction esc(s) {\n  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\n}\n\nreturn $input.all().map(item => {\n  const currentPage = item.json.currentPage;\n  const theme = THEMES[item.json.theme] || THEMES.light;\n  const links = PAGES\n    .filter(p => p.key !== currentPage)\n    .map(p => '<a class=\"allris-nav-btn\" href=\"' + esc(p.path) + '\">&rarr; ' + esc(p.label) + '</a>')\n    .join(' ');\n  const navHtml = links ? '<div class=\"allris-nav\">' + links + '</div>' : '';\n  const navCss = '.allris-nav{margin-bottom:16px;}' +\n    '.allris-nav-btn{display:inline-block;background:' + theme.bg + ';color:' + theme.fg + ';text-decoration:none;font-weight:600;font-size:13px;padding:8px 16px;border-radius:6px;margin-right:8px;}' +\n    '.allris-nav-btn:hover{background:' + theme.hoverBg + ';}';\n  return { json: { navHtml: navHtml, navCss: navCss } };\n});"
+      },
+      "id": "f1a00000-0000-0000-0000-000000000002",
+      "name": "Baue Nav",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Baue Nav",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
