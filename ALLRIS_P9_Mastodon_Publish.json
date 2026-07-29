@@ -112,7 +112,7 @@
         ],
         [
           {
-            "node": "Poste Status",
+            "node": "Lade Fallback-Logo",
             "type": "main",
             "index": 0
           }
@@ -262,6 +262,17 @@
         [
           {
             "node": "Release P9 Claim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lade Fallback-Logo": {
+      "main": [
+        [
+          {
+            "node": "Upload Media zu Mastodon",
             "type": "main",
             "index": 0
           }
@@ -2139,6 +2150,28 @@
         2016,
         416
       ]
+    },
+    {
+      "parameters": {
+        "url": "https://die-partei.net/goslar/files/2026/02/Wappen_neu-1-e1769945527645.png",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "f9a1b001-0000-4000-9000-000000000024",
+      "name": "Lade Fallback-Logo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        32,
+        400
+      ],
+      "onError": "continueRegularOutput"
     }
   ],
   "pinData": {},
@@ -2146,5 +2179,5 @@
     "executionOrder": "v1"
   },
   "tags": [],
-  "versionId": "a304596d-19d1-4c0b-804e-ba7e88eb5843"
+  "versionId": "2eafd788-6974-4bd3-a254-5bd31f1183e2"
 }
