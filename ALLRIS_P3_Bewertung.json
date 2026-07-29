@@ -116,12 +116,41 @@
       "main": [
         [
           {
-            "node": "Send Matrix Raum A",
+            "node": "Prüfe Summary bereits gepostet",
             "type": "main",
             "index": 0
           },
           {
             "node": "Prepare Analyse Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prüfe Summary bereits gepostet": {
+      "main": [
+        [
+          {
+            "node": "IF Summary bereits gepostet?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Summary bereits gepostet?": {
+      "main": [
+        [
+          {
+            "node": "Nächster Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Matrix Raum A",
             "type": "main",
             "index": 0
           }
@@ -1061,6 +1090,53 @@
       "position": [
         25648,
         7216
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nconst j = $input.item.json || {};\nreturn { json: { ...j, _summaryAlreadyPosted: safeStr(j.summaryPosted).length > 0 } };"
+      },
+      "id": "a3b4c5d6-0000-4a2b-8c3d-000000000301",
+      "name": "Prüfe Summary bereits gepostet",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        25768,
+        7080
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "summary-already-posted",
+              "leftValue": "={{ $json._summaryAlreadyPosted }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a3b4c5d6-0000-4a2b-8c3d-000000000302",
+      "name": "IF Summary bereits gepostet?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        25888,
+        7080
       ]
     },
     {
