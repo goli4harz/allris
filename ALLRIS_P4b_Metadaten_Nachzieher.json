@@ -440,7 +440,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Findet Zeilen, bei denen \"documentCount\" (zuletzt bei der Extraktion gesehene Anzahl)\n// nicht mehr zu \"documentsJson\" (aktuelle Anzahl laut letztem P1-Scrape) passt - das\n// Muster, wenn ALLRIS nachtraeglich weitere Dokumente zu einem Vorgang hinzufuegt,\n// nachdem P4 diesen Vorgang schon fertig verarbeitet und veroeffentlicht hat. Nur\n// contentStage=content_posted (also wirklich fertig und nicht mehr aktiv in P3/P4\n// Bearbeitung), um keine Race mit laufender Verarbeitung zu riskieren.\nfunction safeInt(v) { const n = parseInt(String(v || '0'), 10); return Number.isFinite(n) ? n : 0; }\n\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  const j = item.json || {};\n  if (j.contentStage !== 'content_posted') continue;\n  if (!j.nextcloudFolder) continue;\n  let docs = [];\n  try { docs = JSON.parse(j.documentsJson || '[]'); } catch (e) { continue; }\n  if (docs.length === 0) continue;\n  const storedCount = safeInt(j.documentCount);\n  if (storedCount === docs.length) continue;\n  // WICHTIG: die KOMPLETTE Zeile mitgeben (...j), nicht nur ein paar Felder - der\n  // spaetere volle Row-Write in \"Schreibe Metadaten (vollstaendig)\" braucht jede Spalte\n  // im $json, sonst wuerden alle nicht mitgegebenen Spalten (analysisJson, contentJson,\n  // wordpressPostId, ...) beim Schreiben leer ueberschrieben (derselbe Bugtyp wie der\n  // urspruengliche full-row-overwrite Fund von heute Morgen).\n  out.push({ json: { ...j, _storedCount: storedCount, _expectedCount: docs.length } });\n}\nconsole.log('[Metadaten-Nachzieher] ' + out.length + ' Vorgaenge mit documentCount-Abweichung gefunden.');\nreturn out;"
+        "jsCode": "// Findet Zeilen, denen das Vorlagen-Datum fehlt, obwohl echte Dokumente vorhanden sind.\n// Zwei unabhaengige Faelle, beide gehoeren hierher:\n//\n// 1. documentCount (zuletzt bei Extraktion gesehene Anzahl) != documentsJson.length\n//    (aktueller P1-Scrape) - ALLRIS hat nachtraeglich Dokumente hinzugefuegt, seit\n//    zuletzt extrahiert wurde.\n// 2. vorlageDatum ist leer, obwohl documentCount > 1 - typischerweise ein Ueberbleibsel\n//    der alten Truncation-Reihenfolge (grosse Anlage vor dem eigentlichen Vorlagen-\n//    dokument liess das 60.000-Zeichen-Limit den Datumskopf nie erreichen, siehe die\n//    P3-Truncation-Fix vom 2026-07-30; live gefunden an 2026/060, wo documentCount UND\n//    documentsJson.length beide 9 sind - Fall 1 haette das nicht erfasst).\n//\n// Nur contentStage=content_posted (fertig, nicht mehr aktiv in P3/P4 Bearbeitung), um\n// keine Race mit laufender Verarbeitung zu riskieren.\nfunction safeInt(v) { const n = parseInt(String(v || '0'), 10); return Number.isFinite(n) ? n : 0; }\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  const j = item.json || {};\n  if (j.contentStage !== 'content_posted') continue;\n  if (!j.nextcloudFolder) continue;\n  let docs = [];\n  try { docs = JSON.parse(j.documentsJson || '[]'); } catch (e) { continue; }\n  if (docs.length === 0) continue;\n  const storedCount = safeInt(j.documentCount);\n\n  const countMismatch = storedCount !== docs.length;\n  const missingDateDespiteDocs = !safeStr(j.vorlageDatum) && docs.length > 1;\n  if (!countMismatch && !missingDateDespiteDocs) continue;\n\n  out.push({ json: { ...j, _storedCount: storedCount, _expectedCount: docs.length, _reason: countMismatch ? 'count_mismatch' : 'missing_date' } });\n}\nconsole.log('[Metadaten-Nachzieher] ' + out.length + ' Vorgaenge gefunden.');\nreturn out;"
       },
       "id": "n3",
       "name": "Finde Ziele",
@@ -2706,7 +2706,8 @@
       "parameters": {
         "amount": 2,
         "unit": "seconds"
-      }
+      },
+      "webhookId": "391b704d-b70c-40bc-aa32-cb410011abf3"
     },
     {
       "id": "p4b-wait-sites-0001",
@@ -2720,7 +2721,8 @@
       "parameters": {
         "amount": 2,
         "unit": "seconds"
-      }
+      },
+      "webhookId": "f13a95c7-2173-4451-b0cf-dd6059420208"
     }
   ],
   "pinData": {},
@@ -2728,5 +2730,5 @@
     "executionOrder": "v1"
   },
   "tags": [],
-  "versionId": "3e669da5-c9ec-4da3-ae73-b13096f50b62"
+  "versionId": "bd0dd372-8e3a-4887-bc19-98424fffec59"
 }
