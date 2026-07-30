@@ -1,5 +1,264 @@
 {
+  "updatedAt": "2026-07-30T09:13:13.877Z",
+  "createdAt": "2026-07-28T14:24:21.375Z",
+  "id": "spWAxGQ7sHQQZ7Y0",
+  "name": "ALLRIS_Einmalig_WordPress_Datum_Backfill",
+  "description": null,
   "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "c1d2e3f4-0001-4000-8000-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": []
+        },
+        "returnAll": true
+      },
+      "id": "c1d2e3f4-0002-4000-8000-000000000002",
+      "name": "Hole alle Vorgaenge",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Einmaliger Nachtrag 2026-07-28: setzt bei bereits veroeffentlichten WordPress-Posts\n// (golietz.de = P7, die-partei.net/goslar = P8b) das angezeigte Datum rueckwirkend\n// auf vorlageDatum + 3 Tage, analog zur neuen Standardlogik in P7/P8b selbst.\n// Ein Vorgang kann auf beiden Seiten gepostet sein -> bis zu 2 Ausgabe-Items pro Zeile.\n\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction safeBool(v) {\n  if (v === true) return true;\n  if (typeof v === 'string') return v.trim().toLowerCase() === 'true';\n  return false;\n}\nfunction targetDateIso(vorlageDatum) {\n  const t = Date.parse(safeStr(vorlageDatum));\n  if (!Number.isFinite(t)) return null;\n  return new Date(t + 3 * 24 * 60 * 60 * 1000).toISOString();\n}\n\nconst out = [];\nfor (const item of items) {\n  const j = item.json || {};\n  const vorlageDatum = safeStr(j.vorlageDatum);\n  if (!vorlageDatum) continue;\n  const targetDate = targetDateIso(vorlageDatum);\n  if (!targetDate) continue;\n\n  if (safeBool(j.wordpressPosted) && safeStr(j.wordpressPostId)) {\n    out.push({ json: { vorgangKey: j.vorgangKey, site: 'golietz', postId: safeStr(j.wordpressPostId), targetDate } });\n  }\n  if (safeBool(j.wordpressGoslarPosted) && safeStr(j.wordpressGoslarPostId)) {\n    out.push({ json: { vorgangKey: j.vorgangKey, site: 'diepartei', postId: safeStr(j.wordpressGoslarPostId), targetDate } });\n  }\n}\nreturn out;"
+      },
+      "id": "c1d2e3f4-0003-4000-8000-000000000003",
+      "name": "Baue Backfill-Liste",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "wpdb-if-001",
+              "leftValue": "={{ $json.site }}",
+              "rightValue": "golietz",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c1d2e3f4-0004-4000-8000-000000000004",
+      "name": "IF golietz.de?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://www.golietz.de/wp-json/wp/v2/posts/' + $json.postId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ date_gmt: $json.targetDate }) }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "c1d2e3f4-0005-4000-8000-000000000005",
+      "name": "PATCH golietz.de Datum",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1080,
+        -100
+      ],
+      "retryOnFail": true,
+      "credentials": {
+        "wordpressApi": {
+          "id": "8k2HqYswPaPVS4dr",
+          "name": "Ollies Wordpress"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput",
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://die-partei.net/goslar/wp-json/wp/v2/posts/' + $json.postId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ date_gmt: $json.targetDate }) }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "c1d2e3f4-0006-4000-8000-000000000006",
+      "name": "PATCH die-partei.net Datum",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1080,
+        100
+      ],
+      "retryOnFail": true,
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput",
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// WICHTIG: die PATCH-HTTP-Nodes liefern die WordPress-Antwort zurueck (bzw. bei Fehler\n// ein error-Objekt) - beides ohne vorgangKey/site/postId/targetDate. Der urspruengliche\n// Kontext wird deshalb bewusst ueber die vorgelagerte IF-Node wiederhergestellt, statt\n// sich auf $input zu verlassen (gleiche Klasse von Bug wie an mehreren anderen Stellen\n// in P4/P1 diese Session - siehe allris_p4_claim_release_gap_2026-07-28).\n//\n// Nachtrag 2026-07-30: verifiziert jetzt zusaetzlich per GET, ob date_gmt tatsaechlich\n// gesetzt wurde, statt nur der PATCH-Antwort zu vertrauen (die bei einer teilweise\n// erfolgreichen, aber timeout-abgebrochenen Verbindung trotzdem 200 zurueckgeben kann).\nconst resp = $input.item.json;\nconst orig = $('IF golietz.de?').item.json;\n\nfunction normDate(v) {\n  return String(v || '').replace(/\\.\\d+Z?$/, '').replace(/Z$/, '').slice(0, 19);\n}\n\nconst patchOk = !resp.error && !!resp.id;\nconst verifiedDate = resp.date_gmt || '';\nconst verified = patchOk && normDate(verifiedDate) === normDate(orig.targetDate);\n\nlet ergebnis;\nif (!patchOk) {\n  ergebnis = 'FEHLER (GET/Verify): ' + (resp.error?.message || resp.message || JSON.stringify(resp).slice(0, 200));\n} else if (!verified) {\n  ergebnis = 'WARNUNG: Post geladen, aber date_gmt weicht ab - erwartet ' + orig.targetDate + ', gefunden ' + verifiedDate;\n} else {\n  ergebnis = 'OK - geprueft, date_gmt = ' + verifiedDate;\n}\n\nreturn { json: {\n  vorgangKey: orig.vorgangKey,\n  site: orig.site,\n  postId: orig.postId,\n  targetDate: orig.targetDate,\n  verifiedDate,\n  verified,\n  ergebnis\n} };"
+      },
+      "id": "c1d2e3f4-0007-4b00-8000-000000000007",
+      "name": "Log Ergebnis",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        -100
+      ]
+    },
+    {
+      "id": "wpdb-verify-golietz-0001",
+      "name": "GET Verify golietz.de",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        -100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://www.golietz.de/wp-json/wp/v2/posts/' + $('IF golietz.de?').item.json.postId + '?context=edit' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1500,
+      "credentials": {
+        "wordpressApi": {
+          "id": "8k2HqYswPaPVS4dr",
+          "name": "Ollies Wordpress"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "wpdb-verify-partei-0001",
+      "name": "GET Verify die-partei.net",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://die-partei.net/goslar/wp-json/wp/v2/posts/' + $('IF golietz.de?').item.json.postId + '?context=edit' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1500,
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "wpdb-loop-0001",
+      "name": "Loop Backfill (1x)",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      }
+    },
+    {
+      "id": "wpdb-wait-0001",
+      "name": "Warte vor naechstem",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        0
+      ],
+      "parameters": {
+        "amount": 2,
+        "unit": "seconds"
+      },
+      "webhookId": "f8367b80-9a8c-45b4-b2f5-e533425d653a"
+    }
+  ],
   "connections": {
     "Manual Trigger": {
       "main": [
@@ -131,258 +390,35 @@
       ]
     }
   },
-  "id": "spWAxGQ7sHQQZ7Y0",
-  "meta": null,
-  "name": "ALLRIS_Einmalig_WordPress_Datum_Backfill",
-  "nodes": [
-    {
-      "parameters": {},
-      "id": "c1d2e3f4-0001-4000-8000-000000000001",
-      "name": "Manual Trigger",
-      "type": "n8n-nodes-base.manualTrigger",
-      "typeVersion": 1,
-      "position": [
-        0,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "get",
-        "dataTableId": {
-          "__rl": true,
-          "value": "hBLqpqeVEojPpOJl",
-          "mode": "list",
-          "cachedResultName": "allris_vorgaenge",
-          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
-        },
-        "filters": {
-          "conditions": []
-        },
-        "returnAll": true
-      },
-      "id": "c1d2e3f4-0002-4000-8000-000000000002",
-      "name": "Hole alle Vorgaenge",
-      "type": "n8n-nodes-base.dataTable",
-      "typeVersion": 1.1,
-      "position": [
-        220,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "// Einmaliger Nachtrag 2026-07-28: setzt bei bereits veroeffentlichten WordPress-Posts\n// (golietz.de = P7, die-partei.net/goslar = P8b) das angezeigte Datum rueckwirkend\n// auf vorlageDatum + 3 Tage, analog zur neuen Standardlogik in P7/P8b selbst.\n// Ein Vorgang kann auf beiden Seiten gepostet sein -> bis zu 2 Ausgabe-Items pro Zeile.\n\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction safeBool(v) {\n  if (v === true) return true;\n  if (typeof v === 'string') return v.trim().toLowerCase() === 'true';\n  return false;\n}\nfunction targetDateIso(vorlageDatum) {\n  const t = Date.parse(safeStr(vorlageDatum));\n  if (!Number.isFinite(t)) return null;\n  return new Date(t + 3 * 24 * 60 * 60 * 1000).toISOString();\n}\n\nconst out = [];\nfor (const item of items) {\n  const j = item.json || {};\n  const vorlageDatum = safeStr(j.vorlageDatum);\n  if (!vorlageDatum) continue;\n  const targetDate = targetDateIso(vorlageDatum);\n  if (!targetDate) continue;\n\n  if (safeBool(j.wordpressPosted) && safeStr(j.wordpressPostId)) {\n    out.push({ json: { vorgangKey: j.vorgangKey, site: 'golietz', postId: safeStr(j.wordpressPostId), targetDate } });\n  }\n  if (safeBool(j.wordpressGoslarPosted) && safeStr(j.wordpressGoslarPostId)) {\n    out.push({ json: { vorgangKey: j.vorgangKey, site: 'diepartei', postId: safeStr(j.wordpressGoslarPostId), targetDate } });\n  }\n}\nreturn out;"
-      },
-      "id": "c1d2e3f4-0003-4000-8000-000000000003",
-      "name": "Baue Backfill-Liste",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        440,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "id": "wpdb-if-001",
-              "leftValue": "={{ $json.site }}",
-              "rightValue": "golietz",
-              "operator": {
-                "type": "string",
-                "operation": "equals"
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "c1d2e3f4-0004-4000-8000-000000000004",
-      "name": "IF golietz.de?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [
-        880,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "method": "PATCH",
-        "url": "={{ 'https://www.golietz.de/wp-json/wp/v2/posts/' + $json.postId }}",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "wordpressApi",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ date_gmt: $json.targetDate }) }}",
-        "options": {
-          "timeout": 10000
-        }
-      },
-      "id": "c1d2e3f4-0005-4000-8000-000000000005",
-      "name": "PATCH golietz.de Datum",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        1080,
-        -100
-      ],
-      "retryOnFail": false,
-      "credentials": {
-        "wordpressApi": {
-          "id": "8k2HqYswPaPVS4dr",
-          "name": "Ollies Wordpress"
-        }
-      },
-      "continueOnFail": true,
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "method": "PATCH",
-        "url": "={{ 'https://die-partei.net/goslar/wp-json/wp/v2/posts/' + $json.postId }}",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "wordpressApi",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ date_gmt: $json.targetDate }) }}",
-        "options": {
-          "timeout": 10000
-        }
-      },
-      "id": "c1d2e3f4-0006-4000-8000-000000000006",
-      "name": "PATCH die-partei.net Datum",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        1080,
-        100
-      ],
-      "retryOnFail": false,
-      "credentials": {
-        "wordpressApi": {
-          "id": "tzwuM0QBLpYYZfXQ",
-          "name": "DiePARTEI Wordpress"
-        }
-      },
-      "continueOnFail": true,
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "// WICHTIG: die PATCH-HTTP-Nodes liefern die WordPress-Antwort zurueck (bzw. bei Fehler\n// ein error-Objekt) - beides ohne vorgangKey/site/postId/targetDate. Der urspruengliche\n// Kontext wird deshalb bewusst ueber die vorgelagerte IF-Node wiederhergestellt, statt\n// sich auf $input zu verlassen (gleiche Klasse von Bug wie an mehreren anderen Stellen\n// in P4/P1 diese Session - siehe allris_p4_claim_release_gap_2026-07-28).\n//\n// Nachtrag 2026-07-30: verifiziert jetzt zusaetzlich per GET, ob date_gmt tatsaechlich\n// gesetzt wurde, statt nur der PATCH-Antwort zu vertrauen (die bei einer teilweise\n// erfolgreichen, aber timeout-abgebrochenen Verbindung trotzdem 200 zurueckgeben kann).\nconst resp = $input.item.json;\nconst orig = $('IF golietz.de?').item.json;\n\nfunction normDate(v) {\n  return String(v || '').replace(/\\.\\d+Z?$/, '').replace(/Z$/, '').slice(0, 19);\n}\n\nconst patchOk = !resp.error && !!resp.id;\nconst verifiedDate = resp.date_gmt || '';\nconst verified = patchOk && normDate(verifiedDate) === normDate(orig.targetDate);\n\nlet ergebnis;\nif (!patchOk) {\n  ergebnis = 'FEHLER (GET/Verify): ' + (resp.error?.message || resp.message || JSON.stringify(resp).slice(0, 200));\n} else if (!verified) {\n  ergebnis = 'WARNUNG: Post geladen, aber date_gmt weicht ab - erwartet ' + orig.targetDate + ', gefunden ' + verifiedDate;\n} else {\n  ergebnis = 'OK - geprueft, date_gmt = ' + verifiedDate;\n}\n\nreturn { json: {\n  vorgangKey: orig.vorgangKey,\n  site: orig.site,\n  postId: orig.postId,\n  targetDate: orig.targetDate,\n  verifiedDate,\n  verified,\n  ergebnis\n} };"
-      },
-      "id": "c1d2e3f4-0007-4b00-8000-000000000007",
-      "name": "Log Ergebnis",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1320,
-        -100
-      ]
-    },
-    {
-      "id": "wpdb-verify-golietz-0001",
-      "name": "GET Verify golietz.de",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        1200,
-        -100
-      ],
-      "parameters": {
-        "method": "GET",
-        "url": "={{ 'https://www.golietz.de/wp-json/wp/v2/posts/' + $('IF golietz.de?').item.json.postId + '?context=edit' }}",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "wordpressApi",
-        "options": {
-          "timeout": 10000
-        }
-      },
-      "retryOnFail": false,
-      "credentials": {
-        "wordpressApi": {
-          "id": "8k2HqYswPaPVS4dr",
-          "name": "Ollies Wordpress"
-        }
-      },
-      "continueOnFail": true,
-      "onError": "continueRegularOutput"
-    },
-    {
-      "id": "wpdb-verify-partei-0001",
-      "name": "GET Verify die-partei.net",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        1200,
-        100
-      ],
-      "parameters": {
-        "method": "GET",
-        "url": "={{ 'https://die-partei.net/goslar/wp-json/wp/v2/posts/' + $('IF golietz.de?').item.json.postId + '?context=edit' }}",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "wordpressApi",
-        "options": {
-          "timeout": 10000
-        }
-      },
-      "retryOnFail": false,
-      "credentials": {
-        "wordpressApi": {
-          "id": "tzwuM0QBLpYYZfXQ",
-          "name": "DiePARTEI Wordpress"
-        }
-      },
-      "continueOnFail": true,
-      "onError": "continueRegularOutput"
-    },
-    {
-      "id": "wpdb-loop-0001",
-      "name": "Loop Backfill (1x)",
-      "type": "n8n-nodes-base.splitInBatches",
-      "typeVersion": 3,
-      "position": [
-        660,
-        0
-      ],
-      "parameters": {
-        "batchSize": 1,
-        "options": {}
-      }
-    },
-    {
-      "id": "wpdb-wait-0001",
-      "name": "Warte vor naechstem",
-      "type": "n8n-nodes-base.wait",
-      "typeVersion": 1,
-      "position": [
-        1320,
-        0
-      ],
-      "parameters": {
-        "amount": 2,
-        "unit": "seconds"
-      },
-      "webhookId": "f8367b80-9a8c-45b4-b2f5-e533425d653a"
-    }
-  ],
-  "pinData": null,
   "settings": {
     "executionOrder": "v1"
   },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "76733be4-5db2-4444-8415-7f58bc1016f6",
+  "activeVersionId": null,
+  "versionCounter": 4,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-07-28T14:24:21.375Z",
+      "createdAt": "2026-07-28T14:24:21.375Z",
+      "role": "workflow:owner",
+      "workflowId": "spWAxGQ7sHQQZ7Y0",
+      "projectId": "CrnegVcMvlcRU0OP",
+      "project": {
+        "updatedAt": "2026-05-23T11:38:39.411Z",
+        "createdAt": "2026-05-23T11:33:40.374Z",
+        "id": "CrnegVcMvlcRU0OP",
+        "name": "Oliver Lietz <oliver.lietz@golietz.de>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "66557ab1-dd68-4186-b616-ecaa8f1bea61"
+      }
+    }
+  ],
   "tags": [],
-  "versionId": "76733be4-5db2-4444-8415-7f58bc1016f6"
+  "activeVersion": null
 }
