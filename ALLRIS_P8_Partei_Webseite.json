@@ -181,7 +181,7 @@
       "main": [
         [
           {
-            "node": "Upload Media zu Partei-Webseite",
+            "node": "IF Bild erfolgreich geladen?",
             "type": "main",
             "index": 0
           }
@@ -368,6 +368,24 @@
           }
         ]
       ]
+    },
+    "IF Bild erfolgreich geladen?": {
+      "main": [
+        [
+          {
+            "node": "Upload Media zu Partei-Webseite",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Speichere Fehler (Partei-Webseite)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "id": "3pAntGoWcG2uAig4",
@@ -523,7 +541,9 @@
           "id": "jlZlwASXZbJyNpfA",
           "name": "NextCloud account"
         }
-      }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -1329,6 +1349,39 @@
         1408,
         1680
       ]
+    },
+    {
+      "id": "p8-imgcheck-0001",
+      "name": "IF Bild erfolgreich geladen?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1968,
+        1184
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "imgok1",
+              "leftValue": "={{ !$json.error }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
     }
   ],
   "pinData": {},
@@ -1336,5 +1389,5 @@
     "executionOrder": "v1"
   },
   "tags": [],
-  "versionId": "e1491465-db2c-48fa-a7bf-e9888659ee83"
+  "versionId": "b0534997-da95-43cd-9ac9-df1742a331ae"
 }
