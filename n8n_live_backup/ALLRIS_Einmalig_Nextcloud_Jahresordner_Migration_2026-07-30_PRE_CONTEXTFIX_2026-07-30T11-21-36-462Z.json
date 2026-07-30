@@ -1,234 +1,11 @@
 {
-  "active": false,
-  "connections": {
-    "Manual Trigger": {
-      "main": [
-        [
-          {
-            "node": "Hole alle Vorgaenge",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Hole alle Vorgaenge": {
-      "main": [
-        [
-          {
-            "node": "Finde Ziele",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Finde Ziele": {
-      "main": [
-        [
-          {
-            "node": "Loop Vorgang (1x)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Loop Vorgang (1x)": {
-      "main": [
-        [],
-        [
-          {
-            "node": "Bereite Claim vor",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Bereite Claim vor": {
-      "main": [
-        [
-          {
-            "node": "Erwerbe Claim",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Erwerbe Claim": {
-      "main": [
-        [
-          {
-            "node": "IF Claim erworben?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF Claim erworben?": {
-      "main": [
-        [
-          {
-            "node": "Create Year Folder Neu",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Loop Vorgang (1x)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Create Year Folder Neu": {
-      "main": [
-        [
-          {
-            "node": "Create Vorgang Folder Neu",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Create Vorgang Folder Neu": {
-      "main": [
-        [
-          {
-            "node": "Create Originale Folder Neu",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Create Originale Folder Neu": {
-      "main": [
-        [
-          {
-            "node": "NC Liste Alt",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NC Liste Alt": {
-      "main": [
-        [
-          {
-            "node": "Nur Dateien",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Nur Dateien": {
-      "main": [
-        [
-          {
-            "node": "Move File",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Move File": {
-      "main": [
-        [
-          {
-            "node": "Verifiziere + Schreibe DB",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Verifiziere + Schreibe DB": {
-      "main": [
-        [
-          {
-            "node": "IF Migration OK?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF Migration OK?": {
-      "main": [
-        [
-          {
-            "node": "Schreibe nextcloudFolder (vollstaendig)",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Sammle Ergebnis",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Schreibe nextcloudFolder (vollstaendig)": {
-      "main": [
-        [
-          {
-            "node": "Sammle Ergebnis",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Sammle Ergebnis": {
-      "main": [
-        [
-          {
-            "node": "Bereite Claim-Freigabe vor",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Bereite Claim-Freigabe vor": {
-      "main": [
-        [
-          {
-            "node": "Release Claim",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Release Claim": {
-      "main": [
-        [
-          {
-            "node": "Loop Vorgang (1x)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
+  "updatedAt": "2026-07-30T11:13:05.158Z",
+  "createdAt": "2026-07-30T11:13:05.158Z",
   "id": "tujO2iwo1Gyvm2s1",
-  "meta": null,
   "name": "ALLRIS_Einmalig_Nextcloud_Jahresordner_Migration_2026-07-30",
+  "description": null,
+  "active": false,
+  "isArchived": false,
   "nodes": [
     {
       "id": "n1",
@@ -371,7 +148,7 @@
       ],
       "parameters": {
         "resource": "folder",
-        "path": "={{ $('Bereite Claim vor').item.json._newYearPath }}"
+        "path": "={{ $json._newYearPath }}"
       },
       "credentials": {
         "nextCloudApi": {
@@ -392,7 +169,7 @@
       ],
       "parameters": {
         "resource": "folder",
-        "path": "={{ $('Bereite Claim vor').item.json._newFolder }}"
+        "path": "={{ $json._newFolder }}"
       },
       "credentials": {
         "nextCloudApi": {
@@ -413,7 +190,7 @@
       ],
       "parameters": {
         "resource": "folder",
-        "path": "={{ $('Bereite Claim vor').item.json._newFolder + '/01_originale' }}"
+        "path": "={{ $json._newFolder }}/01_originale"
       },
       "credentials": {
         "nextCloudApi": {
@@ -435,7 +212,7 @@
       "parameters": {
         "resource": "folder",
         "operation": "list",
-        "path": "={{ $('Bereite Claim vor').item.json._oldFolder + '/01_originale' }}"
+        "path": "={{ $json._oldFolder }}/01_originale"
       },
       "credentials": {
         "nextCloudApi": {
@@ -472,7 +249,7 @@
         "resource": "file",
         "operation": "move",
         "path": "={{ $json.path }}",
-        "toPath": "={{ $('Bereite Claim vor').item.json._newFolder + '/01_originale/' + $json.path.split('/').pop() }}"
+        "toPath": "={{ $('Erwerbe Claim').item.json._newFolder + '/01_originale/' + $json.path.split('/').pop() }}"
       },
       "credentials": {
         "nextCloudApi": {
@@ -493,7 +270,7 @@
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Prueft, ob alle gelisteten Dateien erfolgreich verschoben wurden (kein .error im\n// Move-Ergebnis), bevor die DB aktualisiert wird. Bei Zweifel lieber gar nicht schreiben\n// und den alten (noch intakten) Pfad stehen lassen, als eine DB-Zeile auf einen\n// moeglicherweise unvollstaendigen neuen Ordner zeigen zu lassen.\nconst ziel = $('Bereite Claim vor').item.json;\nconst moveResults = $input.all();\nconst total = moveResults.length;\nconst failed = moveResults.filter(i => i.json.error).length;\nconst allOk = total > 0 && failed === 0;\n\nif (!allOk) {\n  console.warn('[Migration] ' + ziel.vorgangsnummer + ': ' + failed + '/' + total + ' Verschiebungen fehlgeschlagen - DB NICHT aktualisiert, alter Ordner bleibt massgeblich.');\n  return [{ json: { ...ziel, _migrationOk: false, _migrationTotal: total, _migrationFailed: failed } }];\n}\n\nreturn [{ json: { ...ziel, nextcloudFolder: ziel._newFolder, _migrationOk: true, _migrationTotal: total, _migrationFailed: 0 } }];"
+        "jsCode": "// Prueft, ob alle gelisteten Dateien erfolgreich verschoben wurden (kein .error im\n// Move-Ergebnis), bevor die DB aktualisiert wird. Bei Zweifel lieber gar nicht schreiben\n// und den alten (noch intakten) Pfad stehen lassen, als eine DB-Zeile auf einen\n// moeglicherweise unvollstaendigen neuen Ordner zeigen zu lassen.\nconst ziel = $('Erwerbe Claim').item.json;\nconst moveResults = $input.all();\nconst total = moveResults.length;\nconst failed = moveResults.filter(i => i.json.error).length;\nconst allOk = total > 0 && failed === 0;\n\nif (!allOk) {\n  console.warn('[Migration] ' + ziel.vorgangsnummer + ': ' + failed + '/' + total + ' Verschiebungen fehlgeschlagen - DB NICHT aktualisiert, alter Ordner bleibt massgeblich.');\n  return [{ json: { ...ziel, _migrationOk: false, _migrationTotal: total, _migrationFailed: failed } }];\n}\n\nreturn [{ json: { ...ziel, nextcloudFolder: ziel._newFolder, _migrationOk: true, _migrationTotal: total, _migrationFailed: 0 } }];"
       }
     },
     {
@@ -2213,10 +1990,261 @@
       }
     }
   ],
-  "pinData": null,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hole alle Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole alle Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Finde Ziele",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finde Ziele": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgang (1x)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Vorgang (1x)": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Bereite Claim vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereite Claim vor": {
+      "main": [
+        [
+          {
+            "node": "Erwerbe Claim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Erwerbe Claim": {
+      "main": [
+        [
+          {
+            "node": "IF Claim erworben?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Claim erworben?": {
+      "main": [
+        [
+          {
+            "node": "Create Year Folder Neu",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Vorgang (1x)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Year Folder Neu": {
+      "main": [
+        [
+          {
+            "node": "Create Vorgang Folder Neu",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Vorgang Folder Neu": {
+      "main": [
+        [
+          {
+            "node": "Create Originale Folder Neu",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Originale Folder Neu": {
+      "main": [
+        [
+          {
+            "node": "NC Liste Alt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Liste Alt": {
+      "main": [
+        [
+          {
+            "node": "Nur Dateien",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nur Dateien": {
+      "main": [
+        [
+          {
+            "node": "Move File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Move File": {
+      "main": [
+        [
+          {
+            "node": "Verifiziere + Schreibe DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verifiziere + Schreibe DB": {
+      "main": [
+        [
+          {
+            "node": "IF Migration OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Migration OK?": {
+      "main": [
+        [
+          {
+            "node": "Schreibe nextcloudFolder (vollstaendig)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sammle Ergebnis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schreibe nextcloudFolder (vollstaendig)": {
+      "main": [
+        [
+          {
+            "node": "Sammle Ergebnis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sammle Ergebnis": {
+      "main": [
+        [
+          {
+            "node": "Bereite Claim-Freigabe vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereite Claim-Freigabe vor": {
+      "main": [
+        [
+          {
+            "node": "Release Claim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Release Claim": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgang (1x)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
   "settings": {
     "executionOrder": "v1"
   },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "e566ef5e-8fdb-40b2-9d0b-c25e6d6bcaba",
+  "activeVersionId": null,
+  "versionCounter": 1,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-07-30T11:13:05.158Z",
+      "createdAt": "2026-07-30T11:13:05.158Z",
+      "role": "workflow:owner",
+      "workflowId": "tujO2iwo1Gyvm2s1",
+      "projectId": "CrnegVcMvlcRU0OP",
+      "project": {
+        "updatedAt": "2026-05-23T11:38:39.411Z",
+        "createdAt": "2026-05-23T11:33:40.374Z",
+        "id": "CrnegVcMvlcRU0OP",
+        "name": "Oliver Lietz <oliver.lietz@golietz.de>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "66557ab1-dd68-4186-b616-ecaa8f1bea61"
+      }
+    }
+  ],
   "tags": [],
-  "versionId": "e566ef5e-8fdb-40b2-9d0b-c25e6d6bcaba"
+  "activeVersion": null
 }
