@@ -1,0 +1,227 @@
+{
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hole alle Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole alle Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Ziele",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ziele": {
+      "main": [
+        [
+          {
+            "node": "NC Liste",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Liste": {
+      "main": [
+        [
+          {
+            "node": "Nur PDFs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nur PDFs": {
+      "main": [
+        [
+          {
+            "node": "NC Download",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Download": {
+      "main": [
+        [
+          {
+            "node": "Pruefe PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pruefe PDF": {
+      "main": [
+        [
+          {
+            "node": "Nur kaputte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "iUkLf3oynmHpuY9t",
+  "meta": null,
+  "name": "ALLRIS_Einmalig_PDF_Integritaets_Scan_2026-07-30",
+  "nodes": [
+    {
+      "id": "n1",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "n2",
+      "name": "Hole alle Vorgaenge",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        200,
+        0
+      ],
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge"
+        },
+        "filters": {
+          "conditions": []
+        },
+        "returnAll": true
+      }
+    },
+    {
+      "id": "n3",
+      "name": "Ziele",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const items = $input.all();\nconst out = [];\nfor (const item of items) {\n  const j = item.json || {};\n  if (!j.nextcloudFolder) continue;\n  out.push({ json: { vorgangKey: j.vorgangKey, vorgangsnummer: j.vorgangsnummer, nextcloudFolder: j.nextcloudFolder } });\n}\nreturn out;"
+      }
+    },
+    {
+      "id": "n4",
+      "name": "NC Liste",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [
+        600,
+        0
+      ],
+      "parameters": {
+        "resource": "folder",
+        "operation": "list",
+        "path": "={{ $json.nextcloudFolder }}/01_originale"
+      },
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "n5",
+      "name": "Nur PDFs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().filter(item => String(item.json.path || '').toLowerCase().endsWith('.pdf') && item.json.type !== 'dir' && !item.json.isDirectory);"
+      }
+    },
+    {
+      "id": "n6",
+      "name": "NC Download",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        0
+      ],
+      "parameters": {
+        "resource": "file",
+        "operation": "download",
+        "path": "={{ $json.path }}"
+      },
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "n7",
+      "name": "Pruefe PDF",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Prueft eine einzelne aus Nextcloud geladene Datei auf PDF-Header + %%EOF-Trailer.\nconst j = $json;\nconst binary = $binary || {};\nconst bin = binary.data || {};\nlet ok = false;\nlet reason = '';\nlet size = 0;\n\nlet ziel = {};\ntry { ziel = $('Ziele').item.json || {}; } catch(e) {}\n\ntry {\n  const buf = await this.helpers.getBinaryDataBuffer(0, 'data');\n  size = buf.length;\n  const header = buf.subarray(0, 5).toString('latin1');\n  const headerOk = header === '%PDF-';\n  const tail = buf.subarray(Math.max(0, buf.length - 2048)).toString('latin1');\n  const eofOk = tail.includes('%%EOF');\n  ok = headerOk && eofOk && size > 800;\n  if (!headerOk) reason = 'kein %PDF- Header';\n  else if (!eofOk) reason = 'kein %%EOF am Ende (abgeschnitten)';\n  else if (size <= 800) reason = 'zu klein (' + size + ' bytes)';\n} catch (e) {\n  reason = 'Fehler beim Lesen: ' + e.message;\n}\n\nreturn {\n  json: {\n    vorgangsnummer: ziel.vorgangsnummer || '',\n    vorgangKey: ziel.vorgangKey || '',\n    fileName: j.basename || j.name || j.path || '',\n    filePath: j.path || '',\n    size,\n    ok,\n    reason\n  }\n};"
+      }
+    },
+    {
+      "id": "n8",
+      "name": "Nur kaputte",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return $input.all().filter(item => item.json.ok !== true);"
+      }
+    }
+  ],
+  "pinData": null,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "versionId": "8005a0ec-43fa-4baf-976d-62d247f0585b"
+}
