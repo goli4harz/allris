@@ -1,197 +1,11 @@
 {
-  "active": false,
-  "connections": {
-    "Manual Trigger": {
-      "main": [
-        [
-          {
-            "node": "Hole alle Vorgaenge",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Hole alle Vorgaenge": {
-      "main": [
-        [
-          {
-            "node": "Baue Backfill-Liste",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Baue Backfill-Liste": {
-      "main": [
-        [
-          {
-            "node": "Loop Backfill (1x)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF golietz.de?": {
-      "main": [
-        [
-          {
-            "node": "GET Pruefe golietz.de",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "GET Pruefe die-partei.net",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "PATCH golietz.de Datum": {
-      "main": [
-        [
-          {
-            "node": "GET Verify golietz.de",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "PATCH die-partei.net Datum": {
-      "main": [
-        [
-          {
-            "node": "GET Verify die-partei.net",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "GET Verify golietz.de": {
-      "main": [
-        [
-          {
-            "node": "Log Ergebnis",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "GET Verify die-partei.net": {
-      "main": [
-        [
-          {
-            "node": "Log Ergebnis",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Loop Backfill (1x)": {
-      "main": [
-        [],
-        [
-          {
-            "node": "IF golietz.de?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Log Ergebnis": {
-      "main": [
-        [
-          {
-            "node": "Warte vor naechstem",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Warte vor naechstem": {
-      "main": [
-        [
-          {
-            "node": "Loop Backfill (1x)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "GET Pruefe golietz.de": {
-      "main": [
-        [
-          {
-            "node": "IF golietz.de bereits korrekt?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "GET Pruefe die-partei.net": {
-      "main": [
-        [
-          {
-            "node": "IF die-partei.net bereits korrekt?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF golietz.de bereits korrekt?": {
-      "main": [
-        [
-          {
-            "node": "Log Ergebnis",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "PATCH golietz.de Datum",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF die-partei.net bereits korrekt?": {
-      "main": [
-        [
-          {
-            "node": "Log Ergebnis",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "PATCH die-partei.net Datum",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
+  "updatedAt": "2026-07-30T10:14:26.960Z",
+  "createdAt": "2026-07-28T14:24:21.375Z",
   "id": "spWAxGQ7sHQQZ7Y0",
-  "meta": null,
   "name": "ALLRIS_Einmalig_WordPress_Datum_Backfill",
+  "description": null,
+  "active": false,
+  "isArchived": false,
   "nodes": [
     {
       "parameters": {},
@@ -278,12 +92,12 @@
     {
       "parameters": {
         "method": "PATCH",
-        "url": "={{ 'https://www.golietz.de/wp-json/wp/v2/posts/' + $('IF golietz.de?').item.json.postId }}",
+        "url": "={{ 'https://www.golietz.de/wp-json/wp/v2/posts/' + $json.postId }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "wordpressApi",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ date_gmt: $('IF golietz.de?').item.json.targetDate }) }}",
+        "jsonBody": "={{ JSON.stringify({ date_gmt: $json.targetDate }) }}",
         "options": {
           "timeout": 10000
         }
@@ -309,12 +123,12 @@
     {
       "parameters": {
         "method": "PATCH",
-        "url": "={{ 'https://die-partei.net/goslar/wp-json/wp/v2/posts/' + $('IF golietz.de?').item.json.postId }}",
+        "url": "={{ 'https://die-partei.net/goslar/wp-json/wp/v2/posts/' + $json.postId }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "wordpressApi",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ date_gmt: $('IF golietz.de?').item.json.targetDate }) }}",
+        "jsonBody": "={{ JSON.stringify({ date_gmt: $json.targetDate }) }}",
         "options": {
           "timeout": 10000
         }
@@ -559,10 +373,224 @@
       }
     }
   ],
-  "pinData": null,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hole alle Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole alle Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Baue Backfill-Liste",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue Backfill-Liste": {
+      "main": [
+        [
+          {
+            "node": "Loop Backfill (1x)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF golietz.de?": {
+      "main": [
+        [
+          {
+            "node": "GET Pruefe golietz.de",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GET Pruefe die-partei.net",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PATCH golietz.de Datum": {
+      "main": [
+        [
+          {
+            "node": "GET Verify golietz.de",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PATCH die-partei.net Datum": {
+      "main": [
+        [
+          {
+            "node": "GET Verify die-partei.net",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Verify golietz.de": {
+      "main": [
+        [
+          {
+            "node": "Log Ergebnis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Verify die-partei.net": {
+      "main": [
+        [
+          {
+            "node": "Log Ergebnis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Backfill (1x)": {
+      "main": [
+        [],
+        [
+          {
+            "node": "IF golietz.de?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Ergebnis": {
+      "main": [
+        [
+          {
+            "node": "Warte vor naechstem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Warte vor naechstem": {
+      "main": [
+        [
+          {
+            "node": "Loop Backfill (1x)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Pruefe golietz.de": {
+      "main": [
+        [
+          {
+            "node": "IF golietz.de bereits korrekt?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Pruefe die-partei.net": {
+      "main": [
+        [
+          {
+            "node": "IF die-partei.net bereits korrekt?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF golietz.de bereits korrekt?": {
+      "main": [
+        [
+          {
+            "node": "Log Ergebnis",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "PATCH golietz.de Datum",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF die-partei.net bereits korrekt?": {
+      "main": [
+        [
+          {
+            "node": "Log Ergebnis",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "PATCH die-partei.net Datum",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
   "settings": {
     "executionOrder": "v1"
   },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "7f3f9558-5cf8-4118-82da-38ff48fb51a4",
+  "activeVersionId": null,
+  "versionCounter": 6,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-07-28T14:24:21.375Z",
+      "createdAt": "2026-07-28T14:24:21.375Z",
+      "role": "workflow:owner",
+      "workflowId": "spWAxGQ7sHQQZ7Y0",
+      "projectId": "CrnegVcMvlcRU0OP",
+      "project": {
+        "updatedAt": "2026-05-23T11:38:39.411Z",
+        "createdAt": "2026-05-23T11:33:40.374Z",
+        "id": "CrnegVcMvlcRU0OP",
+        "name": "Oliver Lietz <oliver.lietz@golietz.de>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "66557ab1-dd68-4186-b616-ecaa8f1bea61"
+      }
+    }
+  ],
   "tags": [],
-  "versionId": "7f3f9558-5cf8-4118-82da-38ff48fb51a4"
+  "activeVersion": null
 }
