@@ -1,0 +1,1775 @@
+{
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hole alle Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole alle Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Berechne fehlende Vorlagen-Metadaten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Berechne fehlende Vorlagen-Metadaten": {
+      "main": [
+        [
+          {
+            "node": "Schreibe Zeile (vollstaendig)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "QgRBASbf7mckgXth",
+  "meta": null,
+  "name": "ALLRIS_Einmalig_VorlagenDatum_Nachtrag2_2026-07-30",
+  "nodes": [
+    {
+      "id": "n1",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "n2",
+      "name": "Hole alle Vorgaenge",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge"
+        },
+        "filters": {
+          "conditions": []
+        },
+        "returnAll": true
+      }
+    },
+    {
+      "id": "n3",
+      "name": "Berechne fehlende Vorlagen-Metadaten",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Einmaliger Nachtrag 2026-07-30: berechnet vorlageDatumPdf/vorlageDatum/verfasser/fachdienst\n// fuer alle Zeilen neu, die diese Felder durch den full-row-overwrite-Bug (siehe Fix vom\n// 2026-07-30) verloren haben. Identische Extraktionslogik wie P3 \"NC Aggregiere Texte\" /\n// der urspruengliche Backfill vom 2026-07-28, angewandt auf das aktuell gespeicherte\n// combinedText (auch wenn das inzwischen im P4-Format vorliegt, enthaelt es denselben\n// Dokumentkopf). Gibt NUR Zeilen aus, bei denen tatsaechlich ein neues Datum gefunden wurde,\n// als VOLLSTAENDIGE Zeile (alle Spalten), damit der nachfolgende Update-Node keine anderen\n// Spalten durch sein defineBelow-Mapping loescht.\n\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nfunction extractVorlagenMeta(text) {\n  const t = safeStr(text);\n  const verfasserMatch = t.match(/([^\\n]+)\\n\\s*Verfasser\\/in/);\n  const datumMatch = t.match(/Stadt Goslar Goslar,\\s*(\\d{1,2})\\.(\\d{1,2})\\.(\\d{4})/);\n  let fachdienst = '';\n  if (datumMatch) {\n    const rest = t.slice(datumMatch.index + datumMatch[0].length);\n    const fdMatch = rest.match(/^\\s*\\n([^\\n]+)\\n/);\n    if (fdMatch) fachdienst = fdMatch[1].trim();\n  }\n  const vorlageDatumPdf = datumMatch\n    ? `${datumMatch[3]}-${datumMatch[2].padStart(2, '0')}-${datumMatch[1].padStart(2, '0')}`\n    : '';\n  return { verfasser: verfasserMatch ? verfasserMatch[1].trim() : '', fachdienst, vorlageDatumPdf };\n}\n\nconst out = [];\nfor (const item of items) {\n  const j = item.json || {};\n  if (safeStr(j.vorlageDatum)) continue; // schon gesetzt, nicht anfassen\n  if (!safeStr(j.combinedText)) continue; // nichts zu extrahieren\n  const meta = extractVorlagenMeta(j.combinedText);\n  if (!meta.vorlageDatumPdf) continue; // Muster nicht gefunden\n  out.push({\n    json: {\n      ...j,\n      verfasser: meta.verfasser,\n      fachdienst: meta.fachdienst,\n      vorlageDatumPdf: meta.vorlageDatumPdf,\n      vorlageDatum: meta.vorlageDatumPdf\n    }\n  });\n}\nreturn out;"
+      }
+    },
+    {
+      "id": "n4",
+      "name": "Schreibe Zeile (vollstaendig)",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "vorgangKey": "={{ $json.vorgangKey }}",
+            "volfdnr": "={{ $json.volfdnr }}",
+            "title": "={{ $json.title }}",
+            "sourceUrl": "={{ $json.sourceUrl }}",
+            "allrisUrl": "={{ $json.allrisUrl }}",
+            "vorgangsnummer": "={{ $json.vorgangsnummer }}",
+            "firstseen": "={{ $json.firstseen }}",
+            "lastseen": "={{ $json.lastseen }}",
+            "relevantScore": "={{ $json.relevantScore }}",
+            "themes": "={{ $json.themes }}",
+            "vorfilterThemen": "={{ $json.vorfilterThemen }}",
+            "vorfilterKeywords": "={{ $json.vorfilterKeywords }}",
+            "vorfilterScore": "={{ $json.vorfilterScore }}",
+            "nextcloudFolder": "={{ $json.nextcloudFolder }}",
+            "documentsJson": "={{ $json.documentsJson }}",
+            "documentCount": "={{ $json.documentCount }}",
+            "combinedText": "={{ $json.combinedText }}",
+            "summaryJson": "={{ $json.summaryJson }}",
+            "summaryText": "={{ $json.summaryText }}",
+            "summarySentences": "={{ $json.summarySentences }}",
+            "summaryCreatedAt": "={{ $json.summaryCreatedAt }}",
+            "summaryPosted": "={{ $json.summaryPosted }}",
+            "summaryRoomPostedAt": "={{ $json.summaryRoomPostedAt }}",
+            "thema": "={{ $json.thema }}",
+            "betroffene": "={{ $json.betroffene }}",
+            "kostenHaushalt": "={{ $json.kostenHaushalt }}",
+            "buergerwirkung": "={{ $json.buergerwirkung }}",
+            "offenePunkte": "={{ $json.offenePunkte }}",
+            "unsicherheitenSummary": "={{ $json.unsicherheitenSummary }}",
+            "analysisJson": "={{ $json.analysisJson }}",
+            "contentJson": "={{ $json.contentJson }}",
+            "visualJson": "={{ $json.visualJson }}",
+            "sprengstoff": "={{ $json.sprengstoff }}",
+            "empfehlung": "={{ $json.empfehlung }}",
+            "kommunikationspotenzial": "={{ $json.kommunikationspotenzial }}",
+            "matrixKurzbetreff": "={{ $json.matrixKurzbetreff }}",
+            "ampel": "={{ $json.ampel }}",
+            "kurzfassung": "={{ $json.kurzfassung }}",
+            "kritischeNachfrage": "={{ $json.kritischeNachfrage }}",
+            "begruendungBewertung": "={{ $json.begruendungBewertung }}",
+            "werProfitiert": "={{ $json.werProfitiert }}",
+            "werZahltOderTraegtNachteile": "={{ $json.werZahltOderTraegtNachteile }}",
+            "warumRelevant": "={{ $json.warumRelevant }}",
+            "belegbareFakten": "={{ $json.belegbareFakten }}",
+            "unsicherheiten": "={{ $json.unsicherheiten }}",
+            "warnsignale": "={{ $json.warnsignale }}",
+            "instagramCarouselNoetig": "={{ $json.instagramCarouselNoetig }}",
+            "lastAnalysisAt": "={{ $json.lastAnalysisAt }}",
+            "rawAiText": "={{ $json.rawAiText }}",
+            "instagramCaption": "={{ $json.instagramCaption }}",
+            "imageHeadline": "={{ $json.imageHeadline }}",
+            "imageSubline": "={{ $json.imageSubline }}",
+            "imagePrompt": "={{ $json.imagePrompt }}",
+            "imageNegativePrompt": "={{ $json.imageNegativePrompt }}",
+            "websiteHeadline": "={{ $json.websiteHeadline }}",
+            "websiteArticle": "={{ $json.websiteArticle }}",
+            "facebookPost": "={{ $json.facebookPost }}",
+            "pressStatement": "={{ $json.pressStatement }}",
+            "contentCreatedAt": "={{ $json.contentCreatedAt }}",
+            "textExtractionStatus": "={{ $json.textExtractionStatus }}",
+            "textExtractionSource": "={{ $json.textExtractionSource }}",
+            "textExtractedAt": "={{ $json.textExtractedAt }}",
+            "documentsTextJson": "={{ $json.documentsTextJson }}",
+            "extractedDocumentCount": "={{ $json.extractedDocumentCount }}",
+            "failedExtractionCount": "={{ $json.failedExtractionCount }}",
+            "textExtractionError": "={{ $json.textExtractionError }}",
+            "visualDecisionReason": "={{ $json.visualDecisionReason }}",
+            "visualNeeded": "={{ $json.visualNeeded }}",
+            "instagramSharepicNoetig": "={{ $json.instagramSharepicNoetig }}",
+            "imageSmallNote": "={{ $json.imageSmallNote }}",
+            "altText": "={{ $json.altText }}",
+            "imageFinalPath": "={{ $json.imageFinalPath }}",
+            "imageCreatedAt": "={{ $json.imageCreatedAt }}",
+            "imageWorkflowVersion": "={{ $json.imageWorkflowVersion }}",
+            "satireBrief": "={{ $json.satireBrief }}",
+            "satirePunchlines": "={{ $json.satirePunchlines }}",
+            "satireAngle": "={{ $json.satireAngle }}",
+            "visualMetaphor": "={{ $json.visualMetaphor }}",
+            "satireTarget": "={{ $json.satireTarget }}",
+            "satireIntensity": "={{ $json.satireIntensity }}",
+            "satireDoNotClaim": "={{ $json.satireDoNotClaim }}",
+            "satireSafetyNote": "={{ $json.satireSafetyNote }}",
+            "satireWorkflowVersion": "={{ $json.satireWorkflowVersion }}",
+            "stammVorgangsnummer": "={{ $json.stammVorgangsnummer }}",
+            "folgeNummer": "={{ $json.folgeNummer }}",
+            "istFolgevorgang": "={{ $json.istFolgevorgang }}",
+            "wordpressPosted": "={{ $json.wordpressPosted }}",
+            "wordpressPostId": "={{ $json.wordpressPostId }}",
+            "wordpressPostLink": "={{ $json.wordpressPostLink }}",
+            "wordpressPostedAt": "={{ $json.wordpressPostedAt }}",
+            "wordpressSlug": "={{ $json.wordpressSlug }}",
+            "relatedWordpressPostsJson": "={{ $json.relatedWordpressPostsJson }}",
+            "relatedCheckedAt": "={{ $json.relatedCheckedAt }}",
+            "nextcloudRetryCount": "={{ $json.nextcloudRetryCount }}",
+            "paperlessBackfilledAt": "={{ $json.paperlessBackfilledAt }}",
+            "qaVerdictJson": "={{ $json.qaVerdictJson }}",
+            "qaCheckedAt": "={{ $json.qaCheckedAt }}",
+            "qaPassed": "={{ $json.qaPassed }}",
+            "faktenAgentJson": "={{ $json.faktenAgentJson }}",
+            "faktenComparisonJson": "={{ $json.faktenComparisonJson }}",
+            "satireAgentJson": "={{ $json.satireAgentJson }}",
+            "contentStage": "={{ $json.contentStage }}",
+            "contentErrorReason": "={{ $json.contentErrorReason }}",
+            "visualStage": "={{ $json.visualStage }}",
+            "imageStage": "={{ $json.imageStage }}",
+            "visualForceReset": "={{ $json.visualForceReset }}",
+            "imageForceReset": "={{ $json.imageForceReset }}",
+            "visualBlockNotifiedReason": "={{ $json.visualBlockNotifiedReason }}",
+            "headlineChoiceStage": "={{ $json.headlineChoiceStage }}",
+            "sharepicNeedStage": "={{ $json.sharepicNeedStage }}",
+            "visualPromptStage": "={{ $json.visualPromptStage }}",
+            "summaryMarkdownUploadedAt": "={{ $json.summaryMarkdownUploadedAt }}",
+            "judgmentChainProcessedAt": "={{ $json.judgmentChainProcessedAt }}",
+            "eignungsAgentJson": "={{ $json.eignungsAgentJson }}",
+            "wordpressGoslarPosted": "={{ $json.wordpressGoslarPosted }}",
+            "wordpressGoslarPostedAt": "={{ $json.wordpressGoslarPostedAt }}",
+            "wordpressGoslarPostId": "={{ $json.wordpressGoslarPostId }}",
+            "wordpressGoslarError": "={{ $json.wordpressGoslarError }}",
+            "absurdeForderung": "={{ $json.absurdeForderung }}",
+            "last_error_code": "={{ $json.last_error_code }}",
+            "last_error_message": "={{ $json.last_error_message }}",
+            "last_error_stage": "={{ $json.last_error_stage }}",
+            "last_error_at": "={{ $json.last_error_at }}",
+            "retry_count": "={{ $json.retry_count }}",
+            "next_retry_at": "={{ $json.next_retry_at }}",
+            "claim_owner": "={{ $json.claim_owner }}",
+            "claim_stage": "={{ $json.claim_stage }}",
+            "claim_acquired_at": "={{ $json.claim_acquired_at }}",
+            "claim_expires_at": "={{ $json.claim_expires_at }}",
+            "mastodonPosted": "={{ $json.mastodonPosted }}",
+            "mastodonPostedAt": "={{ $json.mastodonPostedAt }}",
+            "mastodonPostUrl": "={{ $json.mastodonPostUrl }}",
+            "mastodonError": "={{ $json.mastodonError }}",
+            "facebookHashtags": "={{ $json.facebookHashtags }}",
+            "instagramHashtags": "={{ $json.instagramHashtags }}",
+            "websiteTags": "={{ $json.websiteTags }}",
+            "wordpressGoslarPostLink": "={{ $json.wordpressGoslarPostLink }}",
+            "wordpressGoslarImageUrl": "={{ $json.wordpressGoslarImageUrl }}",
+            "instagramPosted": "={{ $json.instagramPosted }}",
+            "instagramPostedAt": "={{ $json.instagramPostedAt }}",
+            "instagramPostId": "={{ $json.instagramPostId }}",
+            "instagramPostLink": "={{ $json.instagramPostLink }}",
+            "wordpressGoslarDraftId": "={{ $json.wordpressGoslarDraftId }}",
+            "wordpressGoslarDraftCreatedAt": "={{ $json.wordpressGoslarDraftCreatedAt }}",
+            "vorlageDatumWeb": "={{ $json.vorlageDatumWeb }}",
+            "vorlageDatumPdf": "={{ $json.vorlageDatumPdf }}",
+            "vorlageDatum": "={{ $json.vorlageDatum }}",
+            "verfasser": "={{ $json.verfasser }}",
+            "fachdienst": "={{ $json.fachdienst }}"
+          },
+          "matchingColumns": [
+            "vorgangKey"
+          ],
+          "schema": [
+            {
+              "id": "vorgangKey",
+              "displayName": "vorgangKey",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "volfdnr",
+              "displayName": "volfdnr",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "sourceUrl",
+              "displayName": "sourceUrl",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "allrisUrl",
+              "displayName": "allrisUrl",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorgangsnummer",
+              "displayName": "vorgangsnummer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "firstseen",
+              "displayName": "firstseen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "lastseen",
+              "displayName": "lastseen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "relevantScore",
+              "displayName": "relevantScore",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "themes",
+              "displayName": "themes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorfilterThemen",
+              "displayName": "vorfilterThemen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorfilterKeywords",
+              "displayName": "vorfilterKeywords",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorfilterScore",
+              "displayName": "vorfilterScore",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "nextcloudFolder",
+              "displayName": "nextcloudFolder",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "documentsJson",
+              "displayName": "documentsJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "documentCount",
+              "displayName": "documentCount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "combinedText",
+              "displayName": "combinedText",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "summaryJson",
+              "displayName": "summaryJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "summaryText",
+              "displayName": "summaryText",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "summarySentences",
+              "displayName": "summarySentences",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "summaryCreatedAt",
+              "displayName": "summaryCreatedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "summaryPosted",
+              "displayName": "summaryPosted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "summaryRoomPostedAt",
+              "displayName": "summaryRoomPostedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "thema",
+              "displayName": "thema",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "betroffene",
+              "displayName": "betroffene",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "kostenHaushalt",
+              "displayName": "kostenHaushalt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "buergerwirkung",
+              "displayName": "buergerwirkung",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "offenePunkte",
+              "displayName": "offenePunkte",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "unsicherheitenSummary",
+              "displayName": "unsicherheitenSummary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "analysisJson",
+              "displayName": "analysisJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "contentJson",
+              "displayName": "contentJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "visualJson",
+              "displayName": "visualJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "sprengstoff",
+              "displayName": "sprengstoff",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "empfehlung",
+              "displayName": "empfehlung",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "kommunikationspotenzial",
+              "displayName": "kommunikationspotenzial",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "matrixKurzbetreff",
+              "displayName": "matrixKurzbetreff",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "ampel",
+              "displayName": "ampel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "kurzfassung",
+              "displayName": "kurzfassung",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "kritischeNachfrage",
+              "displayName": "kritischeNachfrage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "begruendungBewertung",
+              "displayName": "begruendungBewertung",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "werProfitiert",
+              "displayName": "werProfitiert",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "werZahltOderTraegtNachteile",
+              "displayName": "werZahltOderTraegtNachteile",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "warumRelevant",
+              "displayName": "warumRelevant",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "belegbareFakten",
+              "displayName": "belegbareFakten",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "unsicherheiten",
+              "displayName": "unsicherheiten",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "warnsignale",
+              "displayName": "warnsignale",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "instagramCarouselNoetig",
+              "displayName": "instagramCarouselNoetig",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "lastAnalysisAt",
+              "displayName": "lastAnalysisAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "rawAiText",
+              "displayName": "rawAiText",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "instagramCaption",
+              "displayName": "instagramCaption",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imageHeadline",
+              "displayName": "imageHeadline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imageSubline",
+              "displayName": "imageSubline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imagePrompt",
+              "displayName": "imagePrompt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imageNegativePrompt",
+              "displayName": "imageNegativePrompt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "websiteHeadline",
+              "displayName": "websiteHeadline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "websiteArticle",
+              "displayName": "websiteArticle",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "facebookPost",
+              "displayName": "facebookPost",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "pressStatement",
+              "displayName": "pressStatement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "contentCreatedAt",
+              "displayName": "contentCreatedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "textExtractionStatus",
+              "displayName": "textExtractionStatus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "textExtractionSource",
+              "displayName": "textExtractionSource",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "textExtractedAt",
+              "displayName": "textExtractedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "documentsTextJson",
+              "displayName": "documentsTextJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "extractedDocumentCount",
+              "displayName": "extractedDocumentCount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "failedExtractionCount",
+              "displayName": "failedExtractionCount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "textExtractionError",
+              "displayName": "textExtractionError",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "visualDecisionReason",
+              "displayName": "visualDecisionReason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "visualNeeded",
+              "displayName": "visualNeeded",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "instagramSharepicNoetig",
+              "displayName": "instagramSharepicNoetig",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imageSmallNote",
+              "displayName": "imageSmallNote",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "altText",
+              "displayName": "altText",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imageFinalPath",
+              "displayName": "imageFinalPath",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imageCreatedAt",
+              "displayName": "imageCreatedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imageWorkflowVersion",
+              "displayName": "imageWorkflowVersion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "satireBrief",
+              "displayName": "satireBrief",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "satirePunchlines",
+              "displayName": "satirePunchlines",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "satireAngle",
+              "displayName": "satireAngle",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "visualMetaphor",
+              "displayName": "visualMetaphor",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "satireTarget",
+              "displayName": "satireTarget",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "satireIntensity",
+              "displayName": "satireIntensity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "satireDoNotClaim",
+              "displayName": "satireDoNotClaim",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "satireSafetyNote",
+              "displayName": "satireSafetyNote",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "satireWorkflowVersion",
+              "displayName": "satireWorkflowVersion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "stammVorgangsnummer",
+              "displayName": "stammVorgangsnummer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "folgeNummer",
+              "displayName": "folgeNummer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "istFolgevorgang",
+              "displayName": "istFolgevorgang",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wordpressPosted",
+              "displayName": "wordpressPosted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wordpressPostId",
+              "displayName": "wordpressPostId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wordpressPostLink",
+              "displayName": "wordpressPostLink",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wordpressPostedAt",
+              "displayName": "wordpressPostedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wordpressSlug",
+              "displayName": "wordpressSlug",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "relatedWordpressPostsJson",
+              "displayName": "relatedWordpressPostsJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "relatedCheckedAt",
+              "displayName": "relatedCheckedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "nextcloudRetryCount",
+              "displayName": "nextcloudRetryCount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "paperlessBackfilledAt",
+              "displayName": "paperlessBackfilledAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "qaVerdictJson",
+              "displayName": "qaVerdictJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "qaCheckedAt",
+              "displayName": "qaCheckedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "qaPassed",
+              "displayName": "qaPassed",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "faktenAgentJson",
+              "displayName": "faktenAgentJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "faktenComparisonJson",
+              "displayName": "faktenComparisonJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "satireAgentJson",
+              "displayName": "satireAgentJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "contentStage",
+              "displayName": "contentStage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "contentErrorReason",
+              "displayName": "contentErrorReason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "visualStage",
+              "displayName": "visualStage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imageStage",
+              "displayName": "imageStage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "visualForceReset",
+              "displayName": "visualForceReset",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imageForceReset",
+              "displayName": "imageForceReset",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "visualBlockNotifiedReason",
+              "displayName": "visualBlockNotifiedReason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "headlineChoiceStage",
+              "displayName": "headlineChoiceStage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "sharepicNeedStage",
+              "displayName": "sharepicNeedStage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "visualPromptStage",
+              "displayName": "visualPromptStage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "summaryMarkdownUploadedAt",
+              "displayName": "summaryMarkdownUploadedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "judgmentChainProcessedAt",
+              "displayName": "judgmentChainProcessedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "eignungsAgentJson",
+              "displayName": "eignungsAgentJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wordpressGoslarPosted",
+              "displayName": "wordpressGoslarPosted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wordpressGoslarPostedAt",
+              "displayName": "wordpressGoslarPostedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wordpressGoslarPostId",
+              "displayName": "wordpressGoslarPostId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wordpressGoslarError",
+              "displayName": "wordpressGoslarError",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "absurdeForderung",
+              "displayName": "absurdeForderung",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "last_error_code",
+              "displayName": "last_error_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "last_error_message",
+              "displayName": "last_error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "last_error_stage",
+              "displayName": "last_error_stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "last_error_at",
+              "displayName": "last_error_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "retry_count",
+              "displayName": "retry_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "next_retry_at",
+              "displayName": "next_retry_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "claim_owner",
+              "displayName": "claim_owner",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "claim_stage",
+              "displayName": "claim_stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "claim_acquired_at",
+              "displayName": "claim_acquired_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "claim_expires_at",
+              "displayName": "claim_expires_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "mastodonPosted",
+              "displayName": "mastodonPosted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "mastodonPostedAt",
+              "displayName": "mastodonPostedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "mastodonPostUrl",
+              "displayName": "mastodonPostUrl",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "mastodonError",
+              "displayName": "mastodonError",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "facebookHashtags",
+              "displayName": "facebookHashtags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "instagramHashtags",
+              "displayName": "instagramHashtags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "websiteTags",
+              "displayName": "websiteTags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wordpressGoslarPostLink",
+              "displayName": "wordpressGoslarPostLink",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wordpressGoslarImageUrl",
+              "displayName": "wordpressGoslarImageUrl",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "instagramPosted",
+              "displayName": "instagramPosted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "instagramPostedAt",
+              "displayName": "instagramPostedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "instagramPostId",
+              "displayName": "instagramPostId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "instagramPostLink",
+              "displayName": "instagramPostLink",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wordpressGoslarDraftId",
+              "displayName": "wordpressGoslarDraftId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wordpressGoslarDraftCreatedAt",
+              "displayName": "wordpressGoslarDraftCreatedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatumWeb",
+              "displayName": "vorlageDatumWeb",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatumPdf",
+              "displayName": "vorlageDatumPdf",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatum",
+              "displayName": "vorlageDatum",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "verfasser",
+              "displayName": "verfasser",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "fachdienst",
+              "displayName": "fachdienst",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ]
+        },
+        "options": {}
+      }
+    }
+  ],
+  "pinData": null,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "versionId": "28a73c86-60a8-4ce9-bddf-bf5dc6cda67d"
+}
