@@ -1,0 +1,1609 @@
+﻿{
+    "updatedAt":  "2026-07-23T17:18:33.697Z",
+    "createdAt":  "2026-07-19T09:26:28.037Z",
+    "id":  "qyzpgoD4bfTI2ncf",
+    "name":  "ALLRIS_P3e_Kernbotschaft",
+    "description":  null,
+    "active":  true,
+    "isArchived":  false,
+    "nodes":  [
+                  {
+                      "parameters":  {
+                                         "rule":  {
+                                                      "interval":  [
+                                                                       {
+                                                                           "field":  "hours",
+                                                                           "hoursInterval":  5,
+                                                                           "triggerAtMinute":  33
+                                                                       }
+                                                                   ]
+                                                  }
+                                     },
+                      "id":  "2eae5e43-bcc7-4ab4-b3a7-23a105ef89bd",
+                      "name":  "Schedule Trigger",
+                      "type":  "n8n-nodes-base.scheduleTrigger",
+                      "typeVersion":  1.1,
+                      "position":  [
+                                       200,
+                                       1400
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "operation":  "get",
+                                         "dataTableId":  {
+                                                             "__rl":  true,
+                                                             "value":  "hBLqpqeVEojPpOJl",
+                                                             "mode":  "list",
+                                                             "cachedResultName":  "allris_vorgaenge",
+                                                             "cachedResultUrl":  "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+                                                         },
+                                         "returnAll":  true
+                                     },
+                      "id":  "b7bc8b30-0e7c-42d1-a681-6114b76883e0",
+                      "name":  "Hole alle Vorgaenge",
+                      "type":  "n8n-nodes-base.dataTable",
+                      "typeVersion":  1,
+                      "position":  [
+                                       440,
+                                       1400
+                                   ]
+                  },
+                  {
+                      "id":  "a888cb6f-a008-4df6-8754-1df8e1ab57de",
+                      "name":  "Filter Kernbotschaft-Kandidaten",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       680,
+                                       1400
+                                   ],
+                      "parameters":  {
+                                         "jsCode":  "function safeStr(v) { return v === null || v === undefined ? \u0027\u0027 : String(v).trim(); }\nconst items = $input.all();\nreturn items.filter(item =\u003e {\n  const j = item.json || {};\n  if (safeStr(j.sharepicNeedStage) !== \u0027topic_ok\u0027) return false;\n  const hcs = safeStr(j.headlineChoiceStage);\n  if (hcs \u0026\u0026 hcs !== \u0027needs_kernbotschaft\u0027) return false;\n  if (!safeStr(j.vorgangKey)) return false;\n  return true;\n});\n"
+                                     }
+                  },
+                  {
+                      "id":  "85cd82fc-1e21-4bc1-afd9-02c4f62ab9d1",
+                      "name":  "Sortiere Vorgaenge",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       920,
+                                       1400
+                                   ],
+                      "parameters":  {
+                                         "jsCode":  "function parseDate(v) { if (!v) return 0; const t = Date.parse(String(v)); return Number.isFinite(t) ? t : 0; }\nconst items = $input.all();\nitems.sort((a, b) =\u003e parseDate((a.json||{}).firstseen) - parseDate((b.json||{}).firstseen));\nreturn items;\n"
+                                     }
+                  },
+                  {
+                      "parameters":  {
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "cf1194b0-7035-4ee3-9788-8cf0f86ecf37",
+                      "name":  "Loop Vorgaenge",
+                      "type":  "n8n-nodes-base.splitInBatches",
+                      "typeVersion":  3,
+                      "position":  [
+                                       1160,
+                                       1400
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "mode":  "runOnceForEachItem",
+                                         "jsCode":  "function safeStr(v) { return v === null || v === undefined ? \u0027\u0027 : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === \u0027object\u0027 \u0026\u0026 !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p \u0026\u0026 typeof p === \u0027object\u0027 \u0026\u0026 !Array.isArray(p)) ? p : {}; }\n  catch (e) { return {}; }\n}\n\nconst fakten = parseObj($json.faktenAgentJson);\n\nreturn {\n  json: {\n    vorgangKey: $json.vorgangKey,\n    vorgangsnummer: safeStr(fakten.vorgangsnummer),\n    sourceTopic: fakten.sourceTopic,\n    sourceConflict: fakten.sourceConflict,\n    requiredTerms: fakten.requiredTerms,\n    requiredObjects: fakten.requiredObjects,\n    requiredAction: fakten.requiredAction,\n    affectedGroups: fakten.affectedGroups,\n    concreteNumbers: fakten.concreteNumbers,\n    responsibilities: fakten.responsibilities,\n    documentType: fakten.documentType,\n    quotesVerbatim: fakten.quotesVerbatim,\n    sprengstoff: $json.sprengstoff\n  }\n};"
+                                     },
+                      "id":  "e9d02437-6d1b-4421-ac73-ef732727490b",
+                      "name":  "Satire-Shadow: Baue Eingabe",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       1400,
+                                       1400
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "workflowId":  {
+                                                            "__rl":  true,
+                                                            "value":  "NO17q38BeKyS25LY",
+                                                            "mode":  "list",
+                                                            "cachedResultName":  "ALLRIS_Satire_Agent"
+                                                        },
+                                         "options":  {
+                                                         "waitForSubWorkflow":  true
+                                                     }
+                                     },
+                      "id":  "77ed4027-fa74-465d-811e-625f21e9d1f7",
+                      "name":  "Execute Workflow Satire-Agent (Shadow)",
+                      "type":  "n8n-nodes-base.executeWorkflow",
+                      "typeVersion":  1.2,
+                      "position":  [
+                                       1640,
+                                       1400
+                                   ],
+                      "alwaysOutputData":  true,
+                      "onError":  "continueRegularOutput"
+                  },
+                  {
+                      "parameters":  {
+                                         "mode":  "runOnceForEachItem",
+                                         "jsCode":  "function safeStr(v) { return v === null || v === undefined ? \u0027\u0027 : String(v).trim(); }\nfunction asArray(v) { return Array.isArray(v) ? v.filter(Boolean).map(safeStr) : []; }\n\nconst response = $json || {};\nconst original = $(\u0027Satire-Shadow: Baue Eingabe\u0027).itemMatching($itemIndex).json || {};\nconst hasVariants = Array.isArray(response.variants) \u0026\u0026 response.variants.length \u003e 0;\n// Sub-workflow returns a \u0027variants\u0027 array (even if empty) whenever it actually ran to completion;\n// its total absence means the Execute Workflow node\u0027s onError=continueRegularOutput caught a real throw.\nconst subWorkflowRan = Array.isArray(response.variants);\n\nconst result = hasVariants ? response : {\n  vorgangKey: safeStr(original.vorgangKey),\n  vorgangsnummer: safeStr(original.vorgangsnummer),\n  variants: [],\n  kernbotschaft: safeStr(response.kernbotschaft),\n  parseError: true,\n  callFailed: !subWorkflowRan,\n  variantsParseError: subWorkflowRan ? !!response.variantsParseError : null,\n  kernbotschaftParseError: subWorkflowRan ? !!response.kernbotschaftParseError : null\n};\n\nreturn {\n  json: {\n    vorgangKey: safeStr(original.vorgangKey) || safeStr(response.vorgangKey),\n    vorgangsnummer: safeStr(original.vorgangsnummer),\n    satireAgentJson: JSON.stringify(result),\n    sourceTopic: safeStr(original.sourceTopic),\n    requiredObjects: asArray(original.requiredObjects),\n    requiredAction: safeStr(original.requiredAction),\n    affectedGroups: asArray(original.affectedGroups)\n  }\n};"
+                                     },
+                      "id":  "768a5c39-2c8c-4432-a6d6-f4c9bdccd266",
+                      "name":  "Stelle Kontext nach Satire-Agent wieder her",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       1880,
+                                       1400
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "operation":  "update",
+                                         "dataTableId":  {
+                                                             "__rl":  true,
+                                                             "value":  "hBLqpqeVEojPpOJl",
+                                                             "mode":  "list",
+                                                             "cachedResultName":  "allris_vorgaenge",
+                                                             "cachedResultUrl":  "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+                                                         },
+                                         "filters":  {
+                                                         "conditions":  [
+                                                                            {
+                                                                                "keyName":  "vorgangKey",
+                                                                                "keyValue":  "={{ $json.vorgangKey }}"
+                                                                            }
+                                                                        ]
+                                                     },
+                                         "columns":  {
+                                                         "mappingMode":  "defineBelow",
+                                                         "value":  {
+                                                                       "satireAgentJson":  "={{ $json.satireAgentJson }}"
+                                                                   },
+                                                         "matchingColumns":  [
+
+                                                                             ],
+                                                         "schema":  [
+                                                                        {
+                                                                            "id":  "satireAgentJson",
+                                                                            "displayName":  "satireAgentJson",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "readOnly":  false,
+                                                                            "removed":  false
+                                                                        }
+                                                                    ],
+                                                         "attemptToConvertTypes":  false,
+                                                         "convertFieldsToString":  false
+                                                     },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "4e31c8a4-122f-44d7-bdcc-9a261f09a11d",
+                      "name":  "Speichere Satire-Agent Shadow",
+                      "type":  "n8n-nodes-base.dataTable",
+                      "typeVersion":  1.1,
+                      "position":  [
+                                       2120,
+                                       1220
+                                   ],
+                      "alwaysOutputData":  true,
+                      "onError":  "continueRegularOutput"
+                  },
+                  {
+                      "parameters":  {
+                                         "mode":  "runOnceForEachItem",
+                                         "jsCode":  "// Kernbotschaft-first Umbau 2026-07-19, erweitert 2026-07-20: Satire-Agent waehlt intern aus 3\n// Kernbotschaft-Kandidaten die staerkste aus (siehe ALLRIS_Satire_Agent.json), liefert dann 1\n// finale kernbotschaft + 5 Formulierungen DERSELBEN Aussage (nicht mehr unabhaengige\n// Angriffswinkel auf Formulierungs-Ebene). Es gibt daher\n// keinen \"Auto-Select fuer Text mehr - Text (P4) wartet komplett auf die Matrix-Bestaetigung,\n// siehe Verarbeite Eignungs-Entscheidung in P3d (contentStage=\u0027awaiting_kernbotschaft\u0027).\n// Die Umfrage zeigt die kernbotschaft sichtbar ueber den Formulierungs-Kandidaten, kein\n// \"(passt zum veroeffentlichten Text)\"-Hinweis mehr noetig, da noch nichts veroeffentlicht ist.\nfunction safeStr(v) { return v === null || v === undefined ? \u0027\u0027 : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === \u0027object\u0027 \u0026\u0026 !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p \u0026\u0026 typeof p === \u0027object\u0027 \u0026\u0026 !Array.isArray(p)) ? p : {}; }\n  catch (e) { return {}; }\n}\nfunction asArr(v) {\n  if (Array.isArray(v)) return v.filter(Boolean).map(safeStr);\n  if (typeof v === \u0027string\u0027 \u0026\u0026 v.trim()) { try { const p = JSON.parse(v); if (Array.isArray(p)) return p.filter(Boolean).map(safeStr); } catch (e) {} }\n  return [];\n}\n\nconst satire = parseObj($json.satireAgentJson);\nconst variants = Array.isArray(satire.variants) ? satire.variants : [];\nconst kernbotschaft = safeStr(satire.kernbotschaft);\nconst callFailed = !!satire.callFailed;\nconst variantsParseError = !!satire.variantsParseError;\nconst kernbotschaftParseError = !!satire.kernbotschaftParseError;\nconst faktenBase = $(\u0027Loop Vorgaenge\u0027).itemMatching($itemIndex).json || {};\nconst vorgangKey = safeStr($json.vorgangKey);\nconst vorgangsnummer = safeStr($json.vorgangsnummer);\nconst title = safeStr(faktenBase.title);\nconst vnCode = vorgangsnummer.replace(/[^0-9A-Za-z]+/g, \u0027-\u0027).replace(/^-+|-+$/g, \u0027\u0027);\n\nconst candidates = variants.slice(0, 5).map((v, i) =\u003e ({\n  code: (vnCode ? vnCode + \u0027-\u0027 : \u0027\u0027) + \u0027K\u0027 + (i + 1),\n  imageHeadline: safeStr(v.imageHeadline),\n  imageSubline: safeStr(v.imageSubline),\n  satireBrief: safeStr(v.satireBrief),\n  satireAngle: safeStr(v.satireAngle),\n  satirePunchlines: asArr(v.satirePunchlines),\n  satireTarget: safeStr(v.satireTarget),\n  satireIntensity: Number(v.satireIntensity) || 0,\n  satireDoNotClaim: asArr(v.satireDoNotClaim),\n  satireSafetyNote: safeStr(v.satireSafetyNote)\n})).filter(c =\u003e c.imageHeadline \u0026\u0026 c.imageSubline);\n\nconst postedAt = new Date().toISOString();\nconst visualJson = JSON.stringify({ kernbotschaft, headlineCandidates: candidates, candidatesPostedAt: postedAt });\n\nlet matrixMessage = \u0027\u0027;\nlet txnId = \u0027\u0027;\nlet shouldPost = candidates.length \u003e= 2 \u0026\u0026 !!kernbotschaft;\n\nif (shouldPost) {\n  const lines = [\u0027🎯 Kernbotschaft für \u0027 + vorgangsnummer + \u0027 – \u0027 + title, \u0027\u0027, kernbotschaft, \u0027\u0027, \u0027🎨 Formulierungen zur Auswahl:\u0027, \u0027\u0027];\n  for (const c of candidates) {\n    lines.push(c.code + \u0027: \u0027 + c.imageHeadline + \u0027 – \u0027 + c.imageSubline);\n    if (c.satireBrief) lines.push(\u0027   \u0027 + c.satireBrief);\n  }\n  lines.push(\u0027\u0027);\n  const exampleCode = candidates[0].code;\n  lines.push(\u0027Antworte mit dem gewünschten Code (z.B. \"\u0027 + exampleCode + \u0027\"), um Text UND Bild freizugeben, oder mit \"\u0027 + vnCode + \u0027-X\" für eine komplett neue Kernbotschaft. Vor deiner Antwort wird noch nichts veröffentlicht.\u0027);\n  matrixMessage = lines.join(\u0027\\n\u0027);\n  txnId = \u0027satire_hdl_\u0027 + Date.now() + \u0027_\u0027 + vorgangKey.replace(/[^a-zA-Z0-9]/g, \u0027\u0027).substring(0, 10);\n}\n\nreturn {\n  json: {\n    vorgangKey,\n    vorgangsnummer,\n    kernbotschaft,\n    visualJson,\n    headlineChoiceStage: shouldPost ? \u0027awaiting_headline_choice\u0027 : \u0027satire_agent_failed\u0027,\n    imageStage: \u0027not_started\u0027,\n    shouldPost,\n    matrixMessage,\n    txnId,\n    matrixSentOk: false,\n    matrixSendError: \u0027\u0027,\n    rawVariantCount: variants.length,\n    completeCandidateCount: candidates.length,\n    callFailed,\n    variantsParseError,\n    kernbotschaftParseError\n  }\n};\n"
+                                     },
+                      "id":  "9f0b2bef-fb70-4adb-8562-f9587ef5cd79",
+                      "name":  "Satire-Ergebnis: Baue Text-Auswahl + Umfrage",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       2360,
+                                       1400
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "conditions":  {
+                                                            "options":  {
+                                                                            "caseSensitive":  true,
+                                                                            "leftValue":  "",
+                                                                            "typeValidation":  "strict",
+                                                                            "version":  2
+                                                                        },
+                                                            "conditions":  [
+                                                                               {
+                                                                                   "id":  "should-post-check",
+                                                                                   "leftValue":  "={{ $json.shouldPost }}",
+                                                                                   "rightValue":  true,
+                                                                                   "operator":  {
+                                                                                                    "type":  "boolean",
+                                                                                                    "operation":  "equals"
+                                                                                                }
+                                                                               }
+                                                                           ],
+                                                            "combinator":  "and"
+                                                        },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "a897a9d7-1c4f-4dbe-8b44-0bcd0d35ad4c",
+                      "name":  "IF Umfrage noetig? (\u003e=2 Varianten)",
+                      "type":  "n8n-nodes-base.if",
+                      "typeVersion":  2.2,
+                      "position":  [
+                                       2600,
+                                       1400
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "method":  "PUT",
+                                         "url":  "=https://matrix.org/_matrix/client/v3/rooms/!COxTeLJyPszYlaHbIx:matrix.golietz.de/send/m.room.message/{{ $json.txnId }}",
+                                         "authentication":  "genericCredentialType",
+                                         "genericAuthType":  "httpHeaderAuth",
+                                         "sendHeaders":  true,
+                                         "headerParameters":  {
+                                                                  "parameters":  [
+                                                                                     {
+                                                                                         "name":  "Content-Type",
+                                                                                         "value":  "application/json"
+                                                                                     }
+                                                                                 ]
+                                                              },
+                                         "sendBody":  true,
+                                         "contentType":  "raw",
+                                         "rawContentType":  "application/json",
+                                         "body":  "={{ JSON.stringify({ msgtype: \u0027m.text\u0027, body: $json.matrixMessage }) }}",
+                                         "options":  {
+                                                         "timeout":  30000
+                                                     }
+                                     },
+                      "id":  "11b26f1d-3410-4304-a2ee-3202b7479e47",
+                      "name":  "Sende Satire-Varianten Matrix-Umfrage",
+                      "type":  "n8n-nodes-base.httpRequest",
+                      "typeVersion":  4.2,
+                      "position":  [
+                                       2840,
+                                       1220
+                                   ],
+                      "credentials":  {
+                                          "httpHeaderAuth":  {
+                                                                 "id":  "od1pN1F5wy2irSDs",
+                                                                 "name":  "Header Auth account"
+                                                             }
+                                      },
+                      "onError":  "continueRegularOutput"
+                  },
+                  {
+                      "parameters":  {
+                                         "mode":  "runOnceForEachItem",
+                                         "jsCode":  "// Stellt den Vorgangskontext nach dem Matrix-Versand wieder her (gleiches Muster wie\n// \u0027Stelle Kontext nach Matrix wieder her\u0027 in P5) - der HTTP-Node ersetzt das Item-JSON\n// durch die rohe Matrix-API-Antwort und wuerde sonst vorgangKey/satireBrief/visualJson usw. verlieren.\nconst response = $json || {};\nconst base = $(\u0027Satire-Ergebnis: Baue Text-Auswahl + Umfrage\u0027).itemMatching($itemIndex).json || {};\n\nconst hasError = !!(\n  response.error ||\n  response.errcode ||\n  (response.statusCode \u0026\u0026 Number(response.statusCode) \u003e= 400)\n);\nconst eventId = response.event_id || response.eventId || \u0027\u0027;\n\nreturn {\n  json: {\n    ...base,\n    matrixSentOk: !hasError \u0026\u0026 !!eventId,\n    matrixSendError: hasError ? (response.error || response.errcode || \u0027Matrix-Versand fehlgeschlagen\u0027) : \u0027\u0027\n  }\n};"
+                                     },
+                      "id":  "f5921512-b657-4d8a-97d0-052d73604211",
+                      "name":  "Stelle Kontext nach Satire-Umfrage wieder her",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       3080,
+                                       1220
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "mode":  "runOnceForEachItem",
+                                         "jsCode":  "// Satire-Agent lieferte weniger als 2 verwertbare Varianten (Parse-Fehler oder AI-Call\n// fehlgeschlagen) - keine Matrix-Umfrage moeglich, kein Bild-Kandidat verfuegbar.\n// Ohne diese Meldung wuerde die Zeile mit visualStage=\u0027satire_agent_failed\u0027 unbemerkt\n// liegen bleiben (P5 wartet auf \u0027headline_selected\u0027, das kommt nie). Gleiches\n// Alarmierungs-Muster wie \u0027Baue QA-Block Nachricht\u0027.\n// 2026-07-22: Grund-Text ist jetzt stufenspezifisch (Sub-Workflow-Absturz vs. Kernbotschaft-\n// Parse-Fehler vs. Varianten-Parse-Fehler vs. zu wenige vollstaendige Kandidaten) statt eines\n// einzigen generischen Satzes - vorher liessen sich diese 4 Ursachen nachtraeglich nicht mehr\n// unterscheiden, weil erfolgreiche Ausfuehrungen auf dieser Instanz nicht persistiert werden.\nfunction safeStr(v) { return v === null || v === undefined ? \u0027\u0027 : String(v).trim(); }\nfunction buildReason(j) {\n  if (j.callFailed) return \u0027AI-Sub-Workflow-Aufruf ist fehlgeschlagen (Ausnahme im Satire-Agent, z.B. Timeout/Rate-Limit).\u0027;\n  if (j.kernbotschaftParseError) return \u0027Kernbotschaft-Auswahl fehlgeschlagen (KI-Antwort liess sich nicht als JSON parsen oder lieferte keinen Kandidaten).\u0027;\n  if (j.variantsParseError) return \u0027Varianten-Generierung fehlgeschlagen (KI-Antwort liess sich nicht als JSON parsen).\u0027;\n  const raw = Number(j.rawVariantCount) || 0;\n  const complete = Number(j.completeCandidateCount) || 0;\n  if (raw \u003e 0 \u0026\u0026 complete \u003c 2) return raw + \u0027 Variante(n) generiert, aber nur \u0027 + complete + \u0027 mit vollstaendiger Headline+Subline (mindestens 2 noetig).\u0027;\n  return \u0027weniger als 2 verwertbare Varianten (Parse-Fehler oder AI-Call fehlgeschlagen).\u0027;\n}\n\nconst j = $json;\nreturn {\n  json: {\n    ...j,\n    txnId: \u0027satire-fail-\u0027 + Date.now() + \u0027-\u0027 + Math.random().toString(36).slice(2),\n    summaryMessage: \u0027⚠️ Satire-Agent fehlgeschlagen: Vorgang \u0027 + safeStr(j.vorgangsnummer) + \u0027 (\u0027 + safeStr(j.vorgangKey) + \u0027)\\n\u0027 +\n      \u0027Grund: \u0027 + buildReason(j) + \u0027\\n\u0027 +\n      \u0027Kein Bildvorschlag moeglich. Bitte in der Data Table pruefen und ggf. contentStage/visualStage manuell zuruecksetzen, um einen erneuten Versuch auszuloesen.\u0027\n  }\n};"
+                                     },
+                      "id":  "baf1461e-308e-433c-adc9-4224aeb06be6",
+                      "name":  "Baue Satire-Fehler Nachricht",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       3320,
+                                       1580
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "method":  "PUT",
+                                         "url":  "=https://matrix.org/_matrix/client/v3/rooms/!COxTeLJyPszYlaHbIx:matrix.golietz.de/send/m.room.message/{{ $json.txnId }}",
+                                         "authentication":  "genericCredentialType",
+                                         "genericAuthType":  "httpHeaderAuth",
+                                         "sendHeaders":  true,
+                                         "headerParameters":  {
+                                                                  "parameters":  [
+                                                                                     {
+                                                                                         "name":  "Content-Type",
+                                                                                         "value":  "application/json"
+                                                                                     }
+                                                                                 ]
+                                                              },
+                                         "sendBody":  true,
+                                         "contentType":  "raw",
+                                         "rawContentType":  "application/json",
+                                         "body":  "={{ JSON.stringify({ msgtype: \u0027m.text\u0027, body: $json.summaryMessage }) }}",
+                                         "options":  {
+                                                         "timeout":  30000
+                                                     }
+                                     },
+                      "id":  "ce45fb78-eaae-4e61-83aa-521bc18494b1",
+                      "name":  "Sende Satire-Fehler Matrix-Meldung",
+                      "type":  "n8n-nodes-base.httpRequest",
+                      "typeVersion":  4.2,
+                      "position":  [
+                                       3800,
+                                       1580
+                                   ],
+                      "credentials":  {
+                                          "httpHeaderAuth":  {
+                                                                 "id":  "od1pN1F5wy2irSDs",
+                                                                 "name":  "Header Auth account"
+                                                             }
+                                      },
+                      "onError":  "continueRegularOutput"
+                  },
+                  {
+                      "id":  "419a7cef-c483-43d5-8f01-19b2eb057f04",
+                      "name":  "Naechster Vorgang",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       4040,
+                                       1400
+                                   ],
+                      "parameters":  {
+                                         "jsCode":  "return [{ json: $input.item.json }];\n"
+                                     }
+                  },
+                  {
+                      "parameters":  {
+                                         "operation":  "update",
+                                         "dataTableId":  {
+                                                             "__rl":  true,
+                                                             "value":  "hBLqpqeVEojPpOJl",
+                                                             "mode":  "list",
+                                                             "cachedResultName":  "allris_vorgaenge",
+                                                             "cachedResultUrl":  "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+                                                         },
+                                         "filters":  {
+                                                         "conditions":  [
+                                                                            {
+                                                                                "keyName":  "vorgangKey",
+                                                                                "keyValue":  "={{ $json.vorgangKey }}"
+                                                                            }
+                                                                        ]
+                                                     },
+                                         "columns":  {
+                                                         "mappingMode":  "defineBelow",
+                                                         "value":  {
+                                                                       "headlineChoiceStage":  "={{ $json.headlineChoiceStage }}",
+                                                                       "visualJson":  "={{ $json.visualJson }}",
+                                                                       "imageStage":  "={{ $json.imageStage }}"
+                                                                   },
+                                                         "matchingColumns":  [
+
+                                                                             ],
+                                                         "schema":  [
+                                                                        {
+                                                                            "id":  "headlineChoiceStage",
+                                                                            "displayName":  "headlineChoiceStage",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "readOnly":  false,
+                                                                            "removed":  false
+                                                                        },
+                                                                        {
+                                                                            "id":  "visualJson",
+                                                                            "displayName":  "visualJson",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "readOnly":  false,
+                                                                            "removed":  false
+                                                                        },
+                                                                        {
+                                                                            "id":  "imageStage",
+                                                                            "displayName":  "imageStage",
+                                                                            "required":  false,
+                                                                            "defaultMatch":  false,
+                                                                            "display":  true,
+                                                                            "type":  "string",
+                                                                            "readOnly":  false,
+                                                                            "removed":  false
+                                                                        }
+                                                                    ],
+                                                         "attemptToConvertTypes":  false,
+                                                         "convertFieldsToString":  false
+                                                     },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "59b2f38e-2a83-40b3-a39b-0a3e9fa5f2fa",
+                      "name":  "Schreibe Satire-Ergebnis",
+                      "type":  "n8n-nodes-base.dataTable",
+                      "typeVersion":  1.1,
+                      "position":  [
+                                       3320,
+                                       1340
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "jsCode":  "const now = Date.now();\nconst owner = `ALLRIS_P3e_Kernbotschaft:${$execution.id}`;\nreturn items\n  .filter(item =\u003e {\n    const j = item.json || {};\n    const oldOwner = String(j.claim_owner || \u0027\u0027).trim();\n    const expires = Date.parse(String(j.claim_expires_at || \u0027\u0027));\n    return !oldOwner || !Number.isFinite(expires) || expires \u003c= now;\n  })\n  .map(item =\u003e ({ json: {\n    ...item.json,\n    claimAction: \u0027acquire\u0027,\n    claimOwner: owner,\n    claimStage: \u0027approval\u0027,\n    leaseMinutes: 30,\n    expectedClaimOwner: item.json.claim_owner ?? null,\n    expectedClaimExpiresAt: item.json.claim_expires_at ?? null\n  } }));"
+                                     },
+                      "id":  "f6071829-1111-4f60-8172-000000000001",
+                      "name":  "Bereite P3e Claims vor",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       680,
+                                       1160
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "workflowId":  {
+                                                            "__rl":  true,
+                                                            "value":  "D7cmBsy3exuOkBd9",
+                                                            "mode":  "list",
+                                                            "cachedResultName":  "ALLRIS_Claim_Lease"
+                                                        },
+                                         "options":  {
+                                                         "waitForSubWorkflow":  true
+                                                     }
+                                     },
+                      "id":  "f6071829-2222-4f60-8172-000000000002",
+                      "name":  "Erwerbe P3e Claim",
+                      "type":  "n8n-nodes-base.executeWorkflow",
+                      "typeVersion":  1.2,
+                      "position":  [
+                                       920,
+                                       1160
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "jsCode":  "return items.filter(item =\u003e item.json?.claimAcquired === true);"
+                                     },
+                      "id":  "f6071829-3333-4f60-8172-000000000003",
+                      "name":  "Nur bestaetigte P3e Claims",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       1160,
+                                       1160
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "jsCode":  "const vorgangKey = String($json.vorgangKey || \u0027\u0027).trim();\nif (!vorgangKey) throw new Error(\u0027[P3e Claim Release] vorgangKey fehlt.\u0027);\nreturn [{ json: { vorgangKey, claimAction: \u0027release\u0027, claimOwner: `ALLRIS_P3e_Kernbotschaft:${$execution.id}` } }];"
+                                     },
+                      "id":  "f6071829-4444-4f60-8172-000000000004",
+                      "name":  "Bereite P3e Claim-Freigabe vor",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       3560,
+                                       1340
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "workflowId":  {
+                                                            "__rl":  true,
+                                                            "value":  "D7cmBsy3exuOkBd9",
+                                                            "mode":  "list",
+                                                            "cachedResultName":  "ALLRIS_Claim_Lease"
+                                                        },
+                                         "options":  {
+                                                         "waitForSubWorkflow":  true
+                                                     }
+                                     },
+                      "id":  "f6071829-5555-4f60-8172-000000000005",
+                      "name":  "Release P3e Claim",
+                      "type":  "n8n-nodes-base.executeWorkflow",
+                      "typeVersion":  1.2,
+                      "position":  [
+                                       3800,
+                                       1340
+                                   ]
+                  }
+              ],
+    "connections":  {
+                        "Schedule Trigger":  {
+                                                 "main":  [
+                                                              [
+                                                                  {
+                                                                      "node":  "Hole alle Vorgaenge",
+                                                                      "type":  "main",
+                                                                      "index":  0
+                                                                  }
+                                                              ]
+                                                          ]
+                                             },
+                        "Hole alle Vorgaenge":  {
+                                                    "main":  [
+                                                                 [
+                                                                     {
+                                                                         "node":  "Filter Kernbotschaft-Kandidaten",
+                                                                         "type":  "main",
+                                                                         "index":  0
+                                                                     }
+                                                                 ]
+                                                             ]
+                                                },
+                        "Filter Kernbotschaft-Kandidaten":  {
+                                                                "main":  [
+                                                                             [
+                                                                                 {
+                                                                                     "node":  "Bereite P3e Claims vor",
+                                                                                     "type":  "main",
+                                                                                     "index":  0
+                                                                                 }
+                                                                             ]
+                                                                         ]
+                                                            },
+                        "Bereite P3e Claims vor":  {
+                                                       "main":  [
+                                                                    [
+                                                                        {
+                                                                            "node":  "Erwerbe P3e Claim",
+                                                                            "type":  "main",
+                                                                            "index":  0
+                                                                        }
+                                                                    ]
+                                                                ]
+                                                   },
+                        "Erwerbe P3e Claim":  {
+                                                  "main":  [
+                                                               [
+                                                                   {
+                                                                       "node":  "Nur bestaetigte P3e Claims",
+                                                                       "type":  "main",
+                                                                       "index":  0
+                                                                   }
+                                                               ]
+                                                           ]
+                                              },
+                        "Nur bestaetigte P3e Claims":  {
+                                                           "main":  [
+                                                                        [
+                                                                            {
+                                                                                "node":  "Sortiere Vorgaenge",
+                                                                                "type":  "main",
+                                                                                "index":  0
+                                                                            }
+                                                                        ]
+                                                                    ]
+                                                       },
+                        "Bereite P3e Claim-Freigabe vor":  {
+                                                               "main":  [
+                                                                            [
+                                                                                {
+                                                                                    "node":  "Release P3e Claim",
+                                                                                    "type":  "main",
+                                                                                    "index":  0
+                                                                                }
+                                                                            ]
+                                                                        ]
+                                                           },
+                        "Sortiere Vorgaenge":  {
+                                                   "main":  [
+                                                                [
+                                                                    {
+                                                                        "node":  "Loop Vorgaenge",
+                                                                        "type":  "main",
+                                                                        "index":  0
+                                                                    }
+                                                                ]
+                                                            ]
+                                               },
+                        "Loop Vorgaenge":  {
+                                               "main":  [
+                                                            [
+
+                                                            ],
+                                                            [
+                                                                {
+                                                                    "node":  "Satire-Shadow: Baue Eingabe",
+                                                                    "type":  "main",
+                                                                    "index":  0
+                                                                }
+                                                            ]
+                                                        ]
+                                           },
+                        "Satire-Shadow: Baue Eingabe":  {
+                                                            "main":  [
+                                                                         [
+                                                                             {
+                                                                                 "node":  "Execute Workflow Satire-Agent (Shadow)",
+                                                                                 "type":  "main",
+                                                                                 "index":  0
+                                                                             }
+                                                                         ]
+                                                                     ]
+                                                        },
+                        "Execute Workflow Satire-Agent (Shadow)":  {
+                                                                       "main":  [
+                                                                                    [
+                                                                                        {
+                                                                                            "node":  "Stelle Kontext nach Satire-Agent wieder her",
+                                                                                            "type":  "main",
+                                                                                            "index":  0
+                                                                                        }
+                                                                                    ]
+                                                                                ]
+                                                                   },
+                        "Stelle Kontext nach Satire-Agent wieder her":  {
+                                                                            "main":  [
+                                                                                         [
+                                                                                             {
+                                                                                                 "node":  "Speichere Satire-Agent Shadow",
+                                                                                                 "type":  "main",
+                                                                                                 "index":  0
+                                                                                             },
+                                                                                             {
+                                                                                                 "node":  "Satire-Ergebnis: Baue Text-Auswahl + Umfrage",
+                                                                                                 "type":  "main",
+                                                                                                 "index":  0
+                                                                                             }
+                                                                                         ]
+                                                                                     ]
+                                                                        },
+                        "Satire-Ergebnis: Baue Text-Auswahl + Umfrage":  {
+                                                                             "main":  [
+                                                                                          [
+                                                                                              {
+                                                                                                  "node":  "IF Umfrage noetig? (\u003e=2 Varianten)",
+                                                                                                  "type":  "main",
+                                                                                                  "index":  0
+                                                                                              }
+                                                                                          ]
+                                                                                      ]
+                                                                         },
+                        "IF Umfrage noetig? (\u003e=2 Varianten)":  {
+                                                                        "main":  [
+                                                                                     [
+                                                                                         {
+                                                                                             "node":  "Sende Satire-Varianten Matrix-Umfrage",
+                                                                                             "type":  "main",
+                                                                                             "index":  0
+                                                                                         }
+                                                                                     ],
+                                                                                     [
+                                                                                         {
+                                                                                             "node":  "Baue Satire-Fehler Nachricht",
+                                                                                             "type":  "main",
+                                                                                             "index":  0
+                                                                                         }
+                                                                                     ]
+                                                                                 ]
+                                                                    },
+                        "Sende Satire-Varianten Matrix-Umfrage":  {
+                                                                      "main":  [
+                                                                                   [
+                                                                                       {
+                                                                                           "node":  "Stelle Kontext nach Satire-Umfrage wieder her",
+                                                                                           "type":  "main",
+                                                                                           "index":  0
+                                                                                       }
+                                                                                   ]
+                                                                               ]
+                                                                  },
+                        "Stelle Kontext nach Satire-Umfrage wieder her":  {
+                                                                              "main":  [
+                                                                                           [
+                                                                                               {
+                                                                                                   "node":  "Schreibe Satire-Ergebnis",
+                                                                                                   "type":  "main",
+                                                                                                   "index":  0
+                                                                                               }
+                                                                                           ]
+                                                                                       ]
+                                                                          },
+                        "Baue Satire-Fehler Nachricht":  {
+                                                             "main":  [
+                                                                          [
+                                                                              {
+                                                                                  "node":  "Sende Satire-Fehler Matrix-Meldung",
+                                                                                  "type":  "main",
+                                                                                  "index":  0
+                                                                              }
+                                                                          ]
+                                                                      ]
+                                                         },
+                        "Sende Satire-Fehler Matrix-Meldung":  {
+                                                                   "main":  [
+                                                                                [
+                                                                                    {
+                                                                                        "node":  "Schreibe Satire-Ergebnis",
+                                                                                        "type":  "main",
+                                                                                        "index":  0
+                                                                                    }
+                                                                                ]
+                                                                            ]
+                                                               },
+                        "Naechster Vorgang":  {
+                                                  "main":  [
+                                                               [
+                                                                   {
+                                                                       "node":  "Loop Vorgaenge",
+                                                                       "type":  "main",
+                                                                       "index":  0
+                                                                   }
+                                                               ]
+                                                           ]
+                                              },
+                        "Schreibe Satire-Ergebnis":  {
+                                                         "main":  [
+                                                                      [
+                                                                          {
+                                                                              "node":  "Naechster Vorgang",
+                                                                              "type":  "main",
+                                                                              "index":  0
+                                                                          },
+                                                                          {
+                                                                              "node":  "Bereite P3e Claim-Freigabe vor",
+                                                                              "type":  "main",
+                                                                              "index":  0
+                                                                          }
+                                                                      ]
+                                                                  ]
+                                                     }
+                    },
+    "settings":  {
+                     "executionOrder":  "v1"
+                 },
+    "staticData":  {
+                       "node:Schedule Trigger":  {
+                                                     "recurrenceRules":  [
+                                                                             15
+                                                                         ]
+                                                 }
+                   },
+    "meta":  null,
+    "pinData":  null,
+    "versionId":  "c8e652d8-baf6-4614-ae33-2edebb518732",
+    "activeVersionId":  "c8e652d8-baf6-4614-ae33-2edebb518732",
+    "versionCounter":  48,
+    "triggerCount":  1,
+    "shared":  [
+                   {
+                       "updatedAt":  "2026-07-19T09:26:28.037Z",
+                       "createdAt":  "2026-07-19T09:26:28.037Z",
+                       "role":  "workflow:owner",
+                       "workflowId":  "qyzpgoD4bfTI2ncf",
+                       "projectId":  "CrnegVcMvlcRU0OP",
+                       "project":  {
+                                       "updatedAt":  "2026-05-23T11:38:39.411Z",
+                                       "createdAt":  "2026-05-23T11:33:40.374Z",
+                                       "id":  "CrnegVcMvlcRU0OP",
+                                       "name":  "Oliver Lietz \u003coliver.lietz@golietz.de\u003e",
+                                       "type":  "personal",
+                                       "icon":  null,
+                                       "description":  null,
+                                       "creatorId":  "66557ab1-dd68-4186-b616-ecaa8f1bea61"
+                                   }
+                   }
+               ],
+    "tags":  [
+
+             ],
+    "activeVersion":  {
+                          "updatedAt":  "2026-07-23T17:18:33.701Z",
+                          "createdAt":  "2026-07-23T17:18:33.701Z",
+                          "versionId":  "c8e652d8-baf6-4614-ae33-2edebb518732",
+                          "workflowId":  "qyzpgoD4bfTI2ncf",
+                          "nodes":  [
+                                        {
+                                            "parameters":  {
+                                                               "rule":  {
+                                                                            "interval":  [
+                                                                                             {
+                                                                                                 "field":  "hours",
+                                                                                                 "hoursInterval":  5,
+                                                                                                 "triggerAtMinute":  33
+                                                                                             }
+                                                                                         ]
+                                                                        }
+                                                           },
+                                            "id":  "2eae5e43-bcc7-4ab4-b3a7-23a105ef89bd",
+                                            "name":  "Schedule Trigger",
+                                            "type":  "n8n-nodes-base.scheduleTrigger",
+                                            "typeVersion":  1.1,
+                                            "position":  [
+                                                             200,
+                                                             1400
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "operation":  "get",
+                                                               "dataTableId":  {
+                                                                                   "__rl":  true,
+                                                                                   "value":  "hBLqpqeVEojPpOJl",
+                                                                                   "mode":  "list",
+                                                                                   "cachedResultName":  "allris_vorgaenge",
+                                                                                   "cachedResultUrl":  "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+                                                                               },
+                                                               "returnAll":  true
+                                                           },
+                                            "id":  "b7bc8b30-0e7c-42d1-a681-6114b76883e0",
+                                            "name":  "Hole alle Vorgaenge",
+                                            "type":  "n8n-nodes-base.dataTable",
+                                            "typeVersion":  1,
+                                            "position":  [
+                                                             440,
+                                                             1400
+                                                         ]
+                                        },
+                                        {
+                                            "id":  "a888cb6f-a008-4df6-8754-1df8e1ab57de",
+                                            "name":  "Filter Kernbotschaft-Kandidaten",
+                                            "type":  "n8n-nodes-base.code",
+                                            "typeVersion":  2,
+                                            "position":  [
+                                                             680,
+                                                             1400
+                                                         ],
+                                            "parameters":  {
+                                                               "jsCode":  "function safeStr(v) { return v === null || v === undefined ? \u0027\u0027 : String(v).trim(); }\nconst items = $input.all();\nreturn items.filter(item =\u003e {\n  const j = item.json || {};\n  if (safeStr(j.sharepicNeedStage) !== \u0027topic_ok\u0027) return false;\n  const hcs = safeStr(j.headlineChoiceStage);\n  if (hcs \u0026\u0026 hcs !== \u0027needs_kernbotschaft\u0027) return false;\n  if (!safeStr(j.vorgangKey)) return false;\n  return true;\n});\n"
+                                                           }
+                                        },
+                                        {
+                                            "id":  "85cd82fc-1e21-4bc1-afd9-02c4f62ab9d1",
+                                            "name":  "Sortiere Vorgaenge",
+                                            "type":  "n8n-nodes-base.code",
+                                            "typeVersion":  2,
+                                            "position":  [
+                                                             920,
+                                                             1400
+                                                         ],
+                                            "parameters":  {
+                                                               "jsCode":  "function parseDate(v) { if (!v) return 0; const t = Date.parse(String(v)); return Number.isFinite(t) ? t : 0; }\nconst items = $input.all();\nitems.sort((a, b) =\u003e parseDate((a.json||{}).firstseen) - parseDate((b.json||{}).firstseen));\nreturn items;\n"
+                                                           }
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "options":  {
+
+                                                                           }
+                                                           },
+                                            "id":  "cf1194b0-7035-4ee3-9788-8cf0f86ecf37",
+                                            "name":  "Loop Vorgaenge",
+                                            "type":  "n8n-nodes-base.splitInBatches",
+                                            "typeVersion":  3,
+                                            "position":  [
+                                                             1160,
+                                                             1400
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "mode":  "runOnceForEachItem",
+                                                               "jsCode":  "function safeStr(v) { return v === null || v === undefined ? \u0027\u0027 : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === \u0027object\u0027 \u0026\u0026 !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p \u0026\u0026 typeof p === \u0027object\u0027 \u0026\u0026 !Array.isArray(p)) ? p : {}; }\n  catch (e) { return {}; }\n}\n\nconst fakten = parseObj($json.faktenAgentJson);\n\nreturn {\n  json: {\n    vorgangKey: $json.vorgangKey,\n    vorgangsnummer: safeStr(fakten.vorgangsnummer),\n    sourceTopic: fakten.sourceTopic,\n    sourceConflict: fakten.sourceConflict,\n    requiredTerms: fakten.requiredTerms,\n    requiredObjects: fakten.requiredObjects,\n    requiredAction: fakten.requiredAction,\n    affectedGroups: fakten.affectedGroups,\n    concreteNumbers: fakten.concreteNumbers,\n    responsibilities: fakten.responsibilities,\n    documentType: fakten.documentType,\n    quotesVerbatim: fakten.quotesVerbatim,\n    sprengstoff: $json.sprengstoff\n  }\n};"
+                                                           },
+                                            "id":  "e9d02437-6d1b-4421-ac73-ef732727490b",
+                                            "name":  "Satire-Shadow: Baue Eingabe",
+                                            "type":  "n8n-nodes-base.code",
+                                            "typeVersion":  2,
+                                            "position":  [
+                                                             1400,
+                                                             1400
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "workflowId":  {
+                                                                                  "__rl":  true,
+                                                                                  "value":  "NO17q38BeKyS25LY",
+                                                                                  "mode":  "list",
+                                                                                  "cachedResultName":  "ALLRIS_Satire_Agent"
+                                                                              },
+                                                               "options":  {
+                                                                               "waitForSubWorkflow":  true
+                                                                           }
+                                                           },
+                                            "id":  "77ed4027-fa74-465d-811e-625f21e9d1f7",
+                                            "name":  "Execute Workflow Satire-Agent (Shadow)",
+                                            "type":  "n8n-nodes-base.executeWorkflow",
+                                            "typeVersion":  1.2,
+                                            "position":  [
+                                                             1640,
+                                                             1400
+                                                         ],
+                                            "alwaysOutputData":  true,
+                                            "onError":  "continueRegularOutput"
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "mode":  "runOnceForEachItem",
+                                                               "jsCode":  "function safeStr(v) { return v === null || v === undefined ? \u0027\u0027 : String(v).trim(); }\nfunction asArray(v) { return Array.isArray(v) ? v.filter(Boolean).map(safeStr) : []; }\n\nconst response = $json || {};\nconst original = $(\u0027Satire-Shadow: Baue Eingabe\u0027).itemMatching($itemIndex).json || {};\nconst hasVariants = Array.isArray(response.variants) \u0026\u0026 response.variants.length \u003e 0;\n// Sub-workflow returns a \u0027variants\u0027 array (even if empty) whenever it actually ran to completion;\n// its total absence means the Execute Workflow node\u0027s onError=continueRegularOutput caught a real throw.\nconst subWorkflowRan = Array.isArray(response.variants);\n\nconst result = hasVariants ? response : {\n  vorgangKey: safeStr(original.vorgangKey),\n  vorgangsnummer: safeStr(original.vorgangsnummer),\n  variants: [],\n  kernbotschaft: safeStr(response.kernbotschaft),\n  parseError: true,\n  callFailed: !subWorkflowRan,\n  variantsParseError: subWorkflowRan ? !!response.variantsParseError : null,\n  kernbotschaftParseError: subWorkflowRan ? !!response.kernbotschaftParseError : null\n};\n\nreturn {\n  json: {\n    vorgangKey: safeStr(original.vorgangKey) || safeStr(response.vorgangKey),\n    vorgangsnummer: safeStr(original.vorgangsnummer),\n    satireAgentJson: JSON.stringify(result),\n    sourceTopic: safeStr(original.sourceTopic),\n    requiredObjects: asArray(original.requiredObjects),\n    requiredAction: safeStr(original.requiredAction),\n    affectedGroups: asArray(original.affectedGroups)\n  }\n};"
+                                                           },
+                                            "id":  "768a5c39-2c8c-4432-a6d6-f4c9bdccd266",
+                                            "name":  "Stelle Kontext nach Satire-Agent wieder her",
+                                            "type":  "n8n-nodes-base.code",
+                                            "typeVersion":  2,
+                                            "position":  [
+                                                             1880,
+                                                             1400
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "operation":  "update",
+                                                               "dataTableId":  {
+                                                                                   "__rl":  true,
+                                                                                   "value":  "hBLqpqeVEojPpOJl",
+                                                                                   "mode":  "list",
+                                                                                   "cachedResultName":  "allris_vorgaenge",
+                                                                                   "cachedResultUrl":  "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+                                                                               },
+                                                               "filters":  {
+                                                                               "conditions":  [
+                                                                                                  {
+                                                                                                      "keyName":  "vorgangKey",
+                                                                                                      "keyValue":  "={{ $json.vorgangKey }}"
+                                                                                                  }
+                                                                                              ]
+                                                                           },
+                                                               "columns":  {
+                                                                               "mappingMode":  "defineBelow",
+                                                                               "value":  {
+                                                                                             "satireAgentJson":  "={{ $json.satireAgentJson }}"
+                                                                                         },
+                                                                               "matchingColumns":  [
+
+                                                                                                   ],
+                                                                               "schema":  [
+                                                                                              {
+                                                                                                  "id":  "satireAgentJson",
+                                                                                                  "displayName":  "satireAgentJson",
+                                                                                                  "required":  false,
+                                                                                                  "defaultMatch":  false,
+                                                                                                  "display":  true,
+                                                                                                  "type":  "string",
+                                                                                                  "readOnly":  false,
+                                                                                                  "removed":  false
+                                                                                              }
+                                                                                          ],
+                                                                               "attemptToConvertTypes":  false,
+                                                                               "convertFieldsToString":  false
+                                                                           },
+                                                               "options":  {
+
+                                                                           }
+                                                           },
+                                            "id":  "4e31c8a4-122f-44d7-bdcc-9a261f09a11d",
+                                            "name":  "Speichere Satire-Agent Shadow",
+                                            "type":  "n8n-nodes-base.dataTable",
+                                            "typeVersion":  1.1,
+                                            "position":  [
+                                                             2120,
+                                                             1220
+                                                         ],
+                                            "alwaysOutputData":  true,
+                                            "onError":  "continueRegularOutput"
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "mode":  "runOnceForEachItem",
+                                                               "jsCode":  "// Kernbotschaft-first Umbau 2026-07-19, erweitert 2026-07-20: Satire-Agent waehlt intern aus 3\n// Kernbotschaft-Kandidaten die staerkste aus (siehe ALLRIS_Satire_Agent.json), liefert dann 1\n// finale kernbotschaft + 5 Formulierungen DERSELBEN Aussage (nicht mehr unabhaengige\n// Angriffswinkel auf Formulierungs-Ebene). Es gibt daher\n// keinen \"Auto-Select fuer Text mehr - Text (P4) wartet komplett auf die Matrix-Bestaetigung,\n// siehe Verarbeite Eignungs-Entscheidung in P3d (contentStage=\u0027awaiting_kernbotschaft\u0027).\n// Die Umfrage zeigt die kernbotschaft sichtbar ueber den Formulierungs-Kandidaten, kein\n// \"(passt zum veroeffentlichten Text)\"-Hinweis mehr noetig, da noch nichts veroeffentlicht ist.\nfunction safeStr(v) { return v === null || v === undefined ? \u0027\u0027 : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === \u0027object\u0027 \u0026\u0026 !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p \u0026\u0026 typeof p === \u0027object\u0027 \u0026\u0026 !Array.isArray(p)) ? p : {}; }\n  catch (e) { return {}; }\n}\nfunction asArr(v) {\n  if (Array.isArray(v)) return v.filter(Boolean).map(safeStr);\n  if (typeof v === \u0027string\u0027 \u0026\u0026 v.trim()) { try { const p = JSON.parse(v); if (Array.isArray(p)) return p.filter(Boolean).map(safeStr); } catch (e) {} }\n  return [];\n}\n\nconst satire = parseObj($json.satireAgentJson);\nconst variants = Array.isArray(satire.variants) ? satire.variants : [];\nconst kernbotschaft = safeStr(satire.kernbotschaft);\nconst callFailed = !!satire.callFailed;\nconst variantsParseError = !!satire.variantsParseError;\nconst kernbotschaftParseError = !!satire.kernbotschaftParseError;\nconst faktenBase = $(\u0027Loop Vorgaenge\u0027).itemMatching($itemIndex).json || {};\nconst vorgangKey = safeStr($json.vorgangKey);\nconst vorgangsnummer = safeStr($json.vorgangsnummer);\nconst title = safeStr(faktenBase.title);\nconst vnCode = vorgangsnummer.replace(/[^0-9A-Za-z]+/g, \u0027-\u0027).replace(/^-+|-+$/g, \u0027\u0027);\n\nconst candidates = variants.slice(0, 5).map((v, i) =\u003e ({\n  code: (vnCode ? vnCode + \u0027-\u0027 : \u0027\u0027) + \u0027K\u0027 + (i + 1),\n  imageHeadline: safeStr(v.imageHeadline),\n  imageSubline: safeStr(v.imageSubline),\n  satireBrief: safeStr(v.satireBrief),\n  satireAngle: safeStr(v.satireAngle),\n  satirePunchlines: asArr(v.satirePunchlines),\n  satireTarget: safeStr(v.satireTarget),\n  satireIntensity: Number(v.satireIntensity) || 0,\n  satireDoNotClaim: asArr(v.satireDoNotClaim),\n  satireSafetyNote: safeStr(v.satireSafetyNote)\n})).filter(c =\u003e c.imageHeadline \u0026\u0026 c.imageSubline);\n\nconst postedAt = new Date().toISOString();\nconst visualJson = JSON.stringify({ kernbotschaft, headlineCandidates: candidates, candidatesPostedAt: postedAt });\n\nlet matrixMessage = \u0027\u0027;\nlet txnId = \u0027\u0027;\nlet shouldPost = candidates.length \u003e= 2 \u0026\u0026 !!kernbotschaft;\n\nif (shouldPost) {\n  const lines = [\u0027🎯 Kernbotschaft für \u0027 + vorgangsnummer + \u0027 – \u0027 + title, \u0027\u0027, kernbotschaft, \u0027\u0027, \u0027🎨 Formulierungen zur Auswahl:\u0027, \u0027\u0027];\n  for (const c of candidates) {\n    lines.push(c.code + \u0027: \u0027 + c.imageHeadline + \u0027 – \u0027 + c.imageSubline);\n    if (c.satireBrief) lines.push(\u0027   \u0027 + c.satireBrief);\n  }\n  lines.push(\u0027\u0027);\n  const exampleCode = candidates[0].code;\n  lines.push(\u0027Antworte mit dem gewünschten Code (z.B. \"\u0027 + exampleCode + \u0027\"), um Text UND Bild freizugeben, oder mit \"\u0027 + vnCode + \u0027-X\" für eine komplett neue Kernbotschaft. Vor deiner Antwort wird noch nichts veröffentlicht.\u0027);\n  matrixMessage = lines.join(\u0027\\n\u0027);\n  txnId = \u0027satire_hdl_\u0027 + Date.now() + \u0027_\u0027 + vorgangKey.replace(/[^a-zA-Z0-9]/g, \u0027\u0027).substring(0, 10);\n}\n\nreturn {\n  json: {\n    vorgangKey,\n    vorgangsnummer,\n    kernbotschaft,\n    visualJson,\n    headlineChoiceStage: shouldPost ? \u0027awaiting_headline_choice\u0027 : \u0027satire_agent_failed\u0027,\n    imageStage: \u0027not_started\u0027,\n    shouldPost,\n    matrixMessage,\n    txnId,\n    matrixSentOk: false,\n    matrixSendError: \u0027\u0027,\n    rawVariantCount: variants.length,\n    completeCandidateCount: candidates.length,\n    callFailed,\n    variantsParseError,\n    kernbotschaftParseError\n  }\n};\n"
+                                                           },
+                                            "id":  "9f0b2bef-fb70-4adb-8562-f9587ef5cd79",
+                                            "name":  "Satire-Ergebnis: Baue Text-Auswahl + Umfrage",
+                                            "type":  "n8n-nodes-base.code",
+                                            "typeVersion":  2,
+                                            "position":  [
+                                                             2360,
+                                                             1400
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "conditions":  {
+                                                                                  "options":  {
+                                                                                                  "caseSensitive":  true,
+                                                                                                  "leftValue":  "",
+                                                                                                  "typeValidation":  "strict",
+                                                                                                  "version":  2
+                                                                                              },
+                                                                                  "conditions":  [
+                                                                                                     {
+                                                                                                         "id":  "should-post-check",
+                                                                                                         "leftValue":  "={{ $json.shouldPost }}",
+                                                                                                         "rightValue":  true,
+                                                                                                         "operator":  {
+                                                                                                                          "type":  "boolean",
+                                                                                                                          "operation":  "equals"
+                                                                                                                      }
+                                                                                                     }
+                                                                                                 ],
+                                                                                  "combinator":  "and"
+                                                                              },
+                                                               "options":  {
+
+                                                                           }
+                                                           },
+                                            "id":  "a897a9d7-1c4f-4dbe-8b44-0bcd0d35ad4c",
+                                            "name":  "IF Umfrage noetig? (\u003e=2 Varianten)",
+                                            "type":  "n8n-nodes-base.if",
+                                            "typeVersion":  2.2,
+                                            "position":  [
+                                                             2600,
+                                                             1400
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "method":  "PUT",
+                                                               "url":  "=https://matrix.org/_matrix/client/v3/rooms/!COxTeLJyPszYlaHbIx:matrix.golietz.de/send/m.room.message/{{ $json.txnId }}",
+                                                               "authentication":  "genericCredentialType",
+                                                               "genericAuthType":  "httpHeaderAuth",
+                                                               "sendHeaders":  true,
+                                                               "headerParameters":  {
+                                                                                        "parameters":  [
+                                                                                                           {
+                                                                                                               "name":  "Content-Type",
+                                                                                                               "value":  "application/json"
+                                                                                                           }
+                                                                                                       ]
+                                                                                    },
+                                                               "sendBody":  true,
+                                                               "contentType":  "raw",
+                                                               "rawContentType":  "application/json",
+                                                               "body":  "={{ JSON.stringify({ msgtype: \u0027m.text\u0027, body: $json.matrixMessage }) }}",
+                                                               "options":  {
+                                                                               "timeout":  30000
+                                                                           }
+                                                           },
+                                            "id":  "11b26f1d-3410-4304-a2ee-3202b7479e47",
+                                            "name":  "Sende Satire-Varianten Matrix-Umfrage",
+                                            "type":  "n8n-nodes-base.httpRequest",
+                                            "typeVersion":  4.2,
+                                            "position":  [
+                                                             2840,
+                                                             1220
+                                                         ],
+                                            "credentials":  {
+                                                                "httpHeaderAuth":  {
+                                                                                       "id":  "od1pN1F5wy2irSDs",
+                                                                                       "name":  "Header Auth account"
+                                                                                   }
+                                                            },
+                                            "onError":  "continueRegularOutput"
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "mode":  "runOnceForEachItem",
+                                                               "jsCode":  "// Stellt den Vorgangskontext nach dem Matrix-Versand wieder her (gleiches Muster wie\n// \u0027Stelle Kontext nach Matrix wieder her\u0027 in P5) - der HTTP-Node ersetzt das Item-JSON\n// durch die rohe Matrix-API-Antwort und wuerde sonst vorgangKey/satireBrief/visualJson usw. verlieren.\nconst response = $json || {};\nconst base = $(\u0027Satire-Ergebnis: Baue Text-Auswahl + Umfrage\u0027).itemMatching($itemIndex).json || {};\n\nconst hasError = !!(\n  response.error ||\n  response.errcode ||\n  (response.statusCode \u0026\u0026 Number(response.statusCode) \u003e= 400)\n);\nconst eventId = response.event_id || response.eventId || \u0027\u0027;\n\nreturn {\n  json: {\n    ...base,\n    matrixSentOk: !hasError \u0026\u0026 !!eventId,\n    matrixSendError: hasError ? (response.error || response.errcode || \u0027Matrix-Versand fehlgeschlagen\u0027) : \u0027\u0027\n  }\n};"
+                                                           },
+                                            "id":  "f5921512-b657-4d8a-97d0-052d73604211",
+                                            "name":  "Stelle Kontext nach Satire-Umfrage wieder her",
+                                            "type":  "n8n-nodes-base.code",
+                                            "typeVersion":  2,
+                                            "position":  [
+                                                             3080,
+                                                             1220
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "mode":  "runOnceForEachItem",
+                                                               "jsCode":  "// Satire-Agent lieferte weniger als 2 verwertbare Varianten (Parse-Fehler oder AI-Call\n// fehlgeschlagen) - keine Matrix-Umfrage moeglich, kein Bild-Kandidat verfuegbar.\n// Ohne diese Meldung wuerde die Zeile mit visualStage=\u0027satire_agent_failed\u0027 unbemerkt\n// liegen bleiben (P5 wartet auf \u0027headline_selected\u0027, das kommt nie). Gleiches\n// Alarmierungs-Muster wie \u0027Baue QA-Block Nachricht\u0027.\n// 2026-07-22: Grund-Text ist jetzt stufenspezifisch (Sub-Workflow-Absturz vs. Kernbotschaft-\n// Parse-Fehler vs. Varianten-Parse-Fehler vs. zu wenige vollstaendige Kandidaten) statt eines\n// einzigen generischen Satzes - vorher liessen sich diese 4 Ursachen nachtraeglich nicht mehr\n// unterscheiden, weil erfolgreiche Ausfuehrungen auf dieser Instanz nicht persistiert werden.\nfunction safeStr(v) { return v === null || v === undefined ? \u0027\u0027 : String(v).trim(); }\nfunction buildReason(j) {\n  if (j.callFailed) return \u0027AI-Sub-Workflow-Aufruf ist fehlgeschlagen (Ausnahme im Satire-Agent, z.B. Timeout/Rate-Limit).\u0027;\n  if (j.kernbotschaftParseError) return \u0027Kernbotschaft-Auswahl fehlgeschlagen (KI-Antwort liess sich nicht als JSON parsen oder lieferte keinen Kandidaten).\u0027;\n  if (j.variantsParseError) return \u0027Varianten-Generierung fehlgeschlagen (KI-Antwort liess sich nicht als JSON parsen).\u0027;\n  const raw = Number(j.rawVariantCount) || 0;\n  const complete = Number(j.completeCandidateCount) || 0;\n  if (raw \u003e 0 \u0026\u0026 complete \u003c 2) return raw + \u0027 Variante(n) generiert, aber nur \u0027 + complete + \u0027 mit vollstaendiger Headline+Subline (mindestens 2 noetig).\u0027;\n  return \u0027weniger als 2 verwertbare Varianten (Parse-Fehler oder AI-Call fehlgeschlagen).\u0027;\n}\n\nconst j = $json;\nreturn {\n  json: {\n    ...j,\n    txnId: \u0027satire-fail-\u0027 + Date.now() + \u0027-\u0027 + Math.random().toString(36).slice(2),\n    summaryMessage: \u0027⚠️ Satire-Agent fehlgeschlagen: Vorgang \u0027 + safeStr(j.vorgangsnummer) + \u0027 (\u0027 + safeStr(j.vorgangKey) + \u0027)\\n\u0027 +\n      \u0027Grund: \u0027 + buildReason(j) + \u0027\\n\u0027 +\n      \u0027Kein Bildvorschlag moeglich. Bitte in der Data Table pruefen und ggf. contentStage/visualStage manuell zuruecksetzen, um einen erneuten Versuch auszuloesen.\u0027\n  }\n};"
+                                                           },
+                                            "id":  "baf1461e-308e-433c-adc9-4224aeb06be6",
+                                            "name":  "Baue Satire-Fehler Nachricht",
+                                            "type":  "n8n-nodes-base.code",
+                                            "typeVersion":  2,
+                                            "position":  [
+                                                             3320,
+                                                             1580
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "method":  "PUT",
+                                                               "url":  "=https://matrix.org/_matrix/client/v3/rooms/!COxTeLJyPszYlaHbIx:matrix.golietz.de/send/m.room.message/{{ $json.txnId }}",
+                                                               "authentication":  "genericCredentialType",
+                                                               "genericAuthType":  "httpHeaderAuth",
+                                                               "sendHeaders":  true,
+                                                               "headerParameters":  {
+                                                                                        "parameters":  [
+                                                                                                           {
+                                                                                                               "name":  "Content-Type",
+                                                                                                               "value":  "application/json"
+                                                                                                           }
+                                                                                                       ]
+                                                                                    },
+                                                               "sendBody":  true,
+                                                               "contentType":  "raw",
+                                                               "rawContentType":  "application/json",
+                                                               "body":  "={{ JSON.stringify({ msgtype: \u0027m.text\u0027, body: $json.summaryMessage }) }}",
+                                                               "options":  {
+                                                                               "timeout":  30000
+                                                                           }
+                                                           },
+                                            "id":  "ce45fb78-eaae-4e61-83aa-521bc18494b1",
+                                            "name":  "Sende Satire-Fehler Matrix-Meldung",
+                                            "type":  "n8n-nodes-base.httpRequest",
+                                            "typeVersion":  4.2,
+                                            "position":  [
+                                                             3800,
+                                                             1580
+                                                         ],
+                                            "credentials":  {
+                                                                "httpHeaderAuth":  {
+                                                                                       "id":  "od1pN1F5wy2irSDs",
+                                                                                       "name":  "Header Auth account"
+                                                                                   }
+                                                            },
+                                            "onError":  "continueRegularOutput"
+                                        },
+                                        {
+                                            "id":  "419a7cef-c483-43d5-8f01-19b2eb057f04",
+                                            "name":  "Naechster Vorgang",
+                                            "type":  "n8n-nodes-base.code",
+                                            "typeVersion":  2,
+                                            "position":  [
+                                                             4040,
+                                                             1400
+                                                         ],
+                                            "parameters":  {
+                                                               "jsCode":  "return [{ json: $input.item.json }];\n"
+                                                           }
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "operation":  "update",
+                                                               "dataTableId":  {
+                                                                                   "__rl":  true,
+                                                                                   "value":  "hBLqpqeVEojPpOJl",
+                                                                                   "mode":  "list",
+                                                                                   "cachedResultName":  "allris_vorgaenge",
+                                                                                   "cachedResultUrl":  "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+                                                                               },
+                                                               "filters":  {
+                                                                               "conditions":  [
+                                                                                                  {
+                                                                                                      "keyName":  "vorgangKey",
+                                                                                                      "keyValue":  "={{ $json.vorgangKey }}"
+                                                                                                  }
+                                                                                              ]
+                                                                           },
+                                                               "columns":  {
+                                                                               "mappingMode":  "defineBelow",
+                                                                               "value":  {
+                                                                                             "headlineChoiceStage":  "={{ $json.headlineChoiceStage }}",
+                                                                                             "visualJson":  "={{ $json.visualJson }}",
+                                                                                             "imageStage":  "={{ $json.imageStage }}"
+                                                                                         },
+                                                                               "matchingColumns":  [
+
+                                                                                                   ],
+                                                                               "schema":  [
+                                                                                              {
+                                                                                                  "id":  "headlineChoiceStage",
+                                                                                                  "displayName":  "headlineChoiceStage",
+                                                                                                  "required":  false,
+                                                                                                  "defaultMatch":  false,
+                                                                                                  "display":  true,
+                                                                                                  "type":  "string",
+                                                                                                  "readOnly":  false,
+                                                                                                  "removed":  false
+                                                                                              },
+                                                                                              {
+                                                                                                  "id":  "visualJson",
+                                                                                                  "displayName":  "visualJson",
+                                                                                                  "required":  false,
+                                                                                                  "defaultMatch":  false,
+                                                                                                  "display":  true,
+                                                                                                  "type":  "string",
+                                                                                                  "readOnly":  false,
+                                                                                                  "removed":  false
+                                                                                              },
+                                                                                              {
+                                                                                                  "id":  "imageStage",
+                                                                                                  "displayName":  "imageStage",
+                                                                                                  "required":  false,
+                                                                                                  "defaultMatch":  false,
+                                                                                                  "display":  true,
+                                                                                                  "type":  "string",
+                                                                                                  "readOnly":  false,
+                                                                                                  "removed":  false
+                                                                                              }
+                                                                                          ],
+                                                                               "attemptToConvertTypes":  false,
+                                                                               "convertFieldsToString":  false
+                                                                           },
+                                                               "options":  {
+
+                                                                           }
+                                                           },
+                                            "id":  "59b2f38e-2a83-40b3-a39b-0a3e9fa5f2fa",
+                                            "name":  "Schreibe Satire-Ergebnis",
+                                            "type":  "n8n-nodes-base.dataTable",
+                                            "typeVersion":  1.1,
+                                            "position":  [
+                                                             3320,
+                                                             1340
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "jsCode":  "const now = Date.now();\nconst owner = `ALLRIS_P3e_Kernbotschaft:${$execution.id}`;\nreturn items\n  .filter(item =\u003e {\n    const j = item.json || {};\n    const oldOwner = String(j.claim_owner || \u0027\u0027).trim();\n    const expires = Date.parse(String(j.claim_expires_at || \u0027\u0027));\n    return !oldOwner || !Number.isFinite(expires) || expires \u003c= now;\n  })\n  .map(item =\u003e ({ json: {\n    ...item.json,\n    claimAction: \u0027acquire\u0027,\n    claimOwner: owner,\n    claimStage: \u0027approval\u0027,\n    leaseMinutes: 30,\n    expectedClaimOwner: item.json.claim_owner ?? null,\n    expectedClaimExpiresAt: item.json.claim_expires_at ?? null\n  } }));"
+                                                           },
+                                            "id":  "f6071829-1111-4f60-8172-000000000001",
+                                            "name":  "Bereite P3e Claims vor",
+                                            "type":  "n8n-nodes-base.code",
+                                            "typeVersion":  2,
+                                            "position":  [
+                                                             680,
+                                                             1160
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "workflowId":  {
+                                                                                  "__rl":  true,
+                                                                                  "value":  "D7cmBsy3exuOkBd9",
+                                                                                  "mode":  "list",
+                                                                                  "cachedResultName":  "ALLRIS_Claim_Lease"
+                                                                              },
+                                                               "options":  {
+                                                                               "waitForSubWorkflow":  true
+                                                                           }
+                                                           },
+                                            "id":  "f6071829-2222-4f60-8172-000000000002",
+                                            "name":  "Erwerbe P3e Claim",
+                                            "type":  "n8n-nodes-base.executeWorkflow",
+                                            "typeVersion":  1.2,
+                                            "position":  [
+                                                             920,
+                                                             1160
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "jsCode":  "return items.filter(item =\u003e item.json?.claimAcquired === true);"
+                                                           },
+                                            "id":  "f6071829-3333-4f60-8172-000000000003",
+                                            "name":  "Nur bestaetigte P3e Claims",
+                                            "type":  "n8n-nodes-base.code",
+                                            "typeVersion":  2,
+                                            "position":  [
+                                                             1160,
+                                                             1160
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "jsCode":  "const vorgangKey = String($json.vorgangKey || \u0027\u0027).trim();\nif (!vorgangKey) throw new Error(\u0027[P3e Claim Release] vorgangKey fehlt.\u0027);\nreturn [{ json: { vorgangKey, claimAction: \u0027release\u0027, claimOwner: `ALLRIS_P3e_Kernbotschaft:${$execution.id}` } }];"
+                                                           },
+                                            "id":  "f6071829-4444-4f60-8172-000000000004",
+                                            "name":  "Bereite P3e Claim-Freigabe vor",
+                                            "type":  "n8n-nodes-base.code",
+                                            "typeVersion":  2,
+                                            "position":  [
+                                                             3560,
+                                                             1340
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "workflowId":  {
+                                                                                  "__rl":  true,
+                                                                                  "value":  "D7cmBsy3exuOkBd9",
+                                                                                  "mode":  "list",
+                                                                                  "cachedResultName":  "ALLRIS_Claim_Lease"
+                                                                              },
+                                                               "options":  {
+                                                                               "waitForSubWorkflow":  true
+                                                                           }
+                                                           },
+                                            "id":  "f6071829-5555-4f60-8172-000000000005",
+                                            "name":  "Release P3e Claim",
+                                            "type":  "n8n-nodes-base.executeWorkflow",
+                                            "typeVersion":  1.2,
+                                            "position":  [
+                                                             3800,
+                                                             1340
+                                                         ]
+                                        }
+                                    ],
+                          "connections":  {
+                                              "Schedule Trigger":  {
+                                                                       "main":  [
+                                                                                    [
+                                                                                        {
+                                                                                            "node":  "Hole alle Vorgaenge",
+                                                                                            "type":  "main",
+                                                                                            "index":  0
+                                                                                        }
+                                                                                    ]
+                                                                                ]
+                                                                   },
+                                              "Hole alle Vorgaenge":  {
+                                                                          "main":  [
+                                                                                       [
+                                                                                           {
+                                                                                               "node":  "Filter Kernbotschaft-Kandidaten",
+                                                                                               "type":  "main",
+                                                                                               "index":  0
+                                                                                           }
+                                                                                       ]
+                                                                                   ]
+                                                                      },
+                                              "Filter Kernbotschaft-Kandidaten":  {
+                                                                                      "main":  [
+                                                                                                   [
+                                                                                                       {
+                                                                                                           "node":  "Bereite P3e Claims vor",
+                                                                                                           "type":  "main",
+                                                                                                           "index":  0
+                                                                                                       }
+                                                                                                   ]
+                                                                                               ]
+                                                                                  },
+                                              "Bereite P3e Claims vor":  {
+                                                                             "main":  [
+                                                                                          [
+                                                                                              {
+                                                                                                  "node":  "Erwerbe P3e Claim",
+                                                                                                  "type":  "main",
+                                                                                                  "index":  0
+                                                                                              }
+                                                                                          ]
+                                                                                      ]
+                                                                         },
+                                              "Erwerbe P3e Claim":  {
+                                                                        "main":  [
+                                                                                     [
+                                                                                         {
+                                                                                             "node":  "Nur bestaetigte P3e Claims",
+                                                                                             "type":  "main",
+                                                                                             "index":  0
+                                                                                         }
+                                                                                     ]
+                                                                                 ]
+                                                                    },
+                                              "Nur bestaetigte P3e Claims":  {
+                                                                                 "main":  [
+                                                                                              [
+                                                                                                  {
+                                                                                                      "node":  "Sortiere Vorgaenge",
+                                                                                                      "type":  "main",
+                                                                                                      "index":  0
+                                                                                                  }
+                                                                                              ]
+                                                                                          ]
+                                                                             },
+                                              "Bereite P3e Claim-Freigabe vor":  {
+                                                                                     "main":  [
+                                                                                                  [
+                                                                                                      {
+                                                                                                          "node":  "Release P3e Claim",
+                                                                                                          "type":  "main",
+                                                                                                          "index":  0
+                                                                                                      }
+                                                                                                  ]
+                                                                                              ]
+                                                                                 },
+                                              "Sortiere Vorgaenge":  {
+                                                                         "main":  [
+                                                                                      [
+                                                                                          {
+                                                                                              "node":  "Loop Vorgaenge",
+                                                                                              "type":  "main",
+                                                                                              "index":  0
+                                                                                          }
+                                                                                      ]
+                                                                                  ]
+                                                                     },
+                                              "Loop Vorgaenge":  {
+                                                                     "main":  [
+                                                                                  [
+
+                                                                                  ],
+                                                                                  [
+                                                                                      {
+                                                                                          "node":  "Satire-Shadow: Baue Eingabe",
+                                                                                          "type":  "main",
+                                                                                          "index":  0
+                                                                                      }
+                                                                                  ]
+                                                                              ]
+                                                                 },
+                                              "Satire-Shadow: Baue Eingabe":  {
+                                                                                  "main":  [
+                                                                                               [
+                                                                                                   {
+                                                                                                       "node":  "Execute Workflow Satire-Agent (Shadow)",
+                                                                                                       "type":  "main",
+                                                                                                       "index":  0
+                                                                                                   }
+                                                                                               ]
+                                                                                           ]
+                                                                              },
+                                              "Execute Workflow Satire-Agent (Shadow)":  {
+                                                                                             "main":  [
+                                                                                                          [
+                                                                                                              {
+                                                                                                                  "node":  "Stelle Kontext nach Satire-Agent wieder her",
+                                                                                                                  "type":  "main",
+                                                                                                                  "index":  0
+                                                                                                              }
+                                                                                                          ]
+                                                                                                      ]
+                                                                                         },
+                                              "Stelle Kontext nach Satire-Agent wieder her":  {
+                                                                                                  "main":  [
+                                                                                                               [
+                                                                                                                   {
+                                                                                                                       "node":  "Speichere Satire-Agent Shadow",
+                                                                                                                       "type":  "main",
+                                                                                                                       "index":  0
+                                                                                                                   },
+                                                                                                                   {
+                                                                                                                       "node":  "Satire-Ergebnis: Baue Text-Auswahl + Umfrage",
+                                                                                                                       "type":  "main",
+                                                                                                                       "index":  0
+                                                                                                                   }
+                                                                                                               ]
+                                                                                                           ]
+                                                                                              },
+                                              "Satire-Ergebnis: Baue Text-Auswahl + Umfrage":  {
+                                                                                                   "main":  [
+                                                                                                                [
+                                                                                                                    {
+                                                                                                                        "node":  "IF Umfrage noetig? (\u003e=2 Varianten)",
+                                                                                                                        "type":  "main",
+                                                                                                                        "index":  0
+                                                                                                                    }
+                                                                                                                ]
+                                                                                                            ]
+                                                                                               },
+                                              "IF Umfrage noetig? (\u003e=2 Varianten)":  {
+                                                                                              "main":  [
+                                                                                                           [
+                                                                                                               {
+                                                                                                                   "node":  "Sende Satire-Varianten Matrix-Umfrage",
+                                                                                                                   "type":  "main",
+                                                                                                                   "index":  0
+                                                                                                               }
+                                                                                                           ],
+                                                                                                           [
+                                                                                                               {
+                                                                                                                   "node":  "Baue Satire-Fehler Nachricht",
+                                                                                                                   "type":  "main",
+                                                                                                                   "index":  0
+                                                                                                               }
+                                                                                                           ]
+                                                                                                       ]
+                                                                                          },
+                                              "Sende Satire-Varianten Matrix-Umfrage":  {
+                                                                                            "main":  [
+                                                                                                         [
+                                                                                                             {
+                                                                                                                 "node":  "Stelle Kontext nach Satire-Umfrage wieder her",
+                                                                                                                 "type":  "main",
+                                                                                                                 "index":  0
+                                                                                                             }
+                                                                                                         ]
+                                                                                                     ]
+                                                                                        },
+                                              "Stelle Kontext nach Satire-Umfrage wieder her":  {
+                                                                                                    "main":  [
+                                                                                                                 [
+                                                                                                                     {
+                                                                                                                         "node":  "Schreibe Satire-Ergebnis",
+                                                                                                                         "type":  "main",
+                                                                                                                         "index":  0
+                                                                                                                     }
+                                                                                                                 ]
+                                                                                                             ]
+                                                                                                },
+                                              "Baue Satire-Fehler Nachricht":  {
+                                                                                   "main":  [
+                                                                                                [
+                                                                                                    {
+                                                                                                        "node":  "Sende Satire-Fehler Matrix-Meldung",
+                                                                                                        "type":  "main",
+                                                                                                        "index":  0
+                                                                                                    }
+                                                                                                ]
+                                                                                            ]
+                                                                               },
+                                              "Sende Satire-Fehler Matrix-Meldung":  {
+                                                                                         "main":  [
+                                                                                                      [
+                                                                                                          {
+                                                                                                              "node":  "Schreibe Satire-Ergebnis",
+                                                                                                              "type":  "main",
+                                                                                                              "index":  0
+                                                                                                          }
+                                                                                                      ]
+                                                                                                  ]
+                                                                                     },
+                                              "Naechster Vorgang":  {
+                                                                        "main":  [
+                                                                                     [
+                                                                                         {
+                                                                                             "node":  "Loop Vorgaenge",
+                                                                                             "type":  "main",
+                                                                                             "index":  0
+                                                                                         }
+                                                                                     ]
+                                                                                 ]
+                                                                    },
+                                              "Schreibe Satire-Ergebnis":  {
+                                                                               "main":  [
+                                                                                            [
+                                                                                                {
+                                                                                                    "node":  "Naechster Vorgang",
+                                                                                                    "type":  "main",
+                                                                                                    "index":  0
+                                                                                                },
+                                                                                                {
+                                                                                                    "node":  "Bereite P3e Claim-Freigabe vor",
+                                                                                                    "type":  "main",
+                                                                                                    "index":  0
+                                                                                                }
+                                                                                            ]
+                                                                                        ]
+                                                                           }
+                                          },
+                          "authors":  "Oliver Lietz",
+                          "name":  null,
+                          "description":  null,
+                          "autosaved":  false,
+                          "workflowPublishHistory":  [
+                                                         {
+                                                             "createdAt":  "2026-07-23T17:18:33.891Z",
+                                                             "id":  1223,
+                                                             "workflowId":  "qyzpgoD4bfTI2ncf",
+                                                             "versionId":  "c8e652d8-baf6-4614-ae33-2edebb518732",
+                                                             "event":  "deactivated",
+                                                             "userId":  "66557ab1-dd68-4186-b616-ecaa8f1bea61"
+                                                         },
+                                                         {
+                                                             "createdAt":  "2026-07-23T17:18:33.960Z",
+                                                             "id":  1224,
+                                                             "workflowId":  "qyzpgoD4bfTI2ncf",
+                                                             "versionId":  "c8e652d8-baf6-4614-ae33-2edebb518732",
+                                                             "event":  "activated",
+                                                             "userId":  "66557ab1-dd68-4186-b616-ecaa8f1bea61"
+                                                         },
+                                                         {
+                                                             "createdAt":  "2026-07-23T18:03:43.361Z",
+                                                             "id":  1257,
+                                                             "workflowId":  "qyzpgoD4bfTI2ncf",
+                                                             "versionId":  "c8e652d8-baf6-4614-ae33-2edebb518732",
+                                                             "event":  "deactivated",
+                                                             "userId":  "66557ab1-dd68-4186-b616-ecaa8f1bea61"
+                                                         },
+                                                         {
+                                                             "createdAt":  "2026-07-23T18:03:43.575Z",
+                                                             "id":  1258,
+                                                             "workflowId":  "qyzpgoD4bfTI2ncf",
+                                                             "versionId":  "c8e652d8-baf6-4614-ae33-2edebb518732",
+                                                             "event":  "activated",
+                                                             "userId":  "66557ab1-dd68-4186-b616-ecaa8f1bea61"
+                                                         }
+                                                     ]
+                      }
+}

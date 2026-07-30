@@ -1,0 +1,309 @@
+{
+  "name": "ALLRIS_Einmalig_Mastodon_Backlog_Publish",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "mbklg-0001-4000-8000-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": { "conditions": [] },
+        "returnAll": true
+      },
+      "id": "mbklg-0002-4000-8000-000000000002",
+      "name": "Hole alle Vorgaenge",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Einmaliger Katch-up 2026-07-28: veroeffentlicht den kompletten Rueckstau bereits fertiger,\n// aber noch nicht getooteter Vorgaenge in einem Rutsch (analog zum WordPress-Katch-up). Nutzt\n// exakt dieselbe Filterlogik wie P9s 'Filter Mastodon-Kandidaten'. Vor diesem Lauf wurde bereits\n// geprueft, dass keine der aktuell qualifizierenden Zeilen die Content-Vermischung (falscher\n// Vorgang im Text) aus dem heutigen Vorfall aufweist - die 8 betroffenen Vorgaenge sind ueber\n// den fehlenden wordpressGoslarPosted-Link ohnehin automatisch ausgeschlossen.\n// LIMIT: leer lassen = kompletten Rueckstau nehmen, sonst Zahl eintragen zum Testen.\nconst LIMIT = 2;\n\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction safeBool(v) { if (v === true) return true; if (typeof v === 'string') return v.trim().toLowerCase() === 'true'; return false; }\nfunction parseDate(v) { const t = Date.parse(safeStr(v)); return Number.isFinite(t) ? t : Infinity; }\n\nconst candidates = items.filter(item => {\n  const j = item.json || {};\n  if (!safeStr(j.instagramCaption)) return false;\n  if (safeBool(j.mastodonPosted)) return false;\n  if (!safeStr(j.vorgangKey)) return false;\n  if (safeStr(j.sharepicNeedStage) === 'topic_ok') {\n    const hasImage = !!safeStr(j.imageFinalPath);\n    const imageGivenUp = safeStr(j.imageStage) === 'topic_error_final';\n    if (!hasImage && !imageGivenUp) return false;\n  }\n  if (!safeBool(j.wordpressGoslarPosted)) return false;\n  if (!safeStr(j.wordpressGoslarPostLink)) return false;\n  return true;\n});\n\ncandidates.sort((a, b) => parseDate(a.json.lastAnalysisAt) - parseDate(b.json.lastAnalysisAt));\n\nconst selected = LIMIT ? candidates.slice(0, LIMIT) : candidates;\nconsole.log(`[Mastodon-Backlog] ${selected.length} von ${candidates.length} Kandidaten ausgewaehlt.`);\nreturn selected;"
+      },
+      "id": "mbklg-0003-4000-8000-000000000003",
+      "name": "Identifiziere Rueckstau",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": { "batchSize": 1, "options": {} },
+      "id": "mbklg-0004-4000-8000-000000000004",
+      "name": "Loop Vorgaenge",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = Date.now();\nconst owner = `ALLRIS_Einmalig_Mastodon_Backlog_Publish:${$execution.id}`;\nreturn items\n  .filter(item => {\n    const j = item.json || {};\n    const oldOwner = String(j.claim_owner || '').trim();\n    const expires = Date.parse(String(j.claim_expires_at || ''));\n    return !oldOwner || !Number.isFinite(expires) || expires <= now;\n  })\n  .map(item => ({ json: {\n    ...item.json,\n    claimAction: 'acquire',\n    claimOwner: owner,\n    claimStage: 'publication',\n    leaseMinutes: 30,\n    expectedClaimOwner: item.json.claim_owner ?? null,\n    expectedClaimExpiresAt: item.json.claim_expires_at ?? null\n  } }));"
+      },
+      "id": "mbklg-0005-4000-8000-000000000005",
+      "name": "Bereite Claim vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, -80]
+    },
+    {
+      "parameters": {
+        "workflowId": { "__rl": true, "value": "D7cmBsy3exuOkBd9", "mode": "list", "cachedResultName": "ALLRIS_Claim_Lease" },
+        "options": { "waitForSubWorkflow": true }
+      },
+      "id": "mbklg-0006-4000-8000-000000000006",
+      "name": "Erwerbe Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [1120, -80]
+    },
+    {
+      "parameters": { "jsCode": "return items.filter(item => item.json?.claimAcquired === true);" },
+      "id": "mbklg-0007-4000-8000-000000000007",
+      "name": "Nur bestaetigte Claims",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, -80]
+    },
+    {
+      "parameters": {
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseArr(v) {\n  try { const a = JSON.parse(v); return Array.isArray(a) ? a : []; } catch (e) { return []; }\n}\nfunction sanitizeTag(t) {\n  return safeStr(t).replace(/^#/, '').replace(/[^\\p{L}\\p{N}_]/gu, '');\n}\nconst MASTODON_CHAR_LIMIT = 800;\nconst MASTODON_URL_RESERVED_LENGTH = 23;\nconst FIXED_HASHTAGS = ['meingoslar', 'goslar', 'meinklüngelkannmehr', 'prioritätenproblem'];\n\nconst j = $json;\nconst caption = safeStr(j.instagramCaption) || safeStr(j.facebookPost);\nconst postLink = safeStr(j.wordpressGoslarPostLink);\n\nconst rawTags = parseArr(j.instagramHashtags).length ? parseArr(j.instagramHashtags) : parseArr(j.facebookHashtags);\nconst sanitized = rawTags.map(sanitizeTag).filter(Boolean);\nconst seen = new Set();\nconst tags = [];\nfor (const t of [...sanitized, ...FIXED_HASHTAGS]) {\n  const key = t.toLowerCase();\n  if (seen.has(key)) continue;\n  seen.add(key);\n  tags.push('#' + t);\n}\nconst hashtagLine = tags.join(' ');\n\nconst hashtagReserve = hashtagLine ? (2 + hashtagLine.length) : 0;\nconst linkReserve = postLink ? (2 + MASTODON_URL_RESERVED_LENGTH) : 0;\nconst bodyLimit = Math.max(0, MASTODON_CHAR_LIMIT - hashtagReserve - linkReserve);\n\nlet body = caption;\nif (body.length > bodyLimit) {\n  const cut = body.slice(0, Math.max(0, bodyLimit - 1));\n  const lastBreak = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('! '), cut.lastIndexOf('? '));\n  body = (lastBreak > bodyLimit * 0.5 ? cut.slice(0, lastBreak + 1) : cut) + '…';\n}\n\nlet tootText = body;\nif (postLink) tootText += '\\n\\n' + postLink;\nif (hashtagLine) tootText += '\\n\\n' + hashtagLine;\n\nconst hasImage = !!safeStr(j.imageFinalPath);\n\nreturn { json: { ...j, tootText, hasImage } };"
+      },
+      "id": "mbklg-0008-4000-8000-000000000008",
+      "name": "Baue Toot-Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, -80]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
+          "conditions": [
+            { "id": "has-image", "leftValue": "={{ $json.hasImage }}", "rightValue": true, "operator": { "type": "boolean", "operation": "equals" } }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "mbklg-0009-4000-8000-000000000009",
+      "name": "IF Bild vorhanden?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1780, -80]
+    },
+    {
+      "parameters": { "operation": "download", "path": "={{ $json.imageFinalPath }}" },
+      "id": "mbklg-0010-4000-8000-000000000010",
+      "name": "NC Lade finales Bild",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [2000, -160],
+      "credentials": { "nextCloudApi": { "id": "jlZlwASXZbJyNpfA", "name": "NextCloud account" } },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://social.tchncs.de/api/v2/media",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": { "parameters": [{ "parameterType": "formBinaryData", "name": "file", "inputDataFieldName": "data" }] },
+        "options": { "timeout": 60000 }
+      },
+      "id": "mbklg-0011-4000-8000-000000000011",
+      "name": "Upload Media zu Mastodon",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2220, -160],
+      "retryOnFail": false,
+      "credentials": { "httpHeaderAuth": { "id": "5lPS4iU0YNbMcjWR", "name": "Mastodon Token" } },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const original = $('Baue Toot-Text').itemMatching($itemIndex).json;\nconst uploadResult = $json || {};\nreturn { json: { ...original, mastodonMediaId: uploadResult.id || null } };"
+      },
+      "id": "mbklg-0012-4000-8000-000000000012",
+      "name": "Stelle Kontext nach Media-Upload wieder her",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2440, -160]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://social.tchncs.de/api/v1/statuses",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ status: $json.tootText, visibility: \"public\", media_ids: $json.mastodonMediaId ? [$json.mastodonMediaId] : undefined }) }}",
+        "options": { "timeout": 60000 }
+      },
+      "id": "mbklg-0013-4000-8000-000000000013",
+      "name": "Poste Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2660, -80],
+      "retryOnFail": false,
+      "credentials": { "httpHeaderAuth": { "id": "5lPS4iU0YNbMcjWR", "name": "Mastodon Token" } },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const original = $('Baue Toot-Text').itemMatching($itemIndex).json;\nconst result = $json || {};\nfunction extractErrorText(v) {\n  if (!v) return '';\n  if (typeof v === 'string') return v;\n  if (typeof v === 'object') return String(v.message || v.description || v.error || JSON.stringify(v));\n  return String(v);\n}\nreturn { json: {\n  ...original,\n  mastodonPostId: result.id || null,\n  mastodonPostUrl: result.url || '',\n  mastodonError: result.url ? '' : (extractErrorText(result.error) || extractErrorText(result.message) || 'Unbekannter Fehler beim Mastodon-Post')\n} };"
+      },
+      "id": "mbklg-0014-4000-8000-000000000014",
+      "name": "Stelle Kontext nach Post-Erstellung wieder her",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2880, -80]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
+          "conditions": [
+            { "id": "post-ok", "leftValue": "={{ $json.mastodonPostUrl }}", "rightValue": "", "operator": { "type": "string", "operation": "notEquals" } }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "mbklg-0015-4000-8000-000000000015",
+      "name": "IF Post erfolgreich?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [3100, -80]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": { "__rl": true, "value": "hBLqpqeVEojPpOJl", "mode": "list", "cachedResultName": "allris_vorgaenge" },
+        "matchType": "allConditions",
+        "filters": { "conditions": [{ "keyName": "vorgangKey", "keyValue": "={{ $json.vorgangKey }}" }] },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "mastodonPosted": "={{ true }}",
+            "mastodonPostedAt": "={{ $now.toISO() }}",
+            "mastodonPostUrl": "={{ $json.mastodonPostUrl }}",
+            "mastodonError": ""
+          },
+          "matchingColumns": ["vorgangKey"],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "mbklg-0016-4000-8000-000000000016",
+      "name": "Speichere Erfolg",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [3320, -160]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": { "__rl": true, "value": "hBLqpqeVEojPpOJl", "mode": "list", "cachedResultName": "allris_vorgaenge" },
+        "matchType": "allConditions",
+        "filters": { "conditions": [{ "keyName": "vorgangKey", "keyValue": "={{ $json.vorgangKey }}" }] },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "mastodonPosted": "={{ false }}",
+            "mastodonError": "={{ String($json.mastodonError || '').slice(0, 500) }}",
+            "retry_count": 0
+          },
+          "matchingColumns": ["vorgangKey"],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "mbklg-0017-4000-8000-000000000017",
+      "name": "Speichere Fehler",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [3320, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const vorgangKey = String($json.vorgangKey || '').trim();\nconst id = $json.id;\nif (!vorgangKey || !id) return [];\nreturn [{ json: { id, vorgangKey, claimAction: 'release', claimOwner: `ALLRIS_Einmalig_Mastodon_Backlog_Publish:${$execution.id}` } }];"
+      },
+      "id": "mbklg-0018-4000-8000-000000000018",
+      "name": "Bereite Claim-Freigabe vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3540, -80]
+    },
+    {
+      "parameters": {
+        "workflowId": { "__rl": true, "value": "D7cmBsy3exuOkBd9", "mode": "list", "cachedResultName": "ALLRIS_Claim_Lease" },
+        "options": { "waitForSubWorkflow": true }
+      },
+      "id": "mbklg-0019-4000-8000-000000000019",
+      "name": "Release Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [3760, -80]
+    },
+    {
+      "parameters": { "jsCode": "return [{ json: $input.item.json }];" },
+      "id": "mbklg-0020-4000-8000-000000000020",
+      "name": "Naechster Eintrag",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3980, -80]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": { "main": [[{ "node": "Hole alle Vorgaenge", "type": "main", "index": 0 }]] },
+    "Hole alle Vorgaenge": { "main": [[{ "node": "Identifiziere Rueckstau", "type": "main", "index": 0 }]] },
+    "Identifiziere Rueckstau": { "main": [[{ "node": "Loop Vorgaenge", "type": "main", "index": 0 }]] },
+    "Loop Vorgaenge": { "main": [[], [{ "node": "Bereite Claim vor", "type": "main", "index": 0 }]] },
+    "Bereite Claim vor": { "main": [[{ "node": "Erwerbe Claim", "type": "main", "index": 0 }]] },
+    "Erwerbe Claim": { "main": [[{ "node": "Nur bestaetigte Claims", "type": "main", "index": 0 }]] },
+    "Nur bestaetigte Claims": { "main": [[{ "node": "Baue Toot-Text", "type": "main", "index": 0 }]] },
+    "Baue Toot-Text": { "main": [[{ "node": "IF Bild vorhanden?", "type": "main", "index": 0 }]] },
+    "IF Bild vorhanden?": {
+      "main": [
+        [{ "node": "NC Lade finales Bild", "type": "main", "index": 0 }],
+        [{ "node": "Poste Status", "type": "main", "index": 0 }]
+      ]
+    },
+    "NC Lade finales Bild": { "main": [[{ "node": "Upload Media zu Mastodon", "type": "main", "index": 0 }]] },
+    "Upload Media zu Mastodon": { "main": [[{ "node": "Stelle Kontext nach Media-Upload wieder her", "type": "main", "index": 0 }]] },
+    "Stelle Kontext nach Media-Upload wieder her": { "main": [[{ "node": "Poste Status", "type": "main", "index": 0 }]] },
+    "Poste Status": { "main": [[{ "node": "Stelle Kontext nach Post-Erstellung wieder her", "type": "main", "index": 0 }]] },
+    "Stelle Kontext nach Post-Erstellung wieder her": { "main": [[{ "node": "IF Post erfolgreich?", "type": "main", "index": 0 }]] },
+    "IF Post erfolgreich?": {
+      "main": [
+        [{ "node": "Speichere Erfolg", "type": "main", "index": 0 }],
+        [{ "node": "Speichere Fehler", "type": "main", "index": 0 }]
+      ]
+    },
+    "Speichere Erfolg": { "main": [[{ "node": "Bereite Claim-Freigabe vor", "type": "main", "index": 0 }]] },
+    "Speichere Fehler": { "main": [[{ "node": "Bereite Claim-Freigabe vor", "type": "main", "index": 0 }]] },
+    "Bereite Claim-Freigabe vor": { "main": [[{ "node": "Release Claim", "type": "main", "index": 0 }]] },
+    "Release Claim": { "main": [[{ "node": "Naechster Eintrag", "type": "main", "index": 0 }]] },
+    "Naechster Eintrag": { "main": [[{ "node": "Loop Vorgaenge", "type": "main", "index": 0 }]] }
+  },
+  "pinData": {},
+  "settings": { "executionOrder": "v1" }
+}

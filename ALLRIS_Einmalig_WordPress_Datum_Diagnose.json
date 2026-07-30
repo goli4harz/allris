@@ -1,0 +1,82 @@
+{
+  "name": "ALLRIS_Einmalig_WordPress_Datum_Diagnose",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "d2e3f4a5-0001-4000-8000-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "url": "https://www.golietz.de/wp-json/wp/v2/posts/2363?context=edit",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "options": {
+          "response": { "response": { "responseFormat": "json" } },
+          "timeout": 30000
+        }
+      },
+      "id": "d2e3f4a5-0002-4000-8000-000000000002",
+      "name": "GET Post 2363 (edit context)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 0],
+      "retryOnFail": false,
+      "credentials": {
+        "wordpressApi": { "id": "8k2HqYswPaPVS4dr", "name": "Ollies Wordpress" }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const j = $input.item.json;\nreturn { json: {\n  id: j.id,\n  date: j.date,\n  date_gmt: j.date_gmt,\n  modified: j.modified,\n  modified_gmt: j.modified_gmt,\n  status: j.status,\n  link: j.link,\n  error: j.error || null\n} };"
+      },
+      "id": "d2e3f4a5-0003-4000-8000-000000000003",
+      "name": "Zeige Felder",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.link }}",
+        "options": {
+          "response": { "response": { "responseFormat": "text" } },
+          "timeout": 30000
+        }
+      },
+      "id": "d2e3f4a5-0004-4000-8000-000000000004",
+      "name": "GET oeffentliche Seite (HTML)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 0],
+      "retryOnFail": false,
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const html = String($input.item.json.data || $input.item.json || '');\nconst months = 'Januar|Februar|M\\u00e4rz|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember';\nconst re = new RegExp('.{40}\\\\d{1,2}\\\\.\\\\s*(?:' + months + ')\\\\s*\\\\d{4}.{20}', 'g');\nconst matches = [...html.matchAll(re)].map(m => m[0].replace(/\\s+/g, ' ').trim());\nreturn { json: { gefundeneDatumsstellen: matches.slice(0, 10) } };"
+      },
+      "id": "d2e3f4a5-0005-4000-8000-000000000005",
+      "name": "Suche Datum im HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 0]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": { "main": [[{ "node": "GET Post 2363 (edit context)", "type": "main", "index": 0 }]] },
+    "GET Post 2363 (edit context)": { "main": [[{ "node": "Zeige Felder", "type": "main", "index": 0 }]] },
+    "Zeige Felder": { "main": [[{ "node": "GET oeffentliche Seite (HTML)", "type": "main", "index": 0 }]] },
+    "GET oeffentliche Seite (HTML)": { "main": [[{ "node": "Suche Datum im HTML", "type": "main", "index": 0 }]] }
+  },
+  "pinData": {},
+  "settings": { "executionOrder": "v1" }
+}

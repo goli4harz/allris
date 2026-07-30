@@ -112,7 +112,7 @@
         ],
         [
           {
-            "node": "Stelle Kontext nach Media-Upload wieder her",
+            "node": "Lade Fallback-Logo",
             "type": "main",
             "index": 0
           }
@@ -2290,5 +2290,5 @@
     "executionOrder": "v1"
   },
   "tags": [],
-  "versionId": "858c2ced-da03-4f3c-9786-7d58ea1ba473"
+  "versionId": "fcff0320-885e-433d-964b-98ab71ce7c7f"
 }

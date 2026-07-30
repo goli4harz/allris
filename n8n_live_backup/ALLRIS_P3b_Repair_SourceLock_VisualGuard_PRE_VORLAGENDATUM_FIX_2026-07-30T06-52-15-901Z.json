@@ -1,0 +1,1124 @@
+{
+  "updatedAt": "2026-07-27T11:46:45.166Z",
+  "createdAt": "2026-07-05T19:28:56.664Z",
+  "id": "KfPtfJfOe39LTJzR",
+  "name": "ALLRIS_P3b_Repair_SourceLock_VisualGuard",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "7ba82d4d-a4c3-4526-9997-c7e7a51dffef",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        4544,
+        1712
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prüfe Repair-Bedarf (V12_7 - runOnceForAllItems)\n// Verwendet runOnceForAllItems um SplitInBatches-Kompatibilitätsprobleme zu vermeiden\nconst items = $input.all();\nif (!items || items.length === 0) {\n  return [{ json: { _repairNeeded: false, _repairSkipped: true, _repairSkipReason: 'kein Input' } }];\n}\n\nconst rawItem = items[0];\nconst j = (rawItem && rawItem.json && typeof rawItem.json === 'object' && !Array.isArray(rawItem.json))\n  ? rawItem.json\n  : {};\n\nif (!j.vorgangKey) {\n  return [{ json: { ...j, _repairNeeded: false, _repairSkipped: true, _repairSkipReason: 'kein vorgangKey' } }];\n}\n\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; } catch(e) { return {}; }\n}\nfunction asArr(v) {\n  if (Array.isArray(v)) return v.filter(Boolean).map(s => String(s).trim());\n  if (typeof v === 'string' && v.trim()) {\n    try { const p = JSON.parse(v); if (Array.isArray(p)) return p.filter(Boolean).map(s => String(s).trim()); } catch(e) {}\n    return v.split(/\\s*\\|\\s*/).filter(Boolean).map(s => String(s).trim());\n  }\n  return [];\n}\nfunction robustBool(v) {\n  if (v === true || v === 1) return true;\n  if (typeof v === 'string') { const s = v.trim().toLowerCase(); return s === 'true' || s === '1'; }\n  return false;\n}\n\nconst analysis = parseObj(j.analysisJson);\n// FIX (2026-07-25, mirror des -OK-Handlers in P5b und der Repair-Sweeps in P4): sl frisch aus\n// faktenAgentJson bauen statt aus dem eingefrorenen analysisJson.sourceLock - das wird nur bei\n// einem erfolgreichen P4-Lauf aktualisiert und kann bei laengst blockierten Zeilen veraltet sein,\n// auch wenn faktenAgentJson seither bessere Daten enthaelt. va bleibt aus analysisJson.visualAnchors\n// (keine alternative frischere Quelle dafuer vorhanden) - die 8 Feldchecks unten sind selbst schon\n// die frische Ableitung, das zusaetzliche eingefrorene vaValidFlag entfaellt (dasselbe Bug-Muster).\nconst fakten = parseObj(j.faktenAgentJson || {});\nconst sl = {\n  sourceTopic: safeStr(fakten.sourceTopic),\n  sourceConflict: safeStr(fakten.sourceConflict),\n  requiredTerms: asArr(fakten.requiredTerms),\n  requiredObjects: asArr(fakten.requiredObjects),\n  requiredAction: safeStr(fakten.requiredAction),\n  affectedGroups: asArr(fakten.affectedGroups)\n};\nconst va = parseObj(analysis.visualAnchors || {});\n\nconst slOk = !!(\n  safeStr(sl.sourceTopic) &&\n  asArr(sl.requiredTerms).length >= 2 &&\n  asArr(sl.requiredObjects).length >= 2 &&\n  safeStr(sl.requiredAction) &&\n  fakten.parseError !== true\n);\nconst vaOk = !!(\n  safeStr(va.satireThemaKonkret) &&\n  safeStr(va.satireKonfliktKonkret) &&\n  asArr(va.visualPflichtobjekte).length >= 2 &&\n  safeStr(va.visualPflichthandlung) &&\n  safeStr(va.visualErkennungssatz) &&\n  safeStr(va.visualUeberzeichnung) &&\n  asArr(va.visualVerboteneErsatzmotive).length >= 2\n);\n\nconst needsVisual = robustBool(j.visualNeeded) || robustBool(j.instagramSharepicNoetig);\nconst sourceLockRepairNeeded = !slOk;\nconst visualAnchorRepairNeeded = needsVisual && !vaOk;\nconst repairNeeded = sourceLockRepairNeeded || visualAnchorRepairNeeded;\n\nreturn [{ json: {\n  ...j,\n  _repairNeeded: repairNeeded,\n  _repairSkipped: false,\n  _sourceLockRepairNeeded: sourceLockRepairNeeded,\n  _visualAnchorRepairNeeded: visualAnchorRepairNeeded,\n  _repairReasonSL: !slOk ? 'sourceLock ungültig/unvollständig' : '',\n  _repairReasonVA: !vaOk ? 'visualAnchors unvollständig' : '',\n  _sourceLockCurrentlyValid: slOk,\n  _visualAnchorsCurrentlyOk: vaOk\n} }];\n"
+      },
+      "id": "c49d2749-6581-413b-8e70-c180742e557b",
+      "name": "Prüfe Repair-Bedarf",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5104,
+        1616
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "repair-check",
+              "leftValue": "={{ $json._repairNeeded }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b65ef8f1-4516-45a5-866d-fcf39188c37d",
+      "name": "IF Repair nötig?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        5328,
+        1616
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=Du reparierst ausschließlich die Felder sourceLock und visualAnchors einer bereits abgeschlossenen Ratsvorlagen-Analyse für den Rat der Stadt Goslar.\n\nWICHTIG: Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt. Kein Markdown. Keine Codeblöcke. Keine Kommentare. Keine zusätzlichen Felder.\n\nDu darfst NUR sourceLock und visualAnchors zurückgeben. Alle anderen Bewertungsfelder (relevantScore, sprengstoff, empfehlung, kurzfassung, satirePunchlines usw.) bleiben unverändert und gehören NICHT in deine Antwort.\n\nVORGANG: {{ $json.vorgangKey }}\nVORGANGSNUMMER: {{ $json.vorgangsnummer }}\nREPARATURBEDARF SourceLock: {{ $json._sourceLockRepairNeeded }}\nREPARATURBEDARF VisualAnchors: {{ $json._visualAnchorRepairNeeded }}\nBILD ERFORDERLICH: {{ $json.visualNeeded }} / {{ $json.instagramSharepicNoetig }}\n\nTITEL:\n{{ $json.title }}\n\nZUSAMMENFASSUNG (summaryText):\n{{ $json.summaryText }}\n\nORIGINALDOKUMENTTEXT (combinedText – ebenfalls gültige Quelle):\n{{ $json.combinedText }}\n\nBISHERIGE ANALYSE (analysisJson – nur zur Orientierung, nicht übernehmen wenn fehlerhaft):\n{{ $json.analysisJson }}\n\nAUFGABE SOURCELOCK:\n\nsourceTopic muss das konkrete reale Thema des Vorgangs nennen (max. 10 Worte, direkt aus Titel oder Zusammenfassung ableitbar).\nsourceConflict nennt den belegbaren konkreten Konflikt oder das Problem, falls vorhanden (max. 15 Worte, direkt aus dem Text), sonst bleibt das Feld leer.\nrequiredTerms enthält mindestens 2 konkrete Begriffe oder kurze Wortgruppen, die WORTGETREU in title, summaryText ODER combinedText vorkommen. Keine Synonyme. Keine erfundenen Verwaltungsbegriffe. Keine Erweiterung von Quellenbegriffen um nicht vorkommende Wörter. Kein Stemming. Mindestens 2 davon müssen konkret und nicht-generisch sein (nicht: Stadt, Verwaltung, Politik, Vorlage, Antrag, Beschluss, Goslar).\nrequiredObjects enthält mindestens 2 konkrete zeichnerisch darstellbare Gegenstände (kein abstraktes wie „Verwaltung\", „Politik\", „Bürokratie\").\nrequiredAction beschreibt eine konkrete sichtbare Handlung.\naffectedGroups enthält nur belegbare betroffene Gruppen.\nforbiddenDrift enthält mindestens 2 unzulässige Ausweichthemen (Motive, die das Bild vom konkreten Thema wegführen würden).\n\nAUFGABE VISUALANCHORS (nur wenn Bild erforderlich, sonst leere Strings/Arrays):\n\nsatireThemaKonkret muss das reale Thema sichtbar benennen (kein abstrakter Begriff).\nsatireKonfliktKonkret muss zum Source-Lock passen (kein Verwaltungsjargon).\nvisualPflichtobjekte enthält mindestens 2 konkrete sichtbare Objekte, die im Bild erkennbar sein müssen.\nvisualPflichthandlung beschreibt eine sichtbare Handlung.\nvisualUeberzeichnung beschreibt eine eindeutige satirische Übertreibung des Konflikts.\nvisualErkennungssatz nennt konkrete Objekte und Handlung – der Satz muss das reale Goslar-Thema ohne Zusatzwissen erkennbar machen.\nvisualVerboteneErsatzmotive enthält mindestens 2 unzulässige Klischee-Ersatzmotive (z.B. generische Politiker, Aktentaschen, Rathäuser ohne Bezug).\nKeine austauschbare allgemeine Verwaltungssatire. Keine neuen politischen Themen. Keine erfundenen Fakten. Keine realen Personen.\n\nAntworte NUR mit diesem JSON-Objekt (keine anderen Felder):\n{\n  \"sourceLock\": {\n    \"sourceTopic\": \"\",\n    \"sourceConflict\": \"\",\n    \"requiredTerms\": [\"\", \"\"],\n    \"requiredObjects\": [\"\", \"\"],\n    \"requiredAction\": \"\",\n    \"affectedGroups\": [],\n    \"forbiddenDrift\": [\"\", \"\"]\n  },\n  \"visualAnchors\": {\n    \"satireThemaKonkret\": \"\",\n    \"satireKonfliktKonkret\": \"\",\n    \"visualPflichtobjekte\": [\"\", \"\"],\n    \"visualPflichthandlung\": \"\",\n    \"visualBetroffene\": [],\n    \"visualOrt\": \"Goslar\",\n    \"visualUeberzeichnung\": \"\",\n    \"visualErkennungssatz\": \"\",\n    \"visualVerboteneErsatzmotive\": [\"\", \"\"]\n  }\n}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "19de80ee-82a2-4ea6-83db-89b465d908fb",
+      "name": "AI Reparatur SourceLock+Anchors",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        4544,
+        1936
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "RiT1gwJpQWzSo6NO",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// n8n Code Node: \"Normalisiere Bewertung + Visual Guard\"\n// Mode: Run Once for Each Item\n// Liest die KI-Antwort von \"AI Reparatur SourceLock+Anchors\" und mergt sourceLock/visualAnchors\n// in die Originaldaten aus \"Prüfe Repair-Bedarf\" (dieses Item ist die AI-Antwort, nicht die Row).\n\nfunction getAiText(item) {\n  try {\n    const j = item.json || {};\n    if (j.text && typeof j.text === 'string' && j.text.trim()) return j.text;\n    const o = j.output;\n    if (Array.isArray(o)) {\n      for (let i = 0; i < o.length; i++) {\n        const c = o[i].content;\n        if (Array.isArray(c)) { for (let k = 0; k < c.length; k++) { if (c[k].text) return c[k].text; } }\n      }\n    }\n    if (j.output_text) return j.output_text;\n    if (j.message && j.message.content) return j.message.content;\n    if (j.choices && j.choices[0] && j.choices[0].message) return j.choices[0].message.content || '';\n    return '';\n  } catch (e) { return ''; }\n}\n\nfunction __repairJsonText(text) {\n  // Repairs two recurring AI-JSON breakage patterns (found live 2026-07-26 on\n  // Vorgang 2026/105's P3 analysis): (1) the model forgets to close a string\n  // value and just continues with a raw newline into the next \"key\": pattern,\n  // (2) the model emits a stray extra closing bracket/brace. Only touches\n  // content while tracking whether we're inside a string, so legitimate\n  // structural whitespace outside strings is left untouched.\n  var out = [];\n  var inString = false, escaped = false;\n  for (var i = 0; i < text.length; i++) {\n    var ch = text[i];\n    if (inString) {\n      if (escaped) { out.push(ch); escaped = false; continue; }\n      if (ch === '\\\\') { out.push(ch); escaped = true; continue; }\n      if (ch === '\"') { out.push(ch); inString = false; continue; }\n      if (ch === '\\n' || ch === '\\r') {\n        var rest = text.slice(i);\n        var m = /^[\\r\\n]+\\s*\"[A-Za-z_][A-Za-z0-9_]*\"\\s*:/.exec(rest);\n        if (m) {\n          out.push('\",'); inString = false; i += 1;\n          while (i < text.length && (text[i] === '\\r' || text[i] === '\\n')) i++;\n          i -= 1;\n          continue;\n        }\n        out.push(ch === '\\n' ? '\\\\n' : '\\\\r');\n        continue;\n      }\n      if (ch === '\\t') { out.push('\\\\t'); continue; }\n      out.push(ch);\n    } else {\n      if (ch === '\"') inString = true;\n      out.push(ch);\n    }\n  }\n  var stage1 = out.join('');\n\n  var out2 = [];\n  var stack = [];\n  inString = false; escaped = false;\n  var pairs = { '}': '{', ']': '[' };\n  for (var j = 0; j < stage1.length; j++) {\n    var c = stage1[j];\n    if (inString) {\n      out2.push(c);\n      if (escaped) { escaped = false; }\n      else if (c === '\\\\') { escaped = true; }\n      else if (c === '\"') { inString = false; }\n      continue;\n    }\n    if (c === '\"') { inString = true; out2.push(c); continue; }\n    if (c === '{' || c === '[') { stack.push(c); out2.push(c); continue; }\n    if (c === '}' || c === ']') {\n      if (stack.length && stack[stack.length - 1] === pairs[c]) { stack.pop(); out2.push(c); }\n      continue;\n    }\n    out2.push(c);\n  }\n  return out2.join('');\n}\n\nfunction __robustJsonParse(raw) {\n  try {\n    return JSON.parse(raw);\n  } catch (e1) {\n    try {\n      return JSON.parse(__repairJsonText(raw));\n    } catch (e2) {\n      throw e1;\n    }\n  }\n}\n\nfunction extractJson(text) {\n  if (!text) return null;\n  const s = String(text).replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```\\s*$/i, '').trim();\n  const a = s.indexOf('{'), b = s.lastIndexOf('}');\n  return (a === -1 || b === -1 || b <= a) ? null : s.slice(a, b + 1);\n}\n\nlet input = {};\ntry {\n  const ref = $('Prüfe Repair-Bedarf').item;\n  if (ref && ref.json && typeof ref.json === 'object' && !Array.isArray(ref.json)) input = ref.json;\n} catch (e) { input = {}; }\n\nconst rawAiText = getAiText($input.item);\nconst aiJsonStr = extractJson(rawAiText);\nlet repaired = {};\nif (aiJsonStr) {\n  try { repaired = __robustJsonParse(aiJsonStr) || {}; } catch (e) { repaired = {}; }\n}\n\nfunction safeStr(v) {\n  return v === null || v === undefined ? '' : String(v).trim();\n}\n\nfunction normText(v) {\n  return safeStr(v)\n    .toLowerCase()\n    .replace(/ä/g, 'ae')\n    .replace(/ö/g, 'oe')\n    .replace(/ü/g, 'ue')\n    .replace(/ß/g, 'ss')\n    .replace(/[„“”\"'`´]/g, '')\n    .replace(/[^a-z0-9]+/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  if (typeof v === 'string') {\n    try {\n      const p = JSON.parse(v);\n      return p && typeof p === 'object' && !Array.isArray(p) ? p : {};\n    } catch (e) {}\n  }\n  return {};\n}\n\nfunction asArray(v) {\n  if (Array.isArray(v)) {\n    return v\n      .filter(x => x !== null && x !== undefined && safeStr(x) !== '')\n      .map(x => safeStr(x));\n  }\n  if (v === null || v === undefined || v === '') return [];\n  if (typeof v === 'string') {\n    const t = v.trim();\n    if (!t) return [];\n    try {\n      const p = JSON.parse(t);\n      if (Array.isArray(p)) return p.filter(Boolean).map(x => safeStr(x)).filter(Boolean);\n    } catch (e) {}\n    return t.split(/\\s*\\|\\s*/).map(x => safeStr(x)).filter(Boolean);\n  }\n  return [safeStr(v)].filter(Boolean);\n}\n\nfunction hasValue(v) {\n  if (Array.isArray(v)) return asArray(v).length > 0;\n  if (v && typeof v === 'object') return Object.keys(v).length > 0;\n  return safeStr(v).length > 0;\n}\n\nfunction pick(nestedValue, topValue, fallback = '') {\n  return hasValue(nestedValue) ? nestedValue : (hasValue(topValue) ? topValue : fallback);\n}\n\nfunction num(v, fallback = 0) {\n  const n = Number(String(v ?? '').replace(',', '.'));\n  return Number.isFinite(n) ? n : fallback;\n}\n\nfunction enumValue(v, allowed, fallback) {\n  const n = safeStr(v).toUpperCase();\n  return allowed.includes(n) ? n : fallback;\n}\n\nfunction bool(v) {\n  if (v === true || v === 1) return true;\n  if (v === false || v === 0 || v === null || v === undefined) return false;\n  const s = String(v).trim().toLowerCase();\n  return ['true', '1', 'yes', 'ja', 'y'].includes(s);\n}\n\nfunction unique(arr) {\n  const out = [];\n  const seen = new Set();\n  for (const x of asArray(arr)) {\n    const k = normText(x);\n    if (!k || seen.has(k)) continue;\n    seen.add(k);\n    out.push(x);\n  }\n  return out;\n}\n\n// Parse analysisJson, aber Top-Level-Felder weiter berücksichtigen.\nconst analysis = parseObj(input.analysisJson);\n\n// KI-Reparaturantwort hat Vorrang vor der alten (fehlerhaften) Analyse.\nif (repaired.sourceLock) analysis.sourceLock = repaired.sourceLock;\nif (repaired.visualAnchors) analysis.visualAnchors = repaired.visualAnchors;\n\nconst nestedSL = parseObj(analysis.sourceLock || input.sourceLock);\nconst nestedVA = parseObj(analysis.visualAnchors || input.visualAnchors);\n\nlet sourceLock = {\n  sourceTopic: safeStr(pick(nestedSL.sourceTopic, input.sourceTopic || analysis.sourceTopic)),\n  sourceConflict: safeStr(pick(nestedSL.sourceConflict, input.sourceConflict || analysis.sourceConflict)),\n  requiredTerms: unique(pick(nestedSL.requiredTerms, input.requiredTerms || analysis.requiredTerms, [])),\n  requiredObjects: unique(pick(nestedSL.requiredObjects, input.requiredObjects || analysis.requiredObjects, [])),\n  requiredAction: safeStr(pick(nestedSL.requiredAction, input.requiredAction || analysis.requiredAction)),\n  affectedGroups: unique(pick(nestedSL.affectedGroups, input.affectedGroups || analysis.affectedGroups, [])),\n  forbiddenDrift: unique(pick(nestedSL.forbiddenDrift, input.forbiddenDrift || analysis.forbiddenDrift, []))\n};\n\nlet visualAnchors = {\n  satireThemaKonkret: safeStr(pick(nestedVA.satireThemaKonkret, input.satireThemaKonkret || analysis.satireThemaKonkret)),\n  satireKonfliktKonkret: safeStr(pick(nestedVA.satireKonfliktKonkret, input.satireKonfliktKonkret || analysis.satireKonfliktKonkret)),\n  visualPflichtobjekte: unique(pick(nestedVA.visualPflichtobjekte, input.visualPflichtobjekte || analysis.visualPflichtobjekte, [])),\n  visualPflichthandlung: safeStr(pick(nestedVA.visualPflichthandlung, input.visualPflichthandlung || analysis.visualPflichthandlung)),\n  visualBetroffene: unique(pick(nestedVA.visualBetroffene, input.visualBetroffene || analysis.visualBetroffene, [])),\n  visualOrt: safeStr(pick(nestedVA.visualOrt, input.visualOrt || analysis.visualOrt || '')),\n  visualUeberzeichnung: safeStr(pick(nestedVA.visualUeberzeichnung, input.visualUeberzeichnung || analysis.visualUeberzeichnung)),\n  visualErkennungssatz: safeStr(pick(nestedVA.visualErkennungssatz, input.visualErkennungssatz || analysis.visualErkennungssatz)),\n  visualVerboteneErsatzmotive: unique(pick(nestedVA.visualVerboteneErsatzmotive, input.visualVerboteneErsatzmotive || analysis.visualVerboteneErsatzmotive, []))\n};\n\nconst sourceStrictText = [\n  input.title,\n  input.vorgangsnummer,\n  input.summaryText,\n  input.thema,\n  input.betroffene,\n  input.kostenHaushalt,\n  input.buergerwirkung,\n  input.offenePunkte,\n  input.unsicherheitenSummary,\n  input.combinedText,\n  input.analyseContext\n].map(safeStr).join('\\n');\n\nconst sourceNorm = normText(sourceStrictText);\nconst sourceWords = new Set(sourceNorm.split(' ').filter(w => w.length >= 3));\n\nfunction sourceHasExactWord(term) {\n  const n = normText(term);\n  return n && !n.includes(' ') && sourceWords.has(n);\n}\n\nfunction sourceContainsPhrase(term) {\n  const n = normText(term);\n  return n.length >= 4 && sourceNorm.includes(n);\n}\n\nconst realPartTerms = new Set([\n  'finanzierung', 'haushalt', 'kosten', 'haushaltsreste', 'haushaltsrest',\n  'massnahme', 'maßnahme', 'ort', 'gremium', 'sachobjekt', 'einrichtung',\n  'lichtsignalanlage', 'signalgeber', 'bodenplatten', 'tasterkasten'\n].map(normText));\n\nconst termObjectSet = new Set([\n  ...sourceLock.requiredTerms,\n  ...sourceLock.requiredObjects,\n  sourceLock.requiredAction,\n  visualAnchors.satireThemaKonkret,\n  visualAnchors.visualOrt\n].map(normText).filter(Boolean));\n\n// forbiddenDrift darf echte Bestandteile nicht verbieten.\nsourceLock.forbiddenDrift = unique(sourceLock.forbiddenDrift).filter(d => {\n  const n = normText(d);\n  if (!n) return false;\n  if (realPartTerms.has(n)) return false;\n  if (termObjectSet.has(n)) return false;\n  if (sourceHasExactWord(d)) return false;\n  return true;\n});\n\n// Bei Bildfreigabe mindestens drei echte Abdriftverbote ergänzen, falls nötig.\nconst fallbackDrift = [\n  'allgemeine Rathaus-Satire ohne konkreten Vorgangsbezug',\n  'allgemeiner Aktenberg als Hauptmotiv',\n  'beliebiger Geldsack oder reine Finanzsymbolik als Hauptpointe',\n  'Pointe auf Kosten schutzbedürftiger Betroffener',\n  'Korruptionsunterstellung oder persönliche Schuldzuweisung'\n];\n\nfor (const d of fallbackDrift) {\n  if (sourceLock.forbiddenDrift.length >= 3) break;\n  if (!sourceLock.forbiddenDrift.some(x => normText(x) === normText(d))) {\n    sourceLock.forbiddenDrift.push(d);\n  }\n}\n\nconst sensitiveContextRe = /\\b(minderjaehrig|minderjährig|kind|kinder|schueler|schüler|schuelerin|schülerin|behinder|barrierefrei|barrierefreiheit|blind|sehbehindert|taub|krank|pflege|rollstuhl|gefluecht|geflücht|wohnungslose|obdachlos|armut|opfer|notlage)\\b/i;\nconst sensitiveContext = sensitiveContextRe.test(normText(sourceStrictText + ' ' + sourceLock.affectedGroups.join(' ')));\n\nfunction isSensitivePersonObject(v) {\n  const n = normText(v);\n  if (!n) return false;\n\n  // Sachobjekte mit Rollstuhl-/Barrierefreiheitsbezug bleiben erlaubt.\n  if (/\\b(rollstuhlrampe|rampe|barrierefreier zugang|barrierefreier taster|taster|signalgeber|bodenplatte|bodenplatten|leitstreifen|lichtsignalanlage)\\b/.test(n)) {\n    return false;\n  }\n\n  return /\\b(blinder|blinde|sehbehinderter|sehbehinderte|behinderter|behinderte|mensch mit behinderung|menschen mit behinderung|schueler|schuelerin|schüler|schülerin|kind|kinder|minderjaehriger|minderjährige|patient|patientin|pflegebeduerftiger|pflegebedürftige|rollstuhlfahrer|gefluechteter|geflüchtete|wohnungslose|obdachlose|kranker|kranke)\\b/.test(n);\n}\n\nconst forbiddenSymbolRe = /\\b(sparschwein|geldsack|waage|aktenberg|rathaus|nebel|monster|hai|haie|marionette|marionetten|theaterbuehne|theaterbühne|theater|clown|clowns|maskottchen)\\b/;\n\nfunction isForbiddenSymbol(v) {\n  const n = normText(v);\n  if (!n) return false;\n  if (!forbiddenSymbolRe.test(n)) return false;\n\n  // Nur erlauben, wenn das Symbol selbst belegbar Gegenstand der Vorlage ist.\n  if (!sourceContainsPhrase(v) && !sourceHasExactWord(v)) {\n    // FIX (2026-07-27, Vorgang 2026/143 \"Ungleichbehandlungen beim Denkmalschutz\"): die beiden\n    // obigen Pruefungen decken nur den Fall ab, dass entweder die GESAMTE Phrase wortwoertlich im\n    // Quelltext steht (sourceContainsPhrase) oder das Objekt aus einem einzigen Wort besteht\n    // (sourceHasExactWord, greift bei Leerzeichen im Begriff nie). Ein mehrwortiges, KI-\n    // paraphrasiertes Objekt wie \"Fenster im Rathaus\" (Quelltext sagt nur \"Fenster im\n    // Dachgeschoss des ... Nordwestfluegels des Rathauses\" - dieselben Woerter, nicht direkt\n    // nebeneinander) fiel bisher faelschlich durch beide Pruefungen. Zusaetzlich pruefen, ob\n    // JEDES eigenstaendige Wort der Phrase einzeln im Quelltext vorkommt.\n    const STOPWORDS = new Set(['im','in','der','die','das','des','dem','den','und','am','an','auf','zum','zur','von','vom','fuer','bei','beim','ein','eine','einer','eines']);\n    const words = n.split(' ').filter(w => w.length >= 3 && !STOPWORDS.has(w));\n    if (words.length === 0 || !words.every(w => sourceNorm.includes(w))) return true;\n  }\n  return false;\n}\n\nconst genericObjectSet = new Set([\n  'stadt', 'verwaltung', 'politik', 'buerokratie', 'bürokratie', 'gerechtigkeit',\n  'haushalt', 'kosten', 'finanzierung', 'massnahme', 'maßnahme', 'verfahren',\n  'gremium', 'beschluss', 'antrag', 'vorlage', 'thema', 'konflikt', 'situation',\n  'problem', 'prioritaet', 'priorität', 'zustaendigkeit', 'zuständigkeit'\n].map(normText));\n\nfunction isConcreteObject(v) {\n  const n = normText(v);\n  if (!n || n.length < 3) return false;\n  if (genericObjectSet.has(n)) return false;\n  if (isForbiddenSymbol(v)) return false;\n  if (sensitiveContext && isSensitivePersonObject(v)) return false;\n  return true;\n}\n\nfunction concreteCount(arr) {\n  return asArray(arr).filter(isConcreteObject).length;\n}\n\nfunction listForbiddenSymbols(arr) {\n  return asArray(arr).filter(isForbiddenSymbol);\n}\n\nfunction listSensitiveObjects(arr) {\n  return asArray(arr).filter(isSensitivePersonObject);\n}\n\nconst visualText = [\n  visualAnchors.visualUeberzeichnung,\n  visualAnchors.visualErkennungssatz,\n  analysis.visualMetaphor,\n  analysis.satireBrief,\n  analysis.satireAngle,\n  asArray(analysis.satirePunchlines).join(' '),\n  analysis.moeglicheSatirischeReaktion\n].map(safeStr).join(' ');\n\nconst vNorm = normText(visualText);\n\nfunction hasSensitiveMetaphor() {\n  if (!sensitiveContext) return false;\n\n  if (/\\bblind(e|er|es|en)?\\s+(augen|sparschwein|haushalt|verwaltung|planung|politik|ampel|stadt)\\b/.test(vNorm)) return true;\n  if (/\\b(taub(e|er|es|en)?|lahm(e|er|es|en)?|krank(e|er|es|en)?|hilflos(e|er|es|en)?)\\s+(verwaltung|planung|haushalt|politik|ampel|stadt)\\b/.test(vNorm)) return true;\n  if (/barrierefreiheit.{0,30}\\b(luxus|spass|spaß|teurer spass|teurer spaß)\\b/.test(vNorm)) return true;\n  if (/\\b(gefahrenszene|hilflosigkeit|panik|panisch|gefährdet|gefaehrdet|unfallopfer)\\b/.test(vNorm)) return true;\n\n  return false;\n}\n\n// Sensible sichtbare Betroffene vorsichtig leeren, aber nicht als Hauptfehler zählen.\nlet visualBetroffeneCleared = false;\nif (sensitiveContext && visualAnchors.visualBetroffene.length > 0) {\n  visualAnchors.visualBetroffene = [];\n  visualBetroffeneCleared = true;\n}\n\nconst sensitiveObjects = sensitiveContext ? [\n  ...listSensitiveObjects(visualAnchors.visualPflichtobjekte),\n  ...listSensitiveObjects(sourceLock.requiredObjects)\n] : [];\n\nconst forbiddenSymbols = [\n  ...listForbiddenSymbols(visualAnchors.visualPflichtobjekte),\n  ...listForbiddenSymbols(sourceLock.requiredObjects)\n];\n\nconst pflichtConcrete = concreteCount(visualAnchors.visualPflichtobjekte);\nconst reqObjConcrete = concreteCount(sourceLock.requiredObjects);\n\nconst sourceLockErrors = [];\n\nif (!safeStr(sourceLock.sourceTopic)) sourceLockErrors.push('sourceLock.sourceTopic fehlt');\nif (asArray(sourceLock.requiredTerms).length < 2) sourceLockErrors.push('sourceLock.requiredTerms < 2');\nif (reqObjConcrete < 2) sourceLockErrors.push('sourceLock.requiredObjects enthält weniger als 2 konkrete Objekte');\nif (!safeStr(sourceLock.requiredAction)) sourceLockErrors.push('sourceLock.requiredAction fehlt');\n\nconst visualErrors = [];\n\nif (!safeStr(visualAnchors.satireThemaKonkret)) visualErrors.push('satireThemaKonkret fehlt');\nif (!safeStr(visualAnchors.satireKonfliktKonkret)) visualErrors.push('satireKonfliktKonkret fehlt');\nif (pflichtConcrete < 2) visualErrors.push('visualPflichtobjekte enthält weniger als 2 konkrete Objekte');\nif (!safeStr(visualAnchors.visualPflichthandlung)) visualErrors.push('visualPflichthandlung fehlt');\nif (!safeStr(visualAnchors.visualErkennungssatz)) visualErrors.push('visualErkennungssatz fehlt');\n\nconst guardErrors = [];\n\nif (sensitiveObjects.length > 0) {\n  guardErrors.push('Sensible Betroffene als Pflichtobjekt/requiredObject erkannt: ' + sensitiveObjects.join(', '));\n}\n\nif (forbiddenSymbols.length > 0) {\n  guardErrors.push('Symbol-Drift als Pflichtobjekt/requiredObject erkannt: ' + forbiddenSymbols.join(', '));\n}\n\nif (hasSensitiveMetaphor()) {\n  guardErrors.push('Schutzlage wird als Metapher, Wortspiel oder Gefahrenszene verwendet');\n}\n\nif (visualBetroffeneCleared) {\n  guardErrors.push('visualBetroffene bei sensiblem Thema geleert; Betroffene sind nicht Bildpointe');\n}\n\nconst empfehlung = enumValue(analysis.empfehlung ?? input.empfehlung, ['IGNORIEREN', 'BEOBACHTEN', 'REAGIEREN'], 'BEOBACHTEN');\nconst sprengstoff = enumValue(analysis.sprengstoff ?? input.sprengstoff, ['KEINER', 'GERING', 'MITTEL', 'HOCH'], 'KEINER');\nconst ampelMap = { KEINER: '⚪', GERING: '🟡', MITTEL: '🟠', HOCH: '🔴' };\nconst ampel = ampelMap[sprengstoff] || '⚪';\n\nconst kommunikationspotenzial = num(analysis.kommunikationspotenzial ?? input.kommunikationspotenzial, 0);\nconst relevanz = num(analysis.relevanz ?? input.relevantScore ?? input.relevanz, 0);\n\nlet reaktionNoetig = bool(analysis.reaktionNoetig ?? input.reaktionNoetig);\n\nif (empfehlung === 'REAGIEREN') reaktionNoetig = true;\nif (empfehlung === 'IGNORIEREN') reaktionNoetig = false;\n\n// SatireIntensity deterministisch an sprengstoff koppeln.\nconst maxIntensityBySprengstoff = { KEINER: 2, GERING: 2, MITTEL: 4, HOCH: 5 };\nlet satireIntensity = num(analysis.satireIntensity ?? input.satireIntensity, 0);\n\nif (satireIntensity > 0) {\n  satireIntensity = Math.max(1, Math.min(satireIntensity, maxIntensityBySprengstoff[sprengstoff] || 2));\n}\n\nconst sourceLockValid = sourceLockErrors.length === 0;\nconst visualAnchorsValid = visualErrors.length === 0;\nconst blockedByGuard = guardErrors.some(e => !e.startsWith('visualBetroffene bei sensiblem Thema geleert'));\nconst guardValid = !blockedByGuard;\n\n// Die \"ist das ueberhaupt satirisch wert\"-Entscheidung wird nicht hier neu getroffen,\n// sondern kommt vom Eignungs-Agenten (P3), der einmalig pro Vorgang urteilt und sein\n// Ergebnis in eignungsAgentJson persistiert. Dieser Reparatur-Workflow repariert nur\n// SourceLock/VisualAnchors und wendet die deterministischen Gates erneut darauf an.\nfunction parseObjLocal(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; } catch (e) { return {}; }\n}\nconst eignung = parseObjLocal(input.eignungsAgentJson);\nconst satireWorthIt = eignung.satireWorthIt === true;\nconst reservationsBlockImage = eignung.reservationsBlockImage === true;\n\nconst sharepicRecommended = satireWorthIt && sourceLockValid && visualAnchorsValid && guardValid && !reservationsBlockImage;\nlet instagramSharepicNoetig = sharepicRecommended;\n\nconst allErrors = [...sourceLockErrors, ...visualErrors, ...guardErrors];\n\nlet visualDecisionReason = '';\nlet sharepicNeedStageComputed = '';\n\nif (!satireWorthIt) {\n  sharepicNeedStageComputed = 'not_applicable';\n  visualDecisionReason = 'Eignungs-Agent: ' + (safeStr(eignung.satireWorthItReason) || 'Kein Sharepic-Bedarf');\n} else if (sharepicRecommended) {\n  sharepicNeedStageComputed = 'topic_ok';\n  visualDecisionReason = 'Sharepic freigegeben nach Reparatur: SourceLock und Visual-Anker vollstaendig, keine sensible Betroffenen-Pointe, keine Symbol-Drift.';\n} else {\n  sharepicNeedStageComputed = 'topic_error';\n  const reasons = [...allErrors];\n  if (reservationsBlockImage) reasons.push('Eignungs-Agent Bedenken: ' + (Array.isArray(eignung.reservations) ? eignung.reservations.join(' | ') : ''));\n  visualDecisionReason = 'Sharepic weiterhin blockiert nach Reparatur: ' + reasons.join(' | ');\n}\n\n// Freigabe nur dort deterministisch korrigieren, wo es eindeutig ist.\nconst beweissicherheit = enumValue(analysis.beweissicherheit ?? input.beweissicherheit, ['NIEDRIG', 'MITTEL', 'HOCH'], 'NIEDRIG');\nconst rechtlichesRisiko = enumValue(analysis.rechtlichesRisiko ?? input.rechtlichesRisiko, ['NIEDRIG', 'MITTEL', 'HOCH'], 'NIEDRIG');\n\nlet freigabeEmpfohlen = bool(analysis.freigabeEmpfohlen ?? input.freigabeEmpfohlen);\n\nif (empfehlung === 'REAGIEREN' && beweissicherheit !== 'NIEDRIG' && rechtlichesRisiko !== 'HOCH') {\n  freigabeEmpfohlen = true;\n}\n\nif (rechtlichesRisiko === 'HOCH' || beweissicherheit === 'NIEDRIG') {\n  freigabeEmpfohlen = false;\n}\n\n// Wenn P1 bereits contentJson/websiteHeadline erzeugt hat oder headlineChoiceStage/\n// visualPromptStage schon einen nachgelagerten Wert hat, darf dieser Reparatur-Workflow\n// contentStage/sharepicNeedStage/imageStage NICHT mit einer frisch aus sourceLock/\n// visualAnchors abgeleiteten Einschätzung überschreiben - das würde bereits\n// erzeugten Content und Sichtbarkeitsfortschritt stillschweigend zurücksetzen.\n// sourceLock/visualAnchors werden trotzdem repariert (das ist der eigentliche Zweck).\nfunction hasP1Content(row) {\n  if (safeStr(row.websiteHeadline)) return true;\n  const cj = safeStr(row.contentJson);\n  if (!cj || cj === '{}' || cj === 'null') return false;\n  try {\n    const p = JSON.parse(cj);\n    return p && typeof p === 'object' && !Array.isArray(p) && Object.keys(p).length > 0;\n  } catch (e) {\n    return false;\n  }\n}\n\nconst downstreamProgressed = hasP1Content(input) || !!(safeStr(input.headlineChoiceStage) || safeStr(input.visualPromptStage));\n\nconst finalSharepicNeedStage = downstreamProgressed\n  ? (safeStr(input.sharepicNeedStage) || sharepicNeedStageComputed)\n  : sharepicNeedStageComputed;\nconst finalInstagramSharepicNoetig = downstreamProgressed\n  ? bool(input.instagramSharepicNoetig ?? input.instagramCarouselNoetig ?? input.visualNeeded)\n  : instagramSharepicNoetig;\nconst finalVisualDecisionReason = downstreamProgressed\n  ? (safeStr(input.visualDecisionReason) || 'Bereits weiterverarbeitet - contentStage/sharepicNeedStage durch Repair-Workflow nicht ueberschrieben.')\n  : visualDecisionReason;\n// FIX 2026-07-25 (mirror von \"Parse Guard-Reparatur JSON\" im selben Workflow): visualPromptStage\n// wurde bisher nirgends gesetzt - eine hier auf topic_ok freigegebene Zeile blieb dadurch\n// dauerhaft unsichtbar fuer P5 (ALLRIS_P5_Visual_Prompt_Builder \"Filtere Visual-Status\"\n// verlangt visualPromptStage=needs_prompt/prompt_error oder headlineChoiceStage=headline_selected).\nconst finalVisualPromptStage = downstreamProgressed\n  ? safeStr(input.visualPromptStage)\n  : (finalSharepicNeedStage === 'topic_ok' ? 'needs_prompt' : safeStr(input.visualPromptStage));\n\n// analysisJson synchronisieren.\nconst normalizedAnalysis = {\n  ...analysis,\n  empfehlung,\n  reaktionNoetig,\n  sprengstoff,\n  ampel,\n  kommunikationspotenzial,\n  relevanz,\n  satireIntensity,\n  beweissicherheit,\n  rechtlichesRisiko,\n  freigabeEmpfohlen,\n  instagramCarouselNoetig: finalInstagramSharepicNoetig,\n  sharepicNeedStage: finalSharepicNeedStage,\n  sourceLock,\n  visualAnchors,\n  sourceLockValid,\n  sourceLockErrors,\n  visualAnchorsValid,\n  visualAnchorsErrors: visualErrors,\n  visualGuardErrors: guardErrors,\n  visualDecisionReason: finalVisualDecisionReason\n};\n\nconst finalImageStage = downstreamProgressed\n  ? safeStr(input.imageStage)\n  : (safeStr(input.imageFinalPath) ? 'composed' : 'not_started');\n\nconst finalContentStage = downstreamProgressed\n  ? (input.contentStage || 'content_generated')\n  : (input.contentStage || (empfehlung === 'IGNORIEREN' ? 'ignored' : 'needs_content'));\nconst finalContentErrorReason = safeStr(input.contentErrorReason);\n\nconst out = {\n  ...input,\n\n  analysisJson: JSON.stringify(normalizedAnalysis),\n\n  relevantScore: relevanz,\n  relevanz,\n  sprengstoff,\n  ampel,\n  beweissicherheit,\n  rechtlichesRisiko,\n  kommunikationspotenzial,\n  empfehlung,\n  reaktionNoetig,\n  freigabeEmpfohlen,\n  satireIntensity,\n\n  sourceLockValid,\n  sourceLockErrors: JSON.stringify(sourceLockErrors),\n\n  visualAnchorsValid,\n  visualAnchorsErrors: JSON.stringify(visualErrors),\n  visualGuardErrors: JSON.stringify(guardErrors),\n\n  instagramCarouselNoetig: finalInstagramSharepicNoetig,\n  instagramSharepicNoetig: finalInstagramSharepicNoetig,\n  visualNeeded: finalInstagramSharepicNoetig,\n\n  visualDecisionReason: finalVisualDecisionReason,\n  contentStage: finalContentStage,\n  contentErrorReason: finalContentErrorReason,\n  sharepicNeedStage: finalSharepicNeedStage,\n  visualPromptStage: finalVisualPromptStage,\n  imageStage: finalImageStage,\n  lastAnalysisAt: new Date().toISOString(),\n\n  // Top-Level-Spiegelung für alte Nodes / Visual Prompt Builder.\n  sourceLock: JSON.stringify(sourceLock),\n\n  satireThemaKonkret: visualAnchors.satireThemaKonkret,\n  satireKonfliktKonkret: visualAnchors.satireKonfliktKonkret,\n  visualPflichtobjekte: JSON.stringify(visualAnchors.visualPflichtobjekte),\n  visualPflichthandlung: visualAnchors.visualPflichthandlung,\n  visualBetroffene: JSON.stringify(visualAnchors.visualBetroffene),\n  visualOrt: visualAnchors.visualOrt,\n  visualUeberzeichnung: visualAnchors.visualUeberzeichnung,\n  visualErkennungssatz: visualAnchors.visualErkennungssatz,\n  visualVerboteneErsatzmotive: JSON.stringify(visualAnchors.visualVerboteneErsatzmotive)\n};\n\nreturn { json: out };"
+      },
+      "id": "a5ea2ce3-7e97-4793-b289-3e9f87dd3fd2",
+      "name": "Parse Reparatur JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4896,
+        1936
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "analysisJson": "={{ $json.analysisJson }}",
+            "imageStage": "={{ $json.imageStage }}",
+            "instagramSharepicNoetig": "={{ $json.instagramSharepicNoetig }}",
+            "visualDecisionReason": "={{ $json.visualDecisionReason || '' }}",
+            "lastAnalysisAt": "={{ $now.toISO() }}",
+            "contentStage": "={{ $json.contentStage || 'error' }}",
+            "contentErrorReason": "={{ $json.contentErrorReason }}",
+            "sharepicNeedStage": "={{ $json.sharepicNeedStage }}",
+            "visualPromptStage": "={{ $json.visualPromptStage }}"
+          },
+          "schema": [
+            {
+              "id": "analysisJson",
+              "displayName": "analysisJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "sharepicNeedStage",
+              "displayName": "sharepicNeedStage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imageStage",
+              "displayName": "imageStage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "instagramSharepicNoetig",
+              "displayName": "instagramSharepicNoetig",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "visualDecisionReason",
+              "displayName": "visualDecisionReason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "lastAnalysisAt",
+              "displayName": "lastAnalysisAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "contentStage",
+              "displayName": "contentStage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "contentErrorReason",
+              "displayName": "contentErrorReason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "709ae088-9fb5-4a5d-84b4-11ae7ed8f671",
+      "name": "Speichere Reparatur",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        5120,
+        1936
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prüft, ob eine reine Guard-Blockierung (sensible Betroffene als Bildszene/Metapher in\n// satireBrief/satirePunchlines/satireAngle/visualMetaphor) vorliegt, wobei sourceLock und\n// visualAnchors bereits gültig sind, und ob noch kein automatischer Reparaturversuch\n// stattgefunden hat (verhindert Endlosschleifen - max. 1 Versuch).\n\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; } catch(e) { return {}; }\n}\nfunction asArr(v) {\n  if (Array.isArray(v)) return v.filter(Boolean).map(s => String(s).trim());\n  if (typeof v === 'string' && v.trim()) {\n    try { const p = JSON.parse(v); if (Array.isArray(p)) return p.filter(Boolean).map(s => String(s).trim()); } catch(e) {}\n    return v.split(/\\s*\\|\\s*/).filter(Boolean).map(s => String(s).trim());\n  }\n  return [];\n}\nfunction robustBool(v) {\n  if (v === true || v === 1) return true;\n  if (typeof v === 'string') { const s = v.trim().toLowerCase(); return s === 'true' || s === '1'; }\n  return false;\n}\nfunction normText(v) {\n  return safeStr(v).toLowerCase()\n    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')\n    .replace(/[„\"\"'`´]/g, '').replace(/[^a-z0-9]+/g, ' ').replace(/\\s+/g, ' ').trim();\n}\n\nconst items = $input.all();\nif (!items || items.length === 0) {\n  return [{ json: { _guardRepairNeeded: false, _guardRepairSkipped: true, _guardRepairSkipReason: 'kein Input' } }];\n}\nconst rawItem = items[0];\nconst j = (rawItem && rawItem.json && typeof rawItem.json === 'object' && !Array.isArray(rawItem.json)) ? rawItem.json : {};\n\nif (!j.vorgangKey) {\n  return [{ json: { ...j, _guardRepairNeeded: false, _guardRepairSkipped: true, _guardRepairSkipReason: 'kein vorgangKey' } }];\n}\n\nconst analysis = parseObj(j.analysisJson);\n// FIX (2026-07-25, mirror des -OK-Handlers in P5b und der uebrigen Repair-Sweeps in P4/P3c): sl\n// frisch aus faktenAgentJson bauen statt aus dem eingefrorenen analysisJson.sourceLock.\nconst fakten = parseObj(j.faktenAgentJson || {});\nconst sl = {\n  sourceTopic: safeStr(fakten.sourceTopic),\n  sourceConflict: safeStr(fakten.sourceConflict),\n  requiredTerms: asArr(fakten.requiredTerms),\n  requiredObjects: asArr(fakten.requiredObjects),\n  requiredAction: safeStr(fakten.requiredAction),\n  affectedGroups: asArr(fakten.affectedGroups)\n};\nconst va = parseObj(analysis.visualAnchors || {});\n\nconst slOk = !!(\n  safeStr(sl.sourceTopic) &&\n  asArr(sl.requiredTerms).length >= 2 && asArr(sl.requiredObjects).length >= 2 &&\n  safeStr(sl.requiredAction) && fakten.parseError !== true\n);\nconst vaOk = !!(\n  safeStr(va.satireThemaKonkret) && safeStr(va.satireKonfliktKonkret) &&\n  asArr(va.visualPflichtobjekte).length >= 2 && safeStr(va.visualPflichthandlung) &&\n  safeStr(va.visualErkennungssatz) && safeStr(va.visualUeberzeichnung) &&\n  asArr(va.visualVerboteneErsatzmotive).length >= 2\n);\n\nconst eignung = parseObj(j.eignungsAgentJson);\nconst wantsVisual = eignung.satireWorthIt === true || robustBool(j.visualNeeded) || robustBool(j.instagramSharepicNoetig);\n\nconst sourceStrictText = [\n  j.title, j.vorgangsnummer, j.summaryText, j.thema, j.betroffene,\n  j.kostenHaushalt, j.buergerwirkung, j.offenePunkte, j.unsicherheitenSummary, j.combinedText\n].map(safeStr).join('\\n');\n\nconst sensitiveContextRe = /\\b(minderjaehrig|minderjährig|kind|kinder|schueler|schüler|schuelerin|schülerin|behinder|barrierefrei|barrierefreiheit|blind|sehbehindert|taub|krank|pflege|rollstuhl|gefluecht|geflücht|wohnungslose|obdachlos|armut|opfer|notlage)\\b/i;\nconst sensitiveContext = sensitiveContextRe.test(normText(sourceStrictText + ' ' + asArr(sl.affectedGroups).join(' ')));\n\nfunction isSensitivePersonObject(v) {\n  const n = normText(v);\n  if (!n) return false;\n  if (/\\b(rollstuhlrampe|rampe|barrierefreier zugang|barrierefreier taster|taster|signalgeber|bodenplatte|bodenplatten|leitstreifen|lichtsignalanlage)\\b/.test(n)) return false;\n  return /\\b(blinder|blinde|sehbehinderter|sehbehinderte|behinderter|behinderte|mensch mit behinderung|menschen mit behinderung|schueler|schuelerin|schüler|schülerin|kind|kinder|minderjaehriger|minderjährige|patient|patientin|pflegebeduerftiger|pflegebedürftige|rollstuhlfahrer|gefluechteter|geflüchtete|wohnungslose|obdachlose|kranker|kranke)\\b/.test(n);\n}\n\n// FIX 2026-07-25 (mirror von \"Filtere unbenachrichtigte Blockaden\"/\"Repariere Legacy\n// Visual-Status\" in P4 und \"Finde Blockade-Antwort\" in P5b): dieser Node prüfte bisher NUR den\n// Sensible-Inhalte-Guard, nicht den generischen Symbol-Drift-Guard (Sparschwein/Geldsack/Waage/\n// Aktenberg als Pflichtobjekt ohne echten Quellenbezug) - eine Zeile, die ausschliesslich am\n// Symbol-Drift-Guard haengt (nicht an sensiblen Inhalten), wurde hier faelschlich als \"kein\n// Guard-Repair noetig\" bewertet, obwohl sie in P5b/P4 weiterhin als blockiert galt (2026-07-25,\n// Vorgang 2026/109-01 als Realfall gefunden).\nfunction isForbiddenSymbol(v, sourceNorm) {\n  const n = normText(v);\n  if (!n) return false;\n  if (!/\\b(sparschwein|geldsack|waage|aktenberg|rathaus|nebel|monster|hai|haie|marionette|marionetten|theaterbuehne|theaterbühne|theater|clown|clowns|maskottchen)\\b/.test(n)) return false;\n  if (sourceNorm.includes(n)) return false;\n  // FIX (2026-07-27, Vorgang 2026/143 \"Ungleichbehandlungen beim Denkmalschutz\"): bisher musste\n  // die GESAMTE normalisierte Phrase als zusammenhaengender Substring im Quelltext vorkommen, um\n  // als \"gegruendet\" zu gelten. Das ist zu bruechig fuer KI-paraphrasierte Pflichtobjekte: \"Fenster\n  // im Rathaus\" wurde faelschlich als Symbol-Drift geblockt, obwohl der Vorgang buchstaeblich von\n  // genau diesen Fenstern handelt - der Quelltext sagt nur \"Fenster im Dachgeschoss des ...\n  // Nordwestfluegels des Rathauses\", also dieselben Woerter, nicht direkt nebeneinander. Jetzt\n  // stattdessen pruefen, ob JEDES eigenstaendige (nicht-triviale) Wort der Phrase einzeln im\n  // Quelltext vorkommt - \"Rathaus-Tuer\" (kein einziges Vorkommen von \"tuer\" im Quelltext) bleibt\n  // dadurch weiterhin zurecht blockiert, da dort tatsaechlich nie von einer Tuer die Rede ist.\n  const STOPWORDS = new Set(['im','in','der','die','das','des','dem','den','und','am','an','auf','zum','zur','von','vom','fuer','bei','beim','ein','eine','einer','eines']);\n  const words = n.split(' ').filter(w => w.length >= 3 && !STOPWORDS.has(w));\n  if (words.length === 0) return true;\n  return !words.every(w => sourceNorm.includes(w));\n}\n\nfunction hasSensitiveMetaphor(text) {\n  if (!sensitiveContext) return false;\n  const n = normText(text);\n  if (/\\bblind(e|er|es|en)?\\s+(augen|sparschwein|haushalt|verwaltung|planung|politik|ampel|stadt)\\b/.test(n)) return true;\n  if (/\\b(taub(e|er|es|en)?|lahm(e|er|es|en)?|krank(e|er|es|en)?|hilflos(e|er|es|en)?)\\s+(verwaltung|planung|haushalt|politik|ampel|stadt)\\b/.test(n)) return true;\n  if (/barrierefreiheit.{0,30}\\b(luxus|spass|spaß|teurer spass|teurer spaß)\\b/.test(n)) return true;\n  if (/\\b(gefahrenszene|hilflosigkeit|panik|panisch|gefährdet|gefaehrdet|unfallopfer)\\b/.test(n)) return true;\n  return false;\n}\n\nconst visualText = [\n  va.visualUeberzeichnung, va.visualErkennungssatz, analysis.visualMetaphor,\n  analysis.satireBrief, analysis.satireAngle, asArr(analysis.satirePunchlines).join(' '),\n  analysis.moeglicheSatirischeReaktion\n].map(safeStr).join(' ');\n\nconst sensitiveObjectsFound = sensitiveContext ? [\n  ...asArr(va.visualPflichtobjekte).filter(isSensitivePersonObject),\n  ...asArr(sl.requiredObjects).filter(isSensitivePersonObject)\n] : [];\n\nconst sourceNorm = normText(sourceStrictText);\nconst forbiddenSymbolsFound = [\n  ...asArr(va.visualPflichtobjekte).filter(v => isForbiddenSymbol(v, sourceNorm)),\n  ...asArr(sl.requiredObjects).filter(v => isForbiddenSymbol(v, sourceNorm))\n];\n\nconst guardBlocked = sensitiveObjectsFound.length > 0 || forbiddenSymbolsFound.length > 0 || hasSensitiveMetaphor(visualText);\n\nconst alreadyAttempted = robustBool(analysis._guardRepairAttempted || j._guardRepairAttempted);\n\nconst guardRepairNeeded = wantsVisual && slOk && vaOk && guardBlocked && !alreadyAttempted;\n\nconst guardBlockedReasons = [\n  ...sensitiveObjectsFound.map(o => 'Sensible Betroffene als Bildobjekt: ' + o),\n  ...forbiddenSymbolsFound.map(o => 'Generisches Symbol ohne Quellenbezug: ' + o),\n  ...(hasSensitiveMetaphor(visualText) ? ['Sensible Betroffene erscheinen in Visual- oder Satirefeldern als Bildszene/Pointe'] : [])\n].join(' | ');\n\nreturn [{ json: {\n  ...j,\n  _guardRepairNeeded: guardRepairNeeded,\n  _guardRepairSkipped: false,\n  _guardBlockedReasons: guardBlockedReasons,\n  _guardAlreadyAttempted: alreadyAttempted,\n  satireTarget: j.satireTarget || analysis.satireTarget || ''\n} }];\n"
+      },
+      "id": "ef4fdf23-1310-4380-a68f-180de3ac3488",
+      "name": "Prüfe Guard-Repair-Bedarf",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5328,
+        1936
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "guard-repair-needed-001",
+              "leftValue": "={{ $json._guardRepairNeeded }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9ea0b3fd-ecec-403b-96bc-16f2bdd19c81",
+      "name": "IF Guard-Reparatur nötig?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        5536,
+        1936
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=Du reparierst AUSSCHLIESSLICH die Bildmotiv-/Satirefelder einer bereits abgeschlossenen Ratsvorlagen-Analyse für den Rat der Stadt Goslar, weil ein automatischer Guard sie blockiert hat. Es gibt zwei mögliche, unabhängige Blockiergründe - behandle NUR den, der im BLOCKIERGRUND unten tatsächlich genannt ist.\n\nWICHTIG: Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt. Kein Markdown. Keine Codeblöcke. Keine Kommentare. Keine zusätzlichen Felder.\n\nDu darfst NUR satireBrief, satirePunchlines, satireAngle, visualMetaphor, visualUeberzeichnung, visualErkennungssatz, visualPflichthandlung, visualPflichtobjekte und visualVerboteneErsatzmotive zurückgeben. Alle anderen Bewertungsfelder bleiben unverändert und gehören NICHT in deine Antwort.\n\nVORGANG: {{ $json.vorgangKey }}\nVORGANGSNUMMER: {{ $json.vorgangsnummer }}\nBLOCKIERGRUND: {{ $json._guardBlockedReasons }}\n\nTITEL:\n{{ $json.title }}\n\nZUSAMMENFASSUNG (summaryText):\n{{ $json.summaryText }}\n\nBISHERIGES SATIREZIEL (satireTarget – bleibt inhaltlich unverändert):\n{{ $json.satireTarget }}\n\nBISHERIGE FELDER:\nsatireBrief: {{ $json.satireBrief }}\nsatirePunchlines: {{ $json.satirePunchlines }}\nsatireAngle: {{ $json.satireAngle }}\nvisualMetaphor: {{ $json.visualMetaphor }}\nvisualUeberzeichnung: {{ $json.visualUeberzeichnung }}\nvisualErkennungssatz: {{ $json.visualErkennungssatz }}\nvisualPflichthandlung: {{ $json.visualPflichthandlung }}\nvisualPflichtobjekte: {{ $json.visualPflichtobjekte }}\nvisualVerboteneErsatzmotive: {{ $json.visualVerboteneErsatzmotive }}\n\nZWEI MÖGLICHE URSACHEN - repariere nur die, die im BLOCKIERGRUND oben tatsächlich steht:\n\n1) BLOCKIERGRUND enthält \"Sensible Betroffene als Bildobjekt\" oder \"erscheinen ... als Bildszene/Pointe\":\nSchreibe die betroffenen Felder so um, dass KEINE sensiblen Betroffenen (Kinder, Kranke, Menschen mit Behinderung, Geflüchtete, Obdachlose, Minderjährige, Opfer o.ä.) mehr als Bildmotiv, Bildszene oder Pointe auftauchen und keine reale Gefahren- oder Notlagenszene mit Personen mehr abgebildet wird. Die Pointe liegt stattdessen auf der Institution/Verwaltung/Politik selbst - aber nicht über ein austauschbares generisches Verwaltungssymbol (siehe Punkt 2), sondern über eine an den konkreten Fakten dieses Vorgangs hängende Idee.\n\n2) BLOCKIERGRUND enthält \"Generisches Symbol ohne Quellenbezug\":\nDie dort genannten Symbole (z.B. Sparschwein, Geldsack, Waage, Aktenberg, allgemeines Rathaus, Nebel, Monster, Hai, Marionette, Theaterbühne, Clown, Maskottchen) sind NICHT grundsätzlich verboten - sie sind nur dann ein Problem, wenn sie rein als austauschbares Standardklischee verwendet werden, das auf jede beliebige Haushalts-/Verwaltungsgeschichte passen würde, ohne echten Bezug zu DIESEM Vorgang. Prüfe: passt das genannte Symbol inhaltlich wirklich spezifisch zu diesem Vorgang (kommt es z.B. sinngemäß im Titel/in der Zusammenfassung vor, oder gibt es einen klaren inhaltlichen Bezug)? Falls ja, darfst du es behalten. Falls nein: ersetze es in visualPflichtobjekte durch etwas Konkretes aus den tatsächlichen Fakten dieses Vorgangs (z.B. eine im Text genannte Einrichtung, einen Ort, eine Zahl, eine Frist, ein Dokument) statt eines generischen Symbols. Ziel ist immer eine möglichst SPEZIFISCHE Grafik statt einer austauschbaren Allgemeinkritik.\n\nGRUNDREGELN (immer):\n- das gleiche reale Thema und dasselbe Satireziel (satireTarget) bleiben erhalten,\n- keine neuen Fakten erfinden, der Bezug zum konkreten Vorgang bleibt klar erkennbar,\n- falls du visualPflichtobjekte änderst: weiterhin mindestens 2 konkret zeichenbare Objekte,\n- falls du visualVerboteneErsatzmotive änderst: weiterhin mindestens 2 Einträge, die ausschließen, wozu eine generische Standardlösung sonst verkommen würde,\n- Felder, die vom Blockiergrund nicht betroffen sind, unverändert aus BISHERIGE FELDER übernehmen (nicht grundlos umschreiben).\n\nAntworte NUR mit diesem JSON-Objekt (keine anderen Felder):\n{\n  \"satireBrief\": \"\",\n  \"satirePunchlines\": [\"\", \"\"],\n  \"satireAngle\": \"\",\n  \"visualMetaphor\": \"\",\n  \"visualUeberzeichnung\": \"\",\n  \"visualErkennungssatz\": \"\",\n  \"visualPflichthandlung\": \"\",\n  \"visualPflichtobjekte\": [\"\", \"\"],\n  \"visualVerboteneErsatzmotive\": [\"\", \"\"]\n}\n"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "1aacd0da-e43e-4b53-8675-03ede1d16b4e",
+      "name": "AI Reparatur Visual Guard",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        5744,
+        1936
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "RiT1gwJpQWzSo6NO",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Übernimmt die von \"AI Reparatur Visual Guard\" überarbeiteten Satire-/Bildfelder,\n// prüft den Guard erneut (identische Logik wie \"Parse Reparatur JSON\" / \"Prüfe Guard-Repair-Bedarf\")\n// und setzt sharepicNeedStage final. Max. 1 automatischer Versuch (_guardRepairAttempted verhindert Endlosschleife).\n\nfunction getAiText(item) {\n  try {\n    const j = item.json || {};\n    if (j.text && typeof j.text === 'string' && j.text.trim()) return j.text;\n    const o = j.output;\n    if (Array.isArray(o)) {\n      for (let i = 0; i < o.length; i++) {\n        const c = o[i].content;\n        if (Array.isArray(c)) { for (let k = 0; k < c.length; k++) { if (c[k].text) return c[k].text; } }\n      }\n    }\n    if (j.output_text) return j.output_text;\n    if (j.message && j.message.content) return j.message.content;\n    if (j.choices && j.choices[0] && j.choices[0].message) return j.choices[0].message.content || '';\n    return '';\n  } catch (e) { return ''; }\n}\nfunction __repairJsonText(text) {\n  // Repairs two recurring AI-JSON breakage patterns (found live 2026-07-26 on\n  // Vorgang 2026/105's P3 analysis): (1) the model forgets to close a string\n  // value and just continues with a raw newline into the next \"key\": pattern,\n  // (2) the model emits a stray extra closing bracket/brace. Only touches\n  // content while tracking whether we're inside a string, so legitimate\n  // structural whitespace outside strings is left untouched.\n  var out = [];\n  var inString = false, escaped = false;\n  for (var i = 0; i < text.length; i++) {\n    var ch = text[i];\n    if (inString) {\n      if (escaped) { out.push(ch); escaped = false; continue; }\n      if (ch === '\\\\') { out.push(ch); escaped = true; continue; }\n      if (ch === '\"') { out.push(ch); inString = false; continue; }\n      if (ch === '\\n' || ch === '\\r') {\n        var rest = text.slice(i);\n        var m = /^[\\r\\n]+\\s*\"[A-Za-z_][A-Za-z0-9_]*\"\\s*:/.exec(rest);\n        if (m) {\n          out.push('\",'); inString = false; i += 1;\n          while (i < text.length && (text[i] === '\\r' || text[i] === '\\n')) i++;\n          i -= 1;\n          continue;\n        }\n        out.push(ch === '\\n' ? '\\\\n' : '\\\\r');\n        continue;\n      }\n      if (ch === '\\t') { out.push('\\\\t'); continue; }\n      out.push(ch);\n    } else {\n      if (ch === '\"') inString = true;\n      out.push(ch);\n    }\n  }\n  var stage1 = out.join('');\n\n  var out2 = [];\n  var stack = [];\n  inString = false; escaped = false;\n  var pairs = { '}': '{', ']': '[' };\n  for (var j = 0; j < stage1.length; j++) {\n    var c = stage1[j];\n    if (inString) {\n      out2.push(c);\n      if (escaped) { escaped = false; }\n      else if (c === '\\\\') { escaped = true; }\n      else if (c === '\"') { inString = false; }\n      continue;\n    }\n    if (c === '\"') { inString = true; out2.push(c); continue; }\n    if (c === '{' || c === '[') { stack.push(c); out2.push(c); continue; }\n    if (c === '}' || c === ']') {\n      if (stack.length && stack[stack.length - 1] === pairs[c]) { stack.pop(); out2.push(c); }\n      continue;\n    }\n    out2.push(c);\n  }\n  return out2.join('');\n}\n\nfunction __robustJsonParse(raw) {\n  try {\n    return JSON.parse(raw);\n  } catch (e1) {\n    try {\n      return JSON.parse(__repairJsonText(raw));\n    } catch (e2) {\n      throw e1;\n    }\n  }\n}\n\nfunction extractJson(text) {\n  if (!text) return null;\n  const s = String(text).replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```\\s*$/i, '').trim();\n  const a = s.indexOf('{'), b = s.lastIndexOf('}');\n  return (a === -1 || b === -1 || b <= a) ? null : s.slice(a, b + 1);\n}\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  if (typeof v === 'string') { try { const p = JSON.parse(v); return p && typeof p === 'object' && !Array.isArray(p) ? p : {}; } catch (e) {} }\n  return {};\n}\nfunction asArray(v) {\n  if (Array.isArray(v)) return v.filter(x => x !== null && x !== undefined && safeStr(x) !== '').map(x => safeStr(x));\n  if (v === null || v === undefined || v === '') return [];\n  if (typeof v === 'string') {\n    const t = v.trim();\n    if (!t) return [];\n    try { const p = JSON.parse(t); if (Array.isArray(p)) return p.filter(Boolean).map(x => safeStr(x)).filter(Boolean); } catch (e) {}\n    return t.split(/\\s*\\|\\s*/).map(x => safeStr(x)).filter(Boolean);\n  }\n  return [safeStr(v)].filter(Boolean);\n}\nfunction normText(v) {\n  return safeStr(v).toLowerCase()\n    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')\n    .replace(/[„\"\"'`´]/g, '').replace(/[^a-z0-9]+/g, ' ').replace(/\\s+/g, ' ').trim();\n}\n\nlet input = {};\ntry {\n  const ref = $('Prüfe Guard-Repair-Bedarf').item;\n  if (ref && ref.json && typeof ref.json === 'object' && !Array.isArray(ref.json)) input = ref.json;\n} catch (e) { input = {}; }\n\nconst rawAiText = getAiText($input.item);\nconst aiJsonStr = extractJson(rawAiText);\nlet repaired = {};\nif (aiJsonStr) { try { repaired = __robustJsonParse(aiJsonStr) || {}; } catch (e) { repaired = {}; } }\n\nconst analysis = parseObj(input.analysisJson);\n// FIX 2026-07-25: sl frisch aus faktenAgentJson bauen statt aus dem eingefrorenen\n// analysisJson.sourceLock - sonst meldet der Symbol-Drift-Check (unten) weiterhin\n// \"Sparschwein\" ueber sl.requiredObjects, obwohl die KI es gerade korrekt aus\n// visualPflichtobjekte entfernt hat (Vorgang 2026/109-01 live beobachtet: sourceLock.\n// requiredObjects enthielt noch das alte, eingefrorene \"Sparschwein\").\nconst fakten = parseObj(input.faktenAgentJson || {});\nconst sl = {\n  sourceTopic: safeStr(fakten.sourceTopic),\n  sourceConflict: safeStr(fakten.sourceConflict),\n  requiredTerms: asArray(fakten.requiredTerms),\n  requiredObjects: asArray(fakten.requiredObjects),\n  requiredAction: safeStr(fakten.requiredAction),\n  affectedGroups: asArray(fakten.affectedGroups)\n};\nconst va = parseObj(analysis.visualAnchors || {});\n\n// Überarbeitete Felder übernehmen, alles andere unverändert lassen.\nconst satireBrief = safeStr(repaired.satireBrief) || safeStr(analysis.satireBrief || input.satireBrief);\nconst satirePunchlines = asArray(repaired.satirePunchlines).length ? asArray(repaired.satirePunchlines) : asArray(analysis.satirePunchlines || input.satirePunchlines);\nconst satireAngle = safeStr(repaired.satireAngle) || safeStr(analysis.satireAngle || input.satireAngle);\nconst visualMetaphor = safeStr(repaired.visualMetaphor) || safeStr(analysis.visualMetaphor || input.visualMetaphor);\nva.visualUeberzeichnung = safeStr(repaired.visualUeberzeichnung) || safeStr(va.visualUeberzeichnung);\nva.visualErkennungssatz = safeStr(repaired.visualErkennungssatz) || safeStr(va.visualErkennungssatz);\nva.visualPflichthandlung = safeStr(repaired.visualPflichthandlung) || safeStr(va.visualPflichthandlung);\n// FIX 2026-07-25: neue, vom erweiterten Prompt zurueckgegebene Felder ebenfalls uebernehmen\nva.visualPflichtobjekte = asArray(repaired.visualPflichtobjekte).length ? asArray(repaired.visualPflichtobjekte) : asArray(va.visualPflichtobjekte);\nva.visualVerboteneErsatzmotive = asArray(repaired.visualVerboteneErsatzmotive).length ? asArray(repaired.visualVerboteneErsatzmotive) : asArray(va.visualVerboteneErsatzmotive);\n\nanalysis.satireBrief = satireBrief;\nanalysis.satirePunchlines = satirePunchlines;\nanalysis.satireAngle = satireAngle;\nanalysis.visualMetaphor = visualMetaphor;\nanalysis.visualAnchors = va;\n\n// Guard erneut prüfen (identische Logik wie in \"Parse Reparatur JSON\").\nconst sourceStrictText = [\n  input.title, input.vorgangsnummer, input.summaryText, input.thema, input.betroffene,\n  input.kostenHaushalt, input.buergerwirkung, input.offenePunkte, input.unsicherheitenSummary, input.combinedText\n].map(safeStr).join('\\n');\n\nconst sensitiveContextRe = /\\b(minderjaehrig|minderjährig|kind|kinder|schueler|schüler|schuelerin|schülerin|behinder|barrierefrei|barrierefreiheit|blind|sehbehindert|taub|krank|pflege|rollstuhl|gefluecht|geflücht|wohnungslose|obdachlos|armut|opfer|notlage)\\b/i;\nconst sensitiveContext = sensitiveContextRe.test(normText(sourceStrictText + ' ' + asArray(sl.affectedGroups).join(' ')));\n\nfunction isSensitivePersonObject(v) {\n  const n = normText(v);\n  if (!n) return false;\n  if (/\\b(rollstuhlrampe|rampe|barrierefreier zugang|barrierefreier taster|taster|signalgeber|bodenplatte|bodenplatten|leitstreifen|lichtsignalanlage)\\b/.test(n)) return false;\n  return /\\b(blinder|blinde|sehbehinderter|sehbehinderte|behinderter|behinderte|mensch mit behinderung|menschen mit behinderung|schueler|schuelerin|schüler|schülerin|kind|kinder|minderjaehriger|minderjährige|patient|patientin|pflegebeduerftiger|pflegebedürftige|rollstuhlfahrer|gefluechteter|geflüchtete|wohnungslose|obdachlose|kranker|kranke)\\b/.test(n);\n}\nfunction hasSensitiveMetaphor(text) {\n  if (!sensitiveContext) return false;\n  const n = normText(text);\n  if (/\\bblind(e|er|es|en)?\\s+(augen|sparschwein|haushalt|verwaltung|planung|politik|ampel|stadt)\\b/.test(n)) return true;\n  if (/\\b(taub(e|er|es|en)?|lahm(e|er|es|en)?|krank(e|er|es|en)?|hilflos(e|er|es|en)?)\\s+(verwaltung|planung|haushalt|politik|ampel|stadt)\\b/.test(n)) return true;\n  if (/barrierefreiheit.{0,30}\\b(luxus|spass|spaß|teurer spass|teurer spaß)\\b/.test(n)) return true;\n  if (/\\b(gefahrenszene|hilflosigkeit|panik|panisch|gefährdet|gefaehrdet|unfallopfer)\\b/.test(n)) return true;\n  return false;\n}\n// FIX 2026-07-25 (mirror von \"Prüfe Guard-Repair-Bedarf\" im selben Workflow, dort heute schon\n// ergaenzt): auch diese Nachpruefung kannte bisher nur den Sensible-Inhalte-Guard, nicht den\n// generischen Symbol-Drift-Guard - eine Zeile, bei der die KI-Reparatur ein verbotenes generisches\n// Symbol (Sparschwein/Geldsack/Waage/Aktenberg) unveraendert liess, wurde faelschlich als \"jetzt\n// freigegeben\" markiert (Vorgang 2026/109-01 als Realfall live beobachtet: KI-Reparatur behielt\n// \"Sparschwein\" bei, stillBlocked ignorierte es, Zeile ging faelschlich auf topic_ok).\nfunction isForbiddenSymbol(v, sourceNorm) {\n  const n = normText(v);\n  if (!n) return false;\n  if (!/\\b(sparschwein|geldsack|waage|aktenberg|rathaus|nebel|monster|hai|haie|marionette|marionetten|theaterbuehne|theaterbühne|theater|clown|clowns|maskottchen)\\b/.test(n)) return false;\n  if (sourceNorm.includes(n)) return false;\n  // FIX (2026-07-27, Vorgang 2026/143 \"Ungleichbehandlungen beim Denkmalschutz\"): bisher musste\n  // die GESAMTE normalisierte Phrase als zusammenhaengender Substring im Quelltext vorkommen, um\n  // als \"gegruendet\" zu gelten. Das ist zu bruechig fuer KI-paraphrasierte Pflichtobjekte: \"Fenster\n  // im Rathaus\" wurde faelschlich als Symbol-Drift geblockt, obwohl der Vorgang buchstaeblich von\n  // genau diesen Fenstern handelt - der Quelltext sagt nur \"Fenster im Dachgeschoss des ...\n  // Nordwestfluegels des Rathauses\", also dieselben Woerter, nicht direkt nebeneinander. Jetzt\n  // stattdessen pruefen, ob JEDES eigenstaendige (nicht-triviale) Wort der Phrase einzeln im\n  // Quelltext vorkommt - \"Rathaus-Tuer\" (kein einziges Vorkommen von \"tuer\" im Quelltext) bleibt\n  // dadurch weiterhin zurecht blockiert, da dort tatsaechlich nie von einer Tuer die Rede ist.\n  const STOPWORDS = new Set(['im','in','der','die','das','des','dem','den','und','am','an','auf','zum','zur','von','vom','fuer','bei','beim','ein','eine','einer','eines']);\n  const words = n.split(' ').filter(w => w.length >= 3 && !STOPWORDS.has(w));\n  if (words.length === 0) return true;\n  return !words.every(w => sourceNorm.includes(w));\n}\n\nconst visualText = [\n  va.visualUeberzeichnung, va.visualErkennungssatz, visualMetaphor, satireBrief, satireAngle,\n  satirePunchlines.join(' '), analysis.moeglicheSatirischeReaktion\n].map(safeStr).join(' ');\n\nconst sensitiveObjectsFound = sensitiveContext ? [\n  ...asArray(va.visualPflichtobjekte).filter(isSensitivePersonObject),\n  ...asArray(sl.requiredObjects).filter(isSensitivePersonObject)\n] : [];\n\nconst sourceNorm = normText(sourceStrictText);\nconst forbiddenSymbolsFound = [\n  ...asArray(va.visualPflichtobjekte).filter(v => isForbiddenSymbol(v, sourceNorm)),\n  ...asArray(sl.requiredObjects).filter(v => isForbiddenSymbol(v, sourceNorm))\n];\n\nconst stillBlocked = sensitiveObjectsFound.length > 0 || forbiddenSymbolsFound.length > 0 || hasSensitiveMetaphor(visualText);\n\nlet sharepicNeedStageComputed, instagramSharepicNoetig, visualDecisionReason;\nif (!stillBlocked) {\n  sharepicNeedStageComputed = 'topic_ok';\n  instagramSharepicNoetig = true;\n  visualDecisionReason = 'Sharepic freigegeben nach automatischer Entschärfung (sensible Betroffene aus Bildmotiv entfernt).';\n} else {\n  sharepicNeedStageComputed = 'topic_error';\n  instagramSharepicNoetig = false;\n  visualDecisionReason = 'Sharepic weiterhin blockiert auch nach automatischer Entschärfung: ' +\n    [\n      ...sensitiveObjectsFound.map(o => 'Sensible Betroffene als Bildobjekt: ' + o),\n      ...forbiddenSymbolsFound.map(o => 'Generisches Symbol ohne Quellenbezug: ' + o),\n      ...(hasSensitiveMetaphor(visualText) ? ['Sensible Betroffene erscheinen weiterhin als Bildszene/Pointe'] : [])\n    ].join(' | ');\n}\n\n// Wenn P1 bereits contentJson/websiteHeadline erzeugt hat oder headlineChoiceStage/\n// visualPromptStage schon einen nachgelagerten Wert hat, darf dieser Guard-Reparatur-Schritt\n// contentStage/sharepicNeedStage nicht mit der frisch berechneten Einschätzung überschreiben -\n// sonst wird bereits erzeugter Content/Sichtbarkeitsfortschritt zurückgesetzt.\nfunction hasP1Content(row) {\n  if (safeStr(row.websiteHeadline)) return true;\n  const cj = safeStr(row.contentJson);\n  if (!cj || cj === '{}' || cj === 'null') return false;\n  try {\n    const p = JSON.parse(cj);\n    return p && typeof p === 'object' && !Array.isArray(p) && Object.keys(p).length > 0;\n  } catch (e) {\n    return false;\n  }\n}\n\nconst downstreamProgressed = hasP1Content(input) || !!(safeStr(input.headlineChoiceStage) || safeStr(input.visualPromptStage));\n\nconst finalSharepicNeedStage = downstreamProgressed ? (safeStr(input.sharepicNeedStage) || sharepicNeedStageComputed) : sharepicNeedStageComputed;\n// FIX 2026-07-25: visualPromptStage wurde bisher nirgends gesetzt - eine hier auf topic_ok\n// freigegebene Zeile blieb dadurch dauerhaft unsichtbar fuer P5 (ALLRIS_P5_Visual_Prompt_Builder\n// \"Filtere Visual-Status\" verlangt visualPromptStage=needs_prompt/prompt_error oder\n// headlineChoiceStage=headline_selected). Vorgang 2026/109-01 live beobachtet: sharepicNeedStage\n// wurde korrekt topic_ok, visualPromptStage blieb aber leer.\nconst finalVisualPromptStage = downstreamProgressed\n  ? safeStr(input.visualPromptStage)\n  : (finalSharepicNeedStage === 'topic_ok' ? 'needs_prompt' : safeStr(input.visualPromptStage));\nconst finalInstagramSharepicNoetig = downstreamProgressed\n  ? (input.instagramSharepicNoetig === true || input.instagramCarouselNoetig === true || input.visualNeeded === true)\n  : instagramSharepicNoetig;\nconst finalVisualDecisionReason = downstreamProgressed\n  ? (safeStr(input.visualDecisionReason) || 'Bereits weiterverarbeitet - contentStage/sharepicNeedStage durch Guard-Reparatur nicht ueberschrieben.')\n  : visualDecisionReason;\n\nanalysis._guardRepairAttempted = true;\n\nconst finalContentStage = downstreamProgressed ? (input.contentStage || 'content_generated') : (input.contentStage || 'needs_content');\nconst finalContentErrorReason = safeStr(input.contentErrorReason);\nconst finalImageStage = downstreamProgressed ? safeStr(input.imageStage) : (safeStr(input.imageFinalPath) ? 'composed' : 'not_started');\n\nconst out = {\n  ...input,\n  analysisJson: JSON.stringify(analysis),\n  sharepicNeedStage: finalSharepicNeedStage,\n  visualPromptStage: finalVisualPromptStage,\n  imageStage: finalImageStage,\n  instagramSharepicNoetig: finalInstagramSharepicNoetig,\n  visualNeeded: finalInstagramSharepicNoetig,\n  instagramCarouselNoetig: finalInstagramSharepicNoetig,\n  visualDecisionReason: finalVisualDecisionReason,\n  contentStage: finalContentStage,\n  contentErrorReason: finalContentErrorReason,\n  lastAnalysisAt: new Date().toISOString(),\n  satireBrief,\n  satirePunchlines: JSON.stringify(satirePunchlines),\n  satireAngle,\n  visualMetaphor,\n  visualUeberzeichnung: va.visualUeberzeichnung,\n  visualErkennungssatz: va.visualErkennungssatz,\n  visualPflichthandlung: va.visualPflichthandlung,\n  _guardRepairAttempted: true\n};\n\nreturn { json: out };"
+      },
+      "id": "a331af3b-1d88-4a02-ab4e-81f63981c266",
+      "name": "Parse Guard-Reparatur JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6080,
+        1936
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "analysisJson": "={{ $json.analysisJson }}",
+            "imageStage": "={{ $json.imageStage }}",
+            "instagramSharepicNoetig": "={{ $json.instagramSharepicNoetig }}",
+            "visualDecisionReason": "={{ $json.visualDecisionReason || '' }}",
+            "lastAnalysisAt": "={{ $now.toISO() }}",
+            "contentStage": "={{ $json.contentStage || 'needs_content' }}",
+            "contentErrorReason": "={{ $json.contentErrorReason }}",
+            "satireBrief": "={{ $json.satireBrief }}",
+            "satirePunchlines": "={{ $json.satirePunchlines }}",
+            "satireAngle": "={{ $json.satireAngle }}",
+            "visualMetaphor": "={{ $json.visualMetaphor }}",
+            "satireTarget": "={{ $json.satireTarget }}",
+            "sharepicNeedStage": "={{ $json.sharepicNeedStage }}",
+            "visualPromptStage": "={{ $json.visualPromptStage }}"
+          },
+          "matchingColumns": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "c323e388-6252-49e8-810f-0628b3de5f66",
+      "name": "Speichere Guard-Reparatur",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        6288,
+        1936
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Repair-Sub-Workflow Ende - Rueckgabe an Aufrufer\nreturn [{ json: $input.item.json }];"
+      },
+      "id": "f067b43d-2c20-454c-a4fb-e73e442c382a",
+      "name": "Repair Abschluss",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6384,
+        1792
+      ]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Prüfe Repair-Bedarf",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prüfe Repair-Bedarf": {
+      "main": [
+        [
+          {
+            "node": "IF Repair nötig?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Repair nötig?": {
+      "main": [
+        [
+          {
+            "node": "AI Reparatur SourceLock+Anchors",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prüfe Guard-Repair-Bedarf",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Reparatur SourceLock+Anchors": {
+      "main": [
+        [
+          {
+            "node": "Parse Reparatur JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Reparatur JSON": {
+      "main": [
+        [
+          {
+            "node": "Speichere Reparatur",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Speichere Reparatur": {
+      "main": [
+        [
+          {
+            "node": "Prüfe Guard-Repair-Bedarf",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prüfe Guard-Repair-Bedarf": {
+      "main": [
+        [
+          {
+            "node": "IF Guard-Reparatur nötig?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Guard-Reparatur nötig?": {
+      "main": [
+        [
+          {
+            "node": "AI Reparatur Visual Guard",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Repair Abschluss",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Reparatur Visual Guard": {
+      "main": [
+        [
+          {
+            "node": "Parse Guard-Reparatur JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Guard-Reparatur JSON": {
+      "main": [
+        [
+          {
+            "node": "Speichere Guard-Reparatur",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Speichere Guard-Reparatur": {
+      "main": [
+        [
+          {
+            "node": "Repair Abschluss",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "5e5944a0-3f42-45de-a426-9f8c55519542",
+  "activeVersionId": "5e5944a0-3f42-45de-a426-9f8c55519542",
+  "versionCounter": 113,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-07-05T19:28:56.664Z",
+      "createdAt": "2026-07-05T19:28:56.664Z",
+      "role": "workflow:owner",
+      "workflowId": "KfPtfJfOe39LTJzR",
+      "projectId": "CrnegVcMvlcRU0OP",
+      "project": {
+        "updatedAt": "2026-05-23T11:38:39.411Z",
+        "createdAt": "2026-05-23T11:33:40.374Z",
+        "id": "CrnegVcMvlcRU0OP",
+        "name": "Oliver Lietz <oliver.lietz@golietz.de>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "66557ab1-dd68-4186-b616-ecaa8f1bea61"
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-07-27T11:46:45.173Z",
+    "createdAt": "2026-07-27T11:46:45.173Z",
+    "versionId": "5e5944a0-3f42-45de-a426-9f8c55519542",
+    "workflowId": "KfPtfJfOe39LTJzR",
+    "nodes": [
+      {
+        "parameters": {
+          "inputSource": "passthrough"
+        },
+        "id": "7ba82d4d-a4c3-4526-9997-c7e7a51dffef",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1.1,
+        "position": [
+          4544,
+          1712
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "// Prüfe Repair-Bedarf (V12_7 - runOnceForAllItems)\n// Verwendet runOnceForAllItems um SplitInBatches-Kompatibilitätsprobleme zu vermeiden\nconst items = $input.all();\nif (!items || items.length === 0) {\n  return [{ json: { _repairNeeded: false, _repairSkipped: true, _repairSkipReason: 'kein Input' } }];\n}\n\nconst rawItem = items[0];\nconst j = (rawItem && rawItem.json && typeof rawItem.json === 'object' && !Array.isArray(rawItem.json))\n  ? rawItem.json\n  : {};\n\nif (!j.vorgangKey) {\n  return [{ json: { ...j, _repairNeeded: false, _repairSkipped: true, _repairSkipReason: 'kein vorgangKey' } }];\n}\n\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; } catch(e) { return {}; }\n}\nfunction asArr(v) {\n  if (Array.isArray(v)) return v.filter(Boolean).map(s => String(s).trim());\n  if (typeof v === 'string' && v.trim()) {\n    try { const p = JSON.parse(v); if (Array.isArray(p)) return p.filter(Boolean).map(s => String(s).trim()); } catch(e) {}\n    return v.split(/\\s*\\|\\s*/).filter(Boolean).map(s => String(s).trim());\n  }\n  return [];\n}\nfunction robustBool(v) {\n  if (v === true || v === 1) return true;\n  if (typeof v === 'string') { const s = v.trim().toLowerCase(); return s === 'true' || s === '1'; }\n  return false;\n}\n\nconst analysis = parseObj(j.analysisJson);\n// FIX (2026-07-25, mirror des -OK-Handlers in P5b und der Repair-Sweeps in P4): sl frisch aus\n// faktenAgentJson bauen statt aus dem eingefrorenen analysisJson.sourceLock - das wird nur bei\n// einem erfolgreichen P4-Lauf aktualisiert und kann bei laengst blockierten Zeilen veraltet sein,\n// auch wenn faktenAgentJson seither bessere Daten enthaelt. va bleibt aus analysisJson.visualAnchors\n// (keine alternative frischere Quelle dafuer vorhanden) - die 8 Feldchecks unten sind selbst schon\n// die frische Ableitung, das zusaetzliche eingefrorene vaValidFlag entfaellt (dasselbe Bug-Muster).\nconst fakten = parseObj(j.faktenAgentJson || {});\nconst sl = {\n  sourceTopic: safeStr(fakten.sourceTopic),\n  sourceConflict: safeStr(fakten.sourceConflict),\n  requiredTerms: asArr(fakten.requiredTerms),\n  requiredObjects: asArr(fakten.requiredObjects),\n  requiredAction: safeStr(fakten.requiredAction),\n  affectedGroups: asArr(fakten.affectedGroups)\n};\nconst va = parseObj(analysis.visualAnchors || {});\n\nconst slOk = !!(\n  safeStr(sl.sourceTopic) &&\n  asArr(sl.requiredTerms).length >= 2 &&\n  asArr(sl.requiredObjects).length >= 2 &&\n  safeStr(sl.requiredAction) &&\n  fakten.parseError !== true\n);\nconst vaOk = !!(\n  safeStr(va.satireThemaKonkret) &&\n  safeStr(va.satireKonfliktKonkret) &&\n  asArr(va.visualPflichtobjekte).length >= 2 &&\n  safeStr(va.visualPflichthandlung) &&\n  safeStr(va.visualErkennungssatz) &&\n  safeStr(va.visualUeberzeichnung) &&\n  asArr(va.visualVerboteneErsatzmotive).length >= 2\n);\n\nconst needsVisual = robustBool(j.visualNeeded) || robustBool(j.instagramSharepicNoetig);\nconst sourceLockRepairNeeded = !slOk;\nconst visualAnchorRepairNeeded = needsVisual && !vaOk;\nconst repairNeeded = sourceLockRepairNeeded || visualAnchorRepairNeeded;\n\nreturn [{ json: {\n  ...j,\n  _repairNeeded: repairNeeded,\n  _repairSkipped: false,\n  _sourceLockRepairNeeded: sourceLockRepairNeeded,\n  _visualAnchorRepairNeeded: visualAnchorRepairNeeded,\n  _repairReasonSL: !slOk ? 'sourceLock ungültig/unvollständig' : '',\n  _repairReasonVA: !vaOk ? 'visualAnchors unvollständig' : '',\n  _sourceLockCurrentlyValid: slOk,\n  _visualAnchorsCurrentlyOk: vaOk\n} }];\n"
+        },
+        "id": "c49d2749-6581-413b-8e70-c180742e557b",
+        "name": "Prüfe Repair-Bedarf",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          5104,
+          1616
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 2
+            },
+            "conditions": [
+              {
+                "id": "repair-check",
+                "leftValue": "={{ $json._repairNeeded }}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "id": "b65ef8f1-4516-45a5-866d-fcf39188c37d",
+        "name": "IF Repair nötig?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          5328,
+          1616
+        ]
+      },
+      {
+        "parameters": {
+          "modelId": {
+            "__rl": true,
+            "value": "gpt-4o-mini",
+            "mode": "list",
+            "cachedResultName": "GPT-4O-MINI"
+          },
+          "responses": {
+            "values": [
+              {
+                "content": "=Du reparierst ausschließlich die Felder sourceLock und visualAnchors einer bereits abgeschlossenen Ratsvorlagen-Analyse für den Rat der Stadt Goslar.\n\nWICHTIG: Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt. Kein Markdown. Keine Codeblöcke. Keine Kommentare. Keine zusätzlichen Felder.\n\nDu darfst NUR sourceLock und visualAnchors zurückgeben. Alle anderen Bewertungsfelder (relevantScore, sprengstoff, empfehlung, kurzfassung, satirePunchlines usw.) bleiben unverändert und gehören NICHT in deine Antwort.\n\nVORGANG: {{ $json.vorgangKey }}\nVORGANGSNUMMER: {{ $json.vorgangsnummer }}\nREPARATURBEDARF SourceLock: {{ $json._sourceLockRepairNeeded }}\nREPARATURBEDARF VisualAnchors: {{ $json._visualAnchorRepairNeeded }}\nBILD ERFORDERLICH: {{ $json.visualNeeded }} / {{ $json.instagramSharepicNoetig }}\n\nTITEL:\n{{ $json.title }}\n\nZUSAMMENFASSUNG (summaryText):\n{{ $json.summaryText }}\n\nORIGINALDOKUMENTTEXT (combinedText – ebenfalls gültige Quelle):\n{{ $json.combinedText }}\n\nBISHERIGE ANALYSE (analysisJson – nur zur Orientierung, nicht übernehmen wenn fehlerhaft):\n{{ $json.analysisJson }}\n\nAUFGABE SOURCELOCK:\n\nsourceTopic muss das konkrete reale Thema des Vorgangs nennen (max. 10 Worte, direkt aus Titel oder Zusammenfassung ableitbar).\nsourceConflict nennt den belegbaren konkreten Konflikt oder das Problem, falls vorhanden (max. 15 Worte, direkt aus dem Text), sonst bleibt das Feld leer.\nrequiredTerms enthält mindestens 2 konkrete Begriffe oder kurze Wortgruppen, die WORTGETREU in title, summaryText ODER combinedText vorkommen. Keine Synonyme. Keine erfundenen Verwaltungsbegriffe. Keine Erweiterung von Quellenbegriffen um nicht vorkommende Wörter. Kein Stemming. Mindestens 2 davon müssen konkret und nicht-generisch sein (nicht: Stadt, Verwaltung, Politik, Vorlage, Antrag, Beschluss, Goslar).\nrequiredObjects enthält mindestens 2 konkrete zeichnerisch darstellbare Gegenstände (kein abstraktes wie „Verwaltung\", „Politik\", „Bürokratie\").\nrequiredAction beschreibt eine konkrete sichtbare Handlung.\naffectedGroups enthält nur belegbare betroffene Gruppen.\nforbiddenDrift enthält mindestens 2 unzulässige Ausweichthemen (Motive, die das Bild vom konkreten Thema wegführen würden).\n\nAUFGABE VISUALANCHORS (nur wenn Bild erforderlich, sonst leere Strings/Arrays):\n\nsatireThemaKonkret muss das reale Thema sichtbar benennen (kein abstrakter Begriff).\nsatireKonfliktKonkret muss zum Source-Lock passen (kein Verwaltungsjargon).\nvisualPflichtobjekte enthält mindestens 2 konkrete sichtbare Objekte, die im Bild erkennbar sein müssen.\nvisualPflichthandlung beschreibt eine sichtbare Handlung.\nvisualUeberzeichnung beschreibt eine eindeutige satirische Übertreibung des Konflikts.\nvisualErkennungssatz nennt konkrete Objekte und Handlung – der Satz muss das reale Goslar-Thema ohne Zusatzwissen erkennbar machen.\nvisualVerboteneErsatzmotive enthält mindestens 2 unzulässige Klischee-Ersatzmotive (z.B. generische Politiker, Aktentaschen, Rathäuser ohne Bezug).\nKeine austauschbare allgemeine Verwaltungssatire. Keine neuen politischen Themen. Keine erfundenen Fakten. Keine realen Personen.\n\nAntworte NUR mit diesem JSON-Objekt (keine anderen Felder):\n{\n  \"sourceLock\": {\n    \"sourceTopic\": \"\",\n    \"sourceConflict\": \"\",\n    \"requiredTerms\": [\"\", \"\"],\n    \"requiredObjects\": [\"\", \"\"],\n    \"requiredAction\": \"\",\n    \"affectedGroups\": [],\n    \"forbiddenDrift\": [\"\", \"\"]\n  },\n  \"visualAnchors\": {\n    \"satireThemaKonkret\": \"\",\n    \"satireKonfliktKonkret\": \"\",\n    \"visualPflichtobjekte\": [\"\", \"\"],\n    \"visualPflichthandlung\": \"\",\n    \"visualBetroffene\": [],\n    \"visualOrt\": \"Goslar\",\n    \"visualUeberzeichnung\": \"\",\n    \"visualErkennungssatz\": \"\",\n    \"visualVerboteneErsatzmotive\": [\"\", \"\"]\n  }\n}"
+              }
+            ]
+          },
+          "builtInTools": {},
+          "options": {}
+        },
+        "id": "19de80ee-82a2-4ea6-83db-89b465d908fb",
+        "name": "AI Reparatur SourceLock+Anchors",
+        "type": "@n8n/n8n-nodes-langchain.openAi",
+        "typeVersion": 2.3,
+        "position": [
+          4544,
+          1936
+        ],
+        "credentials": {
+          "openAiApi": {
+            "id": "RiT1gwJpQWzSo6NO",
+            "name": "OpenAI account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "// n8n Code Node: \"Normalisiere Bewertung + Visual Guard\"\n// Mode: Run Once for Each Item\n// Liest die KI-Antwort von \"AI Reparatur SourceLock+Anchors\" und mergt sourceLock/visualAnchors\n// in die Originaldaten aus \"Prüfe Repair-Bedarf\" (dieses Item ist die AI-Antwort, nicht die Row).\n\nfunction getAiText(item) {\n  try {\n    const j = item.json || {};\n    if (j.text && typeof j.text === 'string' && j.text.trim()) return j.text;\n    const o = j.output;\n    if (Array.isArray(o)) {\n      for (let i = 0; i < o.length; i++) {\n        const c = o[i].content;\n        if (Array.isArray(c)) { for (let k = 0; k < c.length; k++) { if (c[k].text) return c[k].text; } }\n      }\n    }\n    if (j.output_text) return j.output_text;\n    if (j.message && j.message.content) return j.message.content;\n    if (j.choices && j.choices[0] && j.choices[0].message) return j.choices[0].message.content || '';\n    return '';\n  } catch (e) { return ''; }\n}\n\nfunction __repairJsonText(text) {\n  // Repairs two recurring AI-JSON breakage patterns (found live 2026-07-26 on\n  // Vorgang 2026/105's P3 analysis): (1) the model forgets to close a string\n  // value and just continues with a raw newline into the next \"key\": pattern,\n  // (2) the model emits a stray extra closing bracket/brace. Only touches\n  // content while tracking whether we're inside a string, so legitimate\n  // structural whitespace outside strings is left untouched.\n  var out = [];\n  var inString = false, escaped = false;\n  for (var i = 0; i < text.length; i++) {\n    var ch = text[i];\n    if (inString) {\n      if (escaped) { out.push(ch); escaped = false; continue; }\n      if (ch === '\\\\') { out.push(ch); escaped = true; continue; }\n      if (ch === '\"') { out.push(ch); inString = false; continue; }\n      if (ch === '\\n' || ch === '\\r') {\n        var rest = text.slice(i);\n        var m = /^[\\r\\n]+\\s*\"[A-Za-z_][A-Za-z0-9_]*\"\\s*:/.exec(rest);\n        if (m) {\n          out.push('\",'); inString = false; i += 1;\n          while (i < text.length && (text[i] === '\\r' || text[i] === '\\n')) i++;\n          i -= 1;\n          continue;\n        }\n        out.push(ch === '\\n' ? '\\\\n' : '\\\\r');\n        continue;\n      }\n      if (ch === '\\t') { out.push('\\\\t'); continue; }\n      out.push(ch);\n    } else {\n      if (ch === '\"') inString = true;\n      out.push(ch);\n    }\n  }\n  var stage1 = out.join('');\n\n  var out2 = [];\n  var stack = [];\n  inString = false; escaped = false;\n  var pairs = { '}': '{', ']': '[' };\n  for (var j = 0; j < stage1.length; j++) {\n    var c = stage1[j];\n    if (inString) {\n      out2.push(c);\n      if (escaped) { escaped = false; }\n      else if (c === '\\\\') { escaped = true; }\n      else if (c === '\"') { inString = false; }\n      continue;\n    }\n    if (c === '\"') { inString = true; out2.push(c); continue; }\n    if (c === '{' || c === '[') { stack.push(c); out2.push(c); continue; }\n    if (c === '}' || c === ']') {\n      if (stack.length && stack[stack.length - 1] === pairs[c]) { stack.pop(); out2.push(c); }\n      continue;\n    }\n    out2.push(c);\n  }\n  return out2.join('');\n}\n\nfunction __robustJsonParse(raw) {\n  try {\n    return JSON.parse(raw);\n  } catch (e1) {\n    try {\n      return JSON.parse(__repairJsonText(raw));\n    } catch (e2) {\n      throw e1;\n    }\n  }\n}\n\nfunction extractJson(text) {\n  if (!text) return null;\n  const s = String(text).replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```\\s*$/i, '').trim();\n  const a = s.indexOf('{'), b = s.lastIndexOf('}');\n  return (a === -1 || b === -1 || b <= a) ? null : s.slice(a, b + 1);\n}\n\nlet input = {};\ntry {\n  const ref = $('Prüfe Repair-Bedarf').item;\n  if (ref && ref.json && typeof ref.json === 'object' && !Array.isArray(ref.json)) input = ref.json;\n} catch (e) { input = {}; }\n\nconst rawAiText = getAiText($input.item);\nconst aiJsonStr = extractJson(rawAiText);\nlet repaired = {};\nif (aiJsonStr) {\n  try { repaired = __robustJsonParse(aiJsonStr) || {}; } catch (e) { repaired = {}; }\n}\n\nfunction safeStr(v) {\n  return v === null || v === undefined ? '' : String(v).trim();\n}\n\nfunction normText(v) {\n  return safeStr(v)\n    .toLowerCase()\n    .replace(/ä/g, 'ae')\n    .replace(/ö/g, 'oe')\n    .replace(/ü/g, 'ue')\n    .replace(/ß/g, 'ss')\n    .replace(/[„“”\"'`´]/g, '')\n    .replace(/[^a-z0-9]+/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  if (typeof v === 'string') {\n    try {\n      const p = JSON.parse(v);\n      return p && typeof p === 'object' && !Array.isArray(p) ? p : {};\n    } catch (e) {}\n  }\n  return {};\n}\n\nfunction asArray(v) {\n  if (Array.isArray(v)) {\n    return v\n      .filter(x => x !== null && x !== undefined && safeStr(x) !== '')\n      .map(x => safeStr(x));\n  }\n  if (v === null || v === undefined || v === '') return [];\n  if (typeof v === 'string') {\n    const t = v.trim();\n    if (!t) return [];\n    try {\n      const p = JSON.parse(t);\n      if (Array.isArray(p)) return p.filter(Boolean).map(x => safeStr(x)).filter(Boolean);\n    } catch (e) {}\n    return t.split(/\\s*\\|\\s*/).map(x => safeStr(x)).filter(Boolean);\n  }\n  return [safeStr(v)].filter(Boolean);\n}\n\nfunction hasValue(v) {\n  if (Array.isArray(v)) return asArray(v).length > 0;\n  if (v && typeof v === 'object') return Object.keys(v).length > 0;\n  return safeStr(v).length > 0;\n}\n\nfunction pick(nestedValue, topValue, fallback = '') {\n  return hasValue(nestedValue) ? nestedValue : (hasValue(topValue) ? topValue : fallback);\n}\n\nfunction num(v, fallback = 0) {\n  const n = Number(String(v ?? '').replace(',', '.'));\n  return Number.isFinite(n) ? n : fallback;\n}\n\nfunction enumValue(v, allowed, fallback) {\n  const n = safeStr(v).toUpperCase();\n  return allowed.includes(n) ? n : fallback;\n}\n\nfunction bool(v) {\n  if (v === true || v === 1) return true;\n  if (v === false || v === 0 || v === null || v === undefined) return false;\n  const s = String(v).trim().toLowerCase();\n  return ['true', '1', 'yes', 'ja', 'y'].includes(s);\n}\n\nfunction unique(arr) {\n  const out = [];\n  const seen = new Set();\n  for (const x of asArray(arr)) {\n    const k = normText(x);\n    if (!k || seen.has(k)) continue;\n    seen.add(k);\n    out.push(x);\n  }\n  return out;\n}\n\n// Parse analysisJson, aber Top-Level-Felder weiter berücksichtigen.\nconst analysis = parseObj(input.analysisJson);\n\n// KI-Reparaturantwort hat Vorrang vor der alten (fehlerhaften) Analyse.\nif (repaired.sourceLock) analysis.sourceLock = repaired.sourceLock;\nif (repaired.visualAnchors) analysis.visualAnchors = repaired.visualAnchors;\n\nconst nestedSL = parseObj(analysis.sourceLock || input.sourceLock);\nconst nestedVA = parseObj(analysis.visualAnchors || input.visualAnchors);\n\nlet sourceLock = {\n  sourceTopic: safeStr(pick(nestedSL.sourceTopic, input.sourceTopic || analysis.sourceTopic)),\n  sourceConflict: safeStr(pick(nestedSL.sourceConflict, input.sourceConflict || analysis.sourceConflict)),\n  requiredTerms: unique(pick(nestedSL.requiredTerms, input.requiredTerms || analysis.requiredTerms, [])),\n  requiredObjects: unique(pick(nestedSL.requiredObjects, input.requiredObjects || analysis.requiredObjects, [])),\n  requiredAction: safeStr(pick(nestedSL.requiredAction, input.requiredAction || analysis.requiredAction)),\n  affectedGroups: unique(pick(nestedSL.affectedGroups, input.affectedGroups || analysis.affectedGroups, [])),\n  forbiddenDrift: unique(pick(nestedSL.forbiddenDrift, input.forbiddenDrift || analysis.forbiddenDrift, []))\n};\n\nlet visualAnchors = {\n  satireThemaKonkret: safeStr(pick(nestedVA.satireThemaKonkret, input.satireThemaKonkret || analysis.satireThemaKonkret)),\n  satireKonfliktKonkret: safeStr(pick(nestedVA.satireKonfliktKonkret, input.satireKonfliktKonkret || analysis.satireKonfliktKonkret)),\n  visualPflichtobjekte: unique(pick(nestedVA.visualPflichtobjekte, input.visualPflichtobjekte || analysis.visualPflichtobjekte, [])),\n  visualPflichthandlung: safeStr(pick(nestedVA.visualPflichthandlung, input.visualPflichthandlung || analysis.visualPflichthandlung)),\n  visualBetroffene: unique(pick(nestedVA.visualBetroffene, input.visualBetroffene || analysis.visualBetroffene, [])),\n  visualOrt: safeStr(pick(nestedVA.visualOrt, input.visualOrt || analysis.visualOrt || '')),\n  visualUeberzeichnung: safeStr(pick(nestedVA.visualUeberzeichnung, input.visualUeberzeichnung || analysis.visualUeberzeichnung)),\n  visualErkennungssatz: safeStr(pick(nestedVA.visualErkennungssatz, input.visualErkennungssatz || analysis.visualErkennungssatz)),\n  visualVerboteneErsatzmotive: unique(pick(nestedVA.visualVerboteneErsatzmotive, input.visualVerboteneErsatzmotive || analysis.visualVerboteneErsatzmotive, []))\n};\n\nconst sourceStrictText = [\n  input.title,\n  input.vorgangsnummer,\n  input.summaryText,\n  input.thema,\n  input.betroffene,\n  input.kostenHaushalt,\n  input.buergerwirkung,\n  input.offenePunkte,\n  input.unsicherheitenSummary,\n  input.combinedText,\n  input.analyseContext\n].map(safeStr).join('\\n');\n\nconst sourceNorm = normText(sourceStrictText);\nconst sourceWords = new Set(sourceNorm.split(' ').filter(w => w.length >= 3));\n\nfunction sourceHasExactWord(term) {\n  const n = normText(term);\n  return n && !n.includes(' ') && sourceWords.has(n);\n}\n\nfunction sourceContainsPhrase(term) {\n  const n = normText(term);\n  return n.length >= 4 && sourceNorm.includes(n);\n}\n\nconst realPartTerms = new Set([\n  'finanzierung', 'haushalt', 'kosten', 'haushaltsreste', 'haushaltsrest',\n  'massnahme', 'maßnahme', 'ort', 'gremium', 'sachobjekt', 'einrichtung',\n  'lichtsignalanlage', 'signalgeber', 'bodenplatten', 'tasterkasten'\n].map(normText));\n\nconst termObjectSet = new Set([\n  ...sourceLock.requiredTerms,\n  ...sourceLock.requiredObjects,\n  sourceLock.requiredAction,\n  visualAnchors.satireThemaKonkret,\n  visualAnchors.visualOrt\n].map(normText).filter(Boolean));\n\n// forbiddenDrift darf echte Bestandteile nicht verbieten.\nsourceLock.forbiddenDrift = unique(sourceLock.forbiddenDrift).filter(d => {\n  const n = normText(d);\n  if (!n) return false;\n  if (realPartTerms.has(n)) return false;\n  if (termObjectSet.has(n)) return false;\n  if (sourceHasExactWord(d)) return false;\n  return true;\n});\n\n// Bei Bildfreigabe mindestens drei echte Abdriftverbote ergänzen, falls nötig.\nconst fallbackDrift = [\n  'allgemeine Rathaus-Satire ohne konkreten Vorgangsbezug',\n  'allgemeiner Aktenberg als Hauptmotiv',\n  'beliebiger Geldsack oder reine Finanzsymbolik als Hauptpointe',\n  'Pointe auf Kosten schutzbedürftiger Betroffener',\n  'Korruptionsunterstellung oder persönliche Schuldzuweisung'\n];\n\nfor (const d of fallbackDrift) {\n  if (sourceLock.forbiddenDrift.length >= 3) break;\n  if (!sourceLock.forbiddenDrift.some(x => normText(x) === normText(d))) {\n    sourceLock.forbiddenDrift.push(d);\n  }\n}\n\nconst sensitiveContextRe = /\\b(minderjaehrig|minderjährig|kind|kinder|schueler|schüler|schuelerin|schülerin|behinder|barrierefrei|barrierefreiheit|blind|sehbehindert|taub|krank|pflege|rollstuhl|gefluecht|geflücht|wohnungslose|obdachlos|armut|opfer|notlage)\\b/i;\nconst sensitiveContext = sensitiveContextRe.test(normText(sourceStrictText + ' ' + sourceLock.affectedGroups.join(' ')));\n\nfunction isSensitivePersonObject(v) {\n  const n = normText(v);\n  if (!n) return false;\n\n  // Sachobjekte mit Rollstuhl-/Barrierefreiheitsbezug bleiben erlaubt.\n  if (/\\b(rollstuhlrampe|rampe|barrierefreier zugang|barrierefreier taster|taster|signalgeber|bodenplatte|bodenplatten|leitstreifen|lichtsignalanlage)\\b/.test(n)) {\n    return false;\n  }\n\n  return /\\b(blinder|blinde|sehbehinderter|sehbehinderte|behinderter|behinderte|mensch mit behinderung|menschen mit behinderung|schueler|schuelerin|schüler|schülerin|kind|kinder|minderjaehriger|minderjährige|patient|patientin|pflegebeduerftiger|pflegebedürftige|rollstuhlfahrer|gefluechteter|geflüchtete|wohnungslose|obdachlose|kranker|kranke)\\b/.test(n);\n}\n\nconst forbiddenSymbolRe = /\\b(sparschwein|geldsack|waage|aktenberg|rathaus|nebel|monster|hai|haie|marionette|marionetten|theaterbuehne|theaterbühne|theater|clown|clowns|maskottchen)\\b/;\n\nfunction isForbiddenSymbol(v) {\n  const n = normText(v);\n  if (!n) return false;\n  if (!forbiddenSymbolRe.test(n)) return false;\n\n  // Nur erlauben, wenn das Symbol selbst belegbar Gegenstand der Vorlage ist.\n  if (!sourceContainsPhrase(v) && !sourceHasExactWord(v)) {\n    // FIX (2026-07-27, Vorgang 2026/143 \"Ungleichbehandlungen beim Denkmalschutz\"): die beiden\n    // obigen Pruefungen decken nur den Fall ab, dass entweder die GESAMTE Phrase wortwoertlich im\n    // Quelltext steht (sourceContainsPhrase) oder das Objekt aus einem einzigen Wort besteht\n    // (sourceHasExactWord, greift bei Leerzeichen im Begriff nie). Ein mehrwortiges, KI-\n    // paraphrasiertes Objekt wie \"Fenster im Rathaus\" (Quelltext sagt nur \"Fenster im\n    // Dachgeschoss des ... Nordwestfluegels des Rathauses\" - dieselben Woerter, nicht direkt\n    // nebeneinander) fiel bisher faelschlich durch beide Pruefungen. Zusaetzlich pruefen, ob\n    // JEDES eigenstaendige Wort der Phrase einzeln im Quelltext vorkommt.\n    const STOPWORDS = new Set(['im','in','der','die','das','des','dem','den','und','am','an','auf','zum','zur','von','vom','fuer','bei','beim','ein','eine','einer','eines']);\n    const words = n.split(' ').filter(w => w.length >= 3 && !STOPWORDS.has(w));\n    if (words.length === 0 || !words.every(w => sourceNorm.includes(w))) return true;\n  }\n  return false;\n}\n\nconst genericObjectSet = new Set([\n  'stadt', 'verwaltung', 'politik', 'buerokratie', 'bürokratie', 'gerechtigkeit',\n  'haushalt', 'kosten', 'finanzierung', 'massnahme', 'maßnahme', 'verfahren',\n  'gremium', 'beschluss', 'antrag', 'vorlage', 'thema', 'konflikt', 'situation',\n  'problem', 'prioritaet', 'priorität', 'zustaendigkeit', 'zuständigkeit'\n].map(normText));\n\nfunction isConcreteObject(v) {\n  const n = normText(v);\n  if (!n || n.length < 3) return false;\n  if (genericObjectSet.has(n)) return false;\n  if (isForbiddenSymbol(v)) return false;\n  if (sensitiveContext && isSensitivePersonObject(v)) return false;\n  return true;\n}\n\nfunction concreteCount(arr) {\n  return asArray(arr).filter(isConcreteObject).length;\n}\n\nfunction listForbiddenSymbols(arr) {\n  return asArray(arr).filter(isForbiddenSymbol);\n}\n\nfunction listSensitiveObjects(arr) {\n  return asArray(arr).filter(isSensitivePersonObject);\n}\n\nconst visualText = [\n  visualAnchors.visualUeberzeichnung,\n  visualAnchors.visualErkennungssatz,\n  analysis.visualMetaphor,\n  analysis.satireBrief,\n  analysis.satireAngle,\n  asArray(analysis.satirePunchlines).join(' '),\n  analysis.moeglicheSatirischeReaktion\n].map(safeStr).join(' ');\n\nconst vNorm = normText(visualText);\n\nfunction hasSensitiveMetaphor() {\n  if (!sensitiveContext) return false;\n\n  if (/\\bblind(e|er|es|en)?\\s+(augen|sparschwein|haushalt|verwaltung|planung|politik|ampel|stadt)\\b/.test(vNorm)) return true;\n  if (/\\b(taub(e|er|es|en)?|lahm(e|er|es|en)?|krank(e|er|es|en)?|hilflos(e|er|es|en)?)\\s+(verwaltung|planung|haushalt|politik|ampel|stadt)\\b/.test(vNorm)) return true;\n  if (/barrierefreiheit.{0,30}\\b(luxus|spass|spaß|teurer spass|teurer spaß)\\b/.test(vNorm)) return true;\n  if (/\\b(gefahrenszene|hilflosigkeit|panik|panisch|gefährdet|gefaehrdet|unfallopfer)\\b/.test(vNorm)) return true;\n\n  return false;\n}\n\n// Sensible sichtbare Betroffene vorsichtig leeren, aber nicht als Hauptfehler zählen.\nlet visualBetroffeneCleared = false;\nif (sensitiveContext && visualAnchors.visualBetroffene.length > 0) {\n  visualAnchors.visualBetroffene = [];\n  visualBetroffeneCleared = true;\n}\n\nconst sensitiveObjects = sensitiveContext ? [\n  ...listSensitiveObjects(visualAnchors.visualPflichtobjekte),\n  ...listSensitiveObjects(sourceLock.requiredObjects)\n] : [];\n\nconst forbiddenSymbols = [\n  ...listForbiddenSymbols(visualAnchors.visualPflichtobjekte),\n  ...listForbiddenSymbols(sourceLock.requiredObjects)\n];\n\nconst pflichtConcrete = concreteCount(visualAnchors.visualPflichtobjekte);\nconst reqObjConcrete = concreteCount(sourceLock.requiredObjects);\n\nconst sourceLockErrors = [];\n\nif (!safeStr(sourceLock.sourceTopic)) sourceLockErrors.push('sourceLock.sourceTopic fehlt');\nif (asArray(sourceLock.requiredTerms).length < 2) sourceLockErrors.push('sourceLock.requiredTerms < 2');\nif (reqObjConcrete < 2) sourceLockErrors.push('sourceLock.requiredObjects enthält weniger als 2 konkrete Objekte');\nif (!safeStr(sourceLock.requiredAction)) sourceLockErrors.push('sourceLock.requiredAction fehlt');\n\nconst visualErrors = [];\n\nif (!safeStr(visualAnchors.satireThemaKonkret)) visualErrors.push('satireThemaKonkret fehlt');\nif (!safeStr(visualAnchors.satireKonfliktKonkret)) visualErrors.push('satireKonfliktKonkret fehlt');\nif (pflichtConcrete < 2) visualErrors.push('visualPflichtobjekte enthält weniger als 2 konkrete Objekte');\nif (!safeStr(visualAnchors.visualPflichthandlung)) visualErrors.push('visualPflichthandlung fehlt');\nif (!safeStr(visualAnchors.visualErkennungssatz)) visualErrors.push('visualErkennungssatz fehlt');\n\nconst guardErrors = [];\n\nif (sensitiveObjects.length > 0) {\n  guardErrors.push('Sensible Betroffene als Pflichtobjekt/requiredObject erkannt: ' + sensitiveObjects.join(', '));\n}\n\nif (forbiddenSymbols.length > 0) {\n  guardErrors.push('Symbol-Drift als Pflichtobjekt/requiredObject erkannt: ' + forbiddenSymbols.join(', '));\n}\n\nif (hasSensitiveMetaphor()) {\n  guardErrors.push('Schutzlage wird als Metapher, Wortspiel oder Gefahrenszene verwendet');\n}\n\nif (visualBetroffeneCleared) {\n  guardErrors.push('visualBetroffene bei sensiblem Thema geleert; Betroffene sind nicht Bildpointe');\n}\n\nconst empfehlung = enumValue(analysis.empfehlung ?? input.empfehlung, ['IGNORIEREN', 'BEOBACHTEN', 'REAGIEREN'], 'BEOBACHTEN');\nconst sprengstoff = enumValue(analysis.sprengstoff ?? input.sprengstoff, ['KEINER', 'GERING', 'MITTEL', 'HOCH'], 'KEINER');\nconst ampelMap = { KEINER: '⚪', GERING: '🟡', MITTEL: '🟠', HOCH: '🔴' };\nconst ampel = ampelMap[sprengstoff] || '⚪';\n\nconst kommunikationspotenzial = num(analysis.kommunikationspotenzial ?? input.kommunikationspotenzial, 0);\nconst relevanz = num(analysis.relevanz ?? input.relevantScore ?? input.relevanz, 0);\n\nlet reaktionNoetig = bool(analysis.reaktionNoetig ?? input.reaktionNoetig);\n\nif (empfehlung === 'REAGIEREN') reaktionNoetig = true;\nif (empfehlung === 'IGNORIEREN') reaktionNoetig = false;\n\n// SatireIntensity deterministisch an sprengstoff koppeln.\nconst maxIntensityBySprengstoff = { KEINER: 2, GERING: 2, MITTEL: 4, HOCH: 5 };\nlet satireIntensity = num(analysis.satireIntensity ?? input.satireIntensity, 0);\n\nif (satireIntensity > 0) {\n  satireIntensity = Math.max(1, Math.min(satireIntensity, maxIntensityBySprengstoff[sprengstoff] || 2));\n}\n\nconst sourceLockValid = sourceLockErrors.length === 0;\nconst visualAnchorsValid = visualErrors.length === 0;\nconst blockedByGuard = guardErrors.some(e => !e.startsWith('visualBetroffene bei sensiblem Thema geleert'));\nconst guardValid = !blockedByGuard;\n\n// Die \"ist das ueberhaupt satirisch wert\"-Entscheidung wird nicht hier neu getroffen,\n// sondern kommt vom Eignungs-Agenten (P3), der einmalig pro Vorgang urteilt und sein\n// Ergebnis in eignungsAgentJson persistiert. Dieser Reparatur-Workflow repariert nur\n// SourceLock/VisualAnchors und wendet die deterministischen Gates erneut darauf an.\nfunction parseObjLocal(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; } catch (e) { return {}; }\n}\nconst eignung = parseObjLocal(input.eignungsAgentJson);\nconst satireWorthIt = eignung.satireWorthIt === true;\nconst reservationsBlockImage = eignung.reservationsBlockImage === true;\n\nconst sharepicRecommended = satireWorthIt && sourceLockValid && visualAnchorsValid && guardValid && !reservationsBlockImage;\nlet instagramSharepicNoetig = sharepicRecommended;\n\nconst allErrors = [...sourceLockErrors, ...visualErrors, ...guardErrors];\n\nlet visualDecisionReason = '';\nlet sharepicNeedStageComputed = '';\n\nif (!satireWorthIt) {\n  sharepicNeedStageComputed = 'not_applicable';\n  visualDecisionReason = 'Eignungs-Agent: ' + (safeStr(eignung.satireWorthItReason) || 'Kein Sharepic-Bedarf');\n} else if (sharepicRecommended) {\n  sharepicNeedStageComputed = 'topic_ok';\n  visualDecisionReason = 'Sharepic freigegeben nach Reparatur: SourceLock und Visual-Anker vollstaendig, keine sensible Betroffenen-Pointe, keine Symbol-Drift.';\n} else {\n  sharepicNeedStageComputed = 'topic_error';\n  const reasons = [...allErrors];\n  if (reservationsBlockImage) reasons.push('Eignungs-Agent Bedenken: ' + (Array.isArray(eignung.reservations) ? eignung.reservations.join(' | ') : ''));\n  visualDecisionReason = 'Sharepic weiterhin blockiert nach Reparatur: ' + reasons.join(' | ');\n}\n\n// Freigabe nur dort deterministisch korrigieren, wo es eindeutig ist.\nconst beweissicherheit = enumValue(analysis.beweissicherheit ?? input.beweissicherheit, ['NIEDRIG', 'MITTEL', 'HOCH'], 'NIEDRIG');\nconst rechtlichesRisiko = enumValue(analysis.rechtlichesRisiko ?? input.rechtlichesRisiko, ['NIEDRIG', 'MITTEL', 'HOCH'], 'NIEDRIG');\n\nlet freigabeEmpfohlen = bool(analysis.freigabeEmpfohlen ?? input.freigabeEmpfohlen);\n\nif (empfehlung === 'REAGIEREN' && beweissicherheit !== 'NIEDRIG' && rechtlichesRisiko !== 'HOCH') {\n  freigabeEmpfohlen = true;\n}\n\nif (rechtlichesRisiko === 'HOCH' || beweissicherheit === 'NIEDRIG') {\n  freigabeEmpfohlen = false;\n}\n\n// Wenn P1 bereits contentJson/websiteHeadline erzeugt hat oder headlineChoiceStage/\n// visualPromptStage schon einen nachgelagerten Wert hat, darf dieser Reparatur-Workflow\n// contentStage/sharepicNeedStage/imageStage NICHT mit einer frisch aus sourceLock/\n// visualAnchors abgeleiteten Einschätzung überschreiben - das würde bereits\n// erzeugten Content und Sichtbarkeitsfortschritt stillschweigend zurücksetzen.\n// sourceLock/visualAnchors werden trotzdem repariert (das ist der eigentliche Zweck).\nfunction hasP1Content(row) {\n  if (safeStr(row.websiteHeadline)) return true;\n  const cj = safeStr(row.contentJson);\n  if (!cj || cj === '{}' || cj === 'null') return false;\n  try {\n    const p = JSON.parse(cj);\n    return p && typeof p === 'object' && !Array.isArray(p) && Object.keys(p).length > 0;\n  } catch (e) {\n    return false;\n  }\n}\n\nconst downstreamProgressed = hasP1Content(input) || !!(safeStr(input.headlineChoiceStage) || safeStr(input.visualPromptStage));\n\nconst finalSharepicNeedStage = downstreamProgressed\n  ? (safeStr(input.sharepicNeedStage) || sharepicNeedStageComputed)\n  : sharepicNeedStageComputed;\nconst finalInstagramSharepicNoetig = downstreamProgressed\n  ? bool(input.instagramSharepicNoetig ?? input.instagramCarouselNoetig ?? input.visualNeeded)\n  : instagramSharepicNoetig;\nconst finalVisualDecisionReason = downstreamProgressed\n  ? (safeStr(input.visualDecisionReason) || 'Bereits weiterverarbeitet - contentStage/sharepicNeedStage durch Repair-Workflow nicht ueberschrieben.')\n  : visualDecisionReason;\n// FIX 2026-07-25 (mirror von \"Parse Guard-Reparatur JSON\" im selben Workflow): visualPromptStage\n// wurde bisher nirgends gesetzt - eine hier auf topic_ok freigegebene Zeile blieb dadurch\n// dauerhaft unsichtbar fuer P5 (ALLRIS_P5_Visual_Prompt_Builder \"Filtere Visual-Status\"\n// verlangt visualPromptStage=needs_prompt/prompt_error oder headlineChoiceStage=headline_selected).\nconst finalVisualPromptStage = downstreamProgressed\n  ? safeStr(input.visualPromptStage)\n  : (finalSharepicNeedStage === 'topic_ok' ? 'needs_prompt' : safeStr(input.visualPromptStage));\n\n// analysisJson synchronisieren.\nconst normalizedAnalysis = {\n  ...analysis,\n  empfehlung,\n  reaktionNoetig,\n  sprengstoff,\n  ampel,\n  kommunikationspotenzial,\n  relevanz,\n  satireIntensity,\n  beweissicherheit,\n  rechtlichesRisiko,\n  freigabeEmpfohlen,\n  instagramCarouselNoetig: finalInstagramSharepicNoetig,\n  sharepicNeedStage: finalSharepicNeedStage,\n  sourceLock,\n  visualAnchors,\n  sourceLockValid,\n  sourceLockErrors,\n  visualAnchorsValid,\n  visualAnchorsErrors: visualErrors,\n  visualGuardErrors: guardErrors,\n  visualDecisionReason: finalVisualDecisionReason\n};\n\nconst finalImageStage = downstreamProgressed\n  ? safeStr(input.imageStage)\n  : (safeStr(input.imageFinalPath) ? 'composed' : 'not_started');\n\nconst finalContentStage = downstreamProgressed\n  ? (input.contentStage || 'content_generated')\n  : (input.contentStage || (empfehlung === 'IGNORIEREN' ? 'ignored' : 'needs_content'));\nconst finalContentErrorReason = safeStr(input.contentErrorReason);\n\nconst out = {\n  ...input,\n\n  analysisJson: JSON.stringify(normalizedAnalysis),\n\n  relevantScore: relevanz,\n  relevanz,\n  sprengstoff,\n  ampel,\n  beweissicherheit,\n  rechtlichesRisiko,\n  kommunikationspotenzial,\n  empfehlung,\n  reaktionNoetig,\n  freigabeEmpfohlen,\n  satireIntensity,\n\n  sourceLockValid,\n  sourceLockErrors: JSON.stringify(sourceLockErrors),\n\n  visualAnchorsValid,\n  visualAnchorsErrors: JSON.stringify(visualErrors),\n  visualGuardErrors: JSON.stringify(guardErrors),\n\n  instagramCarouselNoetig: finalInstagramSharepicNoetig,\n  instagramSharepicNoetig: finalInstagramSharepicNoetig,\n  visualNeeded: finalInstagramSharepicNoetig,\n\n  visualDecisionReason: finalVisualDecisionReason,\n  contentStage: finalContentStage,\n  contentErrorReason: finalContentErrorReason,\n  sharepicNeedStage: finalSharepicNeedStage,\n  visualPromptStage: finalVisualPromptStage,\n  imageStage: finalImageStage,\n  lastAnalysisAt: new Date().toISOString(),\n\n  // Top-Level-Spiegelung für alte Nodes / Visual Prompt Builder.\n  sourceLock: JSON.stringify(sourceLock),\n\n  satireThemaKonkret: visualAnchors.satireThemaKonkret,\n  satireKonfliktKonkret: visualAnchors.satireKonfliktKonkret,\n  visualPflichtobjekte: JSON.stringify(visualAnchors.visualPflichtobjekte),\n  visualPflichthandlung: visualAnchors.visualPflichthandlung,\n  visualBetroffene: JSON.stringify(visualAnchors.visualBetroffene),\n  visualOrt: visualAnchors.visualOrt,\n  visualUeberzeichnung: visualAnchors.visualUeberzeichnung,\n  visualErkennungssatz: visualAnchors.visualErkennungssatz,\n  visualVerboteneErsatzmotive: JSON.stringify(visualAnchors.visualVerboteneErsatzmotive)\n};\n\nreturn { json: out };"
+        },
+        "id": "a5ea2ce3-7e97-4793-b289-3e9f87dd3fd2",
+        "name": "Parse Reparatur JSON",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          4896,
+          1936
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "update",
+          "dataTableId": {
+            "__rl": true,
+            "value": "hBLqpqeVEojPpOJl",
+            "mode": "list",
+            "cachedResultName": "allris_vorgaenge",
+            "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+          },
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "vorgangKey",
+                "keyValue": "={{ $json.vorgangKey }}"
+              }
+            ]
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "analysisJson": "={{ $json.analysisJson }}",
+              "imageStage": "={{ $json.imageStage }}",
+              "instagramSharepicNoetig": "={{ $json.instagramSharepicNoetig }}",
+              "visualDecisionReason": "={{ $json.visualDecisionReason || '' }}",
+              "lastAnalysisAt": "={{ $now.toISO() }}",
+              "contentStage": "={{ $json.contentStage || 'error' }}",
+              "contentErrorReason": "={{ $json.contentErrorReason }}",
+              "sharepicNeedStage": "={{ $json.sharepicNeedStage }}",
+              "visualPromptStage": "={{ $json.visualPromptStage }}"
+            },
+            "schema": [
+              {
+                "id": "analysisJson",
+                "displayName": "analysisJson",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "sharepicNeedStage",
+                "displayName": "sharepicNeedStage",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "imageStage",
+                "displayName": "imageStage",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "instagramSharepicNoetig",
+                "displayName": "instagramSharepicNoetig",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "boolean",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "visualDecisionReason",
+                "displayName": "visualDecisionReason",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "lastAnalysisAt",
+                "displayName": "lastAnalysisAt",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "contentStage",
+                "displayName": "contentStage",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "contentErrorReason",
+                "displayName": "contentErrorReason",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "709ae088-9fb5-4a5d-84b4-11ae7ed8f671",
+        "name": "Speichere Reparatur",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1,
+        "position": [
+          5120,
+          1936
+        ],
+        "alwaysOutputData": true
+      },
+      {
+        "parameters": {
+          "jsCode": "// Prüft, ob eine reine Guard-Blockierung (sensible Betroffene als Bildszene/Metapher in\n// satireBrief/satirePunchlines/satireAngle/visualMetaphor) vorliegt, wobei sourceLock und\n// visualAnchors bereits gültig sind, und ob noch kein automatischer Reparaturversuch\n// stattgefunden hat (verhindert Endlosschleifen - max. 1 Versuch).\n\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; } catch(e) { return {}; }\n}\nfunction asArr(v) {\n  if (Array.isArray(v)) return v.filter(Boolean).map(s => String(s).trim());\n  if (typeof v === 'string' && v.trim()) {\n    try { const p = JSON.parse(v); if (Array.isArray(p)) return p.filter(Boolean).map(s => String(s).trim()); } catch(e) {}\n    return v.split(/\\s*\\|\\s*/).filter(Boolean).map(s => String(s).trim());\n  }\n  return [];\n}\nfunction robustBool(v) {\n  if (v === true || v === 1) return true;\n  if (typeof v === 'string') { const s = v.trim().toLowerCase(); return s === 'true' || s === '1'; }\n  return false;\n}\nfunction normText(v) {\n  return safeStr(v).toLowerCase()\n    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')\n    .replace(/[„\"\"'`´]/g, '').replace(/[^a-z0-9]+/g, ' ').replace(/\\s+/g, ' ').trim();\n}\n\nconst items = $input.all();\nif (!items || items.length === 0) {\n  return [{ json: { _guardRepairNeeded: false, _guardRepairSkipped: true, _guardRepairSkipReason: 'kein Input' } }];\n}\nconst rawItem = items[0];\nconst j = (rawItem && rawItem.json && typeof rawItem.json === 'object' && !Array.isArray(rawItem.json)) ? rawItem.json : {};\n\nif (!j.vorgangKey) {\n  return [{ json: { ...j, _guardRepairNeeded: false, _guardRepairSkipped: true, _guardRepairSkipReason: 'kein vorgangKey' } }];\n}\n\nconst analysis = parseObj(j.analysisJson);\n// FIX (2026-07-25, mirror des -OK-Handlers in P5b und der uebrigen Repair-Sweeps in P4/P3c): sl\n// frisch aus faktenAgentJson bauen statt aus dem eingefrorenen analysisJson.sourceLock.\nconst fakten = parseObj(j.faktenAgentJson || {});\nconst sl = {\n  sourceTopic: safeStr(fakten.sourceTopic),\n  sourceConflict: safeStr(fakten.sourceConflict),\n  requiredTerms: asArr(fakten.requiredTerms),\n  requiredObjects: asArr(fakten.requiredObjects),\n  requiredAction: safeStr(fakten.requiredAction),\n  affectedGroups: asArr(fakten.affectedGroups)\n};\nconst va = parseObj(analysis.visualAnchors || {});\n\nconst slOk = !!(\n  safeStr(sl.sourceTopic) &&\n  asArr(sl.requiredTerms).length >= 2 && asArr(sl.requiredObjects).length >= 2 &&\n  safeStr(sl.requiredAction) && fakten.parseError !== true\n);\nconst vaOk = !!(\n  safeStr(va.satireThemaKonkret) && safeStr(va.satireKonfliktKonkret) &&\n  asArr(va.visualPflichtobjekte).length >= 2 && safeStr(va.visualPflichthandlung) &&\n  safeStr(va.visualErkennungssatz) && safeStr(va.visualUeberzeichnung) &&\n  asArr(va.visualVerboteneErsatzmotive).length >= 2\n);\n\nconst eignung = parseObj(j.eignungsAgentJson);\nconst wantsVisual = eignung.satireWorthIt === true || robustBool(j.visualNeeded) || robustBool(j.instagramSharepicNoetig);\n\nconst sourceStrictText = [\n  j.title, j.vorgangsnummer, j.summaryText, j.thema, j.betroffene,\n  j.kostenHaushalt, j.buergerwirkung, j.offenePunkte, j.unsicherheitenSummary, j.combinedText\n].map(safeStr).join('\\n');\n\nconst sensitiveContextRe = /\\b(minderjaehrig|minderjährig|kind|kinder|schueler|schüler|schuelerin|schülerin|behinder|barrierefrei|barrierefreiheit|blind|sehbehindert|taub|krank|pflege|rollstuhl|gefluecht|geflücht|wohnungslose|obdachlos|armut|opfer|notlage)\\b/i;\nconst sensitiveContext = sensitiveContextRe.test(normText(sourceStrictText + ' ' + asArr(sl.affectedGroups).join(' ')));\n\nfunction isSensitivePersonObject(v) {\n  const n = normText(v);\n  if (!n) return false;\n  if (/\\b(rollstuhlrampe|rampe|barrierefreier zugang|barrierefreier taster|taster|signalgeber|bodenplatte|bodenplatten|leitstreifen|lichtsignalanlage)\\b/.test(n)) return false;\n  return /\\b(blinder|blinde|sehbehinderter|sehbehinderte|behinderter|behinderte|mensch mit behinderung|menschen mit behinderung|schueler|schuelerin|schüler|schülerin|kind|kinder|minderjaehriger|minderjährige|patient|patientin|pflegebeduerftiger|pflegebedürftige|rollstuhlfahrer|gefluechteter|geflüchtete|wohnungslose|obdachlose|kranker|kranke)\\b/.test(n);\n}\n\n// FIX 2026-07-25 (mirror von \"Filtere unbenachrichtigte Blockaden\"/\"Repariere Legacy\n// Visual-Status\" in P4 und \"Finde Blockade-Antwort\" in P5b): dieser Node prüfte bisher NUR den\n// Sensible-Inhalte-Guard, nicht den generischen Symbol-Drift-Guard (Sparschwein/Geldsack/Waage/\n// Aktenberg als Pflichtobjekt ohne echten Quellenbezug) - eine Zeile, die ausschliesslich am\n// Symbol-Drift-Guard haengt (nicht an sensiblen Inhalten), wurde hier faelschlich als \"kein\n// Guard-Repair noetig\" bewertet, obwohl sie in P5b/P4 weiterhin als blockiert galt (2026-07-25,\n// Vorgang 2026/109-01 als Realfall gefunden).\nfunction isForbiddenSymbol(v, sourceNorm) {\n  const n = normText(v);\n  if (!n) return false;\n  if (!/\\b(sparschwein|geldsack|waage|aktenberg|rathaus|nebel|monster|hai|haie|marionette|marionetten|theaterbuehne|theaterbühne|theater|clown|clowns|maskottchen)\\b/.test(n)) return false;\n  if (sourceNorm.includes(n)) return false;\n  // FIX (2026-07-27, Vorgang 2026/143 \"Ungleichbehandlungen beim Denkmalschutz\"): bisher musste\n  // die GESAMTE normalisierte Phrase als zusammenhaengender Substring im Quelltext vorkommen, um\n  // als \"gegruendet\" zu gelten. Das ist zu bruechig fuer KI-paraphrasierte Pflichtobjekte: \"Fenster\n  // im Rathaus\" wurde faelschlich als Symbol-Drift geblockt, obwohl der Vorgang buchstaeblich von\n  // genau diesen Fenstern handelt - der Quelltext sagt nur \"Fenster im Dachgeschoss des ...\n  // Nordwestfluegels des Rathauses\", also dieselben Woerter, nicht direkt nebeneinander. Jetzt\n  // stattdessen pruefen, ob JEDES eigenstaendige (nicht-triviale) Wort der Phrase einzeln im\n  // Quelltext vorkommt - \"Rathaus-Tuer\" (kein einziges Vorkommen von \"tuer\" im Quelltext) bleibt\n  // dadurch weiterhin zurecht blockiert, da dort tatsaechlich nie von einer Tuer die Rede ist.\n  const STOPWORDS = new Set(['im','in','der','die','das','des','dem','den','und','am','an','auf','zum','zur','von','vom','fuer','bei','beim','ein','eine','einer','eines']);\n  const words = n.split(' ').filter(w => w.length >= 3 && !STOPWORDS.has(w));\n  if (words.length === 0) return true;\n  return !words.every(w => sourceNorm.includes(w));\n}\n\nfunction hasSensitiveMetaphor(text) {\n  if (!sensitiveContext) return false;\n  const n = normText(text);\n  if (/\\bblind(e|er|es|en)?\\s+(augen|sparschwein|haushalt|verwaltung|planung|politik|ampel|stadt)\\b/.test(n)) return true;\n  if (/\\b(taub(e|er|es|en)?|lahm(e|er|es|en)?|krank(e|er|es|en)?|hilflos(e|er|es|en)?)\\s+(verwaltung|planung|haushalt|politik|ampel|stadt)\\b/.test(n)) return true;\n  if (/barrierefreiheit.{0,30}\\b(luxus|spass|spaß|teurer spass|teurer spaß)\\b/.test(n)) return true;\n  if (/\\b(gefahrenszene|hilflosigkeit|panik|panisch|gefährdet|gefaehrdet|unfallopfer)\\b/.test(n)) return true;\n  return false;\n}\n\nconst visualText = [\n  va.visualUeberzeichnung, va.visualErkennungssatz, analysis.visualMetaphor,\n  analysis.satireBrief, analysis.satireAngle, asArr(analysis.satirePunchlines).join(' '),\n  analysis.moeglicheSatirischeReaktion\n].map(safeStr).join(' ');\n\nconst sensitiveObjectsFound = sensitiveContext ? [\n  ...asArr(va.visualPflichtobjekte).filter(isSensitivePersonObject),\n  ...asArr(sl.requiredObjects).filter(isSensitivePersonObject)\n] : [];\n\nconst sourceNorm = normText(sourceStrictText);\nconst forbiddenSymbolsFound = [\n  ...asArr(va.visualPflichtobjekte).filter(v => isForbiddenSymbol(v, sourceNorm)),\n  ...asArr(sl.requiredObjects).filter(v => isForbiddenSymbol(v, sourceNorm))\n];\n\nconst guardBlocked = sensitiveObjectsFound.length > 0 || forbiddenSymbolsFound.length > 0 || hasSensitiveMetaphor(visualText);\n\nconst alreadyAttempted = robustBool(analysis._guardRepairAttempted || j._guardRepairAttempted);\n\nconst guardRepairNeeded = wantsVisual && slOk && vaOk && guardBlocked && !alreadyAttempted;\n\nconst guardBlockedReasons = [\n  ...sensitiveObjectsFound.map(o => 'Sensible Betroffene als Bildobjekt: ' + o),\n  ...forbiddenSymbolsFound.map(o => 'Generisches Symbol ohne Quellenbezug: ' + o),\n  ...(hasSensitiveMetaphor(visualText) ? ['Sensible Betroffene erscheinen in Visual- oder Satirefeldern als Bildszene/Pointe'] : [])\n].join(' | ');\n\nreturn [{ json: {\n  ...j,\n  _guardRepairNeeded: guardRepairNeeded,\n  _guardRepairSkipped: false,\n  _guardBlockedReasons: guardBlockedReasons,\n  _guardAlreadyAttempted: alreadyAttempted,\n  satireTarget: j.satireTarget || analysis.satireTarget || ''\n} }];\n"
+        },
+        "id": "ef4fdf23-1310-4380-a68f-180de3ac3488",
+        "name": "Prüfe Guard-Repair-Bedarf",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          5328,
+          1936
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 2
+            },
+            "conditions": [
+              {
+                "id": "guard-repair-needed-001",
+                "leftValue": "={{ $json._guardRepairNeeded }}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "id": "9ea0b3fd-ecec-403b-96bc-16f2bdd19c81",
+        "name": "IF Guard-Reparatur nötig?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          5536,
+          1936
+        ]
+      },
+      {
+        "parameters": {
+          "modelId": {
+            "__rl": true,
+            "value": "gpt-4o-mini",
+            "mode": "list",
+            "cachedResultName": "GPT-4O-MINI"
+          },
+          "responses": {
+            "values": [
+              {
+                "content": "=Du reparierst AUSSCHLIESSLICH die Bildmotiv-/Satirefelder einer bereits abgeschlossenen Ratsvorlagen-Analyse für den Rat der Stadt Goslar, weil ein automatischer Guard sie blockiert hat. Es gibt zwei mögliche, unabhängige Blockiergründe - behandle NUR den, der im BLOCKIERGRUND unten tatsächlich genannt ist.\n\nWICHTIG: Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt. Kein Markdown. Keine Codeblöcke. Keine Kommentare. Keine zusätzlichen Felder.\n\nDu darfst NUR satireBrief, satirePunchlines, satireAngle, visualMetaphor, visualUeberzeichnung, visualErkennungssatz, visualPflichthandlung, visualPflichtobjekte und visualVerboteneErsatzmotive zurückgeben. Alle anderen Bewertungsfelder bleiben unverändert und gehören NICHT in deine Antwort.\n\nVORGANG: {{ $json.vorgangKey }}\nVORGANGSNUMMER: {{ $json.vorgangsnummer }}\nBLOCKIERGRUND: {{ $json._guardBlockedReasons }}\n\nTITEL:\n{{ $json.title }}\n\nZUSAMMENFASSUNG (summaryText):\n{{ $json.summaryText }}\n\nBISHERIGES SATIREZIEL (satireTarget – bleibt inhaltlich unverändert):\n{{ $json.satireTarget }}\n\nBISHERIGE FELDER:\nsatireBrief: {{ $json.satireBrief }}\nsatirePunchlines: {{ $json.satirePunchlines }}\nsatireAngle: {{ $json.satireAngle }}\nvisualMetaphor: {{ $json.visualMetaphor }}\nvisualUeberzeichnung: {{ $json.visualUeberzeichnung }}\nvisualErkennungssatz: {{ $json.visualErkennungssatz }}\nvisualPflichthandlung: {{ $json.visualPflichthandlung }}\nvisualPflichtobjekte: {{ $json.visualPflichtobjekte }}\nvisualVerboteneErsatzmotive: {{ $json.visualVerboteneErsatzmotive }}\n\nZWEI MÖGLICHE URSACHEN - repariere nur die, die im BLOCKIERGRUND oben tatsächlich steht:\n\n1) BLOCKIERGRUND enthält \"Sensible Betroffene als Bildobjekt\" oder \"erscheinen ... als Bildszene/Pointe\":\nSchreibe die betroffenen Felder so um, dass KEINE sensiblen Betroffenen (Kinder, Kranke, Menschen mit Behinderung, Geflüchtete, Obdachlose, Minderjährige, Opfer o.ä.) mehr als Bildmotiv, Bildszene oder Pointe auftauchen und keine reale Gefahren- oder Notlagenszene mit Personen mehr abgebildet wird. Die Pointe liegt stattdessen auf der Institution/Verwaltung/Politik selbst - aber nicht über ein austauschbares generisches Verwaltungssymbol (siehe Punkt 2), sondern über eine an den konkreten Fakten dieses Vorgangs hängende Idee.\n\n2) BLOCKIERGRUND enthält \"Generisches Symbol ohne Quellenbezug\":\nDie dort genannten Symbole (z.B. Sparschwein, Geldsack, Waage, Aktenberg, allgemeines Rathaus, Nebel, Monster, Hai, Marionette, Theaterbühne, Clown, Maskottchen) sind NICHT grundsätzlich verboten - sie sind nur dann ein Problem, wenn sie rein als austauschbares Standardklischee verwendet werden, das auf jede beliebige Haushalts-/Verwaltungsgeschichte passen würde, ohne echten Bezug zu DIESEM Vorgang. Prüfe: passt das genannte Symbol inhaltlich wirklich spezifisch zu diesem Vorgang (kommt es z.B. sinngemäß im Titel/in der Zusammenfassung vor, oder gibt es einen klaren inhaltlichen Bezug)? Falls ja, darfst du es behalten. Falls nein: ersetze es in visualPflichtobjekte durch etwas Konkretes aus den tatsächlichen Fakten dieses Vorgangs (z.B. eine im Text genannte Einrichtung, einen Ort, eine Zahl, eine Frist, ein Dokument) statt eines generischen Symbols. Ziel ist immer eine möglichst SPEZIFISCHE Grafik statt einer austauschbaren Allgemeinkritik.\n\nGRUNDREGELN (immer):\n- das gleiche reale Thema und dasselbe Satireziel (satireTarget) bleiben erhalten,\n- keine neuen Fakten erfinden, der Bezug zum konkreten Vorgang bleibt klar erkennbar,\n- falls du visualPflichtobjekte änderst: weiterhin mindestens 2 konkret zeichenbare Objekte,\n- falls du visualVerboteneErsatzmotive änderst: weiterhin mindestens 2 Einträge, die ausschließen, wozu eine generische Standardlösung sonst verkommen würde,\n- Felder, die vom Blockiergrund nicht betroffen sind, unverändert aus BISHERIGE FELDER übernehmen (nicht grundlos umschreiben).\n\nAntworte NUR mit diesem JSON-Objekt (keine anderen Felder):\n{\n  \"satireBrief\": \"\",\n  \"satirePunchlines\": [\"\", \"\"],\n  \"satireAngle\": \"\",\n  \"visualMetaphor\": \"\",\n  \"visualUeberzeichnung\": \"\",\n  \"visualErkennungssatz\": \"\",\n  \"visualPflichthandlung\": \"\",\n  \"visualPflichtobjekte\": [\"\", \"\"],\n  \"visualVerboteneErsatzmotive\": [\"\", \"\"]\n}\n"
+              }
+            ]
+          },
+          "builtInTools": {},
+          "options": {}
+        },
+        "id": "1aacd0da-e43e-4b53-8675-03ede1d16b4e",
+        "name": "AI Reparatur Visual Guard",
+        "type": "@n8n/n8n-nodes-langchain.openAi",
+        "typeVersion": 2.3,
+        "position": [
+          5744,
+          1936
+        ],
+        "credentials": {
+          "openAiApi": {
+            "id": "RiT1gwJpQWzSo6NO",
+            "name": "OpenAI account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "// Übernimmt die von \"AI Reparatur Visual Guard\" überarbeiteten Satire-/Bildfelder,\n// prüft den Guard erneut (identische Logik wie \"Parse Reparatur JSON\" / \"Prüfe Guard-Repair-Bedarf\")\n// und setzt sharepicNeedStage final. Max. 1 automatischer Versuch (_guardRepairAttempted verhindert Endlosschleife).\n\nfunction getAiText(item) {\n  try {\n    const j = item.json || {};\n    if (j.text && typeof j.text === 'string' && j.text.trim()) return j.text;\n    const o = j.output;\n    if (Array.isArray(o)) {\n      for (let i = 0; i < o.length; i++) {\n        const c = o[i].content;\n        if (Array.isArray(c)) { for (let k = 0; k < c.length; k++) { if (c[k].text) return c[k].text; } }\n      }\n    }\n    if (j.output_text) return j.output_text;\n    if (j.message && j.message.content) return j.message.content;\n    if (j.choices && j.choices[0] && j.choices[0].message) return j.choices[0].message.content || '';\n    return '';\n  } catch (e) { return ''; }\n}\nfunction __repairJsonText(text) {\n  // Repairs two recurring AI-JSON breakage patterns (found live 2026-07-26 on\n  // Vorgang 2026/105's P3 analysis): (1) the model forgets to close a string\n  // value and just continues with a raw newline into the next \"key\": pattern,\n  // (2) the model emits a stray extra closing bracket/brace. Only touches\n  // content while tracking whether we're inside a string, so legitimate\n  // structural whitespace outside strings is left untouched.\n  var out = [];\n  var inString = false, escaped = false;\n  for (var i = 0; i < text.length; i++) {\n    var ch = text[i];\n    if (inString) {\n      if (escaped) { out.push(ch); escaped = false; continue; }\n      if (ch === '\\\\') { out.push(ch); escaped = true; continue; }\n      if (ch === '\"') { out.push(ch); inString = false; continue; }\n      if (ch === '\\n' || ch === '\\r') {\n        var rest = text.slice(i);\n        var m = /^[\\r\\n]+\\s*\"[A-Za-z_][A-Za-z0-9_]*\"\\s*:/.exec(rest);\n        if (m) {\n          out.push('\",'); inString = false; i += 1;\n          while (i < text.length && (text[i] === '\\r' || text[i] === '\\n')) i++;\n          i -= 1;\n          continue;\n        }\n        out.push(ch === '\\n' ? '\\\\n' : '\\\\r');\n        continue;\n      }\n      if (ch === '\\t') { out.push('\\\\t'); continue; }\n      out.push(ch);\n    } else {\n      if (ch === '\"') inString = true;\n      out.push(ch);\n    }\n  }\n  var stage1 = out.join('');\n\n  var out2 = [];\n  var stack = [];\n  inString = false; escaped = false;\n  var pairs = { '}': '{', ']': '[' };\n  for (var j = 0; j < stage1.length; j++) {\n    var c = stage1[j];\n    if (inString) {\n      out2.push(c);\n      if (escaped) { escaped = false; }\n      else if (c === '\\\\') { escaped = true; }\n      else if (c === '\"') { inString = false; }\n      continue;\n    }\n    if (c === '\"') { inString = true; out2.push(c); continue; }\n    if (c === '{' || c === '[') { stack.push(c); out2.push(c); continue; }\n    if (c === '}' || c === ']') {\n      if (stack.length && stack[stack.length - 1] === pairs[c]) { stack.pop(); out2.push(c); }\n      continue;\n    }\n    out2.push(c);\n  }\n  return out2.join('');\n}\n\nfunction __robustJsonParse(raw) {\n  try {\n    return JSON.parse(raw);\n  } catch (e1) {\n    try {\n      return JSON.parse(__repairJsonText(raw));\n    } catch (e2) {\n      throw e1;\n    }\n  }\n}\n\nfunction extractJson(text) {\n  if (!text) return null;\n  const s = String(text).replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```\\s*$/i, '').trim();\n  const a = s.indexOf('{'), b = s.lastIndexOf('}');\n  return (a === -1 || b === -1 || b <= a) ? null : s.slice(a, b + 1);\n}\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  if (typeof v === 'string') { try { const p = JSON.parse(v); return p && typeof p === 'object' && !Array.isArray(p) ? p : {}; } catch (e) {} }\n  return {};\n}\nfunction asArray(v) {\n  if (Array.isArray(v)) return v.filter(x => x !== null && x !== undefined && safeStr(x) !== '').map(x => safeStr(x));\n  if (v === null || v === undefined || v === '') return [];\n  if (typeof v === 'string') {\n    const t = v.trim();\n    if (!t) return [];\n    try { const p = JSON.parse(t); if (Array.isArray(p)) return p.filter(Boolean).map(x => safeStr(x)).filter(Boolean); } catch (e) {}\n    return t.split(/\\s*\\|\\s*/).map(x => safeStr(x)).filter(Boolean);\n  }\n  return [safeStr(v)].filter(Boolean);\n}\nfunction normText(v) {\n  return safeStr(v).toLowerCase()\n    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')\n    .replace(/[„\"\"'`´]/g, '').replace(/[^a-z0-9]+/g, ' ').replace(/\\s+/g, ' ').trim();\n}\n\nlet input = {};\ntry {\n  const ref = $('Prüfe Guard-Repair-Bedarf').item;\n  if (ref && ref.json && typeof ref.json === 'object' && !Array.isArray(ref.json)) input = ref.json;\n} catch (e) { input = {}; }\n\nconst rawAiText = getAiText($input.item);\nconst aiJsonStr = extractJson(rawAiText);\nlet repaired = {};\nif (aiJsonStr) { try { repaired = __robustJsonParse(aiJsonStr) || {}; } catch (e) { repaired = {}; } }\n\nconst analysis = parseObj(input.analysisJson);\n// FIX 2026-07-25: sl frisch aus faktenAgentJson bauen statt aus dem eingefrorenen\n// analysisJson.sourceLock - sonst meldet der Symbol-Drift-Check (unten) weiterhin\n// \"Sparschwein\" ueber sl.requiredObjects, obwohl die KI es gerade korrekt aus\n// visualPflichtobjekte entfernt hat (Vorgang 2026/109-01 live beobachtet: sourceLock.\n// requiredObjects enthielt noch das alte, eingefrorene \"Sparschwein\").\nconst fakten = parseObj(input.faktenAgentJson || {});\nconst sl = {\n  sourceTopic: safeStr(fakten.sourceTopic),\n  sourceConflict: safeStr(fakten.sourceConflict),\n  requiredTerms: asArray(fakten.requiredTerms),\n  requiredObjects: asArray(fakten.requiredObjects),\n  requiredAction: safeStr(fakten.requiredAction),\n  affectedGroups: asArray(fakten.affectedGroups)\n};\nconst va = parseObj(analysis.visualAnchors || {});\n\n// Überarbeitete Felder übernehmen, alles andere unverändert lassen.\nconst satireBrief = safeStr(repaired.satireBrief) || safeStr(analysis.satireBrief || input.satireBrief);\nconst satirePunchlines = asArray(repaired.satirePunchlines).length ? asArray(repaired.satirePunchlines) : asArray(analysis.satirePunchlines || input.satirePunchlines);\nconst satireAngle = safeStr(repaired.satireAngle) || safeStr(analysis.satireAngle || input.satireAngle);\nconst visualMetaphor = safeStr(repaired.visualMetaphor) || safeStr(analysis.visualMetaphor || input.visualMetaphor);\nva.visualUeberzeichnung = safeStr(repaired.visualUeberzeichnung) || safeStr(va.visualUeberzeichnung);\nva.visualErkennungssatz = safeStr(repaired.visualErkennungssatz) || safeStr(va.visualErkennungssatz);\nva.visualPflichthandlung = safeStr(repaired.visualPflichthandlung) || safeStr(va.visualPflichthandlung);\n// FIX 2026-07-25: neue, vom erweiterten Prompt zurueckgegebene Felder ebenfalls uebernehmen\nva.visualPflichtobjekte = asArray(repaired.visualPflichtobjekte).length ? asArray(repaired.visualPflichtobjekte) : asArray(va.visualPflichtobjekte);\nva.visualVerboteneErsatzmotive = asArray(repaired.visualVerboteneErsatzmotive).length ? asArray(repaired.visualVerboteneErsatzmotive) : asArray(va.visualVerboteneErsatzmotive);\n\nanalysis.satireBrief = satireBrief;\nanalysis.satirePunchlines = satirePunchlines;\nanalysis.satireAngle = satireAngle;\nanalysis.visualMetaphor = visualMetaphor;\nanalysis.visualAnchors = va;\n\n// Guard erneut prüfen (identische Logik wie in \"Parse Reparatur JSON\").\nconst sourceStrictText = [\n  input.title, input.vorgangsnummer, input.summaryText, input.thema, input.betroffene,\n  input.kostenHaushalt, input.buergerwirkung, input.offenePunkte, input.unsicherheitenSummary, input.combinedText\n].map(safeStr).join('\\n');\n\nconst sensitiveContextRe = /\\b(minderjaehrig|minderjährig|kind|kinder|schueler|schüler|schuelerin|schülerin|behinder|barrierefrei|barrierefreiheit|blind|sehbehindert|taub|krank|pflege|rollstuhl|gefluecht|geflücht|wohnungslose|obdachlos|armut|opfer|notlage)\\b/i;\nconst sensitiveContext = sensitiveContextRe.test(normText(sourceStrictText + ' ' + asArray(sl.affectedGroups).join(' ')));\n\nfunction isSensitivePersonObject(v) {\n  const n = normText(v);\n  if (!n) return false;\n  if (/\\b(rollstuhlrampe|rampe|barrierefreier zugang|barrierefreier taster|taster|signalgeber|bodenplatte|bodenplatten|leitstreifen|lichtsignalanlage)\\b/.test(n)) return false;\n  return /\\b(blinder|blinde|sehbehinderter|sehbehinderte|behinderter|behinderte|mensch mit behinderung|menschen mit behinderung|schueler|schuelerin|schüler|schülerin|kind|kinder|minderjaehriger|minderjährige|patient|patientin|pflegebeduerftiger|pflegebedürftige|rollstuhlfahrer|gefluechteter|geflüchtete|wohnungslose|obdachlose|kranker|kranke)\\b/.test(n);\n}\nfunction hasSensitiveMetaphor(text) {\n  if (!sensitiveContext) return false;\n  const n = normText(text);\n  if (/\\bblind(e|er|es|en)?\\s+(augen|sparschwein|haushalt|verwaltung|planung|politik|ampel|stadt)\\b/.test(n)) return true;\n  if (/\\b(taub(e|er|es|en)?|lahm(e|er|es|en)?|krank(e|er|es|en)?|hilflos(e|er|es|en)?)\\s+(verwaltung|planung|haushalt|politik|ampel|stadt)\\b/.test(n)) return true;\n  if (/barrierefreiheit.{0,30}\\b(luxus|spass|spaß|teurer spass|teurer spaß)\\b/.test(n)) return true;\n  if (/\\b(gefahrenszene|hilflosigkeit|panik|panisch|gefährdet|gefaehrdet|unfallopfer)\\b/.test(n)) return true;\n  return false;\n}\n// FIX 2026-07-25 (mirror von \"Prüfe Guard-Repair-Bedarf\" im selben Workflow, dort heute schon\n// ergaenzt): auch diese Nachpruefung kannte bisher nur den Sensible-Inhalte-Guard, nicht den\n// generischen Symbol-Drift-Guard - eine Zeile, bei der die KI-Reparatur ein verbotenes generisches\n// Symbol (Sparschwein/Geldsack/Waage/Aktenberg) unveraendert liess, wurde faelschlich als \"jetzt\n// freigegeben\" markiert (Vorgang 2026/109-01 als Realfall live beobachtet: KI-Reparatur behielt\n// \"Sparschwein\" bei, stillBlocked ignorierte es, Zeile ging faelschlich auf topic_ok).\nfunction isForbiddenSymbol(v, sourceNorm) {\n  const n = normText(v);\n  if (!n) return false;\n  if (!/\\b(sparschwein|geldsack|waage|aktenberg|rathaus|nebel|monster|hai|haie|marionette|marionetten|theaterbuehne|theaterbühne|theater|clown|clowns|maskottchen)\\b/.test(n)) return false;\n  if (sourceNorm.includes(n)) return false;\n  // FIX (2026-07-27, Vorgang 2026/143 \"Ungleichbehandlungen beim Denkmalschutz\"): bisher musste\n  // die GESAMTE normalisierte Phrase als zusammenhaengender Substring im Quelltext vorkommen, um\n  // als \"gegruendet\" zu gelten. Das ist zu bruechig fuer KI-paraphrasierte Pflichtobjekte: \"Fenster\n  // im Rathaus\" wurde faelschlich als Symbol-Drift geblockt, obwohl der Vorgang buchstaeblich von\n  // genau diesen Fenstern handelt - der Quelltext sagt nur \"Fenster im Dachgeschoss des ...\n  // Nordwestfluegels des Rathauses\", also dieselben Woerter, nicht direkt nebeneinander. Jetzt\n  // stattdessen pruefen, ob JEDES eigenstaendige (nicht-triviale) Wort der Phrase einzeln im\n  // Quelltext vorkommt - \"Rathaus-Tuer\" (kein einziges Vorkommen von \"tuer\" im Quelltext) bleibt\n  // dadurch weiterhin zurecht blockiert, da dort tatsaechlich nie von einer Tuer die Rede ist.\n  const STOPWORDS = new Set(['im','in','der','die','das','des','dem','den','und','am','an','auf','zum','zur','von','vom','fuer','bei','beim','ein','eine','einer','eines']);\n  const words = n.split(' ').filter(w => w.length >= 3 && !STOPWORDS.has(w));\n  if (words.length === 0) return true;\n  return !words.every(w => sourceNorm.includes(w));\n}\n\nconst visualText = [\n  va.visualUeberzeichnung, va.visualErkennungssatz, visualMetaphor, satireBrief, satireAngle,\n  satirePunchlines.join(' '), analysis.moeglicheSatirischeReaktion\n].map(safeStr).join(' ');\n\nconst sensitiveObjectsFound = sensitiveContext ? [\n  ...asArray(va.visualPflichtobjekte).filter(isSensitivePersonObject),\n  ...asArray(sl.requiredObjects).filter(isSensitivePersonObject)\n] : [];\n\nconst sourceNorm = normText(sourceStrictText);\nconst forbiddenSymbolsFound = [\n  ...asArray(va.visualPflichtobjekte).filter(v => isForbiddenSymbol(v, sourceNorm)),\n  ...asArray(sl.requiredObjects).filter(v => isForbiddenSymbol(v, sourceNorm))\n];\n\nconst stillBlocked = sensitiveObjectsFound.length > 0 || forbiddenSymbolsFound.length > 0 || hasSensitiveMetaphor(visualText);\n\nlet sharepicNeedStageComputed, instagramSharepicNoetig, visualDecisionReason;\nif (!stillBlocked) {\n  sharepicNeedStageComputed = 'topic_ok';\n  instagramSharepicNoetig = true;\n  visualDecisionReason = 'Sharepic freigegeben nach automatischer Entschärfung (sensible Betroffene aus Bildmotiv entfernt).';\n} else {\n  sharepicNeedStageComputed = 'topic_error';\n  instagramSharepicNoetig = false;\n  visualDecisionReason = 'Sharepic weiterhin blockiert auch nach automatischer Entschärfung: ' +\n    [\n      ...sensitiveObjectsFound.map(o => 'Sensible Betroffene als Bildobjekt: ' + o),\n      ...forbiddenSymbolsFound.map(o => 'Generisches Symbol ohne Quellenbezug: ' + o),\n      ...(hasSensitiveMetaphor(visualText) ? ['Sensible Betroffene erscheinen weiterhin als Bildszene/Pointe'] : [])\n    ].join(' | ');\n}\n\n// Wenn P1 bereits contentJson/websiteHeadline erzeugt hat oder headlineChoiceStage/\n// visualPromptStage schon einen nachgelagerten Wert hat, darf dieser Guard-Reparatur-Schritt\n// contentStage/sharepicNeedStage nicht mit der frisch berechneten Einschätzung überschreiben -\n// sonst wird bereits erzeugter Content/Sichtbarkeitsfortschritt zurückgesetzt.\nfunction hasP1Content(row) {\n  if (safeStr(row.websiteHeadline)) return true;\n  const cj = safeStr(row.contentJson);\n  if (!cj || cj === '{}' || cj === 'null') return false;\n  try {\n    const p = JSON.parse(cj);\n    return p && typeof p === 'object' && !Array.isArray(p) && Object.keys(p).length > 0;\n  } catch (e) {\n    return false;\n  }\n}\n\nconst downstreamProgressed = hasP1Content(input) || !!(safeStr(input.headlineChoiceStage) || safeStr(input.visualPromptStage));\n\nconst finalSharepicNeedStage = downstreamProgressed ? (safeStr(input.sharepicNeedStage) || sharepicNeedStageComputed) : sharepicNeedStageComputed;\n// FIX 2026-07-25: visualPromptStage wurde bisher nirgends gesetzt - eine hier auf topic_ok\n// freigegebene Zeile blieb dadurch dauerhaft unsichtbar fuer P5 (ALLRIS_P5_Visual_Prompt_Builder\n// \"Filtere Visual-Status\" verlangt visualPromptStage=needs_prompt/prompt_error oder\n// headlineChoiceStage=headline_selected). Vorgang 2026/109-01 live beobachtet: sharepicNeedStage\n// wurde korrekt topic_ok, visualPromptStage blieb aber leer.\nconst finalVisualPromptStage = downstreamProgressed\n  ? safeStr(input.visualPromptStage)\n  : (finalSharepicNeedStage === 'topic_ok' ? 'needs_prompt' : safeStr(input.visualPromptStage));\nconst finalInstagramSharepicNoetig = downstreamProgressed\n  ? (input.instagramSharepicNoetig === true || input.instagramCarouselNoetig === true || input.visualNeeded === true)\n  : instagramSharepicNoetig;\nconst finalVisualDecisionReason = downstreamProgressed\n  ? (safeStr(input.visualDecisionReason) || 'Bereits weiterverarbeitet - contentStage/sharepicNeedStage durch Guard-Reparatur nicht ueberschrieben.')\n  : visualDecisionReason;\n\nanalysis._guardRepairAttempted = true;\n\nconst finalContentStage = downstreamProgressed ? (input.contentStage || 'content_generated') : (input.contentStage || 'needs_content');\nconst finalContentErrorReason = safeStr(input.contentErrorReason);\nconst finalImageStage = downstreamProgressed ? safeStr(input.imageStage) : (safeStr(input.imageFinalPath) ? 'composed' : 'not_started');\n\nconst out = {\n  ...input,\n  analysisJson: JSON.stringify(analysis),\n  sharepicNeedStage: finalSharepicNeedStage,\n  visualPromptStage: finalVisualPromptStage,\n  imageStage: finalImageStage,\n  instagramSharepicNoetig: finalInstagramSharepicNoetig,\n  visualNeeded: finalInstagramSharepicNoetig,\n  instagramCarouselNoetig: finalInstagramSharepicNoetig,\n  visualDecisionReason: finalVisualDecisionReason,\n  contentStage: finalContentStage,\n  contentErrorReason: finalContentErrorReason,\n  lastAnalysisAt: new Date().toISOString(),\n  satireBrief,\n  satirePunchlines: JSON.stringify(satirePunchlines),\n  satireAngle,\n  visualMetaphor,\n  visualUeberzeichnung: va.visualUeberzeichnung,\n  visualErkennungssatz: va.visualErkennungssatz,\n  visualPflichthandlung: va.visualPflichthandlung,\n  _guardRepairAttempted: true\n};\n\nreturn { json: out };"
+        },
+        "id": "a331af3b-1d88-4a02-ab4e-81f63981c266",
+        "name": "Parse Guard-Reparatur JSON",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          6080,
+          1936
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "update",
+          "dataTableId": {
+            "__rl": true,
+            "value": "hBLqpqeVEojPpOJl",
+            "mode": "list",
+            "cachedResultName": "allris_vorgaenge",
+            "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+          },
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "vorgangKey",
+                "keyValue": "={{ $json.vorgangKey }}"
+              }
+            ]
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "analysisJson": "={{ $json.analysisJson }}",
+              "imageStage": "={{ $json.imageStage }}",
+              "instagramSharepicNoetig": "={{ $json.instagramSharepicNoetig }}",
+              "visualDecisionReason": "={{ $json.visualDecisionReason || '' }}",
+              "lastAnalysisAt": "={{ $now.toISO() }}",
+              "contentStage": "={{ $json.contentStage || 'needs_content' }}",
+              "contentErrorReason": "={{ $json.contentErrorReason }}",
+              "satireBrief": "={{ $json.satireBrief }}",
+              "satirePunchlines": "={{ $json.satirePunchlines }}",
+              "satireAngle": "={{ $json.satireAngle }}",
+              "visualMetaphor": "={{ $json.visualMetaphor }}",
+              "satireTarget": "={{ $json.satireTarget }}",
+              "sharepicNeedStage": "={{ $json.sharepicNeedStage }}",
+              "visualPromptStage": "={{ $json.visualPromptStage }}"
+            },
+            "matchingColumns": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {}
+        },
+        "id": "c323e388-6252-49e8-810f-0628b3de5f66",
+        "name": "Speichere Guard-Reparatur",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          6288,
+          1936
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "// Repair-Sub-Workflow Ende - Rueckgabe an Aufrufer\nreturn [{ json: $input.item.json }];"
+        },
+        "id": "f067b43d-2c20-454c-a4fb-e73e442c382a",
+        "name": "Repair Abschluss",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          6384,
+          1792
+        ]
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Prüfe Repair-Bedarf",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prüfe Repair-Bedarf": {
+        "main": [
+          [
+            {
+              "node": "IF Repair nötig?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IF Repair nötig?": {
+        "main": [
+          [
+            {
+              "node": "AI Reparatur SourceLock+Anchors",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Prüfe Guard-Repair-Bedarf",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Reparatur SourceLock+Anchors": {
+        "main": [
+          [
+            {
+              "node": "Parse Reparatur JSON",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Parse Reparatur JSON": {
+        "main": [
+          [
+            {
+              "node": "Speichere Reparatur",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Speichere Reparatur": {
+        "main": [
+          [
+            {
+              "node": "Prüfe Guard-Repair-Bedarf",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prüfe Guard-Repair-Bedarf": {
+        "main": [
+          [
+            {
+              "node": "IF Guard-Reparatur nötig?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IF Guard-Reparatur nötig?": {
+        "main": [
+          [
+            {
+              "node": "AI Reparatur Visual Guard",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Repair Abschluss",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Reparatur Visual Guard": {
+        "main": [
+          [
+            {
+              "node": "Parse Guard-Reparatur JSON",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Parse Guard-Reparatur JSON": {
+        "main": [
+          [
+            {
+              "node": "Speichere Guard-Reparatur",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Speichere Guard-Reparatur": {
+        "main": [
+          [
+            {
+              "node": "Repair Abschluss",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Oliver Lietz",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-07-27T11:46:45.351Z",
+        "id": 1795,
+        "workflowId": "KfPtfJfOe39LTJzR",
+        "versionId": "5e5944a0-3f42-45de-a426-9f8c55519542",
+        "event": "deactivated",
+        "userId": "66557ab1-dd68-4186-b616-ecaa8f1bea61"
+      },
+      {
+        "createdAt": "2026-07-27T11:46:45.427Z",
+        "id": 1796,
+        "workflowId": "KfPtfJfOe39LTJzR",
+        "versionId": "5e5944a0-3f42-45de-a426-9f8c55519542",
+        "event": "activated",
+        "userId": "66557ab1-dd68-4186-b616-ecaa8f1bea61"
+      }
+    ]
+  }
+}

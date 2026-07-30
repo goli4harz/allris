@@ -1,0 +1,723 @@
+﻿{
+    "updatedAt":  "2026-07-24T18:57:32.972Z",
+    "createdAt":  "2026-07-23T17:07:07.602Z",
+    "id":  "D7cmBsy3exuOkBd9",
+    "name":  "ALLRIS_Claim_Lease",
+    "description":  null,
+    "active":  true,
+    "isArchived":  false,
+    "nodes":  [
+                  {
+                      "parameters":  {
+                                         "inputSource":  "passthrough"
+                                     },
+                      "id":  "c3d4e5f6-1111-4c3d-8e4f-000000000001",
+                      "name":  "Execute Workflow Trigger",
+                      "type":  "n8n-nodes-base.executeWorkflowTrigger",
+                      "typeVersion":  1.1,
+                      "position":  [
+                                       256,
+                                       384
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "batchSize":  1,
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "c3d4e5f6-9999-4c3d-8e4f-000000000009",
+                      "name":  "Loop Claims (1 pro Durchlauf)",
+                      "type":  "n8n-nodes-base.splitInBatches",
+                      "typeVersion":  3,
+                      "position":  [
+                                       384,
+                                       384
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "conditions":  {
+                                                            "options":  {
+                                                                            "caseSensitive":  true,
+                                                                            "leftValue":  "",
+                                                                            "typeValidation":  "strict",
+                                                                            "version":  2
+                                                                        },
+                                                            "conditions":  [
+                                                                               {
+                                                                                   "id":  "c3d4e5f6-2222-4c3d-8e4f-000000000002",
+                                                                                   "leftValue":  "={{ $json.claimAction }}",
+                                                                                   "rightValue":  "release",
+                                                                                   "operator":  {
+                                                                                                    "type":  "string",
+                                                                                                    "operation":  "equals"
+                                                                                                }
+                                                                               }
+                                                                           ],
+                                                            "combinator":  "and"
+                                                        },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "c3d4e5f6-3333-4c3d-8e4f-000000000003",
+                      "name":  "IF Release?",
+                      "type":  "n8n-nodes-base.if",
+                      "typeVersion":  2.2,
+                      "position":  [
+                                       512,
+                                       384
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "mode":  "runOnceForEachItem",
+                                         "jsCode":  "const j = $json || {};\nif (j.claimAction !== \u0027acquire\u0027) throw new Error(\u0027[Claim] claimAction muss acquire oder release sein.\u0027);\nif (!String(j.vorgangKey || \u0027\u0027).trim()) throw new Error(\u0027[Claim] vorgangKey fehlt.\u0027);\nif (!String(j.claimOwner || \u0027\u0027).trim()) throw new Error(\u0027[Claim] claimOwner fehlt.\u0027);\nif (!String(j.claimStage || \u0027\u0027).trim()) throw new Error(\u0027[Claim] claimStage fehlt.\u0027);\nconst minutes = Math.max(1, Math.min(120, Number(j.leaseMinutes || 30)));\nreturn { json: { ...j, leaseMinutes: minutes, claimAcquiredAt: $now.toISO(), claimExpiresAt: $now.plus({ minutes }).toISO() } };"
+                                     },
+                      "id":  "c3d4e5f6-4444-4c3d-8e4f-000000000004",
+                      "name":  "Validiere Claim-Anforderung",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       768,
+                                       496
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "operation":  "update",
+                                         "dataTableId":  {
+                                                             "__rl":  true,
+                                                             "value":  "hBLqpqeVEojPpOJl",
+                                                             "mode":  "list",
+                                                             "cachedResultName":  "allris_vorgaenge",
+                                                             "cachedResultUrl":  "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+                                                         },
+                                         "filters":  {
+                                                         "conditions":  [
+                                                                            {
+                                                                                "keyName":  "id",
+                                                                                "keyValue":  "={{ $json.id }}"
+                                                                            },
+                                                                            {
+                                                                                "keyName":  "claim_owner",
+                                                                                "keyValue":  "={{ $json.expectedClaimOwner }}"
+                                                                            },
+                                                                            {
+                                                                                "keyName":  "claim_expires_at",
+                                                                                "keyValue":  "={{ $json.expectedClaimExpiresAt }}"
+                                                                            }
+                                                                        ]
+                                                     },
+                                         "columns":  {
+                                                         "mappingMode":  "defineBelow",
+                                                         "value":  {
+                                                                       "claim_owner":  "={{ $json.claimOwner }}",
+                                                                       "claim_stage":  "={{ $json.claimStage }}",
+                                                                       "claim_acquired_at":  "={{ $json.claimAcquiredAt }}",
+                                                                       "claim_expires_at":  "={{ $json.claimExpiresAt }}"
+                                                                   },
+                                                         "matchingColumns":  [
+                                                                                 "id"
+                                                                             ],
+                                                         "schema":  [
+
+                                                                    ]
+                                                     },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "c3d4e5f6-5555-4c3d-8e4f-000000000005",
+                      "name":  "Erwerbe Claim CAS",
+                      "type":  "n8n-nodes-base.dataTable",
+                      "typeVersion":  1.1,
+                      "position":  [
+                                       1024,
+                                       496
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "operation":  "get",
+                                         "dataTableId":  {
+                                                             "__rl":  true,
+                                                             "value":  "hBLqpqeVEojPpOJl",
+                                                             "mode":  "list",
+                                                             "cachedResultName":  "allris_vorgaenge",
+                                                             "cachedResultUrl":  "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+                                                         },
+                                         "filters":  {
+                                                         "conditions":  [
+                                                                            {
+                                                                                "keyName":  "id",
+                                                                                "keyValue":  "={{ $(\u0027Validiere Claim-Anforderung\u0027).item.json.id }}"
+                                                                            }
+                                                                        ]
+                                                     },
+                                         "returnAll":  false,
+                                         "limit":  2
+                                     },
+                      "id":  "c3d4e5f6-6666-4c3d-8e4f-000000000006",
+                      "name":  "Lese Claim zurueck",
+                      "type":  "n8n-nodes-base.dataTable",
+                      "typeVersion":  1.1,
+                      "position":  [
+                                       1280,
+                                       496
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "jsCode":  "if (items.length !== 1) throw new Error(`[Claim] Re-Read lieferte ${items.length} Zeilen.`);\nconst row = items[0].json || {};\nconst request = $(\u0027Validiere Claim-Anforderung\u0027).item.json;\nconst acquired = String(row.claim_owner || \u0027\u0027) === String(request.claimOwner || \u0027\u0027);\nreturn [{ json: { ...row, claimAcquired: acquired, requestedClaimOwner: request.claimOwner } }];"
+                                     },
+                      "id":  "c3d4e5f6-7777-4c3d-8e4f-000000000007",
+                      "name":  "Bestaetige Claim",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       1536,
+                                       496
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "operation":  "update",
+                                         "dataTableId":  {
+                                                             "__rl":  true,
+                                                             "value":  "hBLqpqeVEojPpOJl",
+                                                             "mode":  "list",
+                                                             "cachedResultName":  "allris_vorgaenge",
+                                                             "cachedResultUrl":  "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+                                                         },
+                                         "filters":  {
+                                                         "conditions":  [
+                                                                            {
+                                                                                "keyName":  "id",
+                                                                                "keyValue":  "={{ $json.id }}"
+                                                                            },
+                                                                            {
+                                                                                "keyName":  "claim_owner",
+                                                                                "keyValue":  "={{ $json.claimOwner }}"
+                                                                            }
+                                                                        ]
+                                                     },
+                                         "columns":  {
+                                                         "mappingMode":  "defineBelow",
+                                                         "value":  {
+                                                                       "claim_owner":  null,
+                                                                       "claim_stage":  null,
+                                                                       "claim_acquired_at":  null,
+                                                                       "claim_expires_at":  null
+                                                                   },
+                                                         "matchingColumns":  [
+                                                                                 "id"
+                                                                             ],
+                                                         "schema":  [
+
+                                                                    ]
+                                                     },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "c3d4e5f6-8888-4c3d-8e4f-000000000008",
+                      "name":  "Release eigener Claim",
+                      "type":  "n8n-nodes-base.dataTable",
+                      "typeVersion":  1.1,
+                      "position":  [
+                                       768,
+                                       272
+                                   ]
+                  }
+              ],
+    "connections":  {
+                        "Execute Workflow Trigger":  {
+                                                         "main":  [
+                                                                      [
+                                                                          {
+                                                                              "node":  "Loop Claims (1 pro Durchlauf)",
+                                                                              "type":  "main",
+                                                                              "index":  0
+                                                                          }
+                                                                      ]
+                                                                  ]
+                                                     },
+                        "Loop Claims (1 pro Durchlauf)":  {
+                                                              "main":  [
+                                                                           [
+
+                                                                           ],
+                                                                           [
+                                                                               {
+                                                                                   "node":  "IF Release?",
+                                                                                   "type":  "main",
+                                                                                   "index":  0
+                                                                               }
+                                                                           ]
+                                                                       ]
+                                                          },
+                        "IF Release?":  {
+                                            "main":  [
+                                                         [
+                                                             {
+                                                                 "node":  "Release eigener Claim",
+                                                                 "type":  "main",
+                                                                 "index":  0
+                                                             }
+                                                         ],
+                                                         [
+                                                             {
+                                                                 "node":  "Validiere Claim-Anforderung",
+                                                                 "type":  "main",
+                                                                 "index":  0
+                                                             }
+                                                         ]
+                                                     ]
+                                        },
+                        "Validiere Claim-Anforderung":  {
+                                                            "main":  [
+                                                                         [
+                                                                             {
+                                                                                 "node":  "Erwerbe Claim CAS",
+                                                                                 "type":  "main",
+                                                                                 "index":  0
+                                                                             }
+                                                                         ]
+                                                                     ]
+                                                        },
+                        "Erwerbe Claim CAS":  {
+                                                  "main":  [
+                                                               [
+                                                                   {
+                                                                       "node":  "Lese Claim zurueck",
+                                                                       "type":  "main",
+                                                                       "index":  0
+                                                                   }
+                                                               ]
+                                                           ]
+                                              },
+                        "Lese Claim zurueck":  {
+                                                   "main":  [
+                                                                [
+                                                                    {
+                                                                        "node":  "Bestaetige Claim",
+                                                                        "type":  "main",
+                                                                        "index":  0
+                                                                    }
+                                                                ]
+                                                            ]
+                                               },
+                        "Bestaetige Claim":  {
+                                                 "main":  [
+                                                              [
+                                                                  {
+                                                                      "node":  "Loop Claims (1 pro Durchlauf)",
+                                                                      "type":  "main",
+                                                                      "index":  0
+                                                                  }
+                                                              ]
+                                                          ]
+                                             },
+                        "Release eigener Claim":  {
+                                                      "main":  [
+                                                                   [
+                                                                       {
+                                                                           "node":  "Loop Claims (1 pro Durchlauf)",
+                                                                           "type":  "main",
+                                                                           "index":  0
+                                                                       }
+                                                                   ]
+                                                               ]
+                                                  }
+                    },
+    "settings":  {
+                     "executionOrder":  "v1"
+                 },
+    "staticData":  null,
+    "meta":  null,
+    "pinData":  null,
+    "versionId":  "aa3329e2-8aae-431a-a7e2-ae31204de4b2",
+    "activeVersionId":  "aa3329e2-8aae-431a-a7e2-ae31204de4b2",
+    "versionCounter":  25,
+    "triggerCount":  0,
+    "shared":  [
+                   {
+                       "updatedAt":  "2026-07-23T17:07:07.602Z",
+                       "createdAt":  "2026-07-23T17:07:07.602Z",
+                       "role":  "workflow:owner",
+                       "workflowId":  "D7cmBsy3exuOkBd9",
+                       "projectId":  "CrnegVcMvlcRU0OP",
+                       "project":  {
+                                       "updatedAt":  "2026-05-23T11:38:39.411Z",
+                                       "createdAt":  "2026-05-23T11:33:40.374Z",
+                                       "id":  "CrnegVcMvlcRU0OP",
+                                       "name":  "Oliver Lietz \u003coliver.lietz@golietz.de\u003e",
+                                       "type":  "personal",
+                                       "icon":  null,
+                                       "description":  null,
+                                       "creatorId":  "66557ab1-dd68-4186-b616-ecaa8f1bea61"
+                                   }
+                   }
+               ],
+    "tags":  [
+
+             ],
+    "activeVersion":  {
+                          "updatedAt":  "2026-07-24T18:57:32.976Z",
+                          "createdAt":  "2026-07-24T18:57:32.976Z",
+                          "versionId":  "aa3329e2-8aae-431a-a7e2-ae31204de4b2",
+                          "workflowId":  "D7cmBsy3exuOkBd9",
+                          "nodes":  [
+                                        {
+                                            "parameters":  {
+                                                               "inputSource":  "passthrough"
+                                                           },
+                                            "id":  "c3d4e5f6-1111-4c3d-8e4f-000000000001",
+                                            "name":  "Execute Workflow Trigger",
+                                            "type":  "n8n-nodes-base.executeWorkflowTrigger",
+                                            "typeVersion":  1.1,
+                                            "position":  [
+                                                             256,
+                                                             384
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "batchSize":  1,
+                                                               "options":  {
+
+                                                                           }
+                                                           },
+                                            "id":  "c3d4e5f6-9999-4c3d-8e4f-000000000009",
+                                            "name":  "Loop Claims (1 pro Durchlauf)",
+                                            "type":  "n8n-nodes-base.splitInBatches",
+                                            "typeVersion":  3,
+                                            "position":  [
+                                                             384,
+                                                             384
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "conditions":  {
+                                                                                  "options":  {
+                                                                                                  "caseSensitive":  true,
+                                                                                                  "leftValue":  "",
+                                                                                                  "typeValidation":  "strict",
+                                                                                                  "version":  2
+                                                                                              },
+                                                                                  "conditions":  [
+                                                                                                     {
+                                                                                                         "id":  "c3d4e5f6-2222-4c3d-8e4f-000000000002",
+                                                                                                         "leftValue":  "={{ $json.claimAction }}",
+                                                                                                         "rightValue":  "release",
+                                                                                                         "operator":  {
+                                                                                                                          "type":  "string",
+                                                                                                                          "operation":  "equals"
+                                                                                                                      }
+                                                                                                     }
+                                                                                                 ],
+                                                                                  "combinator":  "and"
+                                                                              },
+                                                               "options":  {
+
+                                                                           }
+                                                           },
+                                            "id":  "c3d4e5f6-3333-4c3d-8e4f-000000000003",
+                                            "name":  "IF Release?",
+                                            "type":  "n8n-nodes-base.if",
+                                            "typeVersion":  2.2,
+                                            "position":  [
+                                                             512,
+                                                             384
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "mode":  "runOnceForEachItem",
+                                                               "jsCode":  "const j = $json || {};\nif (j.claimAction !== \u0027acquire\u0027) throw new Error(\u0027[Claim] claimAction muss acquire oder release sein.\u0027);\nif (!String(j.vorgangKey || \u0027\u0027).trim()) throw new Error(\u0027[Claim] vorgangKey fehlt.\u0027);\nif (!String(j.claimOwner || \u0027\u0027).trim()) throw new Error(\u0027[Claim] claimOwner fehlt.\u0027);\nif (!String(j.claimStage || \u0027\u0027).trim()) throw new Error(\u0027[Claim] claimStage fehlt.\u0027);\nconst minutes = Math.max(1, Math.min(120, Number(j.leaseMinutes || 30)));\nreturn { json: { ...j, leaseMinutes: minutes, claimAcquiredAt: $now.toISO(), claimExpiresAt: $now.plus({ minutes }).toISO() } };"
+                                                           },
+                                            "id":  "c3d4e5f6-4444-4c3d-8e4f-000000000004",
+                                            "name":  "Validiere Claim-Anforderung",
+                                            "type":  "n8n-nodes-base.code",
+                                            "typeVersion":  2,
+                                            "position":  [
+                                                             768,
+                                                             496
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "operation":  "update",
+                                                               "dataTableId":  {
+                                                                                   "__rl":  true,
+                                                                                   "value":  "hBLqpqeVEojPpOJl",
+                                                                                   "mode":  "list",
+                                                                                   "cachedResultName":  "allris_vorgaenge",
+                                                                                   "cachedResultUrl":  "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+                                                                               },
+                                                               "filters":  {
+                                                                               "conditions":  [
+                                                                                                  {
+                                                                                                      "keyName":  "id",
+                                                                                                      "keyValue":  "={{ $json.id }}"
+                                                                                                  },
+                                                                                                  {
+                                                                                                      "keyName":  "claim_owner",
+                                                                                                      "keyValue":  "={{ $json.expectedClaimOwner }}"
+                                                                                                  },
+                                                                                                  {
+                                                                                                      "keyName":  "claim_expires_at",
+                                                                                                      "keyValue":  "={{ $json.expectedClaimExpiresAt }}"
+                                                                                                  }
+                                                                                              ]
+                                                                           },
+                                                               "columns":  {
+                                                                               "mappingMode":  "defineBelow",
+                                                                               "value":  {
+                                                                                             "claim_owner":  "={{ $json.claimOwner }}",
+                                                                                             "claim_stage":  "={{ $json.claimStage }}",
+                                                                                             "claim_acquired_at":  "={{ $json.claimAcquiredAt }}",
+                                                                                             "claim_expires_at":  "={{ $json.claimExpiresAt }}"
+                                                                                         },
+                                                                               "matchingColumns":  [
+                                                                                                       "id"
+                                                                                                   ],
+                                                                               "schema":  [
+
+                                                                                          ]
+                                                                           },
+                                                               "options":  {
+
+                                                                           }
+                                                           },
+                                            "id":  "c3d4e5f6-5555-4c3d-8e4f-000000000005",
+                                            "name":  "Erwerbe Claim CAS",
+                                            "type":  "n8n-nodes-base.dataTable",
+                                            "typeVersion":  1.1,
+                                            "position":  [
+                                                             1024,
+                                                             496
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "operation":  "get",
+                                                               "dataTableId":  {
+                                                                                   "__rl":  true,
+                                                                                   "value":  "hBLqpqeVEojPpOJl",
+                                                                                   "mode":  "list",
+                                                                                   "cachedResultName":  "allris_vorgaenge",
+                                                                                   "cachedResultUrl":  "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+                                                                               },
+                                                               "filters":  {
+                                                                               "conditions":  [
+                                                                                                  {
+                                                                                                      "keyName":  "id",
+                                                                                                      "keyValue":  "={{ $(\u0027Validiere Claim-Anforderung\u0027).item.json.id }}"
+                                                                                                  }
+                                                                                              ]
+                                                                           },
+                                                               "returnAll":  false,
+                                                               "limit":  2
+                                                           },
+                                            "id":  "c3d4e5f6-6666-4c3d-8e4f-000000000006",
+                                            "name":  "Lese Claim zurueck",
+                                            "type":  "n8n-nodes-base.dataTable",
+                                            "typeVersion":  1.1,
+                                            "position":  [
+                                                             1280,
+                                                             496
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "jsCode":  "if (items.length !== 1) throw new Error(`[Claim] Re-Read lieferte ${items.length} Zeilen.`);\nconst row = items[0].json || {};\nconst request = $(\u0027Validiere Claim-Anforderung\u0027).item.json;\nconst acquired = String(row.claim_owner || \u0027\u0027) === String(request.claimOwner || \u0027\u0027);\nreturn [{ json: { ...row, claimAcquired: acquired, requestedClaimOwner: request.claimOwner } }];"
+                                                           },
+                                            "id":  "c3d4e5f6-7777-4c3d-8e4f-000000000007",
+                                            "name":  "Bestaetige Claim",
+                                            "type":  "n8n-nodes-base.code",
+                                            "typeVersion":  2,
+                                            "position":  [
+                                                             1536,
+                                                             496
+                                                         ]
+                                        },
+                                        {
+                                            "parameters":  {
+                                                               "operation":  "update",
+                                                               "dataTableId":  {
+                                                                                   "__rl":  true,
+                                                                                   "value":  "hBLqpqeVEojPpOJl",
+                                                                                   "mode":  "list",
+                                                                                   "cachedResultName":  "allris_vorgaenge",
+                                                                                   "cachedResultUrl":  "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+                                                                               },
+                                                               "filters":  {
+                                                                               "conditions":  [
+                                                                                                  {
+                                                                                                      "keyName":  "id",
+                                                                                                      "keyValue":  "={{ $json.id }}"
+                                                                                                  },
+                                                                                                  {
+                                                                                                      "keyName":  "claim_owner",
+                                                                                                      "keyValue":  "={{ $json.claimOwner }}"
+                                                                                                  }
+                                                                                              ]
+                                                                           },
+                                                               "columns":  {
+                                                                               "mappingMode":  "defineBelow",
+                                                                               "value":  {
+                                                                                             "claim_owner":  null,
+                                                                                             "claim_stage":  null,
+                                                                                             "claim_acquired_at":  null,
+                                                                                             "claim_expires_at":  null
+                                                                                         },
+                                                                               "matchingColumns":  [
+                                                                                                       "id"
+                                                                                                   ],
+                                                                               "schema":  [
+
+                                                                                          ]
+                                                                           },
+                                                               "options":  {
+
+                                                                           }
+                                                           },
+                                            "id":  "c3d4e5f6-8888-4c3d-8e4f-000000000008",
+                                            "name":  "Release eigener Claim",
+                                            "type":  "n8n-nodes-base.dataTable",
+                                            "typeVersion":  1.1,
+                                            "position":  [
+                                                             768,
+                                                             272
+                                                         ]
+                                        }
+                                    ],
+                          "connections":  {
+                                              "Execute Workflow Trigger":  {
+                                                                               "main":  [
+                                                                                            [
+                                                                                                {
+                                                                                                    "node":  "Loop Claims (1 pro Durchlauf)",
+                                                                                                    "type":  "main",
+                                                                                                    "index":  0
+                                                                                                }
+                                                                                            ]
+                                                                                        ]
+                                                                           },
+                                              "Loop Claims (1 pro Durchlauf)":  {
+                                                                                    "main":  [
+                                                                                                 [
+
+                                                                                                 ],
+                                                                                                 [
+                                                                                                     {
+                                                                                                         "node":  "IF Release?",
+                                                                                                         "type":  "main",
+                                                                                                         "index":  0
+                                                                                                     }
+                                                                                                 ]
+                                                                                             ]
+                                                                                },
+                                              "IF Release?":  {
+                                                                  "main":  [
+                                                                               [
+                                                                                   {
+                                                                                       "node":  "Release eigener Claim",
+                                                                                       "type":  "main",
+                                                                                       "index":  0
+                                                                                   }
+                                                                               ],
+                                                                               [
+                                                                                   {
+                                                                                       "node":  "Validiere Claim-Anforderung",
+                                                                                       "type":  "main",
+                                                                                       "index":  0
+                                                                                   }
+                                                                               ]
+                                                                           ]
+                                                              },
+                                              "Validiere Claim-Anforderung":  {
+                                                                                  "main":  [
+                                                                                               [
+                                                                                                   {
+                                                                                                       "node":  "Erwerbe Claim CAS",
+                                                                                                       "type":  "main",
+                                                                                                       "index":  0
+                                                                                                   }
+                                                                                               ]
+                                                                                           ]
+                                                                              },
+                                              "Erwerbe Claim CAS":  {
+                                                                        "main":  [
+                                                                                     [
+                                                                                         {
+                                                                                             "node":  "Lese Claim zurueck",
+                                                                                             "type":  "main",
+                                                                                             "index":  0
+                                                                                         }
+                                                                                     ]
+                                                                                 ]
+                                                                    },
+                                              "Lese Claim zurueck":  {
+                                                                         "main":  [
+                                                                                      [
+                                                                                          {
+                                                                                              "node":  "Bestaetige Claim",
+                                                                                              "type":  "main",
+                                                                                              "index":  0
+                                                                                          }
+                                                                                      ]
+                                                                                  ]
+                                                                     },
+                                              "Bestaetige Claim":  {
+                                                                       "main":  [
+                                                                                    [
+                                                                                        {
+                                                                                            "node":  "Loop Claims (1 pro Durchlauf)",
+                                                                                            "type":  "main",
+                                                                                            "index":  0
+                                                                                        }
+                                                                                    ]
+                                                                                ]
+                                                                   },
+                                              "Release eigener Claim":  {
+                                                                            "main":  [
+                                                                                         [
+                                                                                             {
+                                                                                                 "node":  "Loop Claims (1 pro Durchlauf)",
+                                                                                                 "type":  "main",
+                                                                                                 "index":  0
+                                                                                             }
+                                                                                         ]
+                                                                                     ]
+                                                                        }
+                                          },
+                          "authors":  "Oliver Lietz",
+                          "name":  null,
+                          "description":  null,
+                          "autosaved":  false,
+                          "workflowPublishHistory":  [
+                                                         {
+                                                             "createdAt":  "2026-07-24T18:57:33.115Z",
+                                                             "id":  1457,
+                                                             "workflowId":  "D7cmBsy3exuOkBd9",
+                                                             "versionId":  "aa3329e2-8aae-431a-a7e2-ae31204de4b2",
+                                                             "event":  "deactivated",
+                                                             "userId":  "66557ab1-dd68-4186-b616-ecaa8f1bea61"
+                                                         },
+                                                         {
+                                                             "createdAt":  "2026-07-24T18:57:33.171Z",
+                                                             "id":  1458,
+                                                             "workflowId":  "D7cmBsy3exuOkBd9",
+                                                             "versionId":  "aa3329e2-8aae-431a-a7e2-ae31204de4b2",
+                                                             "event":  "activated",
+                                                             "userId":  "66557ab1-dd68-4186-b616-ecaa8f1bea61"
+                                                         }
+                                                     ]
+                      }
+}

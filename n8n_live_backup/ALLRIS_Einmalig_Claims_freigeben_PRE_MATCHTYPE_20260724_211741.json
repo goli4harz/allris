@@ -1,0 +1,178 @@
+﻿{
+    "updatedAt":  "2026-07-24T19:09:15.762Z",
+    "createdAt":  "2026-07-24T18:24:47.414Z",
+    "id":  "hIr8SR7FKIe90FTV",
+    "name":  "ALLRIS_Einmalig_Claims_freigeben",
+    "description":  null,
+    "active":  false,
+    "isArchived":  false,
+    "nodes":  [
+                  {
+                      "parameters":  {
+
+                                     },
+                      "id":  "b1000001-0000-4000-8000-000000000001",
+                      "name":  "Manual Trigger",
+                      "type":  "n8n-nodes-base.manualTrigger",
+                      "typeVersion":  1,
+                      "position":  [
+                                       0,
+                                       0
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "operation":  "get",
+                                         "dataTableId":  {
+                                                             "__rl":  true,
+                                                             "value":  "hBLqpqeVEojPpOJl",
+                                                             "mode":  "list",
+                                                             "cachedResultName":  "allris_vorgaenge",
+                                                             "cachedResultUrl":  "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+                                                         },
+                                         "filters":  {
+                                                         "conditions":  [
+
+                                                                        ]
+                                                     },
+                                         "returnAll":  true
+                                     },
+                      "id":  "b1000001-0000-4000-8000-000000000002",
+                      "name":  "Hole alle Vorgaenge",
+                      "type":  "n8n-nodes-base.dataTable",
+                      "typeVersion":  1.1,
+                      "position":  [
+                                       256,
+                                       0
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "mode":  "runOnceForAllItems",
+                                         "jsCode":  "return items.filter(i =\u003e String((i.json||{}).claim_owner || \u0027\u0027).trim() !== \u0027\u0027).map(i =\u003e ({ json: { id: i.json.id, vorgangKey: i.json.vorgangKey } }));"
+                                     },
+                      "id":  "b1000001-0000-4000-8000-000000000003",
+                      "name":  "Filtere geclaimte Zeilen",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       512,
+                                       0
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "operation":  "update",
+                                         "dataTableId":  {
+                                                             "__rl":  true,
+                                                             "value":  "hBLqpqeVEojPpOJl",
+                                                             "mode":  "list",
+                                                             "cachedResultName":  "allris_vorgaenge",
+                                                             "cachedResultUrl":  "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+                                                         },
+                                         "filters":  {
+                                                         "conditions":  [
+                                                                            {
+                                                                                "keyName":  "id",
+                                                                                "keyValue":  "={{ $json.id }}"
+                                                                            }
+                                                                        ]
+                                                     },
+                                         "columns":  {
+                                                         "mappingMode":  "defineBelow",
+                                                         "value":  {
+                                                                       "claim_owner":  null,
+                                                                       "claim_stage":  null,
+                                                                       "claim_acquired_at":  null,
+                                                                       "claim_expires_at":  null
+                                                                   },
+                                                         "matchingColumns":  [
+                                                                                 "id"
+                                                                             ],
+                                                         "schema":  [
+
+                                                                    ]
+                                                     },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "b1000001-0000-4000-8000-000000000004",
+                      "name":  "Gib Claim frei (per id)",
+                      "type":  "n8n-nodes-base.dataTable",
+                      "typeVersion":  1.1,
+                      "position":  [
+                                       768,
+                                       0
+                                   ]
+                  }
+              ],
+    "connections":  {
+                        "Manual Trigger":  {
+                                               "main":  [
+                                                            [
+                                                                {
+                                                                    "node":  "Hole alle Vorgaenge",
+                                                                    "type":  "main",
+                                                                    "index":  0
+                                                                }
+                                                            ]
+                                                        ]
+                                           },
+                        "Hole alle Vorgaenge":  {
+                                                    "main":  [
+                                                                 [
+                                                                     {
+                                                                         "node":  "Filtere geclaimte Zeilen",
+                                                                         "type":  "main",
+                                                                         "index":  0
+                                                                     }
+                                                                 ]
+                                                             ]
+                                                },
+                        "Filtere geclaimte Zeilen":  {
+                                                         "main":  [
+                                                                      [
+                                                                          {
+                                                                              "node":  "Gib Claim frei (per id)",
+                                                                              "type":  "main",
+                                                                              "index":  0
+                                                                          }
+                                                                      ]
+                                                                  ]
+                                                     }
+                    },
+    "settings":  {
+                     "executionOrder":  "v1"
+                 },
+    "staticData":  null,
+    "meta":  null,
+    "pinData":  null,
+    "versionId":  "630368c6-864f-45b8-aa25-558200c30799",
+    "activeVersionId":  null,
+    "versionCounter":  4,
+    "triggerCount":  0,
+    "shared":  [
+                   {
+                       "updatedAt":  "2026-07-24T18:24:47.414Z",
+                       "createdAt":  "2026-07-24T18:24:47.414Z",
+                       "role":  "workflow:owner",
+                       "workflowId":  "hIr8SR7FKIe90FTV",
+                       "projectId":  "CrnegVcMvlcRU0OP",
+                       "project":  {
+                                       "updatedAt":  "2026-05-23T11:38:39.411Z",
+                                       "createdAt":  "2026-05-23T11:33:40.374Z",
+                                       "id":  "CrnegVcMvlcRU0OP",
+                                       "name":  "Oliver Lietz \u003coliver.lietz@golietz.de\u003e",
+                                       "type":  "personal",
+                                       "icon":  null,
+                                       "description":  null,
+                                       "creatorId":  "66557ab1-dd68-4186-b616-ecaa8f1bea61"
+                                   }
+                   }
+               ],
+    "tags":  [
+
+             ],
+    "activeVersion":  null
+}
