@@ -181,7 +181,7 @@
       "main": [
         [
           {
-            "node": "IF Bild erfolgreich geladen?",
+            "node": "Stelle Kontext nach Bildladen wieder her",
             "type": "main",
             "index": 0
           }
@@ -381,6 +381,17 @@
         [
           {
             "node": "Speichere Fehler (Partei-Webseite)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stelle Kontext nach Bildladen wieder her": {
+      "main": [
+        [
+          {
+            "node": "IF Bild erfolgreich geladen?",
             "type": "main",
             "index": 0
           }
@@ -1382,6 +1393,19 @@
         },
         "options": {}
       }
+    },
+    {
+      "id": "fe981139-2929-4997-a65b-72d4dcc4246c",
+      "name": "Stelle Kontext nach Bildladen wieder her",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1830,
+        1320
+      ],
+      "parameters": {
+        "jsCode": "// FIX 2026-07-30: NC Lade finales Bild hat onError:continueRegularOutput; ein\n// Fehlschlag (z.B. 404 auf Nextcloud) lieferte bisher nur {error:...} ohne\n// vorgangKey/id - das crashte zwei Nodes spaeter \"Bereite P8 Claim-Freigabe vor\"\n// und liess den Claim verwaist zurueck, statt ihn kontrolliert freizugeben.\n// Vorbild: die bereits bestehenden Kontext-Restores nach Media-Upload und\n// nach Post-Erstellung in diesem Workflow - hier fehlte das Gegenstueck.\nconst idx = $itemIndex;\nconst original = $('IF Bild vorhanden?').itemMatching(idx).json;\nconst downloadResult = $json;\nconst error = downloadResult && downloadResult.error ? downloadResult.error : undefined;\nreturn { json: { ...original, error } };"
+      }
     }
   ],
   "pinData": {},
@@ -1389,5 +1413,5 @@
     "executionOrder": "v1"
   },
   "tags": [],
-  "versionId": "b0534997-da95-43cd-9ac9-df1742a331ae"
+  "versionId": "3f7e7287-8eb1-48b7-9d56-8caa29d60d5f"
 }
