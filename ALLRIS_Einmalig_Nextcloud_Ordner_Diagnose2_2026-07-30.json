@@ -1,0 +1,181 @@
+{
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hole alle Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole alle Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Ziele",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ziele": {
+      "main": [
+        [
+          {
+            "node": "Loop (1x)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop (1x)": {
+      "main": [
+        [],
+        [
+          {
+            "node": "NC Liste",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Liste": {
+      "main": [
+        [
+          {
+            "node": "Aggregiere",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregiere": {
+      "main": [
+        [
+          {
+            "node": "Loop (1x)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "7EEm9P2RBeVGe5sk",
+  "meta": null,
+  "name": "ALLRIS_Einmalig_Nextcloud_Ordner_Diagnose2_2026-07-30",
+  "nodes": [
+    {
+      "id": "n1",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "n2",
+      "name": "Hole alle Vorgaenge",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        200,
+        0
+      ],
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge"
+        },
+        "filters": {
+          "conditions": []
+        },
+        "returnAll": true
+      }
+    },
+    {
+      "id": "n3",
+      "name": "Ziele",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const items = $input.all();\nconst targets = [\"vol_10411\",\"vol_10755\",\"vol_10390\",\"vol_10467\",\"vol_10340\",\"vol_10394\",\"vol_10422\",\"vol_10477\",\"vol_10410\",\"vol_10413\",\"vol_10604\"];\nconst out = [];\nfor (const item of items) {\n  const j = item.json || {};\n  if (targets.includes(j.vorgangKey) && j.nextcloudFolder) {\n    out.push({ json: { vorgangKey: j.vorgangKey, vorgangsnummer: j.vorgangsnummer, nextcloudFolder: j.nextcloudFolder, documentCount: j.documentCount, documentsJsonLength: (() => { try { return JSON.parse(j.documentsJson||'[]').length; } catch(e) { return -1; } })() } });\n  }\n}\nreturn out;"
+      }
+    },
+    {
+      "id": "n4",
+      "name": "Loop (1x)",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        600,
+        0
+      ],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      }
+    },
+    {
+      "id": "n5",
+      "name": "NC Liste",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [
+        820,
+        0
+      ],
+      "parameters": {
+        "resource": "folder",
+        "operation": "list",
+        "path": "={{ $json.nextcloudFolder }}/01_originale"
+      },
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "n6",
+      "name": "Aggregiere",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// laeuft als \"Run Once For All Items\" INNERHALB einer einzelnen Loop-Iteration (batchSize:1),\n// daher gehoeren ALLE Input-Items hier garantiert zum selben Vorgang - kein pairedItem-Risiko.\nconst ziel = $('Loop (1x)').item.json;\nconst items = $input.all();\nconst files = items.filter(i => !i.json.error).map(i => ({ name: (i.json.basename || i.json.path || '').split('/').pop(), size: i.json.contentLength || i.json.size || null }));\nconst errors = items.filter(i => i.json.error).map(i => JSON.stringify(i.json.error).slice(0,200));\nreturn [{ json: {\n  vorgangsnummer: ziel.vorgangsnummer,\n  vorgangKey: ziel.vorgangKey,\n  documentCount_gespeichert: ziel.documentCount,\n  documentsJson_length: ziel.documentsJsonLength,\n  echte_dateien_gefunden: files.length,\n  dateinamen: files.map(f => f.name + ' (' + f.size + 'b)'),\n  fehler: errors\n} }];"
+      }
+    }
+  ],
+  "pinData": null,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "versionId": "4bca397b-fadf-4bb2-b35f-50fe0b505f16"
+}
