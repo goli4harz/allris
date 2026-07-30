@@ -432,7 +432,12 @@
             "visualJson": "={{ (() => {\n  let current = {};\n  try {\n    current = typeof $json.visualJson === 'string'\n      ? JSON.parse($json.visualJson || '{}')\n      : ($json.visualJson || {});\n  } catch (e) {\n    current = {};\n  }\n  const currentWorkflow = current.workflow && typeof current.workflow === 'object'\n    ? current.workflow\n    : {};\n  const parseArray = (v) => {\n    if (Array.isArray(v)) return v;\n    try {\n      const p = JSON.parse(v || '[]');\n      return Array.isArray(p) ? p : [];\n    } catch (e) {\n      return [];\n    }\n  };\n  return JSON.stringify({\n    ...current,\n    anchors: {\n      satireThemaKonkret: $json.satireThemaKonkret || '',\n      satireKonfliktKonkret: $json.satireKonfliktKonkret || '',\n      visualPflichtobjekte: parseArray($json.visualPflichtobjekte),\n      visualPflichthandlung: $json.visualPflichthandlung || '',\n      visualBetroffene: parseArray($json.visualBetroffene),\n      visualOrt: $json.visualOrt || '',\n      visualUeberzeichnung: $json.visualUeberzeichnung || '',\n      visualErkennungssatz: $json.visualErkennungssatz || '',\n      visualVerboteneErsatzmotive: parseArray($json.visualVerboteneErsatzmotive)\n    },\n    qualityGate: {\n      maxAttempts: 3,\n      minTopicClarity: 70,\n      minSatireStrength: 60,\n      minMustShowCoverage: 70,\n      minVisualCoherence: 65,\n      requireTopicRecognizable: true,\n      requireSatireRecognizable: true,\n      requireConflictRecognizable: true,\n      rejectForbiddenElements: true\n    },\n    workflow: {\n      ...currentWorkflow,\n      visualStage: $json.visualPromptStage || 'prompt_error',\n      visualParseError: $json.visualParseError === true,\n      visualDebugReason: $json.visualDebugReason || '',\n      imagePromptFound: $json.imagePromptFound === true,\n      visualPromptCreatedAt: $json.visualPromptCreatedAt || $now.toISO(),\n      visualPromptWorkflowVersion: 'visual-prompt-v3.3-qa-ready'\n    }\n  });\n})() }}",
             "imageStage": "={{ $json.imageStage }}",
             "altText": "={{ $json.altText || '' }}",
-            "visualPromptStage": "={{ $json.visualPromptStage || 'prompt_error' }}"
+            "visualPromptStage": "={{ $json.visualPromptStage || 'prompt_error' }}",
+            "vorlageDatumWeb": "={{ $json.vorlageDatumWeb || '' }}",
+            "vorlageDatumPdf": "={{ $json.vorlageDatumPdf || '' }}",
+            "vorlageDatum": "={{ $json.vorlageDatum || $json.vorlageDatumWeb || '' }}",
+            "verfasser": "={{ $json.verfasser || '' }}",
+            "fachdienst": "={{ $json.fachdienst || '' }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -1235,6 +1240,56 @@
               "type": "string",
               "readOnly": false,
               "removed": true
+            },
+            {
+              "id": "vorlageDatumWeb",
+              "displayName": "vorlageDatumWeb",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatumPdf",
+              "displayName": "vorlageDatumPdf",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatum",
+              "displayName": "vorlageDatum",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "verfasser",
+              "displayName": "verfasser",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "fachdienst",
+              "displayName": "fachdienst",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -1470,9 +1525,65 @@
             "last_error_stage": "={{ ($json._contentGateErrors || []).some(e => String(e).includes('visualAnchors')) ? 'visual' : 'content' }}",
             "last_error_at": "={{ $now.toISO() }}",
             "retry_count": "={{ Number($json.retry_count || 0) + 1 }}",
-            "next_retry_at": "={{ ($json._contentGateErrors || []).some(e => String(e).includes('contentJson')) ? $now.plus({ minutes: Math.min(1440, 15 * Math.pow(2, Math.max(0, Number($json.retry_count || 0)))) }).toISO() : '' }}"
+            "next_retry_at": "={{ ($json._contentGateErrors || []).some(e => String(e).includes('contentJson')) ? $now.plus({ minutes: Math.min(1440, 15 * Math.pow(2, Math.max(0, Number($json.retry_count || 0)))) }).toISO() : '' }}",
+            "vorlageDatumWeb": "={{ $json.vorlageDatumWeb || '' }}",
+            "vorlageDatumPdf": "={{ $json.vorlageDatumPdf || '' }}",
+            "vorlageDatum": "={{ $json.vorlageDatum || $json.vorlageDatumWeb || '' }}",
+            "verfasser": "={{ $json.verfasser || '' }}",
+            "fachdienst": "={{ $json.fachdienst || '' }}"
           },
-          "schema": []
+          "schema": [
+            {
+              "id": "vorlageDatumWeb",
+              "displayName": "vorlageDatumWeb",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatumPdf",
+              "displayName": "vorlageDatumPdf",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatum",
+              "displayName": "vorlageDatum",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "verfasser",
+              "displayName": "verfasser",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "fachdienst",
+              "displayName": "fachdienst",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ]
         },
         "options": {}
       },
@@ -1609,5 +1720,5 @@
     "executionOrder": "v1"
   },
   "tags": [],
-  "versionId": "0784a748-06b2-4e06-b63c-f5fd99e8a656"
+  "versionId": "172b7a2e-ea66-4533-a9e8-480408c7a7a0"
 }

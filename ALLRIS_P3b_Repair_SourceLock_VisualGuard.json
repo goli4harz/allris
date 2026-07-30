@@ -1,4 +1,5 @@
 {
+  "active": true,
   "connections": {
     "Execute Workflow Trigger": {
       "main": [
@@ -136,6 +137,8 @@
       ]
     }
   },
+  "id": "KfPtfJfOe39LTJzR",
+  "meta": null,
   "name": "ALLRIS_P3b_Repair_SourceLock_VisualGuard",
   "nodes": [
     {
@@ -273,7 +276,12 @@
             "contentStage": "={{ $json.contentStage || 'error' }}",
             "contentErrorReason": "={{ $json.contentErrorReason }}",
             "sharepicNeedStage": "={{ $json.sharepicNeedStage }}",
-            "visualPromptStage": "={{ $json.visualPromptStage }}"
+            "visualPromptStage": "={{ $json.visualPromptStage }}",
+            "vorlageDatumWeb": "={{ $json.vorlageDatumWeb || '' }}",
+            "vorlageDatumPdf": "={{ $json.vorlageDatumPdf || '' }}",
+            "vorlageDatum": "={{ $json.vorlageDatum || $json.vorlageDatumWeb || '' }}",
+            "verfasser": "={{ $json.verfasser || '' }}",
+            "fachdienst": "={{ $json.fachdienst || '' }}"
           },
           "schema": [
             {
@@ -349,6 +357,56 @@
             {
               "id": "contentErrorReason",
               "displayName": "contentErrorReason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatumWeb",
+              "displayName": "vorlageDatumWeb",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatumPdf",
+              "displayName": "vorlageDatumPdf",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatum",
+              "displayName": "vorlageDatum",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "verfasser",
+              "displayName": "verfasser",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "fachdienst",
+              "displayName": "fachdienst",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -497,7 +555,12 @@
             "visualMetaphor": "={{ $json.visualMetaphor }}",
             "satireTarget": "={{ $json.satireTarget }}",
             "sharepicNeedStage": "={{ $json.sharepicNeedStage }}",
-            "visualPromptStage": "={{ $json.visualPromptStage }}"
+            "visualPromptStage": "={{ $json.visualPromptStage }}",
+            "vorlageDatumWeb": "={{ $json.vorlageDatumWeb || '' }}",
+            "vorlageDatumPdf": "={{ $json.vorlageDatumPdf || '' }}",
+            "vorlageDatum": "={{ $json.vorlageDatum || $json.vorlageDatumWeb || '' }}",
+            "verfasser": "={{ $json.verfasser || '' }}",
+            "fachdienst": "={{ $json.fachdienst || '' }}"
           },
           "matchingColumns": [],
           "attemptToConvertTypes": false,
@@ -530,7 +593,8 @@
   ],
   "pinData": {},
   "settings": {
-    "executionOrder": "v1",
-    "binaryMode": "separate"
-  }
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "versionId": "5e5944a0-3f42-45de-a426-9f8c55519542"
 }

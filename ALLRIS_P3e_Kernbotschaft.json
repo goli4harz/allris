@@ -397,13 +397,68 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "satireAgentJson": "={{ $json.satireAgentJson }}"
+            "satireAgentJson": "={{ $json.satireAgentJson }}",
+            "vorlageDatumWeb": "={{ $json.vorlageDatumWeb || '' }}",
+            "vorlageDatumPdf": "={{ $json.vorlageDatumPdf || '' }}",
+            "vorlageDatum": "={{ $json.vorlageDatum || $json.vorlageDatumWeb || '' }}",
+            "verfasser": "={{ $json.verfasser || '' }}",
+            "fachdienst": "={{ $json.fachdienst || '' }}"
           },
           "matchingColumns": [],
           "schema": [
             {
               "id": "satireAgentJson",
               "displayName": "satireAgentJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatumWeb",
+              "displayName": "vorlageDatumWeb",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatumPdf",
+              "displayName": "vorlageDatumPdf",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatum",
+              "displayName": "vorlageDatum",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "verfasser",
+              "displayName": "verfasser",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "fachdienst",
+              "displayName": "fachdienst",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -616,7 +671,12 @@
           "mappingMode": "defineBelow",
           "value": {
             "headlineChoiceStage": "={{ $json.headlineChoiceStage }}",
-            "visualJson": "={{ $json.visualJson }}"
+            "visualJson": "={{ $json.visualJson }}",
+            "vorlageDatumWeb": "={{ $json.vorlageDatumWeb || '' }}",
+            "vorlageDatumPdf": "={{ $json.vorlageDatumPdf || '' }}",
+            "vorlageDatum": "={{ $json.vorlageDatum || $json.vorlageDatumWeb || '' }}",
+            "verfasser": "={{ $json.verfasser || '' }}",
+            "fachdienst": "={{ $json.fachdienst || '' }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -643,6 +703,56 @@
             {
               "id": "imageStage",
               "displayName": "imageStage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatumWeb",
+              "displayName": "vorlageDatumWeb",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatumPdf",
+              "displayName": "vorlageDatumPdf",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatum",
+              "displayName": "vorlageDatum",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "verfasser",
+              "displayName": "verfasser",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "fachdienst",
+              "displayName": "fachdienst",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -752,5 +862,5 @@
     "executionOrder": "v1"
   },
   "tags": [],
-  "versionId": "c8e652d8-baf6-4614-ae33-2edebb518732"
+  "versionId": "3f26eac7-682b-46dd-91bf-05afdfebe5a8"
 }

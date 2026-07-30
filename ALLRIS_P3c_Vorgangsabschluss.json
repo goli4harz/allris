@@ -537,12 +537,67 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "summaryMarkdownUploadedAt": "={{ $now.toISO() }}"
+            "summaryMarkdownUploadedAt": "={{ $now.toISO() }}",
+            "vorlageDatumWeb": "={{ $json.vorlageDatumWeb || '' }}",
+            "vorlageDatumPdf": "={{ $json.vorlageDatumPdf || '' }}",
+            "vorlageDatum": "={{ $json.vorlageDatum || $json.vorlageDatumWeb || '' }}",
+            "verfasser": "={{ $json.verfasser || '' }}",
+            "fachdienst": "={{ $json.fachdienst || '' }}"
           },
           "schema": [
             {
               "id": "summaryMarkdownUploadedAt",
               "displayName": "summaryMarkdownUploadedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatumWeb",
+              "displayName": "vorlageDatumWeb",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatumPdf",
+              "displayName": "vorlageDatumPdf",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatum",
+              "displayName": "vorlageDatum",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "verfasser",
+              "displayName": "verfasser",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "fachdienst",
+              "displayName": "fachdienst",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -669,5 +724,5 @@
     "executionOrder": "v1"
   },
   "tags": [],
-  "versionId": "32d4369f-2155-4a38-94ad-c3c940abec4b"
+  "versionId": "3ebaecb7-d8c8-409d-8b9a-3a02b4d77786"
 }
