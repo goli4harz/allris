@@ -362,14 +362,6 @@
   "name": "ALLRIS_P4b_Metadaten_Nachzieher",
   "nodes": [
     {
-      "id": "n0",
-      "name": "Schedule Trigger",
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.2,
-      "position": [
-        0,
-        -120
-      ],
       "parameters": {
         "rule": {
           "interval": [
@@ -380,28 +372,28 @@
             }
           ]
         }
-      }
+      },
+      "id": "n0",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        -128
+      ]
     },
     {
+      "parameters": {},
       "id": "n1",
       "name": "Manual Trigger",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
         0,
-        120
-      ],
-      "parameters": {}
+        128
+      ]
     },
     {
-      "id": "n2",
-      "name": "Hole alle Vorgaenge",
-      "type": "n8n-nodes-base.dataTable",
-      "typeVersion": 1,
-      "position": [
-        200,
-        0
-      ],
       "parameters": {
         "operation": "get",
         "dataTableId": {
@@ -414,9 +406,20 @@
           "conditions": []
         },
         "returnAll": true
-      }
+      },
+      "id": "n2",
+      "name": "Hole alle Vorgaenge",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        208,
+        0
+      ]
     },
     {
+      "parameters": {
+        "jsCode": "// Findet Zeilen, bei denen \"documentCount\" (zuletzt bei der Extraktion gesehene Anzahl)\n// nicht mehr zu \"documentsJson\" (aktuelle Anzahl laut letztem P1-Scrape) passt - das\n// Muster, wenn ALLRIS nachtraeglich weitere Dokumente zu einem Vorgang hinzufuegt,\n// nachdem P4 diesen Vorgang schon fertig verarbeitet und veroeffentlicht hat. Nur\n// contentStage=content_posted (also wirklich fertig und nicht mehr aktiv in P3/P4\n// Bearbeitung), um keine Race mit laufender Verarbeitung zu riskieren.\nfunction safeInt(v) { const n = parseInt(String(v || '0'), 10); return Number.isFinite(n) ? n : 0; }\n\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  const j = item.json || {};\n  if (j.contentStage !== 'content_posted') continue;\n  if (!j.nextcloudFolder) continue;\n  let docs = [];\n  try { docs = JSON.parse(j.documentsJson || '[]'); } catch (e) { continue; }\n  if (docs.length === 0) continue;\n  const storedCount = safeInt(j.documentCount);\n  if (storedCount === docs.length) continue;\n  // WICHTIG: die KOMPLETTE Zeile mitgeben (...j), nicht nur ein paar Felder - der\n  // spaetere volle Row-Write in \"Schreibe Metadaten (vollstaendig)\" braucht jede Spalte\n  // im $json, sonst wuerden alle nicht mitgegebenen Spalten (analysisJson, contentJson,\n  // wordpressPostId, ...) beim Schreiben leer ueberschrieben (derselbe Bugtyp wie der\n  // urspruengliche full-row-overwrite Fund von heute Morgen).\n  out.push({ json: { ...j, _storedCount: storedCount, _expectedCount: docs.length } });\n}\nconsole.log('[Metadaten-Nachzieher] ' + out.length + ' Vorgaenge mit documentCount-Abweichung gefunden.');\nreturn out;"
+      },
       "id": "n3",
       "name": "Finde Ziele",
       "type": "n8n-nodes-base.code",
@@ -424,27 +427,27 @@
       "position": [
         400,
         0
-      ],
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "// Findet Zeilen, bei denen \"documentCount\" (zuletzt bei der Extraktion gesehene Anzahl)\n// nicht mehr zu \"documentsJson\" (aktuelle Anzahl laut letztem P1-Scrape) passt - das\n// Muster, wenn ALLRIS nachtraeglich weitere Dokumente zu einem Vorgang hinzufuegt,\n// nachdem P4 diesen Vorgang schon fertig verarbeitet und veroeffentlicht hat. Nur\n// contentStage=content_posted (also wirklich fertig und nicht mehr aktiv in P3/P4\n// Bearbeitung), um keine Race mit laufender Verarbeitung zu riskieren.\nfunction safeInt(v) { const n = parseInt(String(v || '0'), 10); return Number.isFinite(n) ? n : 0; }\n\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  const j = item.json || {};\n  if (j.contentStage !== 'content_posted') continue;\n  if (!j.nextcloudFolder) continue;\n  let docs = [];\n  try { docs = JSON.parse(j.documentsJson || '[]'); } catch (e) { continue; }\n  if (docs.length === 0) continue;\n  const storedCount = safeInt(j.documentCount);\n  if (storedCount === docs.length) continue;\n  // WICHTIG: die KOMPLETTE Zeile mitgeben (...j), nicht nur ein paar Felder - der\n  // spaetere volle Row-Write in \"Schreibe Metadaten (vollstaendig)\" braucht jede Spalte\n  // im $json, sonst wuerden alle nicht mitgegebenen Spalten (analysisJson, contentJson,\n  // wordpressPostId, ...) beim Schreiben leer ueberschrieben (derselbe Bugtyp wie der\n  // urspruengliche full-row-overwrite Fund von heute Morgen).\n  out.push({ json: { ...j, _storedCount: storedCount, _expectedCount: docs.length } });\n}\nconsole.log('[Metadaten-Nachzieher] ' + out.length + ' Vorgaenge mit documentCount-Abweichung gefunden.');\nreturn out;"
-      }
+      ]
     },
     {
+      "parameters": {
+        "options": {}
+      },
       "id": "n4",
       "name": "Loop Vorgang (1x)",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        600,
+        608,
         0
-      ],
-      "parameters": {
-        "batchSize": 1,
-        "options": {}
-      }
+      ]
     },
     {
+      "parameters": {
+        "resource": "folder",
+        "operation": "list",
+        "path": "={{ $json.nextcloudFolder }}/01_originale"
+      },
       "id": "n5",
       "name": "NC Liste",
       "type": "n8n-nodes-base.nextCloud",
@@ -453,11 +456,6 @@
         800,
         0
       ],
-      "parameters": {
-        "resource": "folder",
-        "operation": "list",
-        "path": "={{ $json.nextcloudFolder }}/01_originale"
-      },
       "credentials": {
         "nextCloudApi": {
           "id": "jlZlwASXZbJyNpfA",
@@ -467,6 +465,9 @@
       "continueOnFail": true
     },
     {
+      "parameters": {
+        "jsCode": "return $input.all().filter(item => {\n  const p = String(item.json.path || '').toLowerCase();\n  return p.endsWith('.pdf') && item.json.type !== 'dir' && !item.json.isDirectory;\n}).map(item => ({ json: { ...item.json, path: decodeURIComponent(item.json.path) } }));"
+      },
       "id": "n6",
       "name": "Nur PDFs",
       "type": "n8n-nodes-base.code",
@@ -474,13 +475,13 @@
       "position": [
         960,
         0
-      ],
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "return $input.all().filter(item => {\n  const p = String(item.json.path || '').toLowerCase();\n  return p.endsWith('.pdf') && item.json.type !== 'dir' && !item.json.isDirectory;\n}).map(item => ({ json: { ...item.json, path: decodeURIComponent(item.json.path) } }));"
-      }
+      ]
     },
     {
+      "parameters": {
+        "operation": "download",
+        "path": "={{ $json.path }}"
+      },
       "id": "n7",
       "name": "NC Download",
       "type": "n8n-nodes-base.nextCloud",
@@ -489,12 +490,6 @@
         1120,
         0
       ],
-      "parameters": {
-        "resource": "file",
-        "operation": "download",
-        "path": "={{ $json.path }}",
-        "binaryPropertyName": "data"
-      },
       "credentials": {
         "nextCloudApi": {
           "id": "jlZlwASXZbJyNpfA",
@@ -504,14 +499,6 @@
       "continueOnFail": true
     },
     {
-      "id": "n8",
-      "name": "Tika Extract",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        1280,
-        0
-      ],
       "parameters": {
         "method": "PUT",
         "url": "http://tika:9998/tika",
@@ -548,9 +535,21 @@
           "timeout": 60000
         }
       },
+      "id": "n8",
+      "name": "Tika Extract",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1280,
+        0
+      ],
       "continueOnFail": true
     },
     {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const current = $input.item.json || {};\nlet source = {};\ntry { source = $('NC Download').item.json || {}; } catch(e) {}\nlet text = current.body ?? current.data ?? current.text ?? current.response ?? current.result ?? current.content ?? '';\nif (typeof text !== 'string') text = JSON.stringify(text);\ntext = String(text || '').replace(/\\u0000/g, '').replace(/[ \\t]+/g, ' ').replace(/\\r\\n/g, '\\n').replace(/\\n{3,}/g, '\\n\\n').trim();\nconst fileName = source.path ? source.path.split('/').pop() : 'Dokument';\nconst extractionOk = text.length > 80;\nreturn { json: { _fileName: fileName, _extractedText: extractionOk ? text.substring(0, 50000) : '', extractionOk } };"
+      },
       "id": "n9",
       "name": "Normalize",
       "type": "n8n-nodes-base.code",
@@ -558,13 +557,12 @@
       "position": [
         1440,
         0
-      ],
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "const current = $input.item.json || {};\nlet source = {};\ntry { source = $('NC Download').item.json || {}; } catch(e) {}\nlet text = current.body ?? current.data ?? current.text ?? current.response ?? current.result ?? current.content ?? '';\nif (typeof text !== 'string') text = JSON.stringify(text);\ntext = String(text || '').replace(/\\u0000/g, '').replace(/[ \\t]+/g, ' ').replace(/\\r\\n/g, '\\n').replace(/\\n{3,}/g, '\\n\\n').trim();\nconst fileName = source.path ? source.path.split('/').pop() : 'Dokument';\nconst extractionOk = text.length > 80;\nreturn { json: { _fileName: fileName, _extractedText: extractionOk ? text.substring(0, 50000) : '', extractionOk } };"
-      }
+      ]
     },
     {
+      "parameters": {
+        "jsCode": "// Fasst alle in dieser Schleifen-Runde extrahierten Dokumenttexte fuer GENAU EINEN\n// Vorgang zusammen (Loop-Kontext = batchSize:1, daher keine Vermischung moeglich).\n// Datum PRO Dokument suchen (nicht erst zusammenkleben+kuerzen - siehe P3-Truncation-\n// Fix vom 2026-07-30). Aktualisiert zusaetzlich documentCount auf die tatsaechlich\n// gefundene Dateizahl, damit dieselbe Zeile beim naechsten Lauf nicht wieder auftaucht.\n// Nur Metadatenfelder (+documentCount) werden veraendert - AI-generierter Content\n// bleibt unangetastet (Nutzerentscheidung 2026-07-30).\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst ziel = $('Loop Vorgang (1x)').item.json;\nconst items = $input.all();\n\nfunction extractVorlagenMeta(text) {\n  const t = safeStr(text);\n  const verfasserMatch = t.match(/([^\\n]+)\\n\\s*Verfasser\\/in/);\n  const datumMatch = t.match(/Stadt Goslar Goslar,\\s*(\\d{1,2})\\.(\\d{1,2})\\.(\\d{4})/);\n  let fachdienst = '';\n  if (datumMatch) {\n    const rest = t.slice(datumMatch.index + datumMatch[0].length);\n    const fdMatch = rest.match(/^\\s*\\n([^\\n]+)\\n/);\n    if (fdMatch) fachdienst = fdMatch[1].trim();\n  }\n  const vorlageDatumPdf = datumMatch\n    ? `${datumMatch[3]}-${datumMatch[2].padStart(2, '0')}-${datumMatch[1].padStart(2, '0')}`\n    : '';\n  return { verfasser: verfasserMatch ? verfasserMatch[1].trim() : '', fachdienst, vorlageDatumPdf };\n}\n\nlet meta = { verfasser: '', fachdienst: '', vorlageDatumPdf: '' };\nfor (const item of items) {\n  if (!item.json.extractionOk) continue;\n  const m = extractVorlagenMeta(item.json._extractedText);\n  if (m.vorlageDatumPdf) { meta = m; break; }\n}\n\nreturn [{ json: {\n  ...ziel,\n  documentCount: items.length,\n  verfasser: meta.verfasser || ziel.verfasser || '',\n  fachdienst: meta.fachdienst || ziel.fachdienst || '',\n  vorlageDatumPdf: meta.vorlageDatumPdf || ziel.vorlageDatumPdf || '',\n  vorlageDatum: meta.vorlageDatumPdf || ziel.vorlageDatum || ziel.vorlageDatumWeb || '',\n  _reextractFilesFound: items.length,\n  _reextractFilesOk: items.filter(i => i.json.extractionOk).length,\n  _reextractDatumFound: !!meta.vorlageDatumPdf\n} }];"
+      },
       "id": "n10",
       "name": "Aggregiere Texte",
       "type": "n8n-nodes-base.code",
@@ -572,21 +570,9 @@
       "position": [
         1600,
         0
-      ],
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "// Fasst alle in dieser Schleifen-Runde extrahierten Dokumenttexte fuer GENAU EINEN\n// Vorgang zusammen (Loop-Kontext = batchSize:1, daher keine Vermischung moeglich).\n// Datum PRO Dokument suchen (nicht erst zusammenkleben+kuerzen - siehe P3-Truncation-\n// Fix vom 2026-07-30). Aktualisiert zusaetzlich documentCount auf die tatsaechlich\n// gefundene Dateizahl, damit dieselbe Zeile beim naechsten Lauf nicht wieder auftaucht.\n// Nur Metadatenfelder (+documentCount) werden veraendert - AI-generierter Content\n// bleibt unangetastet (Nutzerentscheidung 2026-07-30).\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst ziel = $('Loop Vorgang (1x)').item.json;\nconst items = $input.all();\n\nfunction extractVorlagenMeta(text) {\n  const t = safeStr(text);\n  const verfasserMatch = t.match(/([^\\n]+)\\n\\s*Verfasser\\/in/);\n  const datumMatch = t.match(/Stadt Goslar Goslar,\\s*(\\d{1,2})\\.(\\d{1,2})\\.(\\d{4})/);\n  let fachdienst = '';\n  if (datumMatch) {\n    const rest = t.slice(datumMatch.index + datumMatch[0].length);\n    const fdMatch = rest.match(/^\\s*\\n([^\\n]+)\\n/);\n    if (fdMatch) fachdienst = fdMatch[1].trim();\n  }\n  const vorlageDatumPdf = datumMatch\n    ? `${datumMatch[3]}-${datumMatch[2].padStart(2, '0')}-${datumMatch[1].padStart(2, '0')}`\n    : '';\n  return { verfasser: verfasserMatch ? verfasserMatch[1].trim() : '', fachdienst, vorlageDatumPdf };\n}\n\nlet meta = { verfasser: '', fachdienst: '', vorlageDatumPdf: '' };\nfor (const item of items) {\n  if (!item.json.extractionOk) continue;\n  const m = extractVorlagenMeta(item.json._extractedText);\n  if (m.vorlageDatumPdf) { meta = m; break; }\n}\n\nreturn [{ json: {\n  ...ziel,\n  documentCount: items.length,\n  verfasser: meta.verfasser || ziel.verfasser || '',\n  fachdienst: meta.fachdienst || ziel.fachdienst || '',\n  vorlageDatumPdf: meta.vorlageDatumPdf || ziel.vorlageDatumPdf || '',\n  vorlageDatum: meta.vorlageDatumPdf || ziel.vorlageDatum || ziel.vorlageDatumWeb || '',\n  _reextractFilesFound: items.length,\n  _reextractFilesOk: items.filter(i => i.json.extractionOk).length,\n  _reextractDatumFound: !!meta.vorlageDatumPdf\n} }];"
-      }
+      ]
     },
     {
-      "id": "n11",
-      "name": "Schreibe Metadaten (vollstaendig)",
-      "type": "n8n-nodes-base.dataTable",
-      "typeVersion": 1,
-      "position": [
-        1760,
-        0
-      ],
       "parameters": {
         "operation": "update",
         "dataTableId": {
@@ -732,10 +718,6 @@
             "last_error_at": "={{ $json.last_error_at }}",
             "retry_count": "={{ $json.retry_count }}",
             "next_retry_at": "={{ $json.next_retry_at }}",
-            "claim_owner": "={{ $json.claim_owner }}",
-            "claim_stage": "={{ $json.claim_stage }}",
-            "claim_acquired_at": "={{ $json.claim_acquired_at }}",
-            "claim_expires_at": "={{ $json.claim_expires_at }}",
             "mastodonPosted": "={{ $json.mastodonPosted }}",
             "mastodonPostedAt": "={{ $json.mastodonPostedAt }}",
             "mastodonPostUrl": "={{ $json.mastodonPostUrl }}",
@@ -2012,46 +1994,6 @@
               "removed": false
             },
             {
-              "id": "claim_owner",
-              "displayName": "claim_owner",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "claim_stage",
-              "displayName": "claim_stage",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "claim_acquired_at",
-              "displayName": "claim_acquired_at",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "claim_expires_at",
-              "displayName": "claim_expires_at",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
               "id": "mastodonPosted",
               "displayName": "mastodonPosted",
               "required": false,
@@ -2254,17 +2196,17 @@
           ]
         },
         "options": {}
-      }
-    },
-    {
-      "id": "n12",
-      "name": "IF golietz.de gepostet?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
+      },
+      "id": "n11",
+      "name": "Schreibe Metadaten (vollstaendig)",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
       "position": [
         1760,
-        -150
-      ],
+        0
+      ]
+    },
+    {
       "parameters": {
         "conditions": {
           "options": {
@@ -2305,19 +2247,18 @@
           "combinator": "and"
         },
         "options": {}
-      }
+      },
+      "id": "n12",
+      "name": "IF golietz.de gepostet?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        -144
+      ]
     },
     {
-      "id": "n13",
-      "name": "GET Pruefe golietz.de",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        1920,
-        -220
-      ],
       "parameters": {
-        "method": "GET",
         "url": "={{ 'https://www.golietz.de/wp-json/wp/v2/posts/' + $json.wordpressPostId + '?context=edit' }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "wordpressApi",
@@ -2325,6 +2266,14 @@
           "timeout": 10000
         }
       },
+      "id": "n13",
+      "name": "GET Pruefe golietz.de",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -16,
+        400
+      ],
       "retryOnFail": false,
       "credentials": {
         "wordpressApi": {
@@ -2336,14 +2285,6 @@
       "onError": "continueRegularOutput"
     },
     {
-      "id": "n14",
-      "name": "IF golietz.de bereits korrekt?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [
-        2080,
-        -220
-      ],
       "parameters": {
         "conditions": {
           "options": {
@@ -2366,17 +2307,17 @@
           "combinator": "and"
         },
         "options": {}
-      }
+      },
+      "id": "n14",
+      "name": "IF golietz.de bereits korrekt?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        144,
+        400
+      ]
     },
     {
-      "id": "n15",
-      "name": "PATCH golietz.de Datum",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        2240,
-        -280
-      ],
       "parameters": {
         "method": "PATCH",
         "url": "={{ 'https://www.golietz.de/wp-json/wp/v2/posts/' + $('IF golietz.de gepostet?').item.json.wordpressPostId }}",
@@ -2389,6 +2330,14 @@
           "timeout": 10000
         }
       },
+      "id": "n15",
+      "name": "PATCH golietz.de Datum",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        304,
+        336
+      ],
       "retryOnFail": false,
       "credentials": {
         "wordpressApi": {
@@ -2400,16 +2349,7 @@
       "onError": "continueRegularOutput"
     },
     {
-      "id": "n16",
-      "name": "GET Verify golietz.de",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        2400,
-        -280
-      ],
       "parameters": {
-        "method": "GET",
         "url": "={{ 'https://www.golietz.de/wp-json/wp/v2/posts/' + $('IF golietz.de gepostet?').item.json.wordpressPostId + '?context=edit' }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "wordpressApi",
@@ -2417,6 +2357,14 @@
           "timeout": 10000
         }
       },
+      "id": "n16",
+      "name": "GET Verify golietz.de",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        464,
+        336
+      ],
       "retryOnFail": false,
       "credentials": {
         "wordpressApi": {
@@ -2428,28 +2376,20 @@
       "onError": "continueRegularOutput"
     },
     {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return { json: $('Schreibe Metadaten (vollstaendig)').item.json };"
+      },
       "id": "n17",
       "name": "Weiter (golietz)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2560,
-        -220
-      ],
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "return { json: $('Schreibe Metadaten (vollstaendig)').item.json };"
-      }
+        624,
+        400
+      ]
     },
     {
-      "id": "n18",
-      "name": "IF diepartei gepostet?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [
-        2720,
-        -150
-      ],
       "parameters": {
         "conditions": {
           "options": {
@@ -2490,19 +2430,18 @@
           "combinator": "and"
         },
         "options": {}
-      }
+      },
+      "id": "n18",
+      "name": "IF diepartei gepostet?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        784,
+        480
+      ]
     },
     {
-      "id": "n19",
-      "name": "GET Pruefe diepartei",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        2880,
-        -220
-      ],
       "parameters": {
-        "method": "GET",
         "url": "={{ 'https://die-partei.net/goslar/wp-json/wp/v2/posts/' + $json.wordpressGoslarPostId + '?context=edit' }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "wordpressApi",
@@ -2510,6 +2449,14 @@
           "timeout": 10000
         }
       },
+      "id": "n19",
+      "name": "GET Pruefe diepartei",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        944,
+        400
+      ],
       "retryOnFail": false,
       "credentials": {
         "wordpressApi": {
@@ -2521,14 +2468,6 @@
       "onError": "continueRegularOutput"
     },
     {
-      "id": "n20",
-      "name": "IF diepartei bereits korrekt?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [
-        3040,
-        -220
-      ],
       "parameters": {
         "conditions": {
           "options": {
@@ -2551,17 +2490,17 @@
           "combinator": "and"
         },
         "options": {}
-      }
+      },
+      "id": "n20",
+      "name": "IF diepartei bereits korrekt?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1104,
+        400
+      ]
     },
     {
-      "id": "n21",
-      "name": "PATCH diepartei Datum",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        3200,
-        -280
-      ],
       "parameters": {
         "method": "PATCH",
         "url": "={{ 'https://die-partei.net/goslar/wp-json/wp/v2/posts/' + $('IF diepartei gepostet?').item.json.wordpressGoslarPostId }}",
@@ -2574,6 +2513,14 @@
           "timeout": 10000
         }
       },
+      "id": "n21",
+      "name": "PATCH diepartei Datum",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1264,
+        336
+      ],
       "retryOnFail": false,
       "credentials": {
         "wordpressApi": {
@@ -2585,16 +2532,7 @@
       "onError": "continueRegularOutput"
     },
     {
-      "id": "n22",
-      "name": "GET Verify diepartei",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        3360,
-        -280
-      ],
       "parameters": {
-        "method": "GET",
         "url": "={{ 'https://die-partei.net/goslar/wp-json/wp/v2/posts/' + $('IF diepartei gepostet?').item.json.wordpressGoslarPostId + '?context=edit' }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "wordpressApi",
@@ -2602,6 +2540,14 @@
           "timeout": 10000
         }
       },
+      "id": "n22",
+      "name": "GET Verify diepartei",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1424,
+        336
+      ],
       "retryOnFail": false,
       "credentials": {
         "wordpressApi": {
@@ -2613,39 +2559,31 @@
       "onError": "continueRegularOutput"
     },
     {
+      "parameters": {},
       "id": "n23",
       "name": "Weiter (diepartei)",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        3520,
-        -220
-      ],
-      "parameters": {}
+        1584,
+        400
+      ]
     },
     {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const j = $json;\nreturn { json: {\n  ...j,\n  claimAction: 'acquire',\n  claimOwner: 'ALLRIS_P4b_Metadaten_Nachzieher:' + $execution.id,\n  claimStage: 'metadata_nachzug',\n  leaseMinutes: 15,\n  expectedClaimOwner: j.claim_owner ?? null,\n  expectedClaimExpiresAt: j.claim_expires_at ?? null\n} };"
+      },
       "id": "claim-prep-0001",
       "name": "Bereite Claim vor",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        700,
+        704,
         0
-      ],
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "const j = $json;\nreturn { json: {\n  ...j,\n  claimAction: 'acquire',\n  claimOwner: 'ALLRIS_P4b_Metadaten_Nachzieher:' + $execution.id,\n  claimStage: 'metadata_nachzug',\n  leaseMinutes: 15,\n  expectedClaimOwner: j.claim_owner ?? null,\n  expectedClaimExpiresAt: j.claim_expires_at ?? null\n} };"
-      }
+      ]
     },
     {
-      "id": "claim-acquire-0001",
-      "name": "Erwerbe Claim",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.2,
-      "position": [
-        860,
-        0
-      ],
       "parameters": {
         "workflowId": {
           "__rl": true,
@@ -2656,17 +2594,17 @@
         "options": {
           "waitForSubWorkflow": true
         }
-      }
+      },
+      "id": "claim-acquire-0001",
+      "name": "Erwerbe Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        864,
+        0
+      ]
     },
     {
-      "id": "claim-if-0001",
-      "name": "IF Claim erworben?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [
-        1020,
-        0
-      ],
       "parameters": {
         "conditions": {
           "options": {
@@ -2689,31 +2627,31 @@
           "combinator": "and"
         },
         "options": {}
-      }
+      },
+      "id": "claim-if-0001",
+      "name": "IF Claim erworben?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1024,
+        0
+      ]
     },
     {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const ziel = $('Bereite Claim vor').item.json;\nconst id = ziel.id;\nconst vorgangKey = String(ziel.vorgangKey || '').trim();\nif (!vorgangKey) throw new Error('[P4b Claim Release] vorgangKey fehlt.');\nif (!id) throw new Error('[P4b Claim Release] id fehlt - Release-Matching in ALLRIS_Claim_Lease braucht id + claim_owner.');\nreturn { json: { id, vorgangKey, claimAction: 'release', claimOwner: 'ALLRIS_P4b_Metadaten_Nachzieher:' + $execution.id } };"
+      },
       "id": "claim-release-prep-0001",
       "name": "Bereite Claim-Freigabe vor",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3680,
-        -220
-      ],
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "const ziel = $('Bereite Claim vor').item.json;\nconst id = ziel.id;\nconst vorgangKey = String(ziel.vorgangKey || '').trim();\nif (!vorgangKey) throw new Error('[P4b Claim Release] vorgangKey fehlt.');\nif (!id) throw new Error('[P4b Claim Release] id fehlt - Release-Matching in ALLRIS_Claim_Lease braucht id + claim_owner.');\nreturn { json: { id, vorgangKey, claimAction: 'release', claimOwner: 'ALLRIS_P4b_Metadaten_Nachzieher:' + $execution.id } };"
-      }
+        1744,
+        400
+      ]
     },
     {
-      "id": "claim-release-0001",
-      "name": "Release Claim",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.2,
-      "position": [
-        3840,
-        -220
-      ],
       "parameters": {
         "workflowId": {
           "__rl": true,
@@ -2724,13 +2662,21 @@
         "options": {
           "waitForSubWorkflow": true
         }
-      }
+      },
+      "id": "claim-release-0001",
+      "name": "Release Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1904,
+        400
+      ]
     }
   ],
-  "pinData": null,
+  "pinData": {},
   "settings": {
     "executionOrder": "v1"
   },
   "tags": [],
-  "versionId": "bd00e879-c121-4c8d-8c1d-db74f3ce210d"
+  "versionId": "e4b8a469-c1eb-43c9-ab9b-5685556de64b"
 }
