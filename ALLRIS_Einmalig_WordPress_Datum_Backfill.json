@@ -1,4 +1,104 @@
 {
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hole alle Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole alle Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Baue Backfill-Liste",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue Backfill-Liste": {
+      "main": [
+        [
+          {
+            "node": "IF golietz.de?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF golietz.de?": {
+      "main": [
+        [
+          {
+            "node": "PATCH golietz.de Datum",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "PATCH die-partei.net Datum",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PATCH golietz.de Datum": {
+      "main": [
+        [
+          {
+            "node": "GET Verify golietz.de",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PATCH die-partei.net Datum": {
+      "main": [
+        [
+          {
+            "node": "GET Verify die-partei.net",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Verify golietz.de": {
+      "main": [
+        [
+          {
+            "node": "Log Ergebnis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Verify die-partei.net": {
+      "main": [
+        [
+          {
+            "node": "Log Ergebnis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "spWAxGQ7sHQQZ7Y0",
+  "meta": null,
   "name": "ALLRIS_Einmalig_WordPress_Datum_Backfill",
   "nodes": [
     {
@@ -7,7 +107,10 @@
       "name": "Manual Trigger",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [0, 0]
+      "position": [
+        0,
+        0
+      ]
     },
     {
       "parameters": {
@@ -19,14 +122,19 @@
           "cachedResultName": "allris_vorgaenge",
           "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
         },
-        "filters": { "conditions": [] },
+        "filters": {
+          "conditions": []
+        },
         "returnAll": true
       },
       "id": "c1d2e3f4-0002-4000-8000-000000000002",
       "name": "Hole alle Vorgaenge",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
-      "position": [220, 0]
+      "position": [
+        220,
+        0
+      ]
     },
     {
       "parameters": {
@@ -37,7 +145,10 @@
       "name": "Baue Backfill-Liste",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [440, 0]
+      "position": [
+        440,
+        0
+      ]
     },
     {
       "parameters": {
@@ -53,7 +164,10 @@
               "id": "wpdb-if-001",
               "leftValue": "={{ $json.site }}",
               "rightValue": "golietz",
-              "operator": { "type": "string", "operation": "equals" }
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
             }
           ],
           "combinator": "and"
@@ -64,7 +178,10 @@
       "name": "IF golietz.de?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [660, 0]
+      "position": [
+        660,
+        0
+      ]
     },
     {
       "parameters": {
@@ -75,19 +192,35 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ date_gmt: $json.targetDate }) }}",
-        "options": { "batching": { "batch": { "batchSize": 1, "batchInterval": 1500 } }, "timeout": 60000 }
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 2500
+            }
+          },
+          "timeout": 20000
+        }
       },
       "id": "c1d2e3f4-0005-4000-8000-000000000005",
       "name": "PATCH golietz.de Datum",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [880, -100],
-      "retryOnFail": false,
+      "position": [
+        880,
+        -100
+      ],
+      "retryOnFail": true,
       "credentials": {
-        "wordpressApi": { "id": "8k2HqYswPaPVS4dr", "name": "Ollies Wordpress" }
+        "wordpressApi": {
+          "id": "8k2HqYswPaPVS4dr",
+          "name": "Ollies Wordpress"
+        }
       },
       "continueOnFail": true,
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "maxTries": 3,
+      "waitBetweenTries": 2000
     },
     {
       "parameters": {
@@ -98,47 +231,115 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ date_gmt: $json.targetDate }) }}",
-        "options": { "timeout": 60000 }
+        "options": {
+          "timeout": 20000,
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 2000
+            }
+          }
+        }
       },
       "id": "c1d2e3f4-0006-4000-8000-000000000006",
       "name": "PATCH die-partei.net Datum",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [880, 100],
-      "retryOnFail": false,
+      "position": [
+        880,
+        100
+      ],
+      "retryOnFail": true,
       "credentials": {
-        "wordpressApi": { "id": "tzwuM0QBLpYYZfXQ", "name": "DiePARTEI Wordpress" }
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
       },
       "continueOnFail": true,
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "maxTries": 3,
+      "waitBetweenTries": 2000
     },
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "// WICHTIG: die PATCH-HTTP-Nodes liefern die WordPress-Antwort zurueck (bzw. bei Fehler\n// ein error-Objekt) - beides ohne vorgangKey/site/postId/targetDate. Der urspruengliche\n// Kontext wird deshalb bewusst ueber die vorgelagerte IF-Node wiederhergestellt, statt\n// sich auf $input zu verlassen (gleiche Klasse von Bug wie an mehreren anderen Stellen\n// in P4/P1 diese Session - siehe allris_p4_claim_release_gap_2026-07-28).\nconst resp = $input.item.json;\nconst orig = $('IF golietz.de?').item.json;\nconst ok = !resp.error && resp.id;\nreturn { json: {\n  vorgangKey: orig.vorgangKey,\n  site: orig.site,\n  postId: orig.postId,\n  targetDate: orig.targetDate,\n  ergebnis: ok ? ('OK - WP date_gmt jetzt: ' + resp.date_gmt) : ('FEHLER: ' + (resp.error?.message || resp.message || JSON.stringify(resp).slice(0,200)))\n} };"
+        "jsCode": "// WICHTIG: die PATCH-HTTP-Nodes liefern die WordPress-Antwort zurueck (bzw. bei Fehler\n// ein error-Objekt) - beides ohne vorgangKey/site/postId/targetDate. Der urspruengliche\n// Kontext wird deshalb bewusst ueber die vorgelagerte IF-Node wiederhergestellt, statt\n// sich auf $input zu verlassen (gleiche Klasse von Bug wie an mehreren anderen Stellen\n// in P4/P1 diese Session - siehe allris_p4_claim_release_gap_2026-07-28).\n//\n// Nachtrag 2026-07-30: verifiziert jetzt zusaetzlich per GET, ob date_gmt tatsaechlich\n// gesetzt wurde, statt nur der PATCH-Antwort zu vertrauen (die bei einer teilweise\n// erfolgreichen, aber timeout-abgebrochenen Verbindung trotzdem 200 zurueckgeben kann).\nconst resp = $input.item.json;\nconst orig = $('IF golietz.de?').item.json;\n\nfunction normDate(v) {\n  return String(v || '').replace(/\\.\\d+Z?$/, '').replace(/Z$/, '').slice(0, 19);\n}\n\nconst patchOk = !resp.error && !!resp.id;\nconst verifiedDate = resp.date_gmt || '';\nconst verified = patchOk && normDate(verifiedDate) === normDate(orig.targetDate);\n\nlet ergebnis;\nif (!patchOk) {\n  ergebnis = 'FEHLER (GET/Verify): ' + (resp.error?.message || resp.message || JSON.stringify(resp).slice(0, 200));\n} else if (!verified) {\n  ergebnis = 'WARNUNG: Post geladen, aber date_gmt weicht ab - erwartet ' + orig.targetDate + ', gefunden ' + verifiedDate;\n} else {\n  ergebnis = 'OK - geprueft, date_gmt = ' + verifiedDate;\n}\n\nreturn { json: {\n  vorgangKey: orig.vorgangKey,\n  site: orig.site,\n  postId: orig.postId,\n  targetDate: orig.targetDate,\n  verifiedDate,\n  verified,\n  ergebnis\n} };"
       },
       "id": "c1d2e3f4-0007-4b00-8000-000000000007",
       "name": "Log Ergebnis",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1100, 0]
-    }
-  ],
-  "connections": {
-    "Manual Trigger": { "main": [[{ "node": "Hole alle Vorgaenge", "type": "main", "index": 0 }]] },
-    "Hole alle Vorgaenge": { "main": [[{ "node": "Baue Backfill-Liste", "type": "main", "index": 0 }]] },
-    "Baue Backfill-Liste": { "main": [[{ "node": "IF golietz.de?", "type": "main", "index": 0 }]] },
-    "IF golietz.de?": {
-      "main": [
-        [{ "node": "PATCH golietz.de Datum", "type": "main", "index": 0 }],
-        [{ "node": "PATCH die-partei.net Datum", "type": "main", "index": 0 }]
+      "position": [
+        1100,
+        0
       ]
     },
-    "PATCH golietz.de Datum": { "main": [[{ "node": "Log Ergebnis", "type": "main", "index": 0 }]] },
-    "PATCH die-partei.net Datum": { "main": [[{ "node": "Log Ergebnis", "type": "main", "index": 0 }]] }
-  },
-  "pinData": {},
+    {
+      "id": "wpdb-verify-golietz-0001",
+      "name": "GET Verify golietz.de",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1000,
+        -100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://www.golietz.de/wp-json/wp/v2/posts/' + $('IF golietz.de?').item.json.postId + '?context=edit' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1500,
+      "credentials": {
+        "wordpressApi": {
+          "id": "8k2HqYswPaPVS4dr",
+          "name": "Ollies Wordpress"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "wpdb-verify-partei-0001",
+      "name": "GET Verify die-partei.net",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1000,
+        100
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://die-partei.net/goslar/wp-json/wp/v2/posts/' + $('IF golietz.de?').item.json.postId + '?context=edit' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1500,
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "pinData": null,
   "settings": {
     "executionOrder": "v1"
-  }
+  },
+  "tags": [],
+  "versionId": "46ff6528-9983-4560-a340-2dd6f639a7b5"
 }
