@@ -2727,7 +2727,8 @@
   ],
   "pinData": {},
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "errorWorkflow": "qPheJKPv0k06tkro"
   },
   "tags": [],
   "versionId": "bd0dd372-8e3a-4887-bc19-98424fffec59"

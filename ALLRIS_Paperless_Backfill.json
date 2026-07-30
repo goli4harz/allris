@@ -516,17 +516,6 @@
         ]
       ]
     },
-    "Code Log Download Fehler": {
-      "main": [
-        [
-          {
-            "node": "Aggregiere Backfill-Ergebnis",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Paperless Titel bauen (Backfill)": {
       "main": [
         [
@@ -2532,7 +2521,8 @@
     "saveManualExecutions": false,
     "callerPolicy": "workflowsFromSameOwner",
     "availableInMCP": false,
-    "saveDataSuccessExecution": "none"
+    "saveDataSuccessExecution": "none",
+    "errorWorkflow": "qPheJKPv0k06tkro"
   },
   "tags": [],
   "versionId": "c2225496-692f-4436-8e00-baf790e6d381"

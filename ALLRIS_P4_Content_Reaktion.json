@@ -4144,7 +4144,8 @@
   ],
   "pinData": {},
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "errorWorkflow": "qPheJKPv0k06tkro"
   },
   "tags": [],
   "versionId": "12689d85-81ff-4645-b0e5-8ee4d65bdf4f"

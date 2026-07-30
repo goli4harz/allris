@@ -1410,7 +1410,8 @@
   ],
   "pinData": {},
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "errorWorkflow": "qPheJKPv0k06tkro"
   },
   "tags": [],
   "versionId": "3f7e7287-8eb1-48b7-9d56-8caa29d60d5f"
