@@ -1,139 +1,11 @@
 {
-  "active": false,
-  "connections": {
-    "Manual Trigger": {
-      "main": [
-        [
-          {
-            "node": "Hole alle Vorgaenge",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Hole alle Vorgaenge": {
-      "main": [
-        [
-          {
-            "node": "Baue Backfill-Liste",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Baue Backfill-Liste": {
-      "main": [
-        [
-          {
-            "node": "Loop Backfill (1x)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF golietz.de?": {
-      "main": [
-        [
-          {
-            "node": "PATCH golietz.de Datum",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "PATCH die-partei.net Datum",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "PATCH golietz.de Datum": {
-      "main": [
-        [
-          {
-            "node": "GET Verify golietz.de",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "PATCH die-partei.net Datum": {
-      "main": [
-        [
-          {
-            "node": "GET Verify die-partei.net",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "GET Verify golietz.de": {
-      "main": [
-        [
-          {
-            "node": "Log Ergebnis",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "GET Verify die-partei.net": {
-      "main": [
-        [
-          {
-            "node": "Log Ergebnis",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Loop Backfill (1x)": {
-      "main": [
-        [],
-        [
-          {
-            "node": "IF golietz.de?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Log Ergebnis": {
-      "main": [
-        [
-          {
-            "node": "Warte vor naechstem",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Warte vor naechstem": {
-      "main": [
-        [
-          {
-            "node": "Loop Backfill (1x)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
+  "updatedAt": "2026-07-30T09:01:52.566Z",
+  "createdAt": "2026-07-28T14:24:21.375Z",
   "id": "spWAxGQ7sHQQZ7Y0",
-  "meta": null,
   "name": "ALLRIS_Einmalig_WordPress_Datum_Backfill",
+  "description": null,
+  "active": false,
+  "isArchived": false,
   "nodes": [
     {
       "parameters": {},
@@ -213,7 +85,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        880,
+        660,
         0
       ]
     },
@@ -227,6 +99,12 @@
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ date_gmt: $json.targetDate }) }}",
         "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 2500
+            }
+          },
           "timeout": 20000
         }
       },
@@ -235,7 +113,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1080,
+        880,
         -100
       ],
       "retryOnFail": true,
@@ -260,7 +138,13 @@
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ date_gmt: $json.targetDate }) }}",
         "options": {
-          "timeout": 20000
+          "timeout": 20000,
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 2000
+            }
+          }
         }
       },
       "id": "c1d2e3f4-0006-4000-8000-000000000006",
@@ -268,7 +152,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1080,
+        880,
         100
       ],
       "retryOnFail": true,
@@ -293,8 +177,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1320,
-        -100
+        1100,
+        0
       ]
     },
     {
@@ -303,7 +187,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1200,
+        1000,
         -100
       ],
       "parameters": {
@@ -333,7 +217,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1200,
+        1000,
         100
       ],
       "parameters": {
@@ -356,40 +240,134 @@
       },
       "continueOnFail": true,
       "onError": "continueRegularOutput"
-    },
-    {
-      "id": "wpdb-loop-0001",
-      "name": "Loop Backfill (1x)",
-      "type": "n8n-nodes-base.splitInBatches",
-      "typeVersion": 3,
-      "position": [
-        660,
-        0
-      ],
-      "parameters": {
-        "batchSize": 1,
-        "options": {}
-      }
-    },
-    {
-      "id": "wpdb-wait-0001",
-      "name": "Warte vor naechstem",
-      "type": "n8n-nodes-base.wait",
-      "typeVersion": 1,
-      "position": [
-        1320,
-        0
-      ],
-      "parameters": {
-        "amount": 2,
-        "unit": "seconds"
-      }
     }
   ],
-  "pinData": null,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hole alle Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole alle Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Baue Backfill-Liste",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue Backfill-Liste": {
+      "main": [
+        [
+          {
+            "node": "IF golietz.de?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF golietz.de?": {
+      "main": [
+        [
+          {
+            "node": "PATCH golietz.de Datum",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "PATCH die-partei.net Datum",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PATCH golietz.de Datum": {
+      "main": [
+        [
+          {
+            "node": "GET Verify golietz.de",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PATCH die-partei.net Datum": {
+      "main": [
+        [
+          {
+            "node": "GET Verify die-partei.net",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Verify golietz.de": {
+      "main": [
+        [
+          {
+            "node": "Log Ergebnis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Verify die-partei.net": {
+      "main": [
+        [
+          {
+            "node": "Log Ergebnis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
   "settings": {
     "executionOrder": "v1"
   },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "39158a07-311e-430e-981b-8bbc74d3677e",
+  "activeVersionId": null,
+  "versionCounter": 3,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-07-28T14:24:21.375Z",
+      "createdAt": "2026-07-28T14:24:21.375Z",
+      "role": "workflow:owner",
+      "workflowId": "spWAxGQ7sHQQZ7Y0",
+      "projectId": "CrnegVcMvlcRU0OP",
+      "project": {
+        "updatedAt": "2026-05-23T11:38:39.411Z",
+        "createdAt": "2026-05-23T11:33:40.374Z",
+        "id": "CrnegVcMvlcRU0OP",
+        "name": "Oliver Lietz <oliver.lietz@golietz.de>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "66557ab1-dd68-4186-b616-ecaa8f1bea61"
+      }
+    }
+  ],
   "tags": [],
-  "versionId": "39158a07-311e-430e-981b-8bbc74d3677e"
+  "activeVersion": null
 }
