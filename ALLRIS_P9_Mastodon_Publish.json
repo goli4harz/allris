@@ -112,7 +112,7 @@
         ],
         [
           {
-            "node": "Lade Fallback-Logo",
+            "node": "Kein Bild - Kontext ohne Media",
             "type": "main",
             "index": 0
           }
@@ -273,6 +273,17 @@
         [
           {
             "node": "Upload Media zu Mastodon",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kein Bild - Kontext ohne Media": {
+      "main": [
+        [
+          {
+            "node": "Poste Status",
             "type": "main",
             "index": 0
           }
@@ -2283,6 +2294,20 @@
         400
       ],
       "onError": "continueRegularOutput"
+    },
+    {
+      "id": "p9-noimg-context-0001",
+      "name": "Kein Bild - Kontext ohne Media",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1180,
+        200
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const original = $('Baue Toot-Text').item.json;\nreturn { json: { ...original, mastodonMediaId: null } };"
+      }
     }
   ],
   "pinData": {},
@@ -2290,5 +2315,5 @@
     "executionOrder": "v1"
   },
   "tags": [],
-  "versionId": "fcff0320-885e-433d-964b-98ab71ce7c7f"
+  "versionId": "b558b25f-c0ef-4284-8ed8-bddac8b81c30"
 }
