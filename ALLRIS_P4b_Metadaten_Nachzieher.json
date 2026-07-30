@@ -1,6 +1,17 @@
 {
-  "active": false,
+  "active": true,
   "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hole alle Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Manual Trigger": {
       "main": [
         [
@@ -16,14 +27,14 @@
       "main": [
         [
           {
-            "node": "Ziele",
+            "node": "Finde Ziele",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Ziele": {
+    "Finde Ziele": {
       "main": [
         [
           {
@@ -116,6 +127,166 @@
       "main": [
         [
           {
+            "node": "IF golietz.de gepostet?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF golietz.de gepostet?": {
+      "main": [
+        [
+          {
+            "node": "GET Pruefe golietz.de",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF diepartei gepostet?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Pruefe golietz.de": {
+      "main": [
+        [
+          {
+            "node": "IF golietz.de bereits korrekt?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF golietz.de bereits korrekt?": {
+      "main": [
+        [
+          {
+            "node": "Weiter (golietz)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "PATCH golietz.de Datum",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PATCH golietz.de Datum": {
+      "main": [
+        [
+          {
+            "node": "GET Verify golietz.de",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Verify golietz.de": {
+      "main": [
+        [
+          {
+            "node": "Weiter (golietz)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weiter (golietz)": {
+      "main": [
+        [
+          {
+            "node": "IF diepartei gepostet?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF diepartei gepostet?": {
+      "main": [
+        [
+          {
+            "node": "GET Pruefe diepartei",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Weiter (diepartei)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Pruefe diepartei": {
+      "main": [
+        [
+          {
+            "node": "IF diepartei bereits korrekt?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF diepartei bereits korrekt?": {
+      "main": [
+        [
+          {
+            "node": "Weiter (diepartei)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "PATCH diepartei Datum",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PATCH diepartei Datum": {
+      "main": [
+        [
+          {
+            "node": "GET Verify diepartei",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Verify diepartei": {
+      "main": [
+        [
+          {
+            "node": "Weiter (diepartei)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weiter (diepartei)": {
+      "main": [
+        [
+          {
             "node": "Loop Vorgang (1x)",
             "type": "main",
             "index": 0
@@ -124,10 +295,31 @@
       ]
     }
   },
-  "id": "nPvcubHpXhbf44qB",
+  "id": "lYnuhRM3yLpKTrN7",
   "meta": null,
-  "name": "ALLRIS_Einmalig_Metadaten_Reextraktion_2026-07-30_v2",
+  "name": "ALLRIS_P4b_Metadaten_Nachzieher",
   "nodes": [
+    {
+      "id": "n0",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        -120
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 3,
+              "triggerAtMinute": 50
+            }
+          ]
+        }
+      }
+    },
     {
       "id": "n1",
       "name": "Manual Trigger",
@@ -135,7 +327,7 @@
       "typeVersion": 1,
       "position": [
         0,
-        0
+        120
       ],
       "parameters": {}
     },
@@ -145,7 +337,7 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
       "position": [
-        180,
+        200,
         0
       ],
       "parameters": {
@@ -164,16 +356,16 @@
     },
     {
       "id": "n3",
-      "name": "Ziele",
+      "name": "Finde Ziele",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        360,
+        400,
         0
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const items = $input.all();\nconst targets = [\"vol_10347\"];\nconst out = [];\nfor (const item of items) {\n  const j = item.json || {};\n  if (targets.includes(j.vorgangKey)) out.push({ json: { ...j } });\n}\nreturn out;"
+        "jsCode": "// Findet Zeilen, bei denen \"documentCount\" (zuletzt bei der Extraktion gesehene Anzahl)\n// nicht mehr zu \"documentsJson\" (aktuelle Anzahl laut letztem P1-Scrape) passt - das\n// Muster, wenn ALLRIS nachtraeglich weitere Dokumente zu einem VorGANG hinzufuegt,\n// nachdem P4 diesen Vorgang schon fertig verarbeitet und veroeffentlicht hat. Nur\n// contentStage=content_posted (also wirklich fertig und nicht mehr aktiv in P3/P4\n// Bearbeitung), um keine Race mit laufender Verarbeitung zu riskieren.\nfunction safeInt(v) { const n = parseInt(String(v || '0'), 10); return Number.isFinite(n) ? n : 0; }\n\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  const j = item.json || {};\n  if (j.contentStage !== 'content_posted') continue;\n  if (!j.nextcloudFolder) continue;\n  let docs = [];\n  try { docs = JSON.parse(j.documentsJson || '[]'); } catch (e) { continue; }\n  if (docs.length === 0) continue;\n  const storedCount = safeInt(j.documentCount);\n  if (storedCount === docs.length) continue;\n  out.push({ json: { vorgangKey: j.vorgangKey, vorgangsnummer: j.vorgangsnummer, nextcloudFolder: j.nextcloudFolder, _storedCount: storedCount, _expectedCount: docs.length } });\n}\nconsole.log('[Metadaten-Nachzieher] ' + out.length + ' Vorgaenge mit documentCount-Abweichung gefunden.');\nreturn out;"
       }
     },
     {
@@ -182,7 +374,7 @@
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        540,
+        600,
         0
       ],
       "parameters": {
@@ -196,7 +388,7 @@
       "type": "n8n-nodes-base.nextCloud",
       "typeVersion": 1,
       "position": [
-        740,
+        800,
         0
       ],
       "parameters": {
@@ -218,7 +410,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        900,
+        960,
         0
       ],
       "parameters": {
@@ -232,7 +424,7 @@
       "type": "n8n-nodes-base.nextCloud",
       "typeVersion": 1,
       "position": [
-        1060,
+        1120,
         0
       ],
       "parameters": {
@@ -255,7 +447,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1220,
+        1280,
         0
       ],
       "parameters": {
@@ -302,7 +494,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1380,
+        1440,
         0
       ],
       "parameters": {
@@ -316,12 +508,12 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1540,
+        1600,
         0
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst ziel = $('Loop Vorgang (1x)').item.json;\nconst items = $input.all();\n\nfunction extractVorlagenMeta(text) {\n  const t = safeStr(text);\n  const verfasserMatch = t.match(/([^\\n]+)\\n\\s*Verfasser\\/in/);\n  const datumMatch = t.match(/Stadt Goslar Goslar,\\s*(\\d{1,2})\\.(\\d{1,2})\\.(\\d{4})/);\n  let fachdienst = '';\n  if (datumMatch) {\n    const rest = t.slice(datumMatch.index + datumMatch[0].length);\n    const fdMatch = rest.match(/^\\s*\\n([^\\n]+)\\n/);\n    if (fdMatch) fachdienst = fdMatch[1].trim();\n  }\n  const vorlageDatumPdf = datumMatch\n    ? `${datumMatch[3]}-${datumMatch[2].padStart(2, '0')}-${datumMatch[1].padStart(2, '0')}`\n    : '';\n  return { verfasser: verfasserMatch ? verfasserMatch[1].trim() : '', fachdienst, vorlageDatumPdf };\n}\n\nlet meta = { verfasser: '', fachdienst: '', vorlageDatumPdf: '' };\nfor (const item of items) {\n  if (!item.json.extractionOk) continue;\n  const m = extractVorlagenMeta(item.json._extractedText);\n  if (m.vorlageDatumPdf) { meta = m; break; }\n}\n\nreturn [{ json: {\n  ...ziel,\n  verfasser: meta.verfasser || ziel.verfasser || '',\n  fachdienst: meta.fachdienst || ziel.fachdienst || '',\n  vorlageDatumPdf: meta.vorlageDatumPdf || '',\n  vorlageDatum: meta.vorlageDatumPdf || ziel.vorlageDatumWeb || '',\n  _reextractFilesFound: items.length,\n  _reextractFilesOk: items.filter(i => i.json.extractionOk).length,\n  _reextractDatumFound: !!meta.vorlageDatumPdf\n} }];"
+        "jsCode": "// Fasst alle in dieser Schleifen-Runde extrahierten Dokumenttexte fuer GENAU EINEN\n// Vorgang zusammen (Loop-Kontext = batchSize:1, daher keine Vermischung moeglich).\n// Datum PRO Dokument suchen (nicht erst zusammenkleben+kuerzen - siehe P3-Truncation-\n// Fix vom 2026-07-30). Aktualisiert zusaetzlich documentCount auf die tatsaechlich\n// gefundene Dateizahl, damit dieselbe Zeile beim naechsten Lauf nicht wieder auftaucht.\n// Nur Metadatenfelder (+documentCount) werden veraendert - AI-generierter Content\n// bleibt unangetastet (Nutzerentscheidung 2026-07-30).\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst ziel = $('Loop Vorgang (1x)').item.json;\nconst items = $input.all();\n\nfunction extractVorlagenMeta(text) {\n  const t = safeStr(text);\n  const verfasserMatch = t.match(/([^\\n]+)\\n\\s*Verfasser\\/in/);\n  const datumMatch = t.match(/Stadt Goslar Goslar,\\s*(\\d{1,2})\\.(\\d{1,2})\\.(\\d{4})/);\n  let fachdienst = '';\n  if (datumMatch) {\n    const rest = t.slice(datumMatch.index + datumMatch[0].length);\n    const fdMatch = rest.match(/^\\s*\\n([^\\n]+)\\n/);\n    if (fdMatch) fachdienst = fdMatch[1].trim();\n  }\n  const vorlageDatumPdf = datumMatch\n    ? `${datumMatch[3]}-${datumMatch[2].padStart(2, '0')}-${datumMatch[1].padStart(2, '0')}`\n    : '';\n  return { verfasser: verfasserMatch ? verfasserMatch[1].trim() : '', fachdienst, vorlageDatumPdf };\n}\n\nlet meta = { verfasser: '', fachdienst: '', vorlageDatumPdf: '' };\nfor (const item of items) {\n  if (!item.json.extractionOk) continue;\n  const m = extractVorlagenMeta(item.json._extractedText);\n  if (m.vorlageDatumPdf) { meta = m; break; }\n}\n\nreturn [{ json: {\n  ...ziel,\n  documentCount: items.length,\n  verfasser: meta.verfasser || ziel.verfasser || '',\n  fachdienst: meta.fachdienst || ziel.fachdienst || '',\n  vorlageDatumPdf: meta.vorlageDatumPdf || ziel.vorlageDatumPdf || '',\n  vorlageDatum: meta.vorlageDatumPdf || ziel.vorlageDatum || ziel.vorlageDatumWeb || '',\n  _reextractFilesFound: items.length,\n  _reextractFilesOk: items.filter(i => i.json.extractionOk).length,\n  _reextractDatumFound: !!meta.vorlageDatumPdf\n} }];"
       }
     },
     {
@@ -330,7 +522,7 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
       "position": [
-        1700,
+        1760,
         0
       ],
       "parameters": {
@@ -2001,6 +2193,373 @@
         },
         "options": {}
       }
+    },
+    {
+      "id": "n12",
+      "name": "IF golietz.de gepostet?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        -150
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "wpg1",
+              "leftValue": "={{ $json.wordpressPosted }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "wpg2",
+              "leftValue": "={{ $json.wordpressPostId }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "wpg3",
+              "leftValue": "={{ $json.vorlageDatum }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n13",
+      "name": "GET Pruefe golietz.de",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1920,
+        -220
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://www.golietz.de/wp-json/wp/v2/posts/' + $json.wordpressPostId + '?context=edit' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "retryOnFail": false,
+      "credentials": {
+        "wordpressApi": {
+          "id": "8k2HqYswPaPVS4dr",
+          "name": "Ollies Wordpress"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "n14",
+      "name": "IF golietz.de bereits korrekt?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2080,
+        -220
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "wpgok1",
+              "leftValue": "={{ String($json.date_gmt || '').replace(/\\.\\d+Z?$/, '').replace(/Z$/, '').slice(0, 19) }}",
+              "rightValue": "={{ (String($('IF golietz.de gepostet?').item.json.vorlageDatum||'') ? new Date(new Date($('IF golietz.de gepostet?').item.json.vorlageDatum).getTime() + 3*24*60*60*1000).toISOString() : '').replace(/\\.\\d+Z?$/, '').replace(/Z$/, '').slice(0, 19) }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n15",
+      "name": "PATCH golietz.de Datum",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2240,
+        -280
+      ],
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://www.golietz.de/wp-json/wp/v2/posts/' + $('IF golietz.de gepostet?').item.json.wordpressPostId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ date_gmt: new Date(new Date($('IF golietz.de gepostet?').item.json.vorlageDatum).getTime() + 3*24*60*60*1000).toISOString() }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "retryOnFail": false,
+      "credentials": {
+        "wordpressApi": {
+          "id": "8k2HqYswPaPVS4dr",
+          "name": "Ollies Wordpress"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "n16",
+      "name": "GET Verify golietz.de",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2400,
+        -280
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://www.golietz.de/wp-json/wp/v2/posts/' + $('IF golietz.de gepostet?').item.json.wordpressPostId + '?context=edit' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "retryOnFail": false,
+      "credentials": {
+        "wordpressApi": {
+          "id": "8k2HqYswPaPVS4dr",
+          "name": "Ollies Wordpress"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "n17",
+      "name": "Weiter (golietz)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2560,
+        -220
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return { json: $('Schreibe Metadaten (vollstaendig)').item.json };"
+      }
+    },
+    {
+      "id": "n18",
+      "name": "IF diepartei gepostet?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2720,
+        -150
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "wpp1",
+              "leftValue": "={{ $json.wordpressGoslarPosted }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "wpp2",
+              "leftValue": "={{ $json.wordpressGoslarPostId }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "wpp3",
+              "leftValue": "={{ $json.vorlageDatum }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n19",
+      "name": "GET Pruefe diepartei",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2880,
+        -220
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://die-partei.net/goslar/wp-json/wp/v2/posts/' + $json.wordpressGoslarPostId + '?context=edit' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "retryOnFail": false,
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "n20",
+      "name": "IF diepartei bereits korrekt?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3040,
+        -220
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "wppok1",
+              "leftValue": "={{ String($json.date_gmt || '').replace(/\\.\\d+Z?$/, '').replace(/Z$/, '').slice(0, 19) }}",
+              "rightValue": "={{ (String($('IF diepartei gepostet?').item.json.vorlageDatum||'') ? new Date(new Date($('IF diepartei gepostet?').item.json.vorlageDatum).getTime() + 3*24*60*60*1000).toISOString() : '').replace(/\\.\\d+Z?$/, '').replace(/Z$/, '').slice(0, 19) }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n21",
+      "name": "PATCH diepartei Datum",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3200,
+        -280
+      ],
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://die-partei.net/goslar/wp-json/wp/v2/posts/' + $('IF diepartei gepostet?').item.json.wordpressGoslarPostId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ date_gmt: new Date(new Date($('IF diepartei gepostet?').item.json.vorlageDatum).getTime() + 3*24*60*60*1000).toISOString() }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "retryOnFail": false,
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "n22",
+      "name": "GET Verify diepartei",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3360,
+        -280
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://die-partei.net/goslar/wp-json/wp/v2/posts/' + $('IF diepartei gepostet?').item.json.wordpressGoslarPostId + '?context=edit' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "retryOnFail": false,
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "n23",
+      "name": "Weiter (diepartei)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        3520,
+        -220
+      ],
+      "parameters": {}
     }
   ],
   "pinData": null,
@@ -2008,5 +2567,5 @@
     "executionOrder": "v1"
   },
   "tags": [],
-  "versionId": "1442468c-7577-461f-9d3d-e0375abba5f0"
+  "versionId": "bd00e879-c121-4c8d-8c1d-db74f3ce210d"
 }
