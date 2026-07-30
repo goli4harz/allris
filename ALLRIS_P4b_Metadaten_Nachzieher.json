@@ -127,7 +127,7 @@
       "main": [
         [
           {
-            "node": "IF golietz.de gepostet?",
+            "node": "Warte vor WordPress",
             "type": "main",
             "index": 0
           }
@@ -207,7 +207,7 @@
       "main": [
         [
           {
-            "node": "IF diepartei gepostet?",
+            "node": "Warte zwischen Seiten",
             "type": "main",
             "index": 0
           }
@@ -350,6 +350,28 @@
         [
           {
             "node": "Loop Vorgang (1x)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Warte vor WordPress": {
+      "main": [
+        [
+          {
+            "node": "IF golietz.de gepostet?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Warte zwischen Seiten": {
+      "main": [
+        [
+          {
+            "node": "IF diepartei gepostet?",
             "type": "main",
             "index": 0
           }
@@ -2671,6 +2693,34 @@
         1904,
         400
       ]
+    },
+    {
+      "id": "p4b-wait-wp-0001",
+      "name": "Warte vor WordPress",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        -220
+      ],
+      "parameters": {
+        "amount": 2,
+        "unit": "seconds"
+      }
+    },
+    {
+      "id": "p4b-wait-sites-0001",
+      "name": "Warte zwischen Seiten",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        2660,
+        -220
+      ],
+      "parameters": {
+        "amount": 2,
+        "unit": "seconds"
+      }
     }
   ],
   "pinData": {},
@@ -2678,5 +2728,5 @@
     "executionOrder": "v1"
   },
   "tags": [],
-  "versionId": "e4b8a469-c1eb-43c9-ab9b-5685556de64b"
+  "versionId": "3e669da5-c9ec-4da3-ae73-b13096f50b62"
 }
