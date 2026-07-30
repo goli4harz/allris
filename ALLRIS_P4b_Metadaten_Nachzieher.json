@@ -50,7 +50,7 @@
         [],
         [
           {
-            "node": "NC Liste",
+            "node": "Bereite Claim vor",
             "type": "main",
             "index": 0
           }
@@ -287,6 +287,68 @@
       "main": [
         [
           {
+            "node": "Bereite Claim-Freigabe vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereite Claim vor": {
+      "main": [
+        [
+          {
+            "node": "Erwerbe Claim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Erwerbe Claim": {
+      "main": [
+        [
+          {
+            "node": "IF Claim erworben?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Claim erworben?": {
+      "main": [
+        [
+          {
+            "node": "NC Liste",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Vorgang (1x)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereite Claim-Freigabe vor": {
+      "main": [
+        [
+          {
+            "node": "Release Claim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Release Claim": {
+      "main": [
+        [
+          {
             "node": "Loop Vorgang (1x)",
             "type": "main",
             "index": 0
@@ -365,7 +427,7 @@
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Findet Zeilen, bei denen \"documentCount\" (zuletzt bei der Extraktion gesehene Anzahl)\n// nicht mehr zu \"documentsJson\" (aktuelle Anzahl laut letztem P1-Scrape) passt - das\n// Muster, wenn ALLRIS nachtraeglich weitere Dokumente zu einem VorGANG hinzufuegt,\n// nachdem P4 diesen Vorgang schon fertig verarbeitet und veroeffentlicht hat. Nur\n// contentStage=content_posted (also wirklich fertig und nicht mehr aktiv in P3/P4\n// Bearbeitung), um keine Race mit laufender Verarbeitung zu riskieren.\nfunction safeInt(v) { const n = parseInt(String(v || '0'), 10); return Number.isFinite(n) ? n : 0; }\n\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  const j = item.json || {};\n  if (j.contentStage !== 'content_posted') continue;\n  if (!j.nextcloudFolder) continue;\n  let docs = [];\n  try { docs = JSON.parse(j.documentsJson || '[]'); } catch (e) { continue; }\n  if (docs.length === 0) continue;\n  const storedCount = safeInt(j.documentCount);\n  if (storedCount === docs.length) continue;\n  out.push({ json: { vorgangKey: j.vorgangKey, vorgangsnummer: j.vorgangsnummer, nextcloudFolder: j.nextcloudFolder, _storedCount: storedCount, _expectedCount: docs.length } });\n}\nconsole.log('[Metadaten-Nachzieher] ' + out.length + ' Vorgaenge mit documentCount-Abweichung gefunden.');\nreturn out;"
+        "jsCode": "// Findet Zeilen, bei denen \"documentCount\" (zuletzt bei der Extraktion gesehene Anzahl)\n// nicht mehr zu \"documentsJson\" (aktuelle Anzahl laut letztem P1-Scrape) passt - das\n// Muster, wenn ALLRIS nachtraeglich weitere Dokumente zu einem Vorgang hinzufuegt,\n// nachdem P4 diesen Vorgang schon fertig verarbeitet und veroeffentlicht hat. Nur\n// contentStage=content_posted (also wirklich fertig und nicht mehr aktiv in P3/P4\n// Bearbeitung), um keine Race mit laufender Verarbeitung zu riskieren.\nfunction safeInt(v) { const n = parseInt(String(v || '0'), 10); return Number.isFinite(n) ? n : 0; }\n\nconst items = $input.all();\nconst out = [];\nfor (const item of items) {\n  const j = item.json || {};\n  if (j.contentStage !== 'content_posted') continue;\n  if (!j.nextcloudFolder) continue;\n  let docs = [];\n  try { docs = JSON.parse(j.documentsJson || '[]'); } catch (e) { continue; }\n  if (docs.length === 0) continue;\n  const storedCount = safeInt(j.documentCount);\n  if (storedCount === docs.length) continue;\n  // WICHTIG: die KOMPLETTE Zeile mitgeben (...j), nicht nur ein paar Felder - der\n  // spaetere volle Row-Write in \"Schreibe Metadaten (vollstaendig)\" braucht jede Spalte\n  // im $json, sonst wuerden alle nicht mitgegebenen Spalten (analysisJson, contentJson,\n  // wordpressPostId, ...) beim Schreiben leer ueberschrieben (derselbe Bugtyp wie der\n  // urspruengliche full-row-overwrite Fund von heute Morgen).\n  out.push({ json: { ...j, _storedCount: storedCount, _expectedCount: docs.length } });\n}\nconsole.log('[Metadaten-Nachzieher] ' + out.length + ' Vorgaenge mit documentCount-Abweichung gefunden.');\nreturn out;"
       }
     },
     {
@@ -2560,6 +2622,109 @@
         -220
       ],
       "parameters": {}
+    },
+    {
+      "id": "claim-prep-0001",
+      "name": "Bereite Claim vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const j = $json;\nreturn { json: {\n  ...j,\n  claimAction: 'acquire',\n  claimOwner: 'ALLRIS_P4b_Metadaten_Nachzieher:' + $execution.id,\n  claimStage: 'metadata_nachzug',\n  leaseMinutes: 15,\n  expectedClaimOwner: j.claim_owner ?? null,\n  expectedClaimExpiresAt: j.claim_expires_at ?? null\n} };"
+      }
+    },
+    {
+      "id": "claim-acquire-0001",
+      "name": "Erwerbe Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        860,
+        0
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D7cmBsy3exuOkBd9",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Claim_Lease"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "claim-if-0001",
+      "name": "IF Claim erworben?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1020,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "claimok1",
+              "leftValue": "={{ $json.claimAcquired }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "claim-release-prep-0001",
+      "name": "Bereite Claim-Freigabe vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3680,
+        -220
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const ziel = $('Bereite Claim vor').item.json;\nconst id = ziel.id;\nconst vorgangKey = String(ziel.vorgangKey || '').trim();\nif (!vorgangKey) throw new Error('[P4b Claim Release] vorgangKey fehlt.');\nif (!id) throw new Error('[P4b Claim Release] id fehlt - Release-Matching in ALLRIS_Claim_Lease braucht id + claim_owner.');\nreturn { json: { id, vorgangKey, claimAction: 'release', claimOwner: 'ALLRIS_P4b_Metadaten_Nachzieher:' + $execution.id } };"
+      }
+    },
+    {
+      "id": "claim-release-0001",
+      "name": "Release Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        3840,
+        -220
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D7cmBsy3exuOkBd9",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Claim_Lease"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
     }
   ],
   "pinData": null,
