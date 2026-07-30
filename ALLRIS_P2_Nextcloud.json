@@ -652,6 +652,10 @@
             {
               "name": "Accept-Language",
               "value": "de-DE,de;q=0.9,en;q=0.8"
+            },
+            {
+              "name": "Cookie",
+              "value": "={{ $json._warmupCookie || '' }}"
             }
           ]
         },
@@ -1124,7 +1128,7 @@
     },
     {
       "parameters": {
-        "jsCode": "\n// Stellt die Vorgang-Metadaten nach dem Warmup-Request wieder her.\n// Metadaten kommen aus 'Restore nach Ordneranlage'.\n// Bei batchSize:1 ist idx immer 0; ?? 0 als sicherer Fallback.\n\nconst item   = $input.item;\nconst warmup = item.json;\n\nconst idx   = $input.itemIndex ?? 0;\nconst prev  = $('Restore nach Ordneranlage').all();\nconst found = prev[idx];\n\nif (!found) {\n  throw new Error(\n    `[MergeWarmup] Kein Item bei Index ${idx} in 'Restore nach Ordneranlage' ` +\n    `(${prev.length} Items). batchSize korrekt?`\n  );\n}\nconst meta = found.json;\n\nif (!meta.vorgangKey) {\n  console.warn('[MergeWarmup] WARNUNG: meta.vorgangKey fehlt.');\n}\n\n// Alle Felder aus meta weitergeben (inkl. Force-Refresh-Felder via ...meta)\nreturn [{\n  json: {\n    ...meta,\n    _warmupStatus: warmup.statusCode || '',\n    _warmupUrl:    meta.allrisUrl    || meta.sourceUrl || ''\n  }\n}];\n"
+        "jsCode": "\n// Stellt die Vorgang-Metadaten nach dem Warmup-Request wieder her.\n// Metadaten kommen aus 'Restore nach Ordneranlage'.\n// Bei batchSize:1 ist idx immer 0; ?? 0 als sicherer Fallback.\n\nconst item   = $input.item;\nconst warmup = item.json;\n\nconst idx   = $input.itemIndex ?? 0;\nconst prev  = $('Restore nach Ordneranlage').all();\nconst found = prev[idx];\n\nif (!found) {\n  throw new Error(\n    `[MergeWarmup] Kein Item bei Index ${idx} in 'Restore nach Ordneranlage' ` +\n    `(${prev.length} Items). batchSize korrekt?`\n  );\n}\nconst meta = found.json;\n\nif (!meta.vorgangKey) {\n  console.warn('[MergeWarmup] WARNUNG: meta.vorgangKey fehlt.');\n}\n\n// Nachtrag 2026-07-30: der Node-Name versprach schon immer einen Cookie-Merge, der\n// Code hat ihn aber nie tatsaechlich gemacht - die Warmup-Response wurde nur auf\n// statusCode abgefragt, ein evtl. gesetztes Set-Cookie ging verloren. Die ___tmp/tmp/-\n// Anlagen-Links wirken session-gebunden (2026/112, 2026/043: mehrere unterschiedliche\n// Anlagen landen exakt bei 1261 Bytes - vermutlich eine feste ALLRIS-Fehlerantwort fuer\n// eine ungueltige/fremde Session), daher jetzt den Set-Cookie-Header aus der Warmup-\n// Antwort tatsaechlich extrahieren und an den nachfolgenden Dokument-Download weiterreichen.\nfunction extractSetCookie(headers) {\n  if (!headers) return '';\n  const raw = headers['set-cookie'] || headers['Set-Cookie'] || '';\n  const list = Array.isArray(raw) ? raw : (raw ? [raw] : []);\n  return list.map(c => String(c).split(';')[0]).filter(Boolean).join('; ');\n}\nconst warmupCookie = extractSetCookie(warmup.headers);\nif (!warmupCookie) {\n  console.warn(`[MergeWarmup] Kein Set-Cookie in Warmup-Antwort fuer ${meta.vorgangKey || '?'} (statusCode=${warmup.statusCode}).`);\n}\n\n// Alle Felder aus meta weitergeben (inkl. Force-Refresh-Felder via ...meta)\nreturn [{\n  json: {\n    ...meta,\n    _warmupStatus: warmup.statusCode || '',\n    _warmupUrl:    meta.allrisUrl    || meta.sourceUrl || '',\n    _warmupCookie: warmupCookie\n  }\n}];\n"
       },
       "id": "87dc273b-5235-47be-9707-c3125102685b",
       "name": "Merge Warmup Cookie",
