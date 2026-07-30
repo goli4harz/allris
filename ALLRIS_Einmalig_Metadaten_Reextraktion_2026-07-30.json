@@ -223,7 +223,7 @@
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "return $input.all().filter(item => {\n  const p = String(item.json.path || '').toLowerCase();\n  return p.endsWith('.pdf') && item.json.type !== 'dir' && !item.json.isDirectory;\n});"
+        "jsCode": "return $input.all().filter(item => {\n  const p = String(item.json.path || '').toLowerCase();\n  return p.endsWith('.pdf') && item.json.type !== 'dir' && !item.json.isDirectory;\n}).map(item => ({ json: { ...item.json, path: decodeURIComponent(item.json.path) } }));"
       }
     },
     {
