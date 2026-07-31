@@ -583,7 +583,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Fasst alle in dieser Schleifen-Runde extrahierten Dokumenttexte fuer GENAU EINEN\n// Vorgang zusammen (Loop-Kontext = batchSize:1, daher keine Vermischung moeglich).\n// Datum PRO Dokument suchen (nicht erst zusammenkleben+kuerzen - siehe P3-Truncation-\n// Fix vom 2026-07-30). Aktualisiert zusaetzlich documentCount auf die tatsaechlich\n// gefundene Dateizahl, damit dieselbe Zeile beim naechsten Lauf nicht wieder auftaucht.\n// Nur Metadatenfelder (+documentCount) werden veraendert - AI-generierter Content\n// bleibt unangetastet (Nutzerentscheidung 2026-07-30).\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst ziel = $('Loop Vorgang (1x)').item.json;\nconst items = $input.all();\n\nfunction extractVorlagenMeta(text) {\n  const t = safeStr(text);\n  const verfasserMatch = t.match(/([^\\n]+)\\n\\s*Verfasser\\/in/);\n  const datumMatch = t.match(/Stadt Goslar Goslar,\\s*(\\d{1,2})\\.(\\d{1,2})\\.(\\d{4})/);\n  let fachdienst = '';\n  if (datumMatch) {\n    const rest = t.slice(datumMatch.index + datumMatch[0].length);\n    const fdMatch = rest.match(/^\\s*\\n([^\\n]+)\\n/);\n    if (fdMatch) fachdienst = fdMatch[1].trim();\n  }\n  const vorlageDatumPdf = datumMatch\n    ? `${datumMatch[3]}-${datumMatch[2].padStart(2, '0')}-${datumMatch[1].padStart(2, '0')}`\n    : '';\n  return { verfasser: verfasserMatch ? verfasserMatch[1].trim() : '', fachdienst, vorlageDatumPdf };\n}\n\nlet meta = { verfasser: '', fachdienst: '', vorlageDatumPdf: '' };\nfor (const item of items) {\n  if (!item.json.extractionOk) continue;\n  const m = extractVorlagenMeta(item.json._extractedText);\n  if (m.vorlageDatumPdf) { meta = m; break; }\n}\n\nreturn [{ json: {\n  ...ziel,\n  documentCount: items.length,\n  verfasser: meta.verfasser || ziel.verfasser || '',\n  fachdienst: meta.fachdienst || ziel.fachdienst || '',\n  vorlageDatumPdf: meta.vorlageDatumPdf || ziel.vorlageDatumPdf || '',\n  vorlageDatum: meta.vorlageDatumPdf || ziel.vorlageDatum || ziel.vorlageDatumWeb || '',\n  _reextractFilesFound: items.length,\n  _reextractFilesOk: items.filter(i => i.json.extractionOk).length,\n  _reextractDatumFound: !!meta.vorlageDatumPdf\n} }];"
+        "jsCode": "// Fasst alle in dieser Schleifen-Runde extrahierten Dokumenttexte fuer GENAU EINEN\n// Vorgang zusammen (Loop-Kontext = batchSize:1, daher keine Vermischung moeglich).\n// Datum PRO Dokument suchen (nicht erst zusammenkleben+kuerzen - siehe P3-Truncation-\n// Fix vom 2026-07-30). Aktualisiert zusaetzlich documentCount auf die tatsaechlich\n// gefundene Dateizahl, damit dieselbe Zeile beim naechsten Lauf nicht wieder auftaucht.\n// Nur Metadatenfelder (+documentCount) werden veraendert - AI-generierter Content\n// bleibt unangetastet (Nutzerentscheidung 2026-07-30).\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\n// FIX 2026-07-31 (live abgestuerzt, Execution 22589, Matrix-Alert via ALLRIS_Claim_Error_Release):\n// `.item` (singular) ist in diesem Node nicht sicher aufloesbar, weil er in \"Run Once for All\n// Items\"-Modus laeuft (noetig fuer $input.all() ueber mehrere PDFs) - n8n kann dann kein\n// einzelnes \"das\" Paired Item mehr eindeutig bestimmen, sobald mehr als ein Dokument durch\n// NC Liste/Nur PDFs/NC Download/Tika gelaufen ist, und wirft (hier ungefangen, da kein\n// try/catch drumherum). Der Kommentar oben (\"batchSize:1, daher keine Vermischung moeglich\")\n// beschreibt ein anderes, echtes Risiko (Vorgangs-Vermischung) und stimmt fuer DAS - beseitigt\n// aber nicht die eigentliche Ursache dieses Crashes. Exakt dieselbe Bugklasse wie in\n// ALLRIS_P4_Content_Reaktions \"Sammle Dokumenttexte pro Vorgang\" (selber Tag gefixt) - dieselbe\n// robuste Technik uebernommen: .all(0, $runIndex) statt .item, mit Fallback auf das erste Item\n// (sicher, da die aeussere Schleife ohnehin mit Batch-Groesse 1 pro Vorgang arbeitet).\nfunction zielItems() {\n  try { const a = $('Loop Vorgang (1x)').all(0, $runIndex); return Array.isArray(a) ? a : []; }\n  catch (e) { return []; }\n}\nconst zielFound = zielItems();\nconst ziel = zielFound.length ? zielFound[0].json : {};\nconst items = $input.all();\n\nfunction extractVorlagenMeta(text) {\n  const t = safeStr(text);\n  const verfasserMatch = t.match(/([^\\n]+)\\n\\s*Verfasser\\/in/);\n  const datumMatch = t.match(/Stadt Goslar Goslar,\\s*(\\d{1,2})\\.(\\d{1,2})\\.(\\d{4})/);\n  let fachdienst = '';\n  if (datumMatch) {\n    const rest = t.slice(datumMatch.index + datumMatch[0].length);\n    const fdMatch = rest.match(/^\\s*\\n([^\\n]+)\\n/);\n    if (fdMatch) fachdienst = fdMatch[1].trim();\n  }\n  const vorlageDatumPdf = datumMatch\n    ? `${datumMatch[3]}-${datumMatch[2].padStart(2, '0')}-${datumMatch[1].padStart(2, '0')}`\n    : '';\n  return { verfasser: verfasserMatch ? verfasserMatch[1].trim() : '', fachdienst, vorlageDatumPdf };\n}\n\nlet meta = { verfasser: '', fachdienst: '', vorlageDatumPdf: '' };\nfor (const item of items) {\n  if (!item.json.extractionOk) continue;\n  const m = extractVorlagenMeta(item.json._extractedText);\n  if (m.vorlageDatumPdf) { meta = m; break; }\n}\n\nreturn [{ json: {\n  ...ziel,\n  documentCount: items.length,\n  verfasser: meta.verfasser || ziel.verfasser || '',\n  fachdienst: meta.fachdienst || ziel.fachdienst || '',\n  vorlageDatumPdf: meta.vorlageDatumPdf || ziel.vorlageDatumPdf || '',\n  vorlageDatum: meta.vorlageDatumPdf || ziel.vorlageDatum || ziel.vorlageDatumWeb || '',\n  _reextractFilesFound: items.length,\n  _reextractFilesOk: items.filter(i => i.json.extractionOk).length,\n  _reextractDatumFound: !!meta.vorlageDatumPdf\n} }];"
       },
       "id": "n10",
       "name": "Aggregiere Texte",
@@ -2695,33 +2695,33 @@
       ]
     },
     {
+      "parameters": {
+        "amount": 2,
+        "unit": "seconds"
+      },
       "id": "p4b-wait-wp-0001",
       "name": "Warte vor WordPress",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1,
       "position": [
         1760,
-        -220
+        -224
       ],
+      "webhookId": "391b704d-b70c-40bc-aa32-cb410011abf3"
+    },
+    {
       "parameters": {
         "amount": 2,
         "unit": "seconds"
       },
-      "webhookId": "391b704d-b70c-40bc-aa32-cb410011abf3"
-    },
-    {
       "id": "p4b-wait-sites-0001",
       "name": "Warte zwischen Seiten",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1,
       "position": [
-        2660,
-        -220
+        1408,
+        160
       ],
-      "parameters": {
-        "amount": 2,
-        "unit": "seconds"
-      },
       "webhookId": "f13a95c7-2173-4451-b0cf-dd6059420208"
     }
   ],
@@ -2731,5 +2731,5 @@
     "errorWorkflow": "qPheJKPv0k06tkro"
   },
   "tags": [],
-  "versionId": "bd0dd372-8e3a-4887-bc19-98424fffec59"
+  "versionId": "bb352e7f-ec1e-4aac-bdd7-40554a4da1c6"
 }
