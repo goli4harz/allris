@@ -1821,7 +1821,7 @@
           "conditions": [
             {
               "keyName": "vorgangKey",
-              "keyValue": "={{ $('Loop Reaktions-Vorgänge').item.json.vorgangKey }}"
+              "keyValue": "={{ $json.vorgangKey }}"
             }
           ]
         },
@@ -4148,5 +4148,5 @@
     "errorWorkflow": "qPheJKPv0k06tkro"
   },
   "tags": [],
-  "versionId": "be7fdddd-6681-4293-8252-965808a9d448"
+  "versionId": "37103024-2460-4e07-9a37-fb93c69e2525"
 }
