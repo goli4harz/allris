@@ -8,6 +8,11 @@
             "node": "Update Post Datum",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Korrigiere vorlageDatum in DB",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -33,7 +38,7 @@
         "operation": "update",
         "postId": "2635",
         "updateFields": {
-          "date": "2026-07-30T07:07:25.002+02:00"
+          "date": "2026-05-25T07:00:00.000+02:00"
         }
       },
       "id": "f1a2b3c4-0072-4aaa-9bbb-000000000072",
@@ -50,6 +55,44 @@
           "name": "Ollies Wordpress"
         }
       }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "vol_10698"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "vorlageDatum": "2026-05-22",
+            "vorlageDatumPdf": "2026-05-22"
+          },
+          "matchingColumns": ["vorgangKey"],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "f1a2b3c4-0073-4aaa-9bbb-000000000073",
+      "name": "Korrigiere vorlageDatum in DB",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        220,
+        140
+      ]
     }
   ],
   "pinData": null,
