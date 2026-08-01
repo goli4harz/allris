@@ -1,0 +1,107 @@
+{
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Konfiguriere Ziele",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Konfiguriere Ziele": {
+      "main": [
+        [
+          {
+            "node": "Setze auf needs_kernbotschaft zurueck",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "meta": {},
+  "name": "ALLRIS_Einmalig_2026-189_190_HeadlineChoice_Reset",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "f1a2b3c4-0091-4aaa-9bbb-000000000091",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Einmaliger Nachtrag 2026-08-01 (Nutzerfrage \"haengt eine Bilderstellung/Prompterstellung\n// irgendwo?\"): 2026/189 (vol_10718) und 2026/190 (vol_10719) hatten headlineChoiceStage=\n// 'headline_selected', aber imageHeadline/imageSubline blieben leer (visualJson='{}') - die\n// urspruenglich per Matrix gewaehlten Kandidatentexte sind nicht mehr rekonstruierbar (keine\n// passende alte Execution mehr verfuegbar, gleiche Situation wie beim dol_-Fall). P5s Weiche\n// \"IF Headline bereits gewaehlt?\" prueft imageHeadline/imageSubline direkt (nicht das Stage-\n// Feld) und liess beide Zeilen seit dem 31.07. jede Stunde lautlos durchfallen, ohne\n// Fehlermeldung. Nutzerentscheidung: neu ueber Matrix waehlen lassen - Reset auf\n// 'needs_kernbotschaft' (derselbe Zielzustand wie beim regulaeren Reroll-Pfad in P5b\n// \"Finde Sat-Antwort\"), damit P3e beim naechsten Lauf frische Kandidaten baut und erneut in\n// Matrix zur Auswahl postet.\nconst TARGETS = [\n  { vorgangKey: 'vol_10719', vorgangsnummer: '2026/190' },\n  { vorgangKey: 'vol_10718', vorgangsnummer: '2026/189' }\n];\n\nreturn TARGETS.map(t => ({\n  json: {\n    vorgangKey: t.vorgangKey,\n    vorgangsnummer: t.vorgangsnummer,\n    headlineChoiceStage: 'needs_kernbotschaft',\n    imageHeadline: '',\n    imageSubline: '',\n    visualPromptStage: '',\n    imageStage: 'not_started',\n    visualJson: '{}'\n  }\n}));"
+      },
+      "id": "f1a2b3c4-0092-4aaa-9bbb-000000000092",
+      "name": "Konfiguriere Ziele",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "headlineChoiceStage": "={{ $json.headlineChoiceStage }}",
+            "imageHeadline": "={{ $json.imageHeadline }}",
+            "imageSubline": "={{ $json.imageSubline }}",
+            "visualPromptStage": "={{ $json.visualPromptStage }}",
+            "imageStage": "={{ $json.imageStage }}",
+            "visualJson": "={{ $json.visualJson }}"
+          },
+          "matchingColumns": [
+            "vorgangKey"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "f1a2b3c4-0093-4aaa-9bbb-000000000093",
+      "name": "Setze auf needs_kernbotschaft zurueck",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        440,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "versionId": "cb27c28e-2846-4479-816d-1da64b344cec",
+  "id": "ofIVPa3BF8AR2r9M"
+}
