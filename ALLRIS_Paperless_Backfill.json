@@ -2225,12 +2225,78 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "paperlessBackfilledAt": "={{ $now.toISO() }}"
+            "paperlessBackfilledAt": "={{ $now.toISO() }}",
+            "last_error_code": "={{ $json.last_error_stage === 'paperless' ? '' : $json.last_error_code }}",
+            "last_error_message": "={{ $json.last_error_stage === 'paperless' ? '' : $json.last_error_message }}",
+            "last_error_at": "={{ $json.last_error_stage === 'paperless' ? '' : $json.last_error_at }}",
+            "next_retry_at": "={{ $json.last_error_stage === 'paperless' ? '' : $json.next_retry_at }}",
+            "retry_count": "={{ $json.last_error_stage === 'paperless' ? 0 : $json.retry_count }}",
+            "last_error_stage": "={{ $json.last_error_stage === 'paperless' ? '' : $json.last_error_stage }}"
           },
           "schema": [
             {
               "id": "paperlessBackfilledAt",
               "displayName": "paperlessBackfilledAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "last_error_code",
+              "displayName": "last_error_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "last_error_message",
+              "displayName": "last_error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "last_error_at",
+              "displayName": "last_error_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "next_retry_at",
+              "displayName": "next_retry_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "retry_count",
+              "displayName": "retry_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "last_error_stage",
+              "displayName": "last_error_stage",
               "required": false,
               "defaultMatch": false,
               "display": true,
