@@ -1,0 +1,113 @@
+{
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Konfiguriere Ziele",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Konfiguriere Ziele": {
+      "main": [
+        [
+          {
+            "node": "Setze sharepicNeedStage zurueck",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "yY0Q09sIKFk4F9H6",
+  "meta": null,
+  "name": "ALLRIS_Einmalig_SharepicNeedStage_Reset_2026-08-01",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "f1a2b3c4-0001-4aaa-9bbb-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Einmaliger Reset 2026-08-01: 6 Vorgaenge waren einzig wegen des Symbol-Drift-Guards\n// (Sparschwein/Geldsack/Rathaus) blockiert (sharepicNeedStage='topic_error'), siehe\n// qaVerdictJson.violations - bei allen 6 war guard_symbol_drift der EINZIGE Verstoss, keine\n// weiteren Probleme (anchors_few_objects o.ae.). Der Guard wurde am selben Tag gelockert\n// (sparschwein/geldsack/rathaus aus der Klischee-Liste entfernt, siehe ALLRIS_QA_Agent \"Deter-\n// ministische Regelpruefung\" + 4 weitere Kopien) - diese 6 Zeilen wuerden bei einer erneuten\n// Pruefung jetzt nicht mehr blockiert. Setzt NUR sharepicNeedStage/visualPromptStage/imageStage\n// und die Fehler-/Retry-Felder zurueck, ruehrt contentStage NICHT an (5 von 6 haben bereits\n// content_posted, das bleibt unangetastet). Absichtlich NICHT dabei: 2026/138, 2026/143,\n// 2026/107, 2026/094 (zusaetzlich anchors_few_objects - eigenstaendiges Problem, durch die\n// Lockerung nicht geloest) und 2025/464 (guard_sensitive_scene - ein anderer, nicht gelockerter\n// Guard).\nconst TARGETS = [\n  { vorgangKey: 'vol_10617', vorgangsnummer: '2026/121' },\n  { vorgangKey: 'vol_10423', vorgangsnummer: '2026/032' },\n  { vorgangKey: 'vol_10484', vorgangsnummer: '2026/064' },\n  { vorgangKey: 'vol_10582', vorgangsnummer: '2026/099' },\n  { vorgangKey: 'vol_10644', vorgangsnummer: '2026/139' },\n  { vorgangKey: 'vol_10405', vorgangsnummer: '2026/022' }\n];\n\nif (!TARGETS.length) {\n  throw new Error('[SharepicNeedStage-Reset] TARGETS im Node \"Konfiguriere Ziele\" befuellen.');\n}\n\nreturn TARGETS.map(t => ({\n  json: {\n    vorgangKey: t.vorgangKey,\n    vorgangsnummer: t.vorgangsnummer,\n    sharepicNeedStage: 'topic_ok',\n    visualPromptStage: 'needs_prompt',\n    imageStage: 'not_started',\n    visualDecisionReason: 'Manueller Reset 2026-08-01: Symbol-Drift-Guard (Sparschwein/Geldsack/Rathaus) gelockert, einziger Blockierungsgrund entfaellt',\n    contentErrorReason: '',\n    last_error_code: '',\n    last_error_message: '',\n    last_error_stage: '',\n    last_error_at: '',\n    next_retry_at: '',\n    retry_count: 0\n  }\n}));"
+      },
+      "id": "f1a2b3c4-0002-4aaa-9bbb-000000000002",
+      "name": "Konfiguriere Ziele",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "sharepicNeedStage": "={{ $json.sharepicNeedStage }}",
+            "visualPromptStage": "={{ $json.visualPromptStage }}",
+            "imageStage": "={{ $json.imageStage }}",
+            "visualDecisionReason": "={{ $json.visualDecisionReason }}",
+            "contentErrorReason": "={{ $json.contentErrorReason }}",
+            "last_error_code": "={{ $json.last_error_code }}",
+            "last_error_message": "={{ $json.last_error_message }}",
+            "last_error_stage": "={{ $json.last_error_stage }}",
+            "last_error_at": "={{ $json.last_error_at }}",
+            "next_retry_at": "={{ $json.next_retry_at }}",
+            "retry_count": "={{ $json.retry_count }}"
+          },
+          "matchingColumns": [
+            "vorgangKey"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "f1a2b3c4-0003-4aaa-9bbb-000000000003",
+      "name": "Setze sharepicNeedStage zurueck",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        440,
+        0
+      ]
+    }
+  ],
+  "pinData": null,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "versionId": "e5204cc6-5aa6-4d95-95c0-58c81e5e8e10"
+}
