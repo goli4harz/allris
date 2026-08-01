@@ -285,7 +285,7 @@
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ status: 'publish', ...($json.vorlageDatum ? { date_gmt: new Date(new Date($json.vorlageDatum).getTime() + 3*24*60*60*1000).toISOString() } : {}) }) }}",
+        "jsonBody": "={{ JSON.stringify({ status: 'publish', ...($json.vorlageDatum ? { date_gmt: new Date(new Date($json.vorlageDatum).getTime() + 3*24*60*60*1000).toISOString() } : ($json.firstseen ? { date_gmt: new Date(new Date($json.firstseen).getTime() + 3*24*60*60*1000).toISOString() } : {})) }) }}",
         "options": {
           "timeout": 60000
         }
