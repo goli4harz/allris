@@ -1,0 +1,153 @@
+{
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hole Zeile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole Zeile": {
+      "main": [
+        [
+          {
+            "node": "Ersetze Kinder-Objekte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ersetze Kinder-Objekte": {
+      "main": [
+        [
+          {
+            "node": "Schreibe zurueck",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "LaOyfUAcd3jNyrPf",
+  "meta": null,
+  "name": "ALLRIS_Einmalig_2025-464_VisualAnchors_Fix",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "f1a2b3c4-0021-4aaa-9bbb-000000000021",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "vol_10363"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "f1a2b3c4-0022-4aaa-9bbb-000000000022",
+      "name": "Hole Zeile",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Einmaliger Reset 2026-08-01 fuer 2025/464 (vol_10363): guard_sensitive_scene blockierte\n// zurecht, weil visualPflichtobjekte direkt Grundschulkinder als Bildmotiv vorsah ('Tische mit\n// Schulkindern'). Ersetzt durch ein Motiv, das dieselbe Pointe (Schule wird zum Restaurant\n// umfunktioniert) ohne Abbildung der Kinder selbst transportiert: Schulranzen an gedeckten\n// Tischen statt der Kinder. Mit Nutzer abgestimmt (2026-08-01). Der Prompt (P3 'AI Analyse\n// JSON') wurde am selben Tag um ein konkretes Beispiel fuer genau diesen Fall ergaenzt, damit\n// kuenftige Vorgaenge mit Minderjaehrigen als Betroffenen von vornherein so formuliert werden.\nconst j = $input.first().json;\nconst analysis = JSON.parse(j.analysisJson || '{}');\nanalysis.visualAnchors = {\n  ...analysis.visualAnchors,\n  visualPflichtobjekte: ['Schulranzen an gedeckten Restauranttischen', 'Kellner im Restaurant', 'Speisekarten'],\n  visualPflichthandlung: 'Schulranzen stehen an gedeckten Tischen, ein Kellner serviert, die Schueler fehlen noch.',\n  visualErkennungssatz: 'Erkennbar wird das Thema durch Schulranzen an Restaurant-Tischen, wartende Kellner und Speisekarten statt Schulverpflegung.'\n};\nreturn [{ json: {\n  vorgangKey: j.vorgangKey,\n  vorgangsnummer: j.vorgangsnummer,\n  analysisJson: JSON.stringify(analysis),\n  sharepicNeedStage: 'topic_ok',\n  visualPromptStage: 'needs_prompt',\n  imageStage: 'not_started',\n  visualDecisionReason: 'Manueller Fix 2026-08-01: Kinder als Bildmotiv durch Schulranzen ersetzt (mit Nutzer abgestimmt), Guard-Grund entfaellt',\n  contentErrorReason: '',\n  last_error_code: '',\n  last_error_message: '',\n  last_error_stage: '',\n  last_error_at: '',\n  next_retry_at: '',\n  retry_count: 0\n} }];"
+      },
+      "id": "f1a2b3c4-0023-4aaa-9bbb-000000000023",
+      "name": "Ersetze Kinder-Objekte",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "analysisJson": "={{ $json.analysisJson }}",
+            "sharepicNeedStage": "={{ $json.sharepicNeedStage }}",
+            "visualPromptStage": "={{ $json.visualPromptStage }}",
+            "imageStage": "={{ $json.imageStage }}",
+            "visualDecisionReason": "={{ $json.visualDecisionReason }}",
+            "contentErrorReason": "={{ $json.contentErrorReason }}",
+            "last_error_code": "={{ $json.last_error_code }}",
+            "last_error_message": "={{ $json.last_error_message }}",
+            "last_error_stage": "={{ $json.last_error_stage }}",
+            "last_error_at": "={{ $json.last_error_at }}",
+            "next_retry_at": "={{ $json.next_retry_at }}",
+            "retry_count": "={{ $json.retry_count }}"
+          },
+          "matchingColumns": [
+            "vorgangKey"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "f1a2b3c4-0024-4aaa-9bbb-000000000024",
+      "name": "Schreibe zurueck",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        660,
+        0
+      ]
+    }
+  ],
+  "pinData": null,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "versionId": "f7b56be3-9130-46a3-a273-a35ccc10c36e"
+}
