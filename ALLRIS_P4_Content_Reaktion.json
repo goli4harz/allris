@@ -851,7 +851,7 @@
             "lastAnalysisAt": "={{ $json.lastAnalysisAt || '' }}",
             "visualDecisionReason": "={{ $json.visualDecisionReason || '' }}",
             "visualNeeded": "={{ $json.visualNeeded === true ? 'true' : 'false' }}",
-            "imageStage": "={{ $json.imageStage }}",
+            "imageStage": "={{ $json.imageStage || 'not_started' }}",
             "instagramSharepicNoetig": "={{ $json.instagramSharepicNoetig || false }}",
             "imagePrompt": "={{ typeof $json.imagePrompt !== 'undefined' ? ($json.imagePrompt || '') : undefined }}",
             "imageHeadline": "={{ typeof $json.imageHeadline !== 'undefined' ? ($json.imageHeadline || '') : undefined }}",
@@ -1830,7 +1830,7 @@
           "value": {
             "contentStage": "={{ $json.contentStage || 'content_generated' }}",
             "contentErrorReason": "={{ $json.contentErrorReason }}",
-            "imageStage": "={{ $json.imageStage }}",
+            "imageStage": "={{ $json.imageStage || 'not_started' }}",
             "visualNeeded": "={{ $json.visualNeeded === true || String($json.visualNeeded).toLowerCase() === 'true' ? 'true' : 'false' }}",
             "instagramSharepicNoetig": "={{ $json.instagramSharepicNoetig === true || String($json.instagramSharepicNoetig).toLowerCase() === 'true' ? 'true' : 'false' }}",
             "visualDecisionReason": "={{ $json.visualDecisionReason || '' }}",
@@ -3311,7 +3311,7 @@
           "mappingMode": "defineBelow",
           "value": {
             "contentJson": "={{ typeof $json.contentJson === 'string' ? ($json.contentJson || '{}') : JSON.stringify($json.contentJson || {}) }}",
-            "imageStage": "={{ $json.imageStage }}",
+            "imageStage": "={{ $json.imageStage || 'not_started' }}",
             "visualNeeded": "={{ $json.visualNeeded === true || String($json.visualNeeded).toLowerCase() === 'true' ? 'true' : 'false' }}",
             "instagramSharepicNoetig": "={{ $json.instagramSharepicNoetig === true || String($json.instagramSharepicNoetig).toLowerCase() === 'true' ? 'true' : 'false' }}",
             "visualDecisionReason": "={{ $json.visualDecisionReason || '' }}",
