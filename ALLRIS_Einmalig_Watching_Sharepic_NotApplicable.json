@@ -1,0 +1,120 @@
+{
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Konfiguriere Ziele",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Konfiguriere Ziele": {
+      "main": [
+        [
+          {
+            "node": "Setze sharepicNeedStage zurueck",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "meta": {},
+  "name": "ALLRIS_Einmalig_Watching_Sharepic_NotApplicable",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "f1a2b3c4-00a1-4aaa-9bbb-0000000000a1",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Einmaliger Nachtrag 2026-08-01 zur neuen Regel in P3d \"Verarbeite Eignungs-Entscheidung\":\n// BEOBACHTEN-Zeilen (contentStage='watching') bekommen ab jetzt nie mehr sharepicNeedStage=\n// 'topic_ok' vom Eignungs-Agenten. Diese 3 Zeilen hatten den Widerspruch bereits (watching +\n// topic_ok, permanent in needs_prompt haengengeblieben) - werden hier auf den neuen, korrekten\n// Zustand nachgezogen: sharepicNeedStage='not_applicable', alle Bild-/Headline-Felder geleert,\n// da fuer diese Zeilen nie ein Sharepic entstehen wird.\nconst TARGETS = [\n  { vorgangKey: 'vol_10597', vorgangsnummer: '2026/107' },\n  { vorgangKey: 'vol_10576', vorgangsnummer: '2026/094' },\n  { vorgangKey: 'vol_10363', vorgangsnummer: '2025/464' }\n];\n\nreturn TARGETS.map(t => ({\n  json: {\n    vorgangKey: t.vorgangKey,\n    vorgangsnummer: t.vorgangsnummer,\n    sharepicNeedStage: 'not_applicable',\n    visualDecisionReason: 'BEOBACHTEN (contentStage=watching): keine Text-Reaktion vorgesehen, deshalb kein eigenstaendiges Sharepic (nachgezogen 2026-08-01).',\n    visualPromptStage: '',\n    headlineChoiceStage: '',\n    imageHeadline: '',\n    imageSubline: '',\n    imagePrompt: '',\n    imageNegativePrompt: '',\n    visualJson: '{}',\n    imageStage: 'not_started',\n    instagramSharepicNoetig: false,\n    instagramCarouselNoetig: false,\n    visualNeeded: false,\n    last_error_code: '',\n    last_error_message: '',\n    last_error_stage: '',\n    last_error_at: '',\n    next_retry_at: '',\n    retry_count: 0\n  }\n}));"
+      },
+      "id": "f1a2b3c4-00a2-4aaa-9bbb-0000000000a2",
+      "name": "Konfiguriere Ziele",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "sharepicNeedStage": "={{ $json.sharepicNeedStage }}",
+            "visualDecisionReason": "={{ $json.visualDecisionReason }}",
+            "visualPromptStage": "={{ $json.visualPromptStage }}",
+            "headlineChoiceStage": "={{ $json.headlineChoiceStage }}",
+            "imageHeadline": "={{ $json.imageHeadline }}",
+            "imageSubline": "={{ $json.imageSubline }}",
+            "imagePrompt": "={{ $json.imagePrompt }}",
+            "imageNegativePrompt": "={{ $json.imageNegativePrompt }}",
+            "visualJson": "={{ $json.visualJson }}",
+            "imageStage": "={{ $json.imageStage }}",
+            "instagramSharepicNoetig": "={{ $json.instagramSharepicNoetig }}",
+            "instagramCarouselNoetig": "={{ $json.instagramCarouselNoetig }}",
+            "visualNeeded": "={{ $json.visualNeeded }}",
+            "last_error_code": "={{ $json.last_error_code }}",
+            "last_error_message": "={{ $json.last_error_message }}",
+            "last_error_stage": "={{ $json.last_error_stage }}",
+            "last_error_at": "={{ $json.last_error_at }}",
+            "next_retry_at": "={{ $json.next_retry_at }}",
+            "retry_count": "={{ $json.retry_count }}"
+          },
+          "matchingColumns": [
+            "vorgangKey"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "f1a2b3c4-00a3-4aaa-9bbb-0000000000a3",
+      "name": "Setze sharepicNeedStage zurueck",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        440,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "versionId": "13786dad-5117-4e42-a8d5-87c7f3c1c2de",
+  "id": "iAKPpiJGi8AVBDd3"
+}
