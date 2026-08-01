@@ -715,24 +715,27 @@
     },
     {
       "parameters": {
-        "options": {
-          "caseSensitive": true,
-          "leftValue": "",
-          "typeValidation": "strict",
-          "version": 2
-        },
-        "conditions": [
-          {
-            "id": "reminder-exhausted-only-001",
-            "leftValue": "={{ $json._reminderExhaustedOnly }}",
-            "rightValue": true,
-            "operator": {
-              "type": "boolean",
-              "operation": "equals"
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "reminder-exhausted-only-001",
+              "leftValue": "={{ $json._reminderExhaustedOnly }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
-          }
-        ],
-        "combinator": "and"
+          ],
+          "combinator": "and"
+        },
+        "options": {}
       },
       "id": "e4f1a2b3-6c9d-4a7e-8f1b-3d5c7a9e0b2f",
       "name": "IF Nur Exhausted-Markierung?",
