@@ -1179,7 +1179,7 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "contentStage": "={{ ($json.wordpressPosted === true || $json.wordpressPosted === 'true') ? 'content_posted' : 'content_generated' }}",
+            "contentStage": "={{ ($json.wordpressPosted === true || $json.wordpressPosted === 'true' || $json.contentStage === 'content_posted') ? 'content_posted' : 'content_generated' }}",
             "contentErrorReason": "",
             "imageStage": "={{ $json.nextcloudUploaded === true ? 'composed' : 'upload_failed' }}",
             "visualJson": "={{ typeof $json.visualJson === 'string' ? ($json.visualJson || '{}') : JSON.stringify($json.visualJson || {}) }}",
@@ -2458,7 +2458,7 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "contentStage": "={{ ($json.wordpressPosted === true || $json.wordpressPosted === 'true') ? 'content_posted' : 'content_generated' }}",
+            "contentStage": "={{ ($json.wordpressPosted === true || $json.wordpressPosted === 'true' || $json.contentStage === 'content_posted') ? 'content_posted' : 'content_generated' }}",
             "contentErrorReason": "",
             "imageStage": "qa_failed",
             "visualJson": "={{ typeof $json.visualJson === 'string' ? ($json.visualJson || '{}') : JSON.stringify($json.visualJson || {}) }}",
@@ -3675,7 +3675,7 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "contentStage": "={{ ($json.wordpressPosted === true || $json.wordpressPosted === 'true') ? 'content_posted' : 'content_generated' }}",
+            "contentStage": "={{ ($json.wordpressPosted === true || $json.wordpressPosted === 'true' || $json.contentStage === 'content_posted') ? 'content_posted' : 'content_generated' }}",
             "contentErrorReason": "",
             "imageStage": "topic_error_final",
             "visualJson": "={{ typeof $json.visualJson === 'string' ? ($json.visualJson || '{}') : JSON.stringify($json.visualJson || {}) }}",
@@ -4892,7 +4892,7 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "contentStage": "={{ ($json.wordpressPosted === true || $json.wordpressPosted === 'true') ? 'content_posted' : 'content_generated' }}",
+            "contentStage": "={{ ($json.wordpressPosted === true || $json.wordpressPosted === 'true' || $json.contentStage === 'content_posted') ? 'content_posted' : 'content_generated' }}",
             "contentErrorReason": "",
             "imageStage": "={{ $json.imageFinalPath ? 'composed' : 'not_started' }}",
             "sharepicNeedStage": "blocked_source_lock",
