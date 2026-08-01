@@ -143,7 +143,7 @@
       "main": [
         [
           {
-            "node": "IF Umfrage noetig? (>=2 Varianten)",
+            "node": "Lern-Agent: Baue Retrieve-Eingabe",
             "type": "main",
             "index": 0
           }
@@ -233,6 +233,90 @@
           },
           {
             "node": "Bereite P3e Claim-Freigabe vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lern-Agent: Baue Retrieve-Eingabe": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow Lern-Agent (Retrieve Headline)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow Lern-Agent (Retrieve Headline)": {
+      "main": [
+        [
+          {
+            "node": "Stelle Kontext nach Lern-Agent Retrieve wieder her",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stelle Kontext nach Lern-Agent Retrieve wieder her": {
+      "main": [
+        [
+          {
+            "node": "IF Genug Lernbeispiele + Umfrage nötig?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Genug Lernbeispiele + Umfrage nötig?": {
+      "main": [
+        [
+          {
+            "node": "Lern-Agent: Baue Einschätzung-Eingabe",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF Umfrage noetig? (>=2 Varianten)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lern-Agent: Baue Einschätzung-Eingabe": {
+      "main": [
+        [
+          {
+            "node": "Lern-Agent: Einschätzung",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lern-Agent: Einschätzung": {
+      "main": [
+        [
+          {
+            "node": "Füge Einschätzung in Umfrage ein",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Füge Einschätzung in Umfrage ein": {
+      "main": [
+        [
+          {
+            "node": "IF Umfrage noetig? (>=2 Varianten)",
             "type": "main",
             "index": 0
           }
@@ -854,6 +938,169 @@
       "position": [
         3800,
         1340
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// FIX 2026-08-01 (Nutzerwunsch): holt bisherige MENSCHLICHE Headline-Entscheidungen\n// (qaStage='headline_choice', aufgezeichnet in P5b \"Finde Sat-Antwort\"), damit der Lern-Agent\n// gleich danach eine rein informative Einschaetzung abgeben kann - siehe \"IF Genug Lernbeispiele\".\nreturn {\n  json: {\n    lernAction: 'retrieve',\n    qaStage: 'headline_choice',\n    limit: 50\n  }\n};"
+      },
+      "id": "f1a2b3c4-0061-4aaa-9bbb-000000000061",
+      "name": "Lern-Agent: Baue Retrieve-Eingabe",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2360,
+        1560
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "Br1O0rUucRnLdKvi",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Lern_Agent"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "f1a2b3c4-0062-4aaa-9bbb-000000000062",
+      "name": "Execute Workflow Lern-Agent (Retrieve Headline)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        2540,
+        1560
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Stellt den Vorgangskontext nach dem Lern-Agent-Retrieve wieder her (gleiches Muster wie\n// die uebrigen \"Stelle Kontext...\"-Nodes in dieser Pipeline) - Execute Workflow ersetzt $json\n// durch die Rueckgabe des Sub-Workflows, sonst gingen matrixMessage/vorgangKey/shouldPost etc.\n// verloren.\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst original = $('Satire-Ergebnis: Baue Text-Auswahl + Umfrage').itemMatching($itemIndex).json || {};\nconst retrieve = $json || {};\n\nreturn {\n  json: {\n    ...original,\n    _lernCount: Number(retrieve.count || 0),\n    _lernExamplesText: safeStr(retrieve.examplesText)\n  }\n};"
+      },
+      "id": "f1a2b3c4-0063-4aaa-9bbb-000000000063",
+      "name": "Stelle Kontext nach Lern-Agent Retrieve wieder her",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2720,
+        1560
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "learn-shouldpost-001",
+              "leftValue": "={{ $json.shouldPost }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "learn-count-001",
+              "leftValue": "={{ $json._lernCount }}",
+              "rightValue": 10,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f1a2b3c4-0064-4aaa-9bbb-000000000064",
+      "name": "IF Genug Lernbeispiele + Umfrage nötig?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2900,
+        1560
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// FIX 2026-08-01 (Nutzerwunsch \"Lernagent soll erst zeigen, was er davon haelt, bevor ich ihn\n// freischalte\"): baut den Prompt-Input fuer die rein informative Einschaetzung. Wirkt sich NICHT\n// auf Kandidaten, Veroeffentlichung oder Auswahl aus - reines Beobachtungsfeature.\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; } catch (e) { return {}; }\n}\n\nconst visualJson = parseObj($json.visualJson);\nconst candidates = Array.isArray(visualJson.headlineCandidates) ? visualJson.headlineCandidates : [];\nconst candidatesText = candidates.map(c => safeStr(c.code) + ': ' + safeStr(c.imageHeadline) + ' - ' + safeStr(c.imageSubline) + (c.satireBrief ? ' (' + safeStr(c.satireBrief) + ')' : '')).join('\\n');\n\nreturn {\n  json: {\n    ...$json,\n    _candidatesText: candidatesText\n  }\n};"
+      },
+      "id": "f1a2b3c4-0065-4aaa-9bbb-000000000065",
+      "name": "Lern-Agent: Baue Einschätzung-Eingabe",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3080,
+        1460
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "GPT-4O"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=={{ (() => { return `Du bist ein Lern-Assistent fuer DIE PARTEI Kreisverband Goslar. Deine Aufgabe ist NICHT, selbst zu entscheiden oder etwas zu veroeffentlichen - du gibst nur eine informelle Einschaetzung ab, die dem menschlichen Redakteur zur Beobachtung angezeigt wird. Deine Antwort hat keinerlei Einfluss auf die tatsaechliche Auswahl oder Veroeffentlichung.\n\nDu bekommst:\n1. Eine Liste bisheriger Entscheidungen des Redakteurs bei frueheren Auswahlen (gewaehlte vs. abgelehnte Kandidaten, jeweils mit Begruendungstext).\n2. Die aktuell zur Auswahl stehenden Kandidaten fuer diesen Vorgang.\n\nSchaetze anhand von Stil, Tonfall und Zuspitzungsmuster der bisherigen Entscheidungen, welchen der AKTUELLEN Kandidaten der Redakteur vermutlich waehlen wuerde.\n\nBISHERIGE ENTSCHEIDUNGEN:\n${$json._lernExamplesText}\n\nAKTUELLE KANDIDATEN:\n${$json._candidatesText}\n\nAntworte AUSSCHLIESSLICH mit diesem JSON-Objekt, keine weitere Erklaerung ausserhalb des JSON:\n{\n  \"predictedCode\": \"<Code des Kandidaten, den du fuer am wahrscheinlichsten haeltst>\",\n  \"confidence\": \"NIEDRIG\" | \"MITTEL\" | \"HOCH\",\n  \"reasoning\": \"<ein kurzer Satz, warum>\"\n}`; })() }}"
+            }
+          ]
+        },
+        "options": {
+          "textFormat": {
+            "textOptions": {
+              "type": "json_object"
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "position": [
+        3260,
+        1460
+      ],
+      "id": "f1a2b3c4-0066-4aaa-9bbb-000000000066",
+      "name": "Lern-Agent: Einschätzung",
+      "credentials": {
+        "openAiApi": {
+          "id": "RiT1gwJpQWzSo6NO",
+          "name": "OpenAI account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Parst die Einschaetzung und haengt sie als klar gekennzeichnete, rein informative Zeile an\n// die bereits fertige Matrix-Umfrage an. Bei Parse-/API-Fehler (onError=continue) wird die\n// Umfrage unveraendert durchgereicht - eine fehlende Einschaetzung darf niemals die eigentliche\n// Umfrage blockieren.\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst original = $('Lern-Agent: Baue Einschätzung-Eingabe').itemMatching($itemIndex).json || {};\nlet predictedCode = '', confidence = '', reasoning = '';\ntry {\n  const raw = $json.message?.content ?? $json.text ?? $json.content ?? '';\n  const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;\n  predictedCode = safeStr(parsed.predictedCode);\n  confidence = safeStr(parsed.confidence);\n  reasoning = safeStr(parsed.reasoning);\n} catch (e) {}\n\nlet matrixMessage = safeStr(original.matrixMessage);\nif (predictedCode) {\n  matrixMessage += '\\n\\n' + String.fromCodePoint(0x1F916) + ' Lern-Agent-Einschätzung (rein informativ, ohne Einfluss auf Auswahl oder Veröffentlichung): vermutlich ' + predictedCode + (confidence ? ' (' + confidence + ')' : '') + (reasoning ? ' – ' + reasoning : '');\n}\n\nreturn {\n  json: {\n    ...original,\n    matrixMessage\n  }\n};"
+      },
+      "id": "f1a2b3c4-0067-4aaa-9bbb-000000000067",
+      "name": "Füge Einschätzung in Umfrage ein",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3440,
+        1460
       ]
     }
   ],
