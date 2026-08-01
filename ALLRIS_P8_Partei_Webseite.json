@@ -806,9 +806,9 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "wordpressGoslarError": "={{ JSON.stringify($json).substring(0, 500) }}",
+            "wordpressGoslarError": "={{ String($json.wpPostError || $json.error?.message || $json.error || $json.message || JSON.stringify($json).substring(0, 500)).slice(0, 500) }}",
             "last_error_code": "WORDPRESS_PUBLISH_FAILED",
-            "last_error_message": "={{ String($json.wpPostError || $json.error?.message || $json.message || 'WordPress-Veröffentlichung auf Partei-Webseite fehlgeschlagen').slice(0, 4000) }}",
+            "last_error_message": "={{ String($json.wpPostError || $json.error?.message || $json.error || $json.message || 'WordPress-Veröffentlichung auf Partei-Webseite fehlgeschlagen').slice(0, 4000) }}",
             "last_error_stage": "publication",
             "last_error_at": "={{ $now.toISO() }}",
             "retry_count": "={{ Number($json.retry_count || 0) + 1 }}",
