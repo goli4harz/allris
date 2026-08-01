@@ -1,0 +1,61 @@
+{
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Update Post Datum",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "B8NowtOkijLE1PgH",
+  "meta": null,
+  "name": "ALLRIS_Einmalig_2026-173_WordPress_Datum_Fix",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "f1a2b3c4-0071-4aaa-9bbb-000000000071",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "postId": "2635",
+        "updateFields": {
+          "date": "2026-07-30T07:07:25.002+02:00"
+        }
+      },
+      "id": "f1a2b3c4-0072-4aaa-9bbb-000000000072",
+      "name": "Update Post Datum",
+      "type": "n8n-nodes-base.wordpress",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ],
+      "credentials": {
+        "wordpressApi": {
+          "id": "8k2HqYswPaPVS4dr",
+          "name": "Ollies Wordpress"
+        }
+      }
+    }
+  ],
+  "pinData": null,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "versionId": "1e4266c6-dc1f-4779-9cd6-6e34fb473763"
+}
