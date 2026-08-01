@@ -1,0 +1,84 @@
+{
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Setze visualPromptStage zurueck",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "rOIaXm8v5ARpLYua",
+  "meta": null,
+  "name": "ALLRIS_Einmalig_2026-195_VisualPromptStage_Reset",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "f1a2b3c4-0031-4aaa-9bbb-000000000031",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "vol_10738"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "visualPromptStage": "needs_prompt",
+            "last_error_code": "",
+            "last_error_message": "",
+            "last_error_stage": "",
+            "last_error_at": "",
+            "next_retry_at": "",
+            "retry_count": 0
+          },
+          "matchingColumns": [
+            "vorgangKey"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "f1a2b3c4-0032-4aaa-9bbb-000000000032",
+      "name": "Setze visualPromptStage zurueck",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ]
+    }
+  ],
+  "pinData": null,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "versionId": "399d53aa-b80e-4043-8f32-72d6f81c2647"
+}
