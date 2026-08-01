@@ -1,0 +1,3509 @@
+{
+  "updatedAt": "2026-07-31T09:32:02.711Z",
+  "createdAt": "2026-07-04T23:22:31.951Z",
+  "id": "WIg40QYXmouRoYjq",
+  "name": "ALLRIS_P5_Visual_Prompt_Builder",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1,
+              "triggerAtMinute": 29
+            }
+          ]
+        }
+      },
+      "id": "1be7696b-83b3-4a16-8df9-81cf17f9fc17",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": []
+        },
+        "returnAll": true
+      },
+      "id": "fb5ec274-8cf0-4f14-b685-7d561c95b54c",
+      "name": "Hole needs_visual_prompt",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        144,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Filtert die breit gelesene Data Table auf die Ziel-Status des Visual\n// Prompt Builders. Die Data Table kann kein OR über mehrere Werte desselben\n// Feldes - deshalb wird hier gefiltert statt in der DB-Abfrage direkt\n// (siehe \"Hole needs_visual_prompt\", vorher AND-verknüpfte Bedingungen == 0 Treffer).\n// 'headline_selected' = Nutzer hat per Matrix-Antwort eine Headline/Subline-Variante\n// gewählt; für diese Zeilen wird nur noch der Bildprompt gebaut, keine neuen\n// Headline-Varianten mehr erzeugt (siehe \"IF Headline bereits gewählt?\").\nconst ZIEL_PROMPT_STAGE = ['needs_prompt', 'prompt_error'];\nconst ZIEL_HEADLINE_STAGE = ['headline_selected'];\n\n// FIX 2026-07-26: Zeilen, deren Sharepic bereits als nicht noetig (not_applicable) oder\n// blockiert (topic_error, z.B. durch einen QA-Guard) markiert wurden, sollen hier gar nicht\n// mehr ankommen - sonst prueft \"Pruefe Content-Abschluss\" endlos gegen ein Bild, das nie\n// entstehen wird, und ueberschreibt dabei jedes Mal den eigentlichen (aussagekraeftigeren)\n// Blockierungsgrund mit einer generischen CONTENT_JSON_INVALID-Meldung (Realfall Vorgang 2026/109).\nconst BLOCKED_SHAREPIC_STAGES = new Set(['not_applicable', 'topic_error']);\n\n// FIX 2026-07-28 (live bestaetigter Kosten-Bug): 'headline_selected' wird nach der Nutzer-Wahl\n// NIE wieder zurueckgesetzt - bleibt also fuer IMMER stehen, auch nachdem P5 laengst einen\n// gueltigen Prompt gebaut und P6 laengst ein fertiges, teils veroeffentlichtes Bild komponiert\n// hat. Dieser Filter liess solche Zeilen jede Stunde erneut durch (ZIEL_HEADLINE_STAGE-Treffer\n// ignoriert komplett, ob schon ein Bild existiert), 'Prepare Visual Prompt Input' erkannte den\n// bestehenden Prompt wegen eines strengen/veralteten visualJson-Schemas oft nicht als gueltig\n// ('hasValidExistingPrompt' schlug fehl) und baute jede Stunde einen KOMPLETT NEUEN Prompt\n// (teurer KI-Aufruf) samt Reset von imageStage auf 'not_started' - live bestaetigt an 13\n// laengst fertigen, teils veroeffentlichten Vorgaengen in einem einzigen Lauf (10:29 Uhr).\n// Ein bereits komponiertes Bild (imageStage='composed') soll hier nie wieder aufschlagen,\n// ausser bei explizitem manuellem Reset (visualForceReset=true, siehe 'Force Visual Reset\n// Schalter' weiter unten im Loop).\nconst ALREADY_COMPOSED_STAGES = new Set(['composed']);\n\nreturn items.filter(item => {\n  const promptStage = String(item.json.visualPromptStage || '').trim();\n  const headlineStage = String(item.json.headlineChoiceStage || '').trim();\n  const sharepicNeedStage = String(item.json.sharepicNeedStage || '').trim();\n  const imageStage = String(item.json.imageStage || '').trim();\n  if (BLOCKED_SHAREPIC_STAGES.has(sharepicNeedStage)) return false;\n  if (ALREADY_COMPOSED_STAGES.has(imageStage) && item.json.visualForceReset !== true) return false;\n  return ZIEL_PROMPT_STAGE.includes(promptStage) || ZIEL_HEADLINE_STAGE.includes(headlineStage);\n});\n"
+      },
+      "id": "b7c9e2f1-6d4a-4c8e-9f1a-2e5d7c3b8a90",
+      "name": "Filtere Visual-Status",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        304,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "d92dbad7-bc31-48eb-bafa-a318e287b1f2",
+      "name": "Loop Visual Vorgänge",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// PREPARE VISUAL PROMPT INPUT  (v2 — visual anchor fields)\n// Übergibt alle Themenanker-Felder an die KI\n// ============================================================\n\nconst raw = $input.item.json || {};\n\nfunction safeStr(v) {\n  if (v === null || v === undefined) return '';\n  return String(v).trim();\n}\n\nfunction safeJson(v, fallback = '{}') {\n  if (!v) return fallback;\n  if (typeof v === 'string') return v.trim() || fallback;\n  try { return JSON.stringify(v); } catch (e) { return fallback; }\n}\n\nfunction parseObject(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try {\n    const parsed = JSON.parse(String(v));\n    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};\n  } catch (e) {\n    return {};\n  }\n}\n\nfunction firstValue(...values) {\n  for (const value of values) {\n    if (value === null || value === undefined) continue;\n    if (Array.isArray(value) && value.length > 0) return value;\n    if (typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0) return value;\n    if (String(value).trim() !== '') return value;\n  }\n  return '';\n}\n\n// Die bestehenden Tabellenspalten bleiben unverändert.\n// Detailfelder werden aus analysisJson bzw. visualJson.anchors gelesen.\nconst analysis = parseObject(raw.analysisJson);\nconst storedVisual = parseObject(raw.visualJson);\nconst storedAnchors = parseObject(storedVisual.anchors);\nconst analysisAnchors = parseObject(analysis.visualAnchors);\n\n// ============================================================\n// SOURCELOCK aus analysisJson extrahieren (hat Vorrang vor visualJson)\n// ============================================================\nconst sourceLockFromAnalysis = parseObject(analysis.sourceLock || {});\nconst storedSourceLock = parseObject(storedVisual.sourceLock || {});\nconst currentSourceLock = Object.keys(sourceLockFromAnalysis).length > 0\n  ? sourceLockFromAnalysis\n  : storedSourceLock;\n\n// FIX 3.4: Wenn canonical Source-Lock fehlt oder ungültig -> blockieren, kein Prompt\n// Keine Ableitung aus Titel, Thema oder satireThemaKonkret\n{\n  const slPresent = !!(currentSourceLock && currentSourceLock.sourceTopic);\n  // FIX 2026-07-25 (mirror des -OK-Handlers in P5b und der Repair-Sweeps in P4/P3b/P3c): NICHT\n  // das eingefrorene analysisJson.sourceLockValid pruefen, sondern frisch aus faktenAgentJson\n  // ableiten. Repariere Legacy Visual-Status in P4 kann eine Zeile freigeben, ohne dabei\n  // analysisJson selbst zu korrigieren (nur sharepicNeedStage/visualDecisionReason werden\n  // geschrieben) - ohne diesen Fix wuerde dieser Node so eine bereits reparierte Zeile hier\n  // sofort wieder blockieren.\n  const slValid = slPresent && (() => {\n    try {\n      const rawFA = raw.faktenAgentJson;\n      let fa = {};\n      if (rawFA && typeof rawFA === 'object') fa = rawFA;\n      else if (rawFA) fa = JSON.parse(String(rawFA));\n      return !!(fa && fa.sourceTopic) && fa.parseError !== true;\n    } catch(e) { return false; }\n  })();\n  if (!slPresent || !slValid) {\n    const reason = !slPresent\n      ? 'blocked_by_source_lock: canonical Source-Lock fehlt (sourceTopic)'\n      : 'blocked_by_source_lock: analysisJson.sourceLockValid ist nicht true';\n    return [{\n      json: {\n        ...raw,\n        visualParseError: false,\n        visualDebugReason: reason,\n        visualJson: '{}',\n        imagePrompt: '',\n        imageNegativePrompt: '',\n        imageHeadline: '',\n        imageSubline: '',\n        imageSmallNote: '',\n        altText: '',\n        imagePromptFound: false,\n        sharepicNeedStage: 'blocked_source_lock',\n        imageStage: (raw.imageFinalPath ? 'composed' : 'not_started'),\n        visualPromptCreatedAt: new Date().toISOString()\n      }\n    }];\n  }\n}\n\n\nconst j = {\n  ...raw,\n\n  // Felder, für die keine eigenen Tabellenspalten existieren\n  kernbotschaft: firstValue(raw.kernbotschaft, analysis.kernbotschaft),\n  dieParteiReaktion: firstValue(raw.dieParteiReaktion, analysis.dieParteiReaktion),\n\n  satireThemaKonkret: firstValue(\n    analysisAnchors.satireThemaKonkret,\n    analysis.satireThemaKonkret,\n    raw.satireThemaKonkret,\n    storedAnchors.satireThemaKonkret\n  ),\n  satireKonfliktKonkret: firstValue(\n    analysisAnchors.satireKonfliktKonkret,\n    analysis.satireKonfliktKonkret,\n    raw.satireKonfliktKonkret,\n    storedAnchors.satireKonfliktKonkret\n  ),\n  visualPflichtobjekte: firstValue(\n    analysisAnchors.visualPflichtobjekte,\n    analysis.visualPflichtobjekte,\n    raw.visualPflichtobjekte,\n    storedAnchors.visualPflichtobjekte,\n    []\n  ),\n  visualPflichthandlung: firstValue(\n    analysisAnchors.visualPflichthandlung,\n    analysis.visualPflichthandlung,\n    raw.visualPflichthandlung,\n    storedAnchors.visualPflichthandlung\n  ),\n  visualBetroffene: firstValue(\n    analysisAnchors.visualBetroffene,\n    analysis.visualBetroffene,\n    raw.visualBetroffene,\n    storedAnchors.visualBetroffene,\n    []\n  ),\n  visualOrt: firstValue(\n    analysisAnchors.visualOrt,\n    analysis.visualOrt,\n    raw.visualOrt,\n    storedAnchors.visualOrt\n  ),\n  visualUeberzeichnung: firstValue(\n    analysisAnchors.visualUeberzeichnung,\n    analysis.visualUeberzeichnung,\n    raw.visualUeberzeichnung,\n    storedAnchors.visualUeberzeichnung\n  ),\n  visualErkennungssatz: firstValue(\n    analysisAnchors.visualErkennungssatz,\n    analysis.visualErkennungssatz,\n    raw.visualErkennungssatz,\n    storedAnchors.visualErkennungssatz\n  ),\n  visualVerboteneErsatzmotive: firstValue(\n    analysisAnchors.visualVerboteneErsatzmotive,\n    analysis.visualVerboteneErsatzmotive,\n    raw.visualVerboteneErsatzmotive,\n    storedAnchors.visualVerboteneErsatzmotive,\n    []\n  )\n};\n\nfunction isOldMaskPrompt(p) {\n  const lower = safeStr(p).toLowerCase();\n  return (\n    lower.includes('maske') ||\n    lower.includes('bearbeite ausschließlich') ||\n    lower.includes('editierbaren bereich') ||\n    lower.includes('setze die headline') ||\n    lower.includes('setze die parteireaktion') ||\n    lower.includes('verändere keinen rahmen') ||\n    lower.includes('qr-code')\n  );\n}\n\n// Skip-Prüfung: nur überspringen wenn ALLE neuen Ankerfelder vorhanden sind\nfunction hasValidExistingPrompt(j) {\n  const p = safeStr(j.imagePrompt);\n  const headline = safeStr(j.imageHeadline);\n  const subline = safeStr(j.imageSubline);\n\n  if (p.length < 80) return false;\n  if (!headline || !subline) return false;\n  if (isOldMaskPrompt(p)) return false;\n\n  // Neue Pflicht: visualJson muss topicPlain + mustShow enthalten\n  let vj = null;\n  try { vj = JSON.parse(j.visualJson || '{}'); } catch(e) { return false; }\n  if (!vj.topicPlain || !vj.conflictPlain) return false;\n  if (!Array.isArray(vj.mustShow) || vj.mustShow.length < 2) return false;\n  if (!vj.visibleAction || !vj.whyRecognizableWithoutText) return false;\n  if (!vj.recognitionSentence) return false;\n  if (!vj.forbiddenSubstitutes || !Array.isArray(vj.forbiddenSubstitutes)) return false;\n\n  // FIX 8: forbiddenSubstitutes muss alle aktuellen verbotenen Ersatzmotive abdecken\n  let baseVerboten = [];\n  try { baseVerboten = JSON.parse(j.visualVerboteneErsatzmotive || '[]'); } catch(e) {}\n  if (baseVerboten.length > 0) {\n    const notCovered = baseVerboten.filter(bv =>\n      !vj.forbiddenSubstitutes.some(fs => skipMatch(bv, fs))\n    );\n    if (notCovered.length > 0) return false; // verbotene Motive nicht abgedeckt\n  }\n\n  // Inhaltlicher Abgleich: mustShow muss visualPflichtobjekte berücksichtigen\n  function normSkip(s) {\n    return String(s || '').toLowerCase()\n      .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss');\n  }\n  function tokensSkip(s) {\n    return normSkip(s).split(/[\\W]+/).filter(w => w.length >= 4);\n  }\n  function skipMatch(a, b) {\n    const ta = tokensSkip(a), tb = tokensSkip(b);\n    if (ta.some(t => tb.includes(t))) return true;\n    const na = normSkip(a).replace(/\\s+/g,''), nb = normSkip(b).replace(/\\s+/g,'');\n    return (na.length >= 5 && nb.includes(na)) || (nb.length >= 5 && na.includes(nb));\n  }\n  \n  let basePflicht = [];\n  try { basePflicht = JSON.parse(j.visualPflichtobjekte || '[]'); } catch(e) {}\n  if (basePflicht.length >= 2) {\n    const matchedPflicht = basePflicht.filter(bp => vj.mustShow.some(ms => skipMatch(bp, ms)));\n    if (matchedPflicht.length < 2) return false; // mustShow stimmt nicht mit Pflichtobjekten überein\n  }\n\n  // visibleAction muss visualPflichthandlung entsprechen\n  const basePflichthandlung = safeStr(j.visualPflichthandlung);\n  if (basePflichthandlung && !skipMatch(vj.visibleAction, basePflichthandlung)) return false;\n\n  // recognitionSentence muss visualErkennungssatz entsprechen\n  const baseErkennungssatz = safeStr(j.visualErkennungssatz);\n  if (baseErkennungssatz && !skipMatch(vj.recognitionSentence, baseErkennungssatz)) return false;\n\n  // imagePrompt muss Pflichthandlung beschreiben\n  if (basePflichthandlung && !skipMatch(p, basePflichthandlung)) return false;\n\n  // imagePrompt muss mindestens 2 konkrete Pflichtobjekte enthalten\n  if (basePflicht.length >= 2) {\n    const promptObjekte = basePflicht.filter(bp => skipMatch(p, bp));\n    if (promptObjekte.length < 2) return false;\n  }\n\n  // SOURCELOCK-PRÜFUNG: Wenn analysisJson.sourceLock vorhanden, muss bestehendes visualJson damit übereinstimmen\n  if (currentSourceLock && currentSourceLock.sourceTopic) {\n    function normSL(s) {\n      return String(s || '').toLowerCase()\n        .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss')\n        .replace(/[\\W]+/g,' ').trim();\n    }\n    function matchSL(a, b) {\n      const ta = normSL(a).split(/\\s+/).filter(w => w.length >= 4);\n      const tb = normSL(b).split(/\\s+/).filter(w => w.length >= 4);\n      if (ta.length === 0 || tb.length === 0) return false;\n      return ta.some(t => tb.includes(t));\n    }\n    // topicPlain muss sourceTopic entsprechen\n    if (vj.topicPlain && !matchSL(vj.topicPlain, currentSourceLock.sourceTopic)) return false;\n    // conflictPlain muss sourceConflict entsprechen\n    if (currentSourceLock.sourceConflict && vj.conflictPlain && !matchSL(vj.conflictPlain, currentSourceLock.sourceConflict)) return false;\n    // imagePrompt muss mindestens einen konkreten requiredTerm enthalten\n    const GENERIC = new Set(['verwaltung','politik','buerokratie','goslar','rathaus','stadt']);\n    const reqTerms = (currentSourceLock.requiredTerms || []).filter(t => {\n      const tn = normSL(t).replace(/\\s/g,'');\n      return t.length >= 4 && !GENERIC.has(normSL(t));\n    });\n    if (reqTerms.length >= 2) {\n      const stem = t => normSL(t).substring(0, Math.max(4, Math.floor(normSL(t).length * 0.75)));\n      const pNorm = normSL(p);\n      const promptHasTerm = reqTerms.some(t => pNorm.includes(stem(t)));\n      if (!promptHasTerm) return false;\n    }\n    // Rein allgemeines topicPlain ist ungültig\n    const genericTopics = ['verwaltung','politik','buerokratie','goslar','rathaus','kommunalpolitik'];\n    if (genericTopics.includes(normSL(vj.topicPlain))) return false;\n  }\n\n  return true;\n}\n\nconst vorgangKey = safeStr(j.vorgangKey);\n\nif (!vorgangKey) {\n  throw new Error(\n    'Prepare Visual Prompt Input abgebrochen: vorgangKey fehlt im Eingangsdatenbestand.'\n  );\n}\n\n// Wenn bereits ein vollständig gültiger Motivprompt + visualJson vorhanden ist: überspringen\nif (j._forceVisualPromptReset !== true && hasValidExistingPrompt(j)) {\n  return [{\n    json: {\n      ...j,\n      _skipReason: 'valid new motif imagePrompt already exists (incl. visualJson anchor fields)',\n      visualPromptStage: 'prompt_ready',\n      imageStage: (j.imageFinalPath ? 'composed' : 'not_started'),\n      imagePromptFound: true,\n      visualParseError: false\n    }\n  }];\n}\n\n// Neue Ankerfelder sicher lesen\nconst satireThemaKonkret       = safeStr(j.satireThemaKonkret);\nconst satireKonfliktKonkret    = safeStr(j.satireKonfliktKonkret);\nconst visualPflichtobjekte     = safeJson(j.visualPflichtobjekte, '[]');\nconst visualPflichthandlung    = safeStr(j.visualPflichthandlung);\nconst visualBetroffene         = safeJson(j.visualBetroffene, '[]');\nconst visualOrt                = safeStr(j.visualOrt);\nconst visualUeberzeichnung     = safeStr(j.visualUeberzeichnung);\nconst visualErkennungssatz     = safeStr(j.visualErkennungssatz);\nconst visualVerboteneErsatzmotive = safeJson(j.visualVerboteneErsatzmotive, '[]');\n\n// Sachliche Felder\nconst summaryText  = safeStr(j.summaryText);\nconst thema        = safeStr(j.thema);\nconst betroffene   = safeStr(j.betroffene);\nconst buergerwirkung = safeStr(j.buergerwirkung);\n\n// KI soll neuen Motivprompt erzeugen\n// FIX: imageHeadline/imageSubline aus raw übernehmen statt zu leeren - sonst\n// kann \"IF Headline bereits gewählt?\" weiter unten nie erkennen, dass für\n// headline_selected-Zeilen bereits eine Nutzer-Auswahl vorliegt.\nconst chosenImageHeadline = safeStr(raw.imageHeadline);\nconst chosenImageSubline  = safeStr(raw.imageSubline);\n\n// FIX 2026-07-31 (live bestaetigt an 2026/140, 2026/182): dieser Rueckgabe-Block baut das\n// Ergebnis-Item als reine Feld-Whitelist statt per Spread (anders als die beiden anderen\n// return-Zweige oben, die {...j}/{...raw} nutzen) - 'id' stand nicht in der Liste und ging\n// dadurch fuer JEDE Zeile verloren, die hier einen neuen Prompt braucht. Ohne id kann\n// 'Bereite P5 Claim-Freigabe vor' spaeter im Reaktions-Pfad nicht freigeben (wirft 'id fehlt')\n// - betraf bisher nur den headline_selected=false-Pfad sichtbar, da der Erfolgspfad ueber\n// 'Update allris_vorgaenge' (Data Table Node) die id unabhaengig vom Input aus der DB-Zeile\n// zurueckbekommt und den Verlust so zufaellig kaschiert hat.\nreturn [{\n  json: {\n    id:                      j.id,\n    vorgangKey,\n    vorgangsnummer:          safeStr(j.vorgangsnummer),\n    title:                   safeStr(j.title),\n    allrisUrl:               safeStr(j.allrisUrl),\n    sourceUrl:               safeStr(j.sourceUrl),\n    nextcloudFolder:         safeStr(j.nextcloudFolder),\n\n    sprengstoff:             safeStr(j.sprengstoff),\n    empfehlung:              safeStr(j.empfehlung),\n    relevantScore:           j.relevantScore || 0,\n    kommunikationspotenzial: j.kommunikationspotenzial || 0,\n    visualDecisionReason:    safeStr(j.visualDecisionReason),\n\n    // Sachliche Zusammenfassung (muss erhalten bleiben)\n    summaryText,\n    thema,\n    betroffene,\n    buergerwirkung,\n\n    kernbotschaft:           safeStr(j.kernbotschaft),\n    satireBrief:             safeStr(j.satireBrief),\n    satireAngle:             safeStr(j.satireAngle),\n    satirePunchlines:        safeJson(j.satirePunchlines, '[]'),\n    visualMetaphor:          safeStr(j.visualMetaphor),\n    satireTarget:            safeStr(j.satireTarget),\n    satireIntensity:         Number(j.satireIntensity || 0),\n    satireDoNotClaim:        safeJson(j.satireDoNotClaim, '[]'),\n    satireSafetyNote:        safeStr(j.satireSafetyNote),\n    dieParteiReaktion:       safeStr(j.dieParteiReaktion),\n    instagramCaption:        safeStr(j.instagramCaption),\n    headlines:               safeStr(j.headlines),\n    websiteHeadline:         safeStr(j.websiteHeadline),\n\n    belegbareFakten:         safeJson(j.belegbareFakten, '[]'),\n    kritischeNachfrage:      safeStr(j.kritischeNachfrage),\n    offenePunkte:            safeJson(j.offenePunkte, '[]'),\n    unsicherheitenSummary:   safeStr(j.unsicherheitenSummary),\n    analysisJson:            safeJson(j.analysisJson),\n    contentJson:             safeJson(j.contentJson),\n\n    // Visuelle Ankerfelder (Pflicht für KI-Prompt)\n    satireThemaKonkret,\n    satireKonfliktKonkret,\n    visualPflichtobjekte,\n    visualPflichthandlung,\n    visualBetroffene,\n    visualOrt,\n    visualUeberzeichnung,\n    visualErkennungssatz,\n    visualVerboteneErsatzmotive,\n\n    imagePrompt:             '',\n    imageNegativePrompt:     '',\n    imageHeadline:           chosenImageHeadline,\n    imageSubline:            chosenImageSubline,\n    imageSmallNote:          '',\n    altText:                 '',\n    visualJson:              '{}',\n\n    _skipReason:             '',\n    imagePromptFound:        false,\n    visualParseError:        false,\n    visualPromptStage:       'needs_prompt',\n    imageStage:              (j.imageFinalPath ? 'composed' : 'not_started'),\n    _forceVisualPromptReset: j._forceVisualPromptReset === true,\n    _forceVisualPromptResetAt: safeStr(j._forceVisualPromptResetAt),\n    _forceVisualPromptResetReason: safeStr(j._forceVisualPromptResetReason),\n    sourceLockJson:          JSON.stringify(currentSourceLock || {})\n  }\n}];\n"
+      },
+      "id": "8f5d5ba9-46d7-469e-9697-aa55516f71f4",
+      "name": "Prepare Visual Prompt Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1056,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "check-headline-chosen",
+              "leftValue": "={{ ($json.imageHeadline || '').trim().length > 0 && ($json.imageSubline || '').trim().length > 0 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d4b1e5c6-5555-4aaa-8bbb-555555555555",
+      "name": "IF Headline bereits gewählt?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -128,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "imagePrompt": "={{ $json.imagePrompt}}",
+            "imageNegativePrompt": "={{ $json.imageNegativePrompt || '' }}",
+            "imageHeadline": "={{ $json.imageHeadline || '' }}",
+            "imageSubline": "={{ $json.imageSubline || '' }}",
+            "imageSmallNote": "",
+            "visualJson": "={{ (() => {\n  let current = {};\n  try {\n    current = typeof $json.visualJson === 'string'\n      ? JSON.parse($json.visualJson || '{}')\n      : ($json.visualJson || {});\n  } catch (e) {\n    current = {};\n  }\n  const currentWorkflow = current.workflow && typeof current.workflow === 'object'\n    ? current.workflow\n    : {};\n  const parseArray = (v) => {\n    if (Array.isArray(v)) return v;\n    try {\n      const p = JSON.parse(v || '[]');\n      return Array.isArray(p) ? p : [];\n    } catch (e) {\n      return [];\n    }\n  };\n  return JSON.stringify({\n    ...current,\n    anchors: {\n      satireThemaKonkret: $json.satireThemaKonkret || '',\n      satireKonfliktKonkret: $json.satireKonfliktKonkret || '',\n      visualPflichtobjekte: parseArray($json.visualPflichtobjekte),\n      visualPflichthandlung: $json.visualPflichthandlung || '',\n      visualBetroffene: parseArray($json.visualBetroffene),\n      visualOrt: $json.visualOrt || '',\n      visualUeberzeichnung: $json.visualUeberzeichnung || '',\n      visualErkennungssatz: $json.visualErkennungssatz || '',\n      visualVerboteneErsatzmotive: parseArray($json.visualVerboteneErsatzmotive)\n    },\n    qualityGate: {\n      maxAttempts: 3,\n      minTopicClarity: 70,\n      minSatireStrength: 60,\n      minMustShowCoverage: 70,\n      minVisualCoherence: 65,\n      requireTopicRecognizable: true,\n      requireSatireRecognizable: true,\n      requireConflictRecognizable: true,\n      rejectForbiddenElements: true\n    },\n    workflow: {\n      ...currentWorkflow,\n      visualStage: $json.visualPromptStage || 'prompt_error',\n      visualParseError: $json.visualParseError === true,\n      visualDebugReason: $json.visualDebugReason || '',\n      imagePromptFound: $json.imagePromptFound === true,\n      visualPromptCreatedAt: $json.visualPromptCreatedAt || $now.toISO(),\n      visualPromptWorkflowVersion: 'visual-prompt-v3.3-qa-ready'\n    }\n  });\n})() }}",
+            "imageStage": "={{ $json.imageStage }}",
+            "altText": "={{ $json.altText || '' }}",
+            "visualPromptStage": "={{ $json.visualPromptStage || 'prompt_error' }}",
+            "vorlageDatumWeb": "={{ $json.vorlageDatumWeb || '' }}",
+            "vorlageDatumPdf": "={{ $json.vorlageDatumPdf || '' }}",
+            "vorlageDatum": "={{ $json.vorlageDatum || $json.vorlageDatumWeb || '' }}",
+            "verfasser": "={{ $json.verfasser || '' }}",
+            "fachdienst": "={{ $json.fachdienst || '' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "vorgangKey",
+              "displayName": "vorgangKey",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "volfdnr",
+              "displayName": "volfdnr",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "sourceUrl",
+              "displayName": "sourceUrl",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "allrisUrl",
+              "displayName": "allrisUrl",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "vorgangsnummer",
+              "displayName": "vorgangsnummer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "firstseen",
+              "displayName": "firstseen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "lastseen",
+              "displayName": "lastseen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "relevantScore",
+              "displayName": "relevantScore",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "themes",
+              "displayName": "themes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "vorfilterThemen",
+              "displayName": "vorfilterThemen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "vorfilterKeywords",
+              "displayName": "vorfilterKeywords",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "vorfilterScore",
+              "displayName": "vorfilterScore",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "matrixPosted",
+              "displayName": "matrixPosted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "nextcloudFolder",
+              "displayName": "nextcloudFolder",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "documentsJson",
+              "displayName": "documentsJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "documentCount",
+              "displayName": "documentCount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "combinedText",
+              "displayName": "combinedText",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "summaryJson",
+              "displayName": "summaryJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "summaryText",
+              "displayName": "summaryText",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "summarySentences",
+              "displayName": "summarySentences",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "summaryCreatedAt",
+              "displayName": "summaryCreatedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "summaryPosted",
+              "displayName": "summaryPosted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "summaryRoomPostedAt",
+              "displayName": "summaryRoomPostedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "thema",
+              "displayName": "thema",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "betroffene",
+              "displayName": "betroffene",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "kostenHaushalt",
+              "displayName": "kostenHaushalt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "buergerwirkung",
+              "displayName": "buergerwirkung",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "offenePunkte",
+              "displayName": "offenePunkte",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "unsicherheitenSummary",
+              "displayName": "unsicherheitenSummary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "analysisJson",
+              "displayName": "analysisJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "contentJson",
+              "displayName": "contentJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "visualJson",
+              "displayName": "visualJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "sprengstoff",
+              "displayName": "sprengstoff",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "empfehlung",
+              "displayName": "empfehlung",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "kommunikationspotenzial",
+              "displayName": "kommunikationspotenzial",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "matrixKurzbetreff",
+              "displayName": "matrixKurzbetreff",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "ampel",
+              "displayName": "ampel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "kurzfassung",
+              "displayName": "kurzfassung",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "kritischeNachfrage",
+              "displayName": "kritischeNachfrage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "begruendungBewertung",
+              "displayName": "begruendungBewertung",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "werProfitiert",
+              "displayName": "werProfitiert",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "werZahltOderTraegtNachteile",
+              "displayName": "werZahltOderTraegtNachteile",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "warumRelevant",
+              "displayName": "warumRelevant",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "belegbareFakten",
+              "displayName": "belegbareFakten",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "unsicherheiten",
+              "displayName": "unsicherheiten",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "warnsignale",
+              "displayName": "warnsignale",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "instagramCarouselNoetig",
+              "displayName": "instagramCarouselNoetig",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "lastAnalysisAt",
+              "displayName": "lastAnalysisAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "rawAiText",
+              "displayName": "rawAiText",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "instagramCaption",
+              "displayName": "instagramCaption",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "instagramCarousel",
+              "displayName": "instagramCarousel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "imageMode",
+              "displayName": "imageMode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "imageHeadline",
+              "displayName": "imageHeadline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imageSubline",
+              "displayName": "imageSubline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imagePrompt",
+              "displayName": "imagePrompt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imageNegativePrompt",
+              "displayName": "imageNegativePrompt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "imagePrompts",
+              "displayName": "imagePrompts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "recommendedSlides",
+              "displayName": "recommendedSlides",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "carouselJson",
+              "displayName": "carouselJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "websiteHeadline",
+              "displayName": "websiteHeadline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "websiteArticle",
+              "displayName": "websiteArticle",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "facebookPost",
+              "displayName": "facebookPost",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "pressStatement",
+              "displayName": "pressStatement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "contentCreatedAt",
+              "displayName": "contentCreatedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "reactionRoomPostedAt",
+              "displayName": "reactionRoomPostedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "textExtractionStatus",
+              "displayName": "textExtractionStatus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "textExtractionSource",
+              "displayName": "textExtractionSource",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "textExtractedAt",
+              "displayName": "textExtractedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "documentsTextJson",
+              "displayName": "documentsTextJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "extractedDocumentCount",
+              "displayName": "extractedDocumentCount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "failedExtractionCount",
+              "displayName": "failedExtractionCount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "textExtractionError",
+              "displayName": "textExtractionError",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "visualDecisionReason",
+              "displayName": "visualDecisionReason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "visualNeeded",
+              "displayName": "visualNeeded",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "visualStatus",
+              "displayName": "visualStatus",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "instagramSharepicNoetig",
+              "displayName": "instagramSharepicNoetig",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "imageSmallNote",
+              "displayName": "imageSmallNote",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "altText",
+              "displayName": "altText",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "vorlageDatumWeb",
+              "displayName": "vorlageDatumWeb",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatumPdf",
+              "displayName": "vorlageDatumPdf",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatum",
+              "displayName": "vorlageDatum",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "verfasser",
+              "displayName": "verfasser",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "fachdienst",
+              "displayName": "fachdienst",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "bae18c6a-4d77-427c-a9cf-1de231e2c26e",
+      "name": "Update allris_vorgaenge",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        688,
+        240
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $input.item.json }];"
+      },
+      "id": "613dd5df-dbd5-4bc8-84d7-16181afa9c20",
+      "name": "Nächster Vorgang",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        864,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function getRetryInfo(j) {\n  let vj = {};\n  try {\n    vj = JSON.parse(j.visualJson || '{}');\n    if (typeof vj !== 'object') vj = {};\n  } catch(e) {}\n  const wf = (typeof vj.workflow === 'object' && vj.workflow) ? vj.workflow : {};\n  const attempt = Math.max(1, Number(wf.visualPromptAttempt || j.visualPromptAttempt || 1));\n  const maxAttempts = Math.max(2, Number(wf.visualPromptMaxAttempts || j.visualPromptMaxAttempts || 2));\n  return { attempt, maxAttempts, canRetry: attempt < maxAttempts, vj, wf };\n}\n\nconst j = $input.first().json || {};\n\nfunction safeStr(v) {\n  if (v === null || v === undefined) return \"\";\n  return String(v).trim();\n}\n\nfunction parseMaybeJson(v) {\n  if (!v) return {};\n  if (typeof v === \"object\") return v;\n  try { return JSON.parse(v); } catch (e) { return {}; }\n}\n\n// FIX 1.4: blocked_by_source_lock pass-through — kein KI-Aufruf, keine Pflichtfelder\nif (safeStr(j.sharepicNeedStage) === 'blocked_source_lock') {\n  return [{\n    json: {\n      ...j,\n      sharepicNeedStage: 'blocked_source_lock',\n      imageStage: (safeStr(j.imageFinalPath) ? 'composed' : 'not_started')\n    }\n  }];\n}\n\n// FIX 1.1: Retry-Zähler hier erhöhen, BEVOR Update allris_vorgaenge läuft\nconst errorStages = new Set(['prompt_error']);\nif (errorStages.has(safeStr(j.visualPromptStage))) {\n  const { attempt, maxAttempts, vj, wf } = getRetryInfo(j);\n  const newAttempt = attempt + 1;\n  if (newAttempt > maxAttempts) {\n    vj.workflow = { ...wf, visualPromptAttempt: newAttempt, visualPromptMaxAttempts: maxAttempts, visualPromptFinalStatus: 'visual_prompt_failed_final' };\n    return [{\n      json: {\n        ...j,\n        visualJson: JSON.stringify(vj),\n        visualPromptAttempt: newAttempt,\n        visualPromptMaxAttempts: maxAttempts,\n        visualPromptStage: 'prompt_failed_final',\n        imageStage: (safeStr(j.imageFinalPath) ? 'composed' : 'not_started')\n      }\n    }];\n  } else {\n    vj.workflow = { ...wf, visualPromptAttempt: newAttempt, visualPromptMaxAttempts: maxAttempts };\n    return [{\n      json: {\n        ...j,\n        visualJson: JSON.stringify(vj),\n        visualPromptStage: safeStr(j.visualPromptStage),\n        imageStage: (safeStr(j.imageFinalPath) ? 'composed' : 'not_started'),\n        visualPromptAttempt: newAttempt,\n        visualPromptMaxAttempts: maxAttempts\n      }\n    }];\n  }\n}\n\n// Fehler-Pass-Through: Bei visualParseError nicht werfen\nif (j.visualParseError === true) {\n  return [{\n    json: {\n      ...j,\n      visualPromptStage: j.visualPromptStage || 'prompt_error',\n      imageStage: (safeStr(j.imageFinalPath) ? 'composed' : 'not_started')\n    }\n  }];\n}\n\nconst visualJson = parseMaybeJson(j.visualJson);\n\nconst imageHeadline =\n  safeStr(j.imageHeadline) ||\n  safeStr(visualJson.imageHeadline);\n\nconst imageSubline =\n  safeStr(j.imageSubline) ||\n  safeStr(visualJson.imageSubline);\n\nconst imageSmallNote = '';\n\nconst imagePrompt =\n  safeStr(j.imagePrompt) ||\n  safeStr(visualJson.imagePrompt);\n\nconst imageNegativePrompt =\n  safeStr(j.imageNegativePrompt) ||\n  safeStr(visualJson.imageNegativePrompt);\n\nif (!imageHeadline) {\n  throw new Error(\"imageHeadline fehlt.\");\n}\nif (!imageSubline) {\n  throw new Error(\"imageSubline fehlt.\");\n}\nif (!imagePrompt) {\n  throw new Error(\n    \"imagePrompt fehlt. Vorhandene Felder: \" + Object.keys(j).join(\", \")\n  );\n}\n\nreturn [\n  {\n    json: {\n      ...j,\n      imageHeadline,\n      imageSubline,\n      imageSmallNote,\n      imagePrompt,\n      imageNegativePrompt,\n      visualPromptStage: safeStr(j.visualPromptStage) || 'prompt_ready',\n      imageStage: (safeStr(j.imageFinalPath) ? 'composed' : 'not_started')\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        496,
+        240
+      ],
+      "id": "173a680f-c1cb-4e60-b0bd-50f5dafd10bf",
+      "name": "Code in JavaScript",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "check-skip",
+              "leftValue": "={{ $json.imagePromptFound }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "check-blocked",
+              "leftValue": "={{ ($json.sharepicNeedStage === 'blocked_source_lock') ? 'yes' : 'no' }}",
+              "rightValue": "yes",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "618a20bc-6d75-4b09-a099-19cd8d62d9d8",
+      "name": "IF Skip (Prompt vorhanden)?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1216,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// FIX 10: Prüfe Content-Abschluss - vollständige Prüfung (V3_11)\nconst j = $input.item.json || {};\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; } catch(e) { return {}; }\n}\nfunction asArr(v) {\n  if (Array.isArray(v)) return v.filter(Boolean).map(s => String(s).trim());\n  if (typeof v === 'string' && v.trim()) {\n    try { const p = JSON.parse(v); if (Array.isArray(p)) return p.filter(Boolean).map(s => String(s).trim()); } catch(e) {}\n  }\n  return [];\n}\nfunction robustBool(v) {\n  if (v === true || v === 1) return true;\n  if (typeof v === 'string') { const s = v.trim().toLowerCase(); return s === 'true' || s === '1'; }\n  return false;\n}\n\nconst forceVisualPromptReset = j._forceVisualPromptReset === true || j.visualForceReset === true;\n\nconst errors = [];\n\n// 1. contentStage muss content_generated oder content_posted sein\nconst contentStage = safeStr(j.contentStage);\nconst contentStageOk = contentStage === 'content_generated' || contentStage === 'content_posted';\nconst contentStatusOk = contentStageOk || forceVisualPromptReset;\nif (!contentStatusOk) errors.push('contentStage nicht content_generated/content_posted und kein Force-Reset (ist: ' + contentStage + ')');\n\n// 2. contentJson muss vorhanden sein\nconst contentJson = parseObj(j.contentJson);\n// Nachtrag 2026-07-30: bereits veroeffentlichte Zeilen (wordpressPosted/wordpressGoslarPosted)\n// zaehlen auch als \"Content vorhanden\", selbst wenn contentJson in der DB inzwischen leer ist -\n// das kann durch einen schmalen Row-Write an anderer Stelle passiert sein (derselbe Bugtyp wie\n// der vorlageDatum-Overwrite-Fund vom selben Tag), der eigentliche veroeffentlichte Inhalt auf\n// WordPress ist davon nicht betroffen. Ohne diese Ausnahme blockiert das Gate faelschlich die\n// Sharepic-Erstellung fuer laengst live stehende Beitraege.\nconst alreadyPublished = robustBool(j.wordpressPosted) || robustBool(j.wordpressGoslarPosted);\nconst contentPresent = !!(safeStr(j.websiteHeadline) || Object.keys(contentJson).length > 0) || alreadyPublished;\nif (!contentPresent) errors.push('contentJson fehlt oder leer');\n\n// 3. sourceLock frisch aus faktenAgentJson (FIX 2026-07-25, mirror des -OK-Handlers in P5b und\n// der Repair-Sweeps in P4/P3b/P3c): NICHT das eingefrorene analysisJson.sourceLockValid pruefen -\n// das wird nur bei einem erfolgreichen P4-Lauf aktualisiert und kann bei Zeilen, die laenger im\n// Pipeline-Stand verharrt haben, veraltet sein, auch wenn faktenAgentJson seither bessere Daten\n// enthaelt.\nconst analysis = parseObj(j.analysisJson);\nconst fakten = parseObj(j.faktenAgentJson || {});\nconst sl = {\n  sourceTopic: safeStr(fakten.sourceTopic),\n  sourceConflict: safeStr(fakten.sourceConflict),\n  requiredTerms: asArr(fakten.requiredTerms),\n  requiredObjects: asArr(fakten.requiredObjects),\n  requiredAction: safeStr(fakten.requiredAction),\n  affectedGroups: asArr(fakten.affectedGroups)\n};\nconst slComplete = !!(\n  safeStr(sl.sourceTopic) &&\n  asArr(sl.requiredTerms).length >= 2 &&\n  asArr(sl.requiredObjects).length >= 2 &&\n  safeStr(sl.requiredAction) &&\n  fakten.parseError !== true\n);\nif (!slComplete) errors.push('sourceLock unvollständig (requiredObjects/requiredAction/faktenAgentJson prüfen)');\n\n// 5. visualAnchors vollständig (die 7 Feldchecks sind bereits die frische Ableitung; das\n// zusaetzliche eingefrorene analysisJson.visualAnchorsValid entfaellt, gleiches Bug-Muster wie\n// beim sourceLock-Check oben, siehe PROJECT_COORDINATION.md 2026-07-25)\nconst va = parseObj(analysis.visualAnchors || {});\nconst vaComplete = !!(\n  safeStr(va.satireThemaKonkret) && safeStr(va.satireKonfliktKonkret) &&\n  asArr(va.visualPflichtobjekte).length >= 2 &&\n  safeStr(va.visualPflichthandlung) && safeStr(va.visualErkennungssatz) &&\n  safeStr(va.visualUeberzeichnung) &&\n  asArr(va.visualVerboteneErsatzmotive).length >= 2\n);\nif (!vaComplete) errors.push('visualAnchors unvollständig (visualVerboteneErsatzmotive prüfen)');\n\nconst contentGateOk = errors.length === 0;\n\nreturn [{\n  json: {\n    ...j,\n    _contentGateOk: contentGateOk,\n    _contentGateErrors: errors,\n    _contentGateForceReset: forceVisualPromptReset\n  }\n}];\n"
+      },
+      "id": "91547714-3029-44e7-bf94-4964f6bc61f1",
+      "name": "Prüfe Content-Abschluss",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "cg-check",
+              "leftValue": "={{ $json._contentGateOk }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "47b0affe-8a53-4c70-b4d7-7d23b2e9bf4a",
+      "name": "IF Content-Gate ok?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        896,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sortierung: 1. firstseen aufsteigend, 2. volfdnr numerisch, 3. vorgangKey lexikografisch\nfunction parseDate(v) {\n  if (!v) return 0;\n  const t = Date.parse(String(v));\n  return Number.isFinite(t) ? t : 0;\n}\nfunction parseVolfdnr(v) {\n  if (!v) return Infinity;\n  const n = parseInt(String(v).replace(/[^0-9]/g, ''), 10);\n  return Number.isFinite(n) ? n : Infinity;\n}\nconst items = $input.all();\nitems.sort((a, b) => {\n  const ja = a.json || {}, jb = b.json || {};\n  const fa = parseDate(ja.firstseen), fb = parseDate(jb.firstseen);\n  if (fa !== fb) return fa - fb;\n  const va = parseVolfdnr(ja.volfdnr), vb = parseVolfdnr(jb.volfdnr);\n  if (va !== vb) return va - vb;\n  return String(ja.vorgangKey || '').localeCompare(String(jb.vorgangKey || ''));\n});\nreturn items;\n"
+      },
+      "id": "d3607203-0ca6-4acd-b9c7-a39c97a6b0d2",
+      "name": "Sortiere Visual-Vorgänge",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        288,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// FORCE VISUAL PROMPT RESET SCHALTER\n// Zweck:\n// - alte Bildprompt-Felder vor der Content-Gate-Pruefung zuruecksetzen\n//\n// Nutzung ausschliesslich ueber DataTable:\n//   visualForceReset = true\n//\n// FIX (Architekturpruefung 2026-07-22, Befund F11): der zusaetzliche,\n// im Code hartcodierte manuelle Schalter (FORCE_RESET_VISUAL_PROMPT +\n// FORCE_ONLY_VORGANG_KEY/FORCE_ONLY_VORGANGSNUMMER) wurde entfernt - er\n// erforderte eine manuelle Code-Aenderung + Redeploy und war damit eine\n// zweite, redundante Quelle fuer denselben Reset-Mechanismus. Der\n// DB-gesteuerte Weg ueber visualForceReset war laut eigenem Kommentar\n// ohnehin immer schon der empfohlene, sichere Weg und bleibt unveraendert.\n// ============================================================\n\nconst j = $input.item.json || {};\n\nfunction safeStr(v) {\n  if (v === null || v === undefined) return '';\n  return String(v).trim();\n}\n\nconst doReset = j.visualForceReset === true;\n\nif (!doReset) {\n  return [{ json: { ...j, _forceVisualPromptReset: false } }];\n}\n\nreturn [{\n  json: {\n    ...j,\n    _forceVisualPromptReset: true,\n    _forceVisualPromptResetAt: new Date().toISOString(),\n    _forceVisualPromptResetReason: 'visualForceReset flag',\n\n    // Wichtig: Status des Visual Prompt Builders wieder öffnen\n    visualPromptStage: 'needs_prompt',\n    imageStage: 'not_started',\n\n    // Alte Visual-Prompt-Artefakte entfernen, damit kein Skip greifen kann\n    imagePrompt: '',\n    imageNegativePrompt: '',\n    imageHeadline: '',\n    imageSubline: '',\n    imageSmallNote: '',\n    altText: '',\n    visualJson: '{}',\n    visualParseError: false,\n    visualDebugReason: '',\n    rawVisualText: '',\n\n    // Nachgelagerte Bildartefakte entkoppeln, falls Spalten existieren\n    imageFinalPath: '',\n    imageCreatedAt: '',\n    imageWorkflowVersion: '',\n\n    // Interne Hinweise, falls Felder nicht als Spalten existieren: unschädlich im Laufzeit-JSON\n    imagePromptFound: false,\n    _skipReason: ''\n  }\n}];\n"
+      },
+      "id": "0e2cf61d-60bd-4471-bc37-3260941f464a",
+      "name": "Force Visual Reset Schalter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        608,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Cutover 2026-07-18: baut die Eingabe fuer den echten Bild-Agent-Aufruf, ersetzt P5s\n// eigene 'AI Visual JSON'-Generierung. sourceTopic/requiredObjects/requiredAction/\n// affectedGroups werden nirgends als eigene DB-Spalte persistiert - sie stecken im\n// bereits gespeicherten faktenAgentJson (siehe P3-Cutover), deshalb hier von dort lesen.\n// satireBrief/imageHeadline/imageSubline usw. sind bereits echte Top-Level-Spalten\n// (Auto-Wahl aus P3 fuer den Text, ggf. durch P5bs Matrix-Umfrage fuers Bild ueberschrieben).\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction asArr(v) {\n  if (Array.isArray(v)) return v.filter(Boolean).map(safeStr);\n  if (typeof v === 'string' && v.trim()) { try { const p = JSON.parse(v); if (Array.isArray(p)) return p.filter(Boolean).map(safeStr); } catch (e) {} }\n  return [];\n}\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; }\n  catch (e) { return {}; }\n}\n\nconst row = $json;\nconst fakten = parseObj(row.faktenAgentJson);\n\nreturn {\n  json: {\n    ...row,\n    vorgangKey: safeStr(row.vorgangKey),\n    vorgangsnummer: safeStr(row.vorgangsnummer),\n    sourceTopic: safeStr(fakten.sourceTopic),\n    requiredObjects: asArr(fakten.requiredObjects),\n    requiredAction: safeStr(fakten.requiredAction),\n    affectedGroups: asArr(fakten.affectedGroups),\n    satireBrief: safeStr(row.satireBrief),\n    satireAngle: safeStr(row.satireAngle),\n    satirePunchlines: asArr(row.satirePunchlines),\n    satireTarget: safeStr(row.satireTarget),\n    satireIntensity: row.satireIntensity,\n    satireDoNotClaim: asArr(row.satireDoNotClaim),\n    satireSafetyNote: safeStr(row.satireSafetyNote),\n    imageHeadline: safeStr(row.imageHeadline),\n    imageSubline: safeStr(row.imageSubline)\n  }\n};"
+      },
+      "id": "82e07b70-abbc-4ec3-acfa-aa956f947ce8",
+      "name": "Bild-Agent: Baue Eingabe",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "WR1xVNo4AjcsKlMv",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Bild_Agent"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "e91ed786-ca99-43a8-9ebf-048a124da45f",
+      "name": "Execute Workflow Bild-Agent",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        416,
+        40
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Stellt den Vorgangskontext nach dem Bild-Agent-Aufruf wieder her (gleiches Muster wie\n// die anderen 'Stelle Kontext nach ... Agent wieder her'-Nodes in P3) - Execute Workflow\n// ersetzt das Item-JSON durch die reine Sub-Workflow-Antwort.\n// Bei Parse-Fehler: visualParseError=true setzen, damit 'Code in JavaScript' den\n// bestehenden, unveraenderten Fehler-/Retry-Pfad nimmt (visualPromptStage='prompt_error'),\n// statt beim fehlenden imagePrompt zu werfen.\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst response = $json || {};\nconst base = $('Bild-Agent: Baue Eingabe').itemMatching($itemIndex).json || {};\nconst hasParseError = response.parseError === true || typeof response.imagePrompt !== 'string';\n\nif (hasParseError) {\n  return {\n    json: {\n      ...base,\n      visualParseError: true,\n      visualDebugReason: 'Bild-Agent Parse-Fehler oder Aufruf fehlgeschlagen',\n      visualPromptStage: 'prompt_error',\n      imageStage: (safeStr(base.imageFinalPath) ? 'composed' : 'not_started'),\n      visualPromptCreatedAt: new Date().toISOString()\n    }\n  };\n}\n\nreturn {\n  json: {\n    ...base,\n    imageHeadline: safeStr(response.imageHeadline) || safeStr(base.imageHeadline),\n    imageSubline: safeStr(response.imageSubline) || safeStr(base.imageSubline),\n    imagePrompt: safeStr(response.imagePrompt),\n    imageNegativePrompt: safeStr(response.imageNegativePrompt),\n    altText: safeStr(response.altText),\n    visualMetaphor: safeStr(response.visualMetaphor),\n    visualParseError: false,\n    visualDebugReason: '',\n    visualPromptStage: 'prompt_ready',\n    imageStage: (safeStr(base.imageFinalPath) ? 'composed' : 'not_started'),\n    visualPromptCreatedAt: new Date().toISOString()\n  }\n};"
+      },
+      "id": "ae898110-8038-4899-ac88-5ce86962b08d",
+      "name": "Stelle Kontext nach Bild-Agent wieder her",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "last_error_code": "={{ ($json._contentGateErrors || []).some(e => String(e).includes('visualAnchors')) ? 'VISUAL_ANCHORS_MISSING' : (($json._contentGateErrors || []).some(e => String(e).includes('sourceLock')) ? 'SOURCE_LOCK_FAILED' : 'CONTENT_JSON_INVALID') }}",
+            "last_error_message": "={{ ($json._contentGateErrors || []).join(' | ').slice(0, 4000) }}",
+            "last_error_stage": "={{ ($json._contentGateErrors || []).some(e => String(e).includes('visualAnchors')) ? 'visual' : 'content' }}",
+            "last_error_at": "={{ $now.toISO() }}",
+            "retry_count": "={{ Number($json.retry_count || 0) + 1 }}",
+            "next_retry_at": "={{ ($json._contentGateErrors || []).some(e => String(e).includes('contentJson')) ? $now.plus({ minutes: Math.min(1440, 15 * Math.pow(2, Math.max(0, Number($json.retry_count || 0)))) }).toISO() : '' }}",
+            "vorlageDatumWeb": "={{ $json.vorlageDatumWeb || '' }}",
+            "vorlageDatumPdf": "={{ $json.vorlageDatumPdf || '' }}",
+            "vorlageDatum": "={{ $json.vorlageDatum || $json.vorlageDatumWeb || '' }}",
+            "verfasser": "={{ $json.verfasser || '' }}",
+            "fachdienst": "={{ $json.fachdienst || '' }}"
+          },
+          "schema": [
+            {
+              "id": "vorlageDatumWeb",
+              "displayName": "vorlageDatumWeb",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatumPdf",
+              "displayName": "vorlageDatumPdf",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatum",
+              "displayName": "vorlageDatum",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "verfasser",
+              "displayName": "verfasser",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "fachdienst",
+              "displayName": "fachdienst",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "729aedbd-cad6-40ee-a28f-d1286914d423",
+      "name": "DB Visual-Gate Fehler",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "Q54kptpOrbug6bJu",
+          "mode": "list",
+          "cachedResultName": "allris_state_history",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/Q54kptpOrbug6bJu"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_id": "={{ 'p5-' + $execution.id + '-' + $json.vorgangKey + '-gate-failure' }}",
+            "vorgang_key": "={{ $json.vorgangKey }}",
+            "pipeline_stage": "={{ ($json._contentGateErrors || []).some(e => String(e).includes('visualAnchors')) ? 'visual' : 'content' }}",
+            "old_state": "",
+            "new_state": "blocked",
+            "reason_code": "={{ ($json._contentGateErrors || []).some(e => String(e).includes('visualAnchors')) ? 'VISUAL_ANCHORS_MISSING' : (($json._contentGateErrors || []).some(e => String(e).includes('sourceLock')) ? 'SOURCE_LOCK_FAILED' : 'CONTENT_JSON_INVALID') }}",
+            "reason_message": "={{ ($json._contentGateErrors || []).join(' | ').slice(0, 4000) }}",
+            "workflow_name": "ALLRIS_P5_Visual_Prompt_Builder",
+            "workflow_execution_id": "={{ $execution.id }}",
+            "created_at": "={{ $now.toISO() }}",
+            "metadata_json": "={{ JSON.stringify({ gate_errors: $json._contentGateErrors || [], retry_count: Number($json.retry_count || 0) + 1 }) }}"
+          },
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "7459b617-ad5a-4a11-8eb2-8f7297e7fe36",
+      "name": "History Visual-Gate Fehler",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1360,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = Date.now();\nconst owner = `ALLRIS_P5_Visual_Prompt_Builder:${$execution.id}`;\nreturn items\n  .filter(item => {\n    const j = item.json || {};\n    const oldOwner = String(j.claim_owner || '').trim();\n    const expires = Date.parse(String(j.claim_expires_at || ''));\n    return !oldOwner || !Number.isFinite(expires) || expires <= now;\n  })\n  .map(item => ({ json: {\n    ...item.json,\n    claimAction: 'acquire',\n    claimOwner: owner,\n    claimStage: 'visual',\n    leaseMinutes: 30,\n    expectedClaimOwner: item.json.claim_owner ?? null,\n    expectedClaimExpiresAt: item.json.claim_expires_at ?? null\n  } }));"
+      },
+      "id": "18293a4b-1111-4182-93a4-000000000001",
+      "name": "Bereite P5 Claims vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        304,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D7cmBsy3exuOkBd9",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Claim_Lease"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "18293a4b-2222-4182-93a4-000000000002",
+      "name": "Erwerbe P5 Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        544,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.filter(item => item.json?.claimAcquired === true);"
+      },
+      "id": "18293a4b-3333-4182-93a4-000000000003",
+      "name": "Nur bestaetigte P5 Claims",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        784,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// FIX 2026-07-25 (systemweit gefunden ueber ALLRIS_P9_Mastodon_Publish): ALLRIS_Claim_Lease's\n// \"Release eigener Claim\" matcht per id UND claim_owner - ohne id lief die Freigabe bisher\n// stillschweigend ins Leere (0 Zeilen getroffen, kein Fehler), der Claim blieb bis zum\n// natuerlichen 30-Minuten-Lease-Ablauf haengen statt sofort freigegeben zu werden.\nconst vorgangKey = String($json.vorgangKey || '').trim();\nconst id = $json.id;\nif (!vorgangKey) throw new Error('[P5 Claim Release] vorgangKey fehlt.');\nif (!id) throw new Error('[P5 Claim Release] id fehlt - Release-Matching in ALLRIS_Claim_Lease braucht id + claim_owner, sonst laeuft die Freigabe stillschweigend ins Leere.');\nreturn [{ json: { id, vorgangKey, claimAction: 'release', claimOwner: `ALLRIS_P5_Visual_Prompt_Builder:${$execution.id}` } }];"
+      },
+      "id": "18293a4b-4444-4182-93a4-000000000004",
+      "name": "Bereite P5 Claim-Freigabe vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D7cmBsy3exuOkBd9",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Claim_Lease"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "18293a4b-5555-4182-93a4-000000000005",
+      "name": "Release P5 Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1360,
+        480
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hole needs_visual_prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole needs_visual_prompt": {
+      "main": [
+        [
+          {
+            "node": "Filtere Visual-Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtere Visual-Status": {
+      "main": [
+        [
+          {
+            "node": "Bereite P5 Claims vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereite P5 Claims vor": {
+      "main": [
+        [
+          {
+            "node": "Erwerbe P5 Claim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Erwerbe P5 Claim": {
+      "main": [
+        [
+          {
+            "node": "Nur bestaetigte P5 Claims",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nur bestaetigte P5 Claims": {
+      "main": [
+        [
+          {
+            "node": "Sortiere Visual-Vorgänge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereite P5 Claim-Freigabe vor": {
+      "main": [
+        [
+          {
+            "node": "Release P5 Claim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Visual Vorgänge": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Force Visual Reset Schalter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Visual Prompt Input": {
+      "main": [
+        [
+          {
+            "node": "IF Skip (Prompt vorhanden)?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update allris_vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Nächster Vorgang",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Bereite P5 Claim-Freigabe vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nächster Vorgang": {
+      "main": [
+        [
+          {
+            "node": "Loop Visual Vorgänge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Update allris_vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Skip (Prompt vorhanden)?": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF Headline bereits gewählt?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Headline bereits gewählt?": {
+      "main": [
+        [
+          {
+            "node": "Bild-Agent: Baue Eingabe",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Nächster Vorgang",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Bereite P5 Claim-Freigabe vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prüfe Content-Abschluss": {
+      "main": [
+        [
+          {
+            "node": "IF Content-Gate ok?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Content-Gate ok?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Visual Prompt Input",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Nächster Vorgang",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "DB Visual-Gate Fehler",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "History Visual-Gate Fehler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sortiere Visual-Vorgänge": {
+      "main": [
+        [
+          {
+            "node": "Loop Visual Vorgänge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Force Visual Reset Schalter": {
+      "main": [
+        [
+          {
+            "node": "Prüfe Content-Abschluss",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bild-Agent: Baue Eingabe": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow Bild-Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow Bild-Agent": {
+      "main": [
+        [
+          {
+            "node": "Stelle Kontext nach Bild-Agent wieder her",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stelle Kontext nach Bild-Agent wieder her": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB Visual-Gate Fehler": {
+      "main": [
+        [
+          {
+            "node": "Bereite P5 Claim-Freigabe vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "errorWorkflow": "qPheJKPv0k06tkro"
+  },
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": [
+        18
+      ]
+    }
+  },
+  "meta": null,
+  "pinData": {},
+  "versionId": "28464c04-790d-437b-a6d4-abd7dd615100",
+  "activeVersionId": "28464c04-790d-437b-a6d4-abd7dd615100",
+  "versionCounter": 301,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-07-04T23:22:31.951Z",
+      "createdAt": "2026-07-04T23:22:31.951Z",
+      "role": "workflow:owner",
+      "workflowId": "WIg40QYXmouRoYjq",
+      "projectId": "CrnegVcMvlcRU0OP",
+      "project": {
+        "updatedAt": "2026-05-23T11:38:39.411Z",
+        "createdAt": "2026-05-23T11:33:40.374Z",
+        "id": "CrnegVcMvlcRU0OP",
+        "name": "Oliver Lietz <oliver.lietz@golietz.de>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "66557ab1-dd68-4186-b616-ecaa8f1bea61"
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-07-31T09:32:02.733Z",
+    "createdAt": "2026-07-31T09:32:02.733Z",
+    "versionId": "28464c04-790d-437b-a6d4-abd7dd615100",
+    "workflowId": "WIg40QYXmouRoYjq",
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "hours",
+                "hoursInterval": 1,
+                "triggerAtMinute": 29
+              }
+            ]
+          }
+        },
+        "id": "1be7696b-83b3-4a16-8df9-81cf17f9fc17",
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.1,
+        "position": [
+          0,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "get",
+          "dataTableId": {
+            "__rl": true,
+            "value": "hBLqpqeVEojPpOJl",
+            "mode": "list",
+            "cachedResultName": "allris_vorgaenge",
+            "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+          },
+          "filters": {
+            "conditions": []
+          },
+          "returnAll": true
+        },
+        "id": "fb5ec274-8cf0-4f14-b685-7d561c95b54c",
+        "name": "Hole needs_visual_prompt",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          144,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "// Filtert die breit gelesene Data Table auf die Ziel-Status des Visual\n// Prompt Builders. Die Data Table kann kein OR über mehrere Werte desselben\n// Feldes - deshalb wird hier gefiltert statt in der DB-Abfrage direkt\n// (siehe \"Hole needs_visual_prompt\", vorher AND-verknüpfte Bedingungen == 0 Treffer).\n// 'headline_selected' = Nutzer hat per Matrix-Antwort eine Headline/Subline-Variante\n// gewählt; für diese Zeilen wird nur noch der Bildprompt gebaut, keine neuen\n// Headline-Varianten mehr erzeugt (siehe \"IF Headline bereits gewählt?\").\nconst ZIEL_PROMPT_STAGE = ['needs_prompt', 'prompt_error'];\nconst ZIEL_HEADLINE_STAGE = ['headline_selected'];\n\n// FIX 2026-07-26: Zeilen, deren Sharepic bereits als nicht noetig (not_applicable) oder\n// blockiert (topic_error, z.B. durch einen QA-Guard) markiert wurden, sollen hier gar nicht\n// mehr ankommen - sonst prueft \"Pruefe Content-Abschluss\" endlos gegen ein Bild, das nie\n// entstehen wird, und ueberschreibt dabei jedes Mal den eigentlichen (aussagekraeftigeren)\n// Blockierungsgrund mit einer generischen CONTENT_JSON_INVALID-Meldung (Realfall Vorgang 2026/109).\nconst BLOCKED_SHAREPIC_STAGES = new Set(['not_applicable', 'topic_error']);\n\n// FIX 2026-07-28 (live bestaetigter Kosten-Bug): 'headline_selected' wird nach der Nutzer-Wahl\n// NIE wieder zurueckgesetzt - bleibt also fuer IMMER stehen, auch nachdem P5 laengst einen\n// gueltigen Prompt gebaut und P6 laengst ein fertiges, teils veroeffentlichtes Bild komponiert\n// hat. Dieser Filter liess solche Zeilen jede Stunde erneut durch (ZIEL_HEADLINE_STAGE-Treffer\n// ignoriert komplett, ob schon ein Bild existiert), 'Prepare Visual Prompt Input' erkannte den\n// bestehenden Prompt wegen eines strengen/veralteten visualJson-Schemas oft nicht als gueltig\n// ('hasValidExistingPrompt' schlug fehl) und baute jede Stunde einen KOMPLETT NEUEN Prompt\n// (teurer KI-Aufruf) samt Reset von imageStage auf 'not_started' - live bestaetigt an 13\n// laengst fertigen, teils veroeffentlichten Vorgaengen in einem einzigen Lauf (10:29 Uhr).\n// Ein bereits komponiertes Bild (imageStage='composed') soll hier nie wieder aufschlagen,\n// ausser bei explizitem manuellem Reset (visualForceReset=true, siehe 'Force Visual Reset\n// Schalter' weiter unten im Loop).\nconst ALREADY_COMPOSED_STAGES = new Set(['composed']);\n\nreturn items.filter(item => {\n  const promptStage = String(item.json.visualPromptStage || '').trim();\n  const headlineStage = String(item.json.headlineChoiceStage || '').trim();\n  const sharepicNeedStage = String(item.json.sharepicNeedStage || '').trim();\n  const imageStage = String(item.json.imageStage || '').trim();\n  if (BLOCKED_SHAREPIC_STAGES.has(sharepicNeedStage)) return false;\n  if (ALREADY_COMPOSED_STAGES.has(imageStage) && item.json.visualForceReset !== true) return false;\n  return ZIEL_PROMPT_STAGE.includes(promptStage) || ZIEL_HEADLINE_STAGE.includes(headlineStage);\n});\n"
+        },
+        "id": "b7c9e2f1-6d4a-4c8e-9f1a-2e5d7c3b8a90",
+        "name": "Filtere Visual-Status",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          304,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "options": {}
+        },
+        "id": "d92dbad7-bc31-48eb-bafa-a318e287b1f2",
+        "name": "Loop Visual Vorgänge",
+        "type": "n8n-nodes-base.splitInBatches",
+        "typeVersion": 3,
+        "position": [
+          448,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "// ============================================================\n// PREPARE VISUAL PROMPT INPUT  (v2 — visual anchor fields)\n// Übergibt alle Themenanker-Felder an die KI\n// ============================================================\n\nconst raw = $input.item.json || {};\n\nfunction safeStr(v) {\n  if (v === null || v === undefined) return '';\n  return String(v).trim();\n}\n\nfunction safeJson(v, fallback = '{}') {\n  if (!v) return fallback;\n  if (typeof v === 'string') return v.trim() || fallback;\n  try { return JSON.stringify(v); } catch (e) { return fallback; }\n}\n\nfunction parseObject(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try {\n    const parsed = JSON.parse(String(v));\n    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};\n  } catch (e) {\n    return {};\n  }\n}\n\nfunction firstValue(...values) {\n  for (const value of values) {\n    if (value === null || value === undefined) continue;\n    if (Array.isArray(value) && value.length > 0) return value;\n    if (typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0) return value;\n    if (String(value).trim() !== '') return value;\n  }\n  return '';\n}\n\n// Die bestehenden Tabellenspalten bleiben unverändert.\n// Detailfelder werden aus analysisJson bzw. visualJson.anchors gelesen.\nconst analysis = parseObject(raw.analysisJson);\nconst storedVisual = parseObject(raw.visualJson);\nconst storedAnchors = parseObject(storedVisual.anchors);\nconst analysisAnchors = parseObject(analysis.visualAnchors);\n\n// ============================================================\n// SOURCELOCK aus analysisJson extrahieren (hat Vorrang vor visualJson)\n// ============================================================\nconst sourceLockFromAnalysis = parseObject(analysis.sourceLock || {});\nconst storedSourceLock = parseObject(storedVisual.sourceLock || {});\nconst currentSourceLock = Object.keys(sourceLockFromAnalysis).length > 0\n  ? sourceLockFromAnalysis\n  : storedSourceLock;\n\n// FIX 3.4: Wenn canonical Source-Lock fehlt oder ungültig -> blockieren, kein Prompt\n// Keine Ableitung aus Titel, Thema oder satireThemaKonkret\n{\n  const slPresent = !!(currentSourceLock && currentSourceLock.sourceTopic);\n  // FIX 2026-07-25 (mirror des -OK-Handlers in P5b und der Repair-Sweeps in P4/P3b/P3c): NICHT\n  // das eingefrorene analysisJson.sourceLockValid pruefen, sondern frisch aus faktenAgentJson\n  // ableiten. Repariere Legacy Visual-Status in P4 kann eine Zeile freigeben, ohne dabei\n  // analysisJson selbst zu korrigieren (nur sharepicNeedStage/visualDecisionReason werden\n  // geschrieben) - ohne diesen Fix wuerde dieser Node so eine bereits reparierte Zeile hier\n  // sofort wieder blockieren.\n  const slValid = slPresent && (() => {\n    try {\n      const rawFA = raw.faktenAgentJson;\n      let fa = {};\n      if (rawFA && typeof rawFA === 'object') fa = rawFA;\n      else if (rawFA) fa = JSON.parse(String(rawFA));\n      return !!(fa && fa.sourceTopic) && fa.parseError !== true;\n    } catch(e) { return false; }\n  })();\n  if (!slPresent || !slValid) {\n    const reason = !slPresent\n      ? 'blocked_by_source_lock: canonical Source-Lock fehlt (sourceTopic)'\n      : 'blocked_by_source_lock: analysisJson.sourceLockValid ist nicht true';\n    return [{\n      json: {\n        ...raw,\n        visualParseError: false,\n        visualDebugReason: reason,\n        visualJson: '{}',\n        imagePrompt: '',\n        imageNegativePrompt: '',\n        imageHeadline: '',\n        imageSubline: '',\n        imageSmallNote: '',\n        altText: '',\n        imagePromptFound: false,\n        sharepicNeedStage: 'blocked_source_lock',\n        imageStage: (raw.imageFinalPath ? 'composed' : 'not_started'),\n        visualPromptCreatedAt: new Date().toISOString()\n      }\n    }];\n  }\n}\n\n\nconst j = {\n  ...raw,\n\n  // Felder, für die keine eigenen Tabellenspalten existieren\n  kernbotschaft: firstValue(raw.kernbotschaft, analysis.kernbotschaft),\n  dieParteiReaktion: firstValue(raw.dieParteiReaktion, analysis.dieParteiReaktion),\n\n  satireThemaKonkret: firstValue(\n    analysisAnchors.satireThemaKonkret,\n    analysis.satireThemaKonkret,\n    raw.satireThemaKonkret,\n    storedAnchors.satireThemaKonkret\n  ),\n  satireKonfliktKonkret: firstValue(\n    analysisAnchors.satireKonfliktKonkret,\n    analysis.satireKonfliktKonkret,\n    raw.satireKonfliktKonkret,\n    storedAnchors.satireKonfliktKonkret\n  ),\n  visualPflichtobjekte: firstValue(\n    analysisAnchors.visualPflichtobjekte,\n    analysis.visualPflichtobjekte,\n    raw.visualPflichtobjekte,\n    storedAnchors.visualPflichtobjekte,\n    []\n  ),\n  visualPflichthandlung: firstValue(\n    analysisAnchors.visualPflichthandlung,\n    analysis.visualPflichthandlung,\n    raw.visualPflichthandlung,\n    storedAnchors.visualPflichthandlung\n  ),\n  visualBetroffene: firstValue(\n    analysisAnchors.visualBetroffene,\n    analysis.visualBetroffene,\n    raw.visualBetroffene,\n    storedAnchors.visualBetroffene,\n    []\n  ),\n  visualOrt: firstValue(\n    analysisAnchors.visualOrt,\n    analysis.visualOrt,\n    raw.visualOrt,\n    storedAnchors.visualOrt\n  ),\n  visualUeberzeichnung: firstValue(\n    analysisAnchors.visualUeberzeichnung,\n    analysis.visualUeberzeichnung,\n    raw.visualUeberzeichnung,\n    storedAnchors.visualUeberzeichnung\n  ),\n  visualErkennungssatz: firstValue(\n    analysisAnchors.visualErkennungssatz,\n    analysis.visualErkennungssatz,\n    raw.visualErkennungssatz,\n    storedAnchors.visualErkennungssatz\n  ),\n  visualVerboteneErsatzmotive: firstValue(\n    analysisAnchors.visualVerboteneErsatzmotive,\n    analysis.visualVerboteneErsatzmotive,\n    raw.visualVerboteneErsatzmotive,\n    storedAnchors.visualVerboteneErsatzmotive,\n    []\n  )\n};\n\nfunction isOldMaskPrompt(p) {\n  const lower = safeStr(p).toLowerCase();\n  return (\n    lower.includes('maske') ||\n    lower.includes('bearbeite ausschließlich') ||\n    lower.includes('editierbaren bereich') ||\n    lower.includes('setze die headline') ||\n    lower.includes('setze die parteireaktion') ||\n    lower.includes('verändere keinen rahmen') ||\n    lower.includes('qr-code')\n  );\n}\n\n// Skip-Prüfung: nur überspringen wenn ALLE neuen Ankerfelder vorhanden sind\nfunction hasValidExistingPrompt(j) {\n  const p = safeStr(j.imagePrompt);\n  const headline = safeStr(j.imageHeadline);\n  const subline = safeStr(j.imageSubline);\n\n  if (p.length < 80) return false;\n  if (!headline || !subline) return false;\n  if (isOldMaskPrompt(p)) return false;\n\n  // Neue Pflicht: visualJson muss topicPlain + mustShow enthalten\n  let vj = null;\n  try { vj = JSON.parse(j.visualJson || '{}'); } catch(e) { return false; }\n  if (!vj.topicPlain || !vj.conflictPlain) return false;\n  if (!Array.isArray(vj.mustShow) || vj.mustShow.length < 2) return false;\n  if (!vj.visibleAction || !vj.whyRecognizableWithoutText) return false;\n  if (!vj.recognitionSentence) return false;\n  if (!vj.forbiddenSubstitutes || !Array.isArray(vj.forbiddenSubstitutes)) return false;\n\n  // FIX 8: forbiddenSubstitutes muss alle aktuellen verbotenen Ersatzmotive abdecken\n  let baseVerboten = [];\n  try { baseVerboten = JSON.parse(j.visualVerboteneErsatzmotive || '[]'); } catch(e) {}\n  if (baseVerboten.length > 0) {\n    const notCovered = baseVerboten.filter(bv =>\n      !vj.forbiddenSubstitutes.some(fs => skipMatch(bv, fs))\n    );\n    if (notCovered.length > 0) return false; // verbotene Motive nicht abgedeckt\n  }\n\n  // Inhaltlicher Abgleich: mustShow muss visualPflichtobjekte berücksichtigen\n  function normSkip(s) {\n    return String(s || '').toLowerCase()\n      .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss');\n  }\n  function tokensSkip(s) {\n    return normSkip(s).split(/[\\W]+/).filter(w => w.length >= 4);\n  }\n  function skipMatch(a, b) {\n    const ta = tokensSkip(a), tb = tokensSkip(b);\n    if (ta.some(t => tb.includes(t))) return true;\n    const na = normSkip(a).replace(/\\s+/g,''), nb = normSkip(b).replace(/\\s+/g,'');\n    return (na.length >= 5 && nb.includes(na)) || (nb.length >= 5 && na.includes(nb));\n  }\n  \n  let basePflicht = [];\n  try { basePflicht = JSON.parse(j.visualPflichtobjekte || '[]'); } catch(e) {}\n  if (basePflicht.length >= 2) {\n    const matchedPflicht = basePflicht.filter(bp => vj.mustShow.some(ms => skipMatch(bp, ms)));\n    if (matchedPflicht.length < 2) return false; // mustShow stimmt nicht mit Pflichtobjekten überein\n  }\n\n  // visibleAction muss visualPflichthandlung entsprechen\n  const basePflichthandlung = safeStr(j.visualPflichthandlung);\n  if (basePflichthandlung && !skipMatch(vj.visibleAction, basePflichthandlung)) return false;\n\n  // recognitionSentence muss visualErkennungssatz entsprechen\n  const baseErkennungssatz = safeStr(j.visualErkennungssatz);\n  if (baseErkennungssatz && !skipMatch(vj.recognitionSentence, baseErkennungssatz)) return false;\n\n  // imagePrompt muss Pflichthandlung beschreiben\n  if (basePflichthandlung && !skipMatch(p, basePflichthandlung)) return false;\n\n  // imagePrompt muss mindestens 2 konkrete Pflichtobjekte enthalten\n  if (basePflicht.length >= 2) {\n    const promptObjekte = basePflicht.filter(bp => skipMatch(p, bp));\n    if (promptObjekte.length < 2) return false;\n  }\n\n  // SOURCELOCK-PRÜFUNG: Wenn analysisJson.sourceLock vorhanden, muss bestehendes visualJson damit übereinstimmen\n  if (currentSourceLock && currentSourceLock.sourceTopic) {\n    function normSL(s) {\n      return String(s || '').toLowerCase()\n        .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss')\n        .replace(/[\\W]+/g,' ').trim();\n    }\n    function matchSL(a, b) {\n      const ta = normSL(a).split(/\\s+/).filter(w => w.length >= 4);\n      const tb = normSL(b).split(/\\s+/).filter(w => w.length >= 4);\n      if (ta.length === 0 || tb.length === 0) return false;\n      return ta.some(t => tb.includes(t));\n    }\n    // topicPlain muss sourceTopic entsprechen\n    if (vj.topicPlain && !matchSL(vj.topicPlain, currentSourceLock.sourceTopic)) return false;\n    // conflictPlain muss sourceConflict entsprechen\n    if (currentSourceLock.sourceConflict && vj.conflictPlain && !matchSL(vj.conflictPlain, currentSourceLock.sourceConflict)) return false;\n    // imagePrompt muss mindestens einen konkreten requiredTerm enthalten\n    const GENERIC = new Set(['verwaltung','politik','buerokratie','goslar','rathaus','stadt']);\n    const reqTerms = (currentSourceLock.requiredTerms || []).filter(t => {\n      const tn = normSL(t).replace(/\\s/g,'');\n      return t.length >= 4 && !GENERIC.has(normSL(t));\n    });\n    if (reqTerms.length >= 2) {\n      const stem = t => normSL(t).substring(0, Math.max(4, Math.floor(normSL(t).length * 0.75)));\n      const pNorm = normSL(p);\n      const promptHasTerm = reqTerms.some(t => pNorm.includes(stem(t)));\n      if (!promptHasTerm) return false;\n    }\n    // Rein allgemeines topicPlain ist ungültig\n    const genericTopics = ['verwaltung','politik','buerokratie','goslar','rathaus','kommunalpolitik'];\n    if (genericTopics.includes(normSL(vj.topicPlain))) return false;\n  }\n\n  return true;\n}\n\nconst vorgangKey = safeStr(j.vorgangKey);\n\nif (!vorgangKey) {\n  throw new Error(\n    'Prepare Visual Prompt Input abgebrochen: vorgangKey fehlt im Eingangsdatenbestand.'\n  );\n}\n\n// Wenn bereits ein vollständig gültiger Motivprompt + visualJson vorhanden ist: überspringen\nif (j._forceVisualPromptReset !== true && hasValidExistingPrompt(j)) {\n  return [{\n    json: {\n      ...j,\n      _skipReason: 'valid new motif imagePrompt already exists (incl. visualJson anchor fields)',\n      visualPromptStage: 'prompt_ready',\n      imageStage: (j.imageFinalPath ? 'composed' : 'not_started'),\n      imagePromptFound: true,\n      visualParseError: false\n    }\n  }];\n}\n\n// Neue Ankerfelder sicher lesen\nconst satireThemaKonkret       = safeStr(j.satireThemaKonkret);\nconst satireKonfliktKonkret    = safeStr(j.satireKonfliktKonkret);\nconst visualPflichtobjekte     = safeJson(j.visualPflichtobjekte, '[]');\nconst visualPflichthandlung    = safeStr(j.visualPflichthandlung);\nconst visualBetroffene         = safeJson(j.visualBetroffene, '[]');\nconst visualOrt                = safeStr(j.visualOrt);\nconst visualUeberzeichnung     = safeStr(j.visualUeberzeichnung);\nconst visualErkennungssatz     = safeStr(j.visualErkennungssatz);\nconst visualVerboteneErsatzmotive = safeJson(j.visualVerboteneErsatzmotive, '[]');\n\n// Sachliche Felder\nconst summaryText  = safeStr(j.summaryText);\nconst thema        = safeStr(j.thema);\nconst betroffene   = safeStr(j.betroffene);\nconst buergerwirkung = safeStr(j.buergerwirkung);\n\n// KI soll neuen Motivprompt erzeugen\n// FIX: imageHeadline/imageSubline aus raw übernehmen statt zu leeren - sonst\n// kann \"IF Headline bereits gewählt?\" weiter unten nie erkennen, dass für\n// headline_selected-Zeilen bereits eine Nutzer-Auswahl vorliegt.\nconst chosenImageHeadline = safeStr(raw.imageHeadline);\nconst chosenImageSubline  = safeStr(raw.imageSubline);\n\n// FIX 2026-07-31 (live bestaetigt an 2026/140, 2026/182): dieser Rueckgabe-Block baut das\n// Ergebnis-Item als reine Feld-Whitelist statt per Spread (anders als die beiden anderen\n// return-Zweige oben, die {...j}/{...raw} nutzen) - 'id' stand nicht in der Liste und ging\n// dadurch fuer JEDE Zeile verloren, die hier einen neuen Prompt braucht. Ohne id kann\n// 'Bereite P5 Claim-Freigabe vor' spaeter im Reaktions-Pfad nicht freigeben (wirft 'id fehlt')\n// - betraf bisher nur den headline_selected=false-Pfad sichtbar, da der Erfolgspfad ueber\n// 'Update allris_vorgaenge' (Data Table Node) die id unabhaengig vom Input aus der DB-Zeile\n// zurueckbekommt und den Verlust so zufaellig kaschiert hat.\nreturn [{\n  json: {\n    id:                      j.id,\n    vorgangKey,\n    vorgangsnummer:          safeStr(j.vorgangsnummer),\n    title:                   safeStr(j.title),\n    allrisUrl:               safeStr(j.allrisUrl),\n    sourceUrl:               safeStr(j.sourceUrl),\n    nextcloudFolder:         safeStr(j.nextcloudFolder),\n\n    sprengstoff:             safeStr(j.sprengstoff),\n    empfehlung:              safeStr(j.empfehlung),\n    relevantScore:           j.relevantScore || 0,\n    kommunikationspotenzial: j.kommunikationspotenzial || 0,\n    visualDecisionReason:    safeStr(j.visualDecisionReason),\n\n    // Sachliche Zusammenfassung (muss erhalten bleiben)\n    summaryText,\n    thema,\n    betroffene,\n    buergerwirkung,\n\n    kernbotschaft:           safeStr(j.kernbotschaft),\n    satireBrief:             safeStr(j.satireBrief),\n    satireAngle:             safeStr(j.satireAngle),\n    satirePunchlines:        safeJson(j.satirePunchlines, '[]'),\n    visualMetaphor:          safeStr(j.visualMetaphor),\n    satireTarget:            safeStr(j.satireTarget),\n    satireIntensity:         Number(j.satireIntensity || 0),\n    satireDoNotClaim:        safeJson(j.satireDoNotClaim, '[]'),\n    satireSafetyNote:        safeStr(j.satireSafetyNote),\n    dieParteiReaktion:       safeStr(j.dieParteiReaktion),\n    instagramCaption:        safeStr(j.instagramCaption),\n    headlines:               safeStr(j.headlines),\n    websiteHeadline:         safeStr(j.websiteHeadline),\n\n    belegbareFakten:         safeJson(j.belegbareFakten, '[]'),\n    kritischeNachfrage:      safeStr(j.kritischeNachfrage),\n    offenePunkte:            safeJson(j.offenePunkte, '[]'),\n    unsicherheitenSummary:   safeStr(j.unsicherheitenSummary),\n    analysisJson:            safeJson(j.analysisJson),\n    contentJson:             safeJson(j.contentJson),\n\n    // Visuelle Ankerfelder (Pflicht für KI-Prompt)\n    satireThemaKonkret,\n    satireKonfliktKonkret,\n    visualPflichtobjekte,\n    visualPflichthandlung,\n    visualBetroffene,\n    visualOrt,\n    visualUeberzeichnung,\n    visualErkennungssatz,\n    visualVerboteneErsatzmotive,\n\n    imagePrompt:             '',\n    imageNegativePrompt:     '',\n    imageHeadline:           chosenImageHeadline,\n    imageSubline:            chosenImageSubline,\n    imageSmallNote:          '',\n    altText:                 '',\n    visualJson:              '{}',\n\n    _skipReason:             '',\n    imagePromptFound:        false,\n    visualParseError:        false,\n    visualPromptStage:       'needs_prompt',\n    imageStage:              (j.imageFinalPath ? 'composed' : 'not_started'),\n    _forceVisualPromptReset: j._forceVisualPromptReset === true,\n    _forceVisualPromptResetAt: safeStr(j._forceVisualPromptResetAt),\n    _forceVisualPromptResetReason: safeStr(j._forceVisualPromptResetReason),\n    sourceLockJson:          JSON.stringify(currentSourceLock || {})\n  }\n}];\n"
+        },
+        "id": "8f5d5ba9-46d7-469e-9697-aa55516f71f4",
+        "name": "Prepare Visual Prompt Input",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1056,
+          0
+        ],
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 2
+            },
+            "conditions": [
+              {
+                "id": "check-headline-chosen",
+                "leftValue": "={{ ($json.imageHeadline || '').trim().length > 0 && ($json.imageSubline || '').trim().length > 0 }}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "id": "d4b1e5c6-5555-4aaa-8bbb-555555555555",
+        "name": "IF Headline bereits gewählt?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -128,
+          160
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "update",
+          "dataTableId": {
+            "__rl": true,
+            "value": "hBLqpqeVEojPpOJl",
+            "mode": "list",
+            "cachedResultName": "allris_vorgaenge",
+            "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+          },
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "vorgangKey",
+                "keyValue": "={{ $json.vorgangKey }}"
+              }
+            ]
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "imagePrompt": "={{ $json.imagePrompt}}",
+              "imageNegativePrompt": "={{ $json.imageNegativePrompt || '' }}",
+              "imageHeadline": "={{ $json.imageHeadline || '' }}",
+              "imageSubline": "={{ $json.imageSubline || '' }}",
+              "imageSmallNote": "",
+              "visualJson": "={{ (() => {\n  let current = {};\n  try {\n    current = typeof $json.visualJson === 'string'\n      ? JSON.parse($json.visualJson || '{}')\n      : ($json.visualJson || {});\n  } catch (e) {\n    current = {};\n  }\n  const currentWorkflow = current.workflow && typeof current.workflow === 'object'\n    ? current.workflow\n    : {};\n  const parseArray = (v) => {\n    if (Array.isArray(v)) return v;\n    try {\n      const p = JSON.parse(v || '[]');\n      return Array.isArray(p) ? p : [];\n    } catch (e) {\n      return [];\n    }\n  };\n  return JSON.stringify({\n    ...current,\n    anchors: {\n      satireThemaKonkret: $json.satireThemaKonkret || '',\n      satireKonfliktKonkret: $json.satireKonfliktKonkret || '',\n      visualPflichtobjekte: parseArray($json.visualPflichtobjekte),\n      visualPflichthandlung: $json.visualPflichthandlung || '',\n      visualBetroffene: parseArray($json.visualBetroffene),\n      visualOrt: $json.visualOrt || '',\n      visualUeberzeichnung: $json.visualUeberzeichnung || '',\n      visualErkennungssatz: $json.visualErkennungssatz || '',\n      visualVerboteneErsatzmotive: parseArray($json.visualVerboteneErsatzmotive)\n    },\n    qualityGate: {\n      maxAttempts: 3,\n      minTopicClarity: 70,\n      minSatireStrength: 60,\n      minMustShowCoverage: 70,\n      minVisualCoherence: 65,\n      requireTopicRecognizable: true,\n      requireSatireRecognizable: true,\n      requireConflictRecognizable: true,\n      rejectForbiddenElements: true\n    },\n    workflow: {\n      ...currentWorkflow,\n      visualStage: $json.visualPromptStage || 'prompt_error',\n      visualParseError: $json.visualParseError === true,\n      visualDebugReason: $json.visualDebugReason || '',\n      imagePromptFound: $json.imagePromptFound === true,\n      visualPromptCreatedAt: $json.visualPromptCreatedAt || $now.toISO(),\n      visualPromptWorkflowVersion: 'visual-prompt-v3.3-qa-ready'\n    }\n  });\n})() }}",
+              "imageStage": "={{ $json.imageStage }}",
+              "altText": "={{ $json.altText || '' }}",
+              "visualPromptStage": "={{ $json.visualPromptStage || 'prompt_error' }}",
+              "vorlageDatumWeb": "={{ $json.vorlageDatumWeb || '' }}",
+              "vorlageDatumPdf": "={{ $json.vorlageDatumPdf || '' }}",
+              "vorlageDatum": "={{ $json.vorlageDatum || $json.vorlageDatumWeb || '' }}",
+              "verfasser": "={{ $json.verfasser || '' }}",
+              "fachdienst": "={{ $json.fachdienst || '' }}"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "vorgangKey",
+                "displayName": "vorgangKey",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "volfdnr",
+                "displayName": "volfdnr",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "title",
+                "displayName": "title",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "sourceUrl",
+                "displayName": "sourceUrl",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "allrisUrl",
+                "displayName": "allrisUrl",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "vorgangsnummer",
+                "displayName": "vorgangsnummer",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "firstseen",
+                "displayName": "firstseen",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "lastseen",
+                "displayName": "lastseen",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "status",
+                "displayName": "status",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "relevantScore",
+                "displayName": "relevantScore",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "themes",
+                "displayName": "themes",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "vorfilterThemen",
+                "displayName": "vorfilterThemen",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "vorfilterKeywords",
+                "displayName": "vorfilterKeywords",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "vorfilterScore",
+                "displayName": "vorfilterScore",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "matrixPosted",
+                "displayName": "matrixPosted",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "nextcloudFolder",
+                "displayName": "nextcloudFolder",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "documentsJson",
+                "displayName": "documentsJson",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "documentCount",
+                "displayName": "documentCount",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "combinedText",
+                "displayName": "combinedText",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "summaryJson",
+                "displayName": "summaryJson",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "summaryText",
+                "displayName": "summaryText",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "summarySentences",
+                "displayName": "summarySentences",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "summaryCreatedAt",
+                "displayName": "summaryCreatedAt",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "summaryPosted",
+                "displayName": "summaryPosted",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "summaryRoomPostedAt",
+                "displayName": "summaryRoomPostedAt",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "thema",
+                "displayName": "thema",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "betroffene",
+                "displayName": "betroffene",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "kostenHaushalt",
+                "displayName": "kostenHaushalt",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "buergerwirkung",
+                "displayName": "buergerwirkung",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "offenePunkte",
+                "displayName": "offenePunkte",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "unsicherheitenSummary",
+                "displayName": "unsicherheitenSummary",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "analysisJson",
+                "displayName": "analysisJson",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "contentJson",
+                "displayName": "contentJson",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "visualJson",
+                "displayName": "visualJson",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "sprengstoff",
+                "displayName": "sprengstoff",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "empfehlung",
+                "displayName": "empfehlung",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "kommunikationspotenzial",
+                "displayName": "kommunikationspotenzial",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "matrixKurzbetreff",
+                "displayName": "matrixKurzbetreff",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "ampel",
+                "displayName": "ampel",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "kurzfassung",
+                "displayName": "kurzfassung",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "kritischeNachfrage",
+                "displayName": "kritischeNachfrage",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "begruendungBewertung",
+                "displayName": "begruendungBewertung",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "werProfitiert",
+                "displayName": "werProfitiert",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "werZahltOderTraegtNachteile",
+                "displayName": "werZahltOderTraegtNachteile",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "warumRelevant",
+                "displayName": "warumRelevant",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "belegbareFakten",
+                "displayName": "belegbareFakten",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "unsicherheiten",
+                "displayName": "unsicherheiten",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "warnsignale",
+                "displayName": "warnsignale",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "instagramCarouselNoetig",
+                "displayName": "instagramCarouselNoetig",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "lastAnalysisAt",
+                "displayName": "lastAnalysisAt",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "rawAiText",
+                "displayName": "rawAiText",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "instagramCaption",
+                "displayName": "instagramCaption",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "instagramCarousel",
+                "displayName": "instagramCarousel",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "imageMode",
+                "displayName": "imageMode",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "imageHeadline",
+                "displayName": "imageHeadline",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "imageSubline",
+                "displayName": "imageSubline",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "imagePrompt",
+                "displayName": "imagePrompt",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "imageNegativePrompt",
+                "displayName": "imageNegativePrompt",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "imagePrompts",
+                "displayName": "imagePrompts",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "recommendedSlides",
+                "displayName": "recommendedSlides",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "carouselJson",
+                "displayName": "carouselJson",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "websiteHeadline",
+                "displayName": "websiteHeadline",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "websiteArticle",
+                "displayName": "websiteArticle",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "facebookPost",
+                "displayName": "facebookPost",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "pressStatement",
+                "displayName": "pressStatement",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "contentCreatedAt",
+                "displayName": "contentCreatedAt",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "reactionRoomPostedAt",
+                "displayName": "reactionRoomPostedAt",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "textExtractionStatus",
+                "displayName": "textExtractionStatus",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "textExtractionSource",
+                "displayName": "textExtractionSource",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "textExtractedAt",
+                "displayName": "textExtractedAt",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "documentsTextJson",
+                "displayName": "documentsTextJson",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "extractedDocumentCount",
+                "displayName": "extractedDocumentCount",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "failedExtractionCount",
+                "displayName": "failedExtractionCount",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "textExtractionError",
+                "displayName": "textExtractionError",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "visualDecisionReason",
+                "displayName": "visualDecisionReason",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "visualNeeded",
+                "displayName": "visualNeeded",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "visualStatus",
+                "displayName": "visualStatus",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "instagramSharepicNoetig",
+                "displayName": "instagramSharepicNoetig",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "imageSmallNote",
+                "displayName": "imageSmallNote",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "altText",
+                "displayName": "altText",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "vorlageDatumWeb",
+                "displayName": "vorlageDatumWeb",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "vorlageDatumPdf",
+                "displayName": "vorlageDatumPdf",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "vorlageDatum",
+                "displayName": "vorlageDatum",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "verfasser",
+                "displayName": "verfasser",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "fachdienst",
+                "displayName": "fachdienst",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {}
+        },
+        "id": "bae18c6a-4d77-427c-a9cf-1de231e2c26e",
+        "name": "Update allris_vorgaenge",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          688,
+          240
+        ],
+        "alwaysOutputData": true
+      },
+      {
+        "parameters": {
+          "jsCode": "return [{ json: $input.item.json }];"
+        },
+        "id": "613dd5df-dbd5-4bc8-84d7-16181afa9c20",
+        "name": "Nächster Vorgang",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          864,
+          240
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "function getRetryInfo(j) {\n  let vj = {};\n  try {\n    vj = JSON.parse(j.visualJson || '{}');\n    if (typeof vj !== 'object') vj = {};\n  } catch(e) {}\n  const wf = (typeof vj.workflow === 'object' && vj.workflow) ? vj.workflow : {};\n  const attempt = Math.max(1, Number(wf.visualPromptAttempt || j.visualPromptAttempt || 1));\n  const maxAttempts = Math.max(2, Number(wf.visualPromptMaxAttempts || j.visualPromptMaxAttempts || 2));\n  return { attempt, maxAttempts, canRetry: attempt < maxAttempts, vj, wf };\n}\n\nconst j = $input.first().json || {};\n\nfunction safeStr(v) {\n  if (v === null || v === undefined) return \"\";\n  return String(v).trim();\n}\n\nfunction parseMaybeJson(v) {\n  if (!v) return {};\n  if (typeof v === \"object\") return v;\n  try { return JSON.parse(v); } catch (e) { return {}; }\n}\n\n// FIX 1.4: blocked_by_source_lock pass-through — kein KI-Aufruf, keine Pflichtfelder\nif (safeStr(j.sharepicNeedStage) === 'blocked_source_lock') {\n  return [{\n    json: {\n      ...j,\n      sharepicNeedStage: 'blocked_source_lock',\n      imageStage: (safeStr(j.imageFinalPath) ? 'composed' : 'not_started')\n    }\n  }];\n}\n\n// FIX 1.1: Retry-Zähler hier erhöhen, BEVOR Update allris_vorgaenge läuft\nconst errorStages = new Set(['prompt_error']);\nif (errorStages.has(safeStr(j.visualPromptStage))) {\n  const { attempt, maxAttempts, vj, wf } = getRetryInfo(j);\n  const newAttempt = attempt + 1;\n  if (newAttempt > maxAttempts) {\n    vj.workflow = { ...wf, visualPromptAttempt: newAttempt, visualPromptMaxAttempts: maxAttempts, visualPromptFinalStatus: 'visual_prompt_failed_final' };\n    return [{\n      json: {\n        ...j,\n        visualJson: JSON.stringify(vj),\n        visualPromptAttempt: newAttempt,\n        visualPromptMaxAttempts: maxAttempts,\n        visualPromptStage: 'prompt_failed_final',\n        imageStage: (safeStr(j.imageFinalPath) ? 'composed' : 'not_started')\n      }\n    }];\n  } else {\n    vj.workflow = { ...wf, visualPromptAttempt: newAttempt, visualPromptMaxAttempts: maxAttempts };\n    return [{\n      json: {\n        ...j,\n        visualJson: JSON.stringify(vj),\n        visualPromptStage: safeStr(j.visualPromptStage),\n        imageStage: (safeStr(j.imageFinalPath) ? 'composed' : 'not_started'),\n        visualPromptAttempt: newAttempt,\n        visualPromptMaxAttempts: maxAttempts\n      }\n    }];\n  }\n}\n\n// Fehler-Pass-Through: Bei visualParseError nicht werfen\nif (j.visualParseError === true) {\n  return [{\n    json: {\n      ...j,\n      visualPromptStage: j.visualPromptStage || 'prompt_error',\n      imageStage: (safeStr(j.imageFinalPath) ? 'composed' : 'not_started')\n    }\n  }];\n}\n\nconst visualJson = parseMaybeJson(j.visualJson);\n\nconst imageHeadline =\n  safeStr(j.imageHeadline) ||\n  safeStr(visualJson.imageHeadline);\n\nconst imageSubline =\n  safeStr(j.imageSubline) ||\n  safeStr(visualJson.imageSubline);\n\nconst imageSmallNote = '';\n\nconst imagePrompt =\n  safeStr(j.imagePrompt) ||\n  safeStr(visualJson.imagePrompt);\n\nconst imageNegativePrompt =\n  safeStr(j.imageNegativePrompt) ||\n  safeStr(visualJson.imageNegativePrompt);\n\nif (!imageHeadline) {\n  throw new Error(\"imageHeadline fehlt.\");\n}\nif (!imageSubline) {\n  throw new Error(\"imageSubline fehlt.\");\n}\nif (!imagePrompt) {\n  throw new Error(\n    \"imagePrompt fehlt. Vorhandene Felder: \" + Object.keys(j).join(\", \")\n  );\n}\n\nreturn [\n  {\n    json: {\n      ...j,\n      imageHeadline,\n      imageSubline,\n      imageSmallNote,\n      imagePrompt,\n      imageNegativePrompt,\n      visualPromptStage: safeStr(j.visualPromptStage) || 'prompt_ready',\n      imageStage: (safeStr(j.imageFinalPath) ? 'composed' : 'not_started')\n    }\n  }\n];\n"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          496,
+          240
+        ],
+        "id": "173a680f-c1cb-4e60-b0bd-50f5dafd10bf",
+        "name": "Code in JavaScript",
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 2
+            },
+            "conditions": [
+              {
+                "id": "check-skip",
+                "leftValue": "={{ $json.imagePromptFound }}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "equals"
+                }
+              },
+              {
+                "id": "check-blocked",
+                "leftValue": "={{ ($json.sharepicNeedStage === 'blocked_source_lock') ? 'yes' : 'no' }}",
+                "rightValue": "yes",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "or"
+          },
+          "options": {}
+        },
+        "id": "618a20bc-6d75-4b09-a099-19cd8d62d9d8",
+        "name": "IF Skip (Prompt vorhanden)?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          1216,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "// FIX 10: Prüfe Content-Abschluss - vollständige Prüfung (V3_11)\nconst j = $input.item.json || {};\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; } catch(e) { return {}; }\n}\nfunction asArr(v) {\n  if (Array.isArray(v)) return v.filter(Boolean).map(s => String(s).trim());\n  if (typeof v === 'string' && v.trim()) {\n    try { const p = JSON.parse(v); if (Array.isArray(p)) return p.filter(Boolean).map(s => String(s).trim()); } catch(e) {}\n  }\n  return [];\n}\nfunction robustBool(v) {\n  if (v === true || v === 1) return true;\n  if (typeof v === 'string') { const s = v.trim().toLowerCase(); return s === 'true' || s === '1'; }\n  return false;\n}\n\nconst forceVisualPromptReset = j._forceVisualPromptReset === true || j.visualForceReset === true;\n\nconst errors = [];\n\n// 1. contentStage muss content_generated oder content_posted sein\nconst contentStage = safeStr(j.contentStage);\nconst contentStageOk = contentStage === 'content_generated' || contentStage === 'content_posted';\nconst contentStatusOk = contentStageOk || forceVisualPromptReset;\nif (!contentStatusOk) errors.push('contentStage nicht content_generated/content_posted und kein Force-Reset (ist: ' + contentStage + ')');\n\n// 2. contentJson muss vorhanden sein\nconst contentJson = parseObj(j.contentJson);\n// Nachtrag 2026-07-30: bereits veroeffentlichte Zeilen (wordpressPosted/wordpressGoslarPosted)\n// zaehlen auch als \"Content vorhanden\", selbst wenn contentJson in der DB inzwischen leer ist -\n// das kann durch einen schmalen Row-Write an anderer Stelle passiert sein (derselbe Bugtyp wie\n// der vorlageDatum-Overwrite-Fund vom selben Tag), der eigentliche veroeffentlichte Inhalt auf\n// WordPress ist davon nicht betroffen. Ohne diese Ausnahme blockiert das Gate faelschlich die\n// Sharepic-Erstellung fuer laengst live stehende Beitraege.\nconst alreadyPublished = robustBool(j.wordpressPosted) || robustBool(j.wordpressGoslarPosted);\nconst contentPresent = !!(safeStr(j.websiteHeadline) || Object.keys(contentJson).length > 0) || alreadyPublished;\nif (!contentPresent) errors.push('contentJson fehlt oder leer');\n\n// 3. sourceLock frisch aus faktenAgentJson (FIX 2026-07-25, mirror des -OK-Handlers in P5b und\n// der Repair-Sweeps in P4/P3b/P3c): NICHT das eingefrorene analysisJson.sourceLockValid pruefen -\n// das wird nur bei einem erfolgreichen P4-Lauf aktualisiert und kann bei Zeilen, die laenger im\n// Pipeline-Stand verharrt haben, veraltet sein, auch wenn faktenAgentJson seither bessere Daten\n// enthaelt.\nconst analysis = parseObj(j.analysisJson);\nconst fakten = parseObj(j.faktenAgentJson || {});\nconst sl = {\n  sourceTopic: safeStr(fakten.sourceTopic),\n  sourceConflict: safeStr(fakten.sourceConflict),\n  requiredTerms: asArr(fakten.requiredTerms),\n  requiredObjects: asArr(fakten.requiredObjects),\n  requiredAction: safeStr(fakten.requiredAction),\n  affectedGroups: asArr(fakten.affectedGroups)\n};\nconst slComplete = !!(\n  safeStr(sl.sourceTopic) &&\n  asArr(sl.requiredTerms).length >= 2 &&\n  asArr(sl.requiredObjects).length >= 2 &&\n  safeStr(sl.requiredAction) &&\n  fakten.parseError !== true\n);\nif (!slComplete) errors.push('sourceLock unvollständig (requiredObjects/requiredAction/faktenAgentJson prüfen)');\n\n// 5. visualAnchors vollständig (die 7 Feldchecks sind bereits die frische Ableitung; das\n// zusaetzliche eingefrorene analysisJson.visualAnchorsValid entfaellt, gleiches Bug-Muster wie\n// beim sourceLock-Check oben, siehe PROJECT_COORDINATION.md 2026-07-25)\nconst va = parseObj(analysis.visualAnchors || {});\nconst vaComplete = !!(\n  safeStr(va.satireThemaKonkret) && safeStr(va.satireKonfliktKonkret) &&\n  asArr(va.visualPflichtobjekte).length >= 2 &&\n  safeStr(va.visualPflichthandlung) && safeStr(va.visualErkennungssatz) &&\n  safeStr(va.visualUeberzeichnung) &&\n  asArr(va.visualVerboteneErsatzmotive).length >= 2\n);\nif (!vaComplete) errors.push('visualAnchors unvollständig (visualVerboteneErsatzmotive prüfen)');\n\nconst contentGateOk = errors.length === 0;\n\nreturn [{\n  json: {\n    ...j,\n    _contentGateOk: contentGateOk,\n    _contentGateErrors: errors,\n    _contentGateForceReset: forceVisualPromptReset\n  }\n}];\n"
+        },
+        "id": "91547714-3029-44e7-bf94-4964f6bc61f1",
+        "name": "Prüfe Content-Abschluss",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          752,
+          16
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 1
+            },
+            "conditions": [
+              {
+                "id": "cg-check",
+                "leftValue": "={{ $json._contentGateOk }}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "id": "47b0affe-8a53-4c70-b4d7-7d23b2e9bf4a",
+        "name": "IF Content-Gate ok?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          896,
+          16
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "// Sortierung: 1. firstseen aufsteigend, 2. volfdnr numerisch, 3. vorgangKey lexikografisch\nfunction parseDate(v) {\n  if (!v) return 0;\n  const t = Date.parse(String(v));\n  return Number.isFinite(t) ? t : 0;\n}\nfunction parseVolfdnr(v) {\n  if (!v) return Infinity;\n  const n = parseInt(String(v).replace(/[^0-9]/g, ''), 10);\n  return Number.isFinite(n) ? n : Infinity;\n}\nconst items = $input.all();\nitems.sort((a, b) => {\n  const ja = a.json || {}, jb = b.json || {};\n  const fa = parseDate(ja.firstseen), fb = parseDate(jb.firstseen);\n  if (fa !== fb) return fa - fb;\n  const va = parseVolfdnr(ja.volfdnr), vb = parseVolfdnr(jb.volfdnr);\n  if (va !== vb) return va - vb;\n  return String(ja.vorgangKey || '').localeCompare(String(jb.vorgangKey || ''));\n});\nreturn items;\n"
+        },
+        "id": "d3607203-0ca6-4acd-b9c7-a39c97a6b0d2",
+        "name": "Sortiere Visual-Vorgänge",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          288,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "// ============================================================\n// FORCE VISUAL PROMPT RESET SCHALTER\n// Zweck:\n// - alte Bildprompt-Felder vor der Content-Gate-Pruefung zuruecksetzen\n//\n// Nutzung ausschliesslich ueber DataTable:\n//   visualForceReset = true\n//\n// FIX (Architekturpruefung 2026-07-22, Befund F11): der zusaetzliche,\n// im Code hartcodierte manuelle Schalter (FORCE_RESET_VISUAL_PROMPT +\n// FORCE_ONLY_VORGANG_KEY/FORCE_ONLY_VORGANGSNUMMER) wurde entfernt - er\n// erforderte eine manuelle Code-Aenderung + Redeploy und war damit eine\n// zweite, redundante Quelle fuer denselben Reset-Mechanismus. Der\n// DB-gesteuerte Weg ueber visualForceReset war laut eigenem Kommentar\n// ohnehin immer schon der empfohlene, sichere Weg und bleibt unveraendert.\n// ============================================================\n\nconst j = $input.item.json || {};\n\nfunction safeStr(v) {\n  if (v === null || v === undefined) return '';\n  return String(v).trim();\n}\n\nconst doReset = j.visualForceReset === true;\n\nif (!doReset) {\n  return [{ json: { ...j, _forceVisualPromptReset: false } }];\n}\n\nreturn [{\n  json: {\n    ...j,\n    _forceVisualPromptReset: true,\n    _forceVisualPromptResetAt: new Date().toISOString(),\n    _forceVisualPromptResetReason: 'visualForceReset flag',\n\n    // Wichtig: Status des Visual Prompt Builders wieder öffnen\n    visualPromptStage: 'needs_prompt',\n    imageStage: 'not_started',\n\n    // Alte Visual-Prompt-Artefakte entfernen, damit kein Skip greifen kann\n    imagePrompt: '',\n    imageNegativePrompt: '',\n    imageHeadline: '',\n    imageSubline: '',\n    imageSmallNote: '',\n    altText: '',\n    visualJson: '{}',\n    visualParseError: false,\n    visualDebugReason: '',\n    rawVisualText: '',\n\n    // Nachgelagerte Bildartefakte entkoppeln, falls Spalten existieren\n    imageFinalPath: '',\n    imageCreatedAt: '',\n    imageWorkflowVersion: '',\n\n    // Interne Hinweise, falls Felder nicht als Spalten existieren: unschädlich im Laufzeit-JSON\n    imagePromptFound: false,\n    _skipReason: ''\n  }\n}];\n"
+        },
+        "id": "0e2cf61d-60bd-4471-bc37-3260941f464a",
+        "name": "Force Visual Reset Schalter",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          608,
+          16
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "// Cutover 2026-07-18: baut die Eingabe fuer den echten Bild-Agent-Aufruf, ersetzt P5s\n// eigene 'AI Visual JSON'-Generierung. sourceTopic/requiredObjects/requiredAction/\n// affectedGroups werden nirgends als eigene DB-Spalte persistiert - sie stecken im\n// bereits gespeicherten faktenAgentJson (siehe P3-Cutover), deshalb hier von dort lesen.\n// satireBrief/imageHeadline/imageSubline usw. sind bereits echte Top-Level-Spalten\n// (Auto-Wahl aus P3 fuer den Text, ggf. durch P5bs Matrix-Umfrage fuers Bild ueberschrieben).\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction asArr(v) {\n  if (Array.isArray(v)) return v.filter(Boolean).map(safeStr);\n  if (typeof v === 'string' && v.trim()) { try { const p = JSON.parse(v); if (Array.isArray(p)) return p.filter(Boolean).map(safeStr); } catch (e) {} }\n  return [];\n}\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; }\n  catch (e) { return {}; }\n}\n\nconst row = $json;\nconst fakten = parseObj(row.faktenAgentJson);\n\nreturn {\n  json: {\n    ...row,\n    vorgangKey: safeStr(row.vorgangKey),\n    vorgangsnummer: safeStr(row.vorgangsnummer),\n    sourceTopic: safeStr(fakten.sourceTopic),\n    requiredObjects: asArr(fakten.requiredObjects),\n    requiredAction: safeStr(fakten.requiredAction),\n    affectedGroups: asArr(fakten.affectedGroups),\n    satireBrief: safeStr(row.satireBrief),\n    satireAngle: safeStr(row.satireAngle),\n    satirePunchlines: asArr(row.satirePunchlines),\n    satireTarget: safeStr(row.satireTarget),\n    satireIntensity: row.satireIntensity,\n    satireDoNotClaim: asArr(row.satireDoNotClaim),\n    satireSafetyNote: safeStr(row.satireSafetyNote),\n    imageHeadline: safeStr(row.imageHeadline),\n    imageSubline: safeStr(row.imageSubline)\n  }\n};"
+        },
+        "id": "82e07b70-abbc-4ec3-acfa-aa956f947ce8",
+        "name": "Bild-Agent: Baue Eingabe",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          192,
+          40
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": {
+            "__rl": true,
+            "value": "WR1xVNo4AjcsKlMv",
+            "mode": "list",
+            "cachedResultName": "ALLRIS_Bild_Agent"
+          },
+          "options": {
+            "waitForSubWorkflow": true
+          }
+        },
+        "id": "e91ed786-ca99-43a8-9ebf-048a124da45f",
+        "name": "Execute Workflow Bild-Agent",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.2,
+        "position": [
+          416,
+          40
+        ],
+        "alwaysOutputData": true,
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "// Stellt den Vorgangskontext nach dem Bild-Agent-Aufruf wieder her (gleiches Muster wie\n// die anderen 'Stelle Kontext nach ... Agent wieder her'-Nodes in P3) - Execute Workflow\n// ersetzt das Item-JSON durch die reine Sub-Workflow-Antwort.\n// Bei Parse-Fehler: visualParseError=true setzen, damit 'Code in JavaScript' den\n// bestehenden, unveraenderten Fehler-/Retry-Pfad nimmt (visualPromptStage='prompt_error'),\n// statt beim fehlenden imagePrompt zu werfen.\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst response = $json || {};\nconst base = $('Bild-Agent: Baue Eingabe').itemMatching($itemIndex).json || {};\nconst hasParseError = response.parseError === true || typeof response.imagePrompt !== 'string';\n\nif (hasParseError) {\n  return {\n    json: {\n      ...base,\n      visualParseError: true,\n      visualDebugReason: 'Bild-Agent Parse-Fehler oder Aufruf fehlgeschlagen',\n      visualPromptStage: 'prompt_error',\n      imageStage: (safeStr(base.imageFinalPath) ? 'composed' : 'not_started'),\n      visualPromptCreatedAt: new Date().toISOString()\n    }\n  };\n}\n\nreturn {\n  json: {\n    ...base,\n    imageHeadline: safeStr(response.imageHeadline) || safeStr(base.imageHeadline),\n    imageSubline: safeStr(response.imageSubline) || safeStr(base.imageSubline),\n    imagePrompt: safeStr(response.imagePrompt),\n    imageNegativePrompt: safeStr(response.imageNegativePrompt),\n    altText: safeStr(response.altText),\n    visualMetaphor: safeStr(response.visualMetaphor),\n    visualParseError: false,\n    visualDebugReason: '',\n    visualPromptStage: 'prompt_ready',\n    imageStage: (safeStr(base.imageFinalPath) ? 'composed' : 'not_started'),\n    visualPromptCreatedAt: new Date().toISOString()\n  }\n};"
+        },
+        "id": "ae898110-8038-4899-ac88-5ce86962b08d",
+        "name": "Stelle Kontext nach Bild-Agent wieder her",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          640,
+          40
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "update",
+          "dataTableId": {
+            "__rl": true,
+            "value": "hBLqpqeVEojPpOJl",
+            "mode": "list",
+            "cachedResultName": "allris_vorgaenge",
+            "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+          },
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "vorgangKey",
+                "keyValue": "={{ $json.vorgangKey }}"
+              }
+            ]
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "last_error_code": "={{ ($json._contentGateErrors || []).some(e => String(e).includes('visualAnchors')) ? 'VISUAL_ANCHORS_MISSING' : (($json._contentGateErrors || []).some(e => String(e).includes('sourceLock')) ? 'SOURCE_LOCK_FAILED' : 'CONTENT_JSON_INVALID') }}",
+              "last_error_message": "={{ ($json._contentGateErrors || []).join(' | ').slice(0, 4000) }}",
+              "last_error_stage": "={{ ($json._contentGateErrors || []).some(e => String(e).includes('visualAnchors')) ? 'visual' : 'content' }}",
+              "last_error_at": "={{ $now.toISO() }}",
+              "retry_count": "={{ Number($json.retry_count || 0) + 1 }}",
+              "next_retry_at": "={{ ($json._contentGateErrors || []).some(e => String(e).includes('contentJson')) ? $now.plus({ minutes: Math.min(1440, 15 * Math.pow(2, Math.max(0, Number($json.retry_count || 0)))) }).toISO() : '' }}",
+              "vorlageDatumWeb": "={{ $json.vorlageDatumWeb || '' }}",
+              "vorlageDatumPdf": "={{ $json.vorlageDatumPdf || '' }}",
+              "vorlageDatum": "={{ $json.vorlageDatum || $json.vorlageDatumWeb || '' }}",
+              "verfasser": "={{ $json.verfasser || '' }}",
+              "fachdienst": "={{ $json.fachdienst || '' }}"
+            },
+            "schema": [
+              {
+                "id": "vorlageDatumWeb",
+                "displayName": "vorlageDatumWeb",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "vorlageDatumPdf",
+                "displayName": "vorlageDatumPdf",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "vorlageDatum",
+                "displayName": "vorlageDatum",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "verfasser",
+                "displayName": "verfasser",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "fachdienst",
+                "displayName": "fachdienst",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "729aedbd-cad6-40ee-a28f-d1286914d423",
+        "name": "DB Visual-Gate Fehler",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          1120,
+          240
+        ]
+      },
+      {
+        "parameters": {
+          "dataTableId": {
+            "__rl": true,
+            "value": "Q54kptpOrbug6bJu",
+            "mode": "list",
+            "cachedResultName": "allris_state_history",
+            "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/Q54kptpOrbug6bJu"
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "event_id": "={{ 'p5-' + $execution.id + '-' + $json.vorgangKey + '-gate-failure' }}",
+              "vorgang_key": "={{ $json.vorgangKey }}",
+              "pipeline_stage": "={{ ($json._contentGateErrors || []).some(e => String(e).includes('visualAnchors')) ? 'visual' : 'content' }}",
+              "old_state": "",
+              "new_state": "blocked",
+              "reason_code": "={{ ($json._contentGateErrors || []).some(e => String(e).includes('visualAnchors')) ? 'VISUAL_ANCHORS_MISSING' : (($json._contentGateErrors || []).some(e => String(e).includes('sourceLock')) ? 'SOURCE_LOCK_FAILED' : 'CONTENT_JSON_INVALID') }}",
+              "reason_message": "={{ ($json._contentGateErrors || []).join(' | ').slice(0, 4000) }}",
+              "workflow_name": "ALLRIS_P5_Visual_Prompt_Builder",
+              "workflow_execution_id": "={{ $execution.id }}",
+              "created_at": "={{ $now.toISO() }}",
+              "metadata_json": "={{ JSON.stringify({ gate_errors: $json._contentGateErrors || [], retry_count: Number($json.retry_count || 0) + 1 }) }}"
+            },
+            "schema": []
+          },
+          "options": {}
+        },
+        "id": "7459b617-ad5a-4a11-8eb2-8f7297e7fe36",
+        "name": "History Visual-Gate Fehler",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          1360,
+          240
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const now = Date.now();\nconst owner = `ALLRIS_P5_Visual_Prompt_Builder:${$execution.id}`;\nreturn items\n  .filter(item => {\n    const j = item.json || {};\n    const oldOwner = String(j.claim_owner || '').trim();\n    const expires = Date.parse(String(j.claim_expires_at || ''));\n    return !oldOwner || !Number.isFinite(expires) || expires <= now;\n  })\n  .map(item => ({ json: {\n    ...item.json,\n    claimAction: 'acquire',\n    claimOwner: owner,\n    claimStage: 'visual',\n    leaseMinutes: 30,\n    expectedClaimOwner: item.json.claim_owner ?? null,\n    expectedClaimExpiresAt: item.json.claim_expires_at ?? null\n  } }));"
+        },
+        "id": "18293a4b-1111-4182-93a4-000000000001",
+        "name": "Bereite P5 Claims vor",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          304,
+          -240
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": {
+            "__rl": true,
+            "value": "D7cmBsy3exuOkBd9",
+            "mode": "list",
+            "cachedResultName": "ALLRIS_Claim_Lease"
+          },
+          "options": {
+            "waitForSubWorkflow": true
+          }
+        },
+        "id": "18293a4b-2222-4182-93a4-000000000002",
+        "name": "Erwerbe P5 Claim",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.2,
+        "position": [
+          544,
+          -240
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "return items.filter(item => item.json?.claimAcquired === true);"
+        },
+        "id": "18293a4b-3333-4182-93a4-000000000003",
+        "name": "Nur bestaetigte P5 Claims",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          784,
+          -240
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "// FIX 2026-07-25 (systemweit gefunden ueber ALLRIS_P9_Mastodon_Publish): ALLRIS_Claim_Lease's\n// \"Release eigener Claim\" matcht per id UND claim_owner - ohne id lief die Freigabe bisher\n// stillschweigend ins Leere (0 Zeilen getroffen, kein Fehler), der Claim blieb bis zum\n// natuerlichen 30-Minuten-Lease-Ablauf haengen statt sofort freigegeben zu werden.\nconst vorgangKey = String($json.vorgangKey || '').trim();\nconst id = $json.id;\nif (!vorgangKey) throw new Error('[P5 Claim Release] vorgangKey fehlt.');\nif (!id) throw new Error('[P5 Claim Release] id fehlt - Release-Matching in ALLRIS_Claim_Lease braucht id + claim_owner, sonst laeuft die Freigabe stillschweigend ins Leere.');\nreturn [{ json: { id, vorgangKey, claimAction: 'release', claimOwner: `ALLRIS_P5_Visual_Prompt_Builder:${$execution.id}` } }];"
+        },
+        "id": "18293a4b-4444-4182-93a4-000000000004",
+        "name": "Bereite P5 Claim-Freigabe vor",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1120,
+          480
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": {
+            "__rl": true,
+            "value": "D7cmBsy3exuOkBd9",
+            "mode": "list",
+            "cachedResultName": "ALLRIS_Claim_Lease"
+          },
+          "options": {
+            "waitForSubWorkflow": true
+          }
+        },
+        "id": "18293a4b-5555-4182-93a4-000000000005",
+        "name": "Release P5 Claim",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.2,
+        "position": [
+          1360,
+          480
+        ]
+      }
+    ],
+    "connections": {
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "Hole needs_visual_prompt",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Hole needs_visual_prompt": {
+        "main": [
+          [
+            {
+              "node": "Filtere Visual-Status",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Filtere Visual-Status": {
+        "main": [
+          [
+            {
+              "node": "Bereite P5 Claims vor",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Bereite P5 Claims vor": {
+        "main": [
+          [
+            {
+              "node": "Erwerbe P5 Claim",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Erwerbe P5 Claim": {
+        "main": [
+          [
+            {
+              "node": "Nur bestaetigte P5 Claims",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Nur bestaetigte P5 Claims": {
+        "main": [
+          [
+            {
+              "node": "Sortiere Visual-Vorgänge",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Bereite P5 Claim-Freigabe vor": {
+        "main": [
+          [
+            {
+              "node": "Release P5 Claim",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Visual Vorgänge": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Force Visual Reset Schalter",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Visual Prompt Input": {
+        "main": [
+          [
+            {
+              "node": "IF Skip (Prompt vorhanden)?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Update allris_vorgaenge": {
+        "main": [
+          [
+            {
+              "node": "Nächster Vorgang",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Bereite P5 Claim-Freigabe vor",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Nächster Vorgang": {
+        "main": [
+          [
+            {
+              "node": "Loop Visual Vorgänge",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code in JavaScript": {
+        "main": [
+          [
+            {
+              "node": "Update allris_vorgaenge",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IF Skip (Prompt vorhanden)?": {
+        "main": [
+          [
+            {
+              "node": "Code in JavaScript",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "IF Headline bereits gewählt?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IF Headline bereits gewählt?": {
+        "main": [
+          [
+            {
+              "node": "Bild-Agent: Baue Eingabe",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Nächster Vorgang",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Bereite P5 Claim-Freigabe vor",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prüfe Content-Abschluss": {
+        "main": [
+          [
+            {
+              "node": "IF Content-Gate ok?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IF Content-Gate ok?": {
+        "main": [
+          [
+            {
+              "node": "Prepare Visual Prompt Input",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Nächster Vorgang",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "DB Visual-Gate Fehler",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "History Visual-Gate Fehler",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Sortiere Visual-Vorgänge": {
+        "main": [
+          [
+            {
+              "node": "Loop Visual Vorgänge",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Force Visual Reset Schalter": {
+        "main": [
+          [
+            {
+              "node": "Prüfe Content-Abschluss",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Bild-Agent: Baue Eingabe": {
+        "main": [
+          [
+            {
+              "node": "Execute Workflow Bild-Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Execute Workflow Bild-Agent": {
+        "main": [
+          [
+            {
+              "node": "Stelle Kontext nach Bild-Agent wieder her",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Stelle Kontext nach Bild-Agent wieder her": {
+        "main": [
+          [
+            {
+              "node": "Code in JavaScript",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "DB Visual-Gate Fehler": {
+        "main": [
+          [
+            {
+              "node": "Bereite P5 Claim-Freigabe vor",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Oliver Lietz",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-07-31T09:32:03.104Z",
+        "id": 2051,
+        "workflowId": "WIg40QYXmouRoYjq",
+        "versionId": "28464c04-790d-437b-a6d4-abd7dd615100",
+        "event": "deactivated",
+        "userId": "66557ab1-dd68-4186-b616-ecaa8f1bea61"
+      },
+      {
+        "createdAt": "2026-07-31T09:32:03.211Z",
+        "id": 2052,
+        "workflowId": "WIg40QYXmouRoYjq",
+        "versionId": "28464c04-790d-437b-a6d4-abd7dd615100",
+        "event": "activated",
+        "userId": "66557ab1-dd68-4186-b616-ecaa8f1bea61"
+      }
+    ]
+  }
+}
