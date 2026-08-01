@@ -1,0 +1,84 @@
+{
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Liste 01_originale",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Liste 01_originale": {
+      "main": [
+        [
+          {
+            "node": "Fasse Ergebnis zusammen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "8REdVlH2ccuFvyzj",
+  "meta": null,
+  "name": "ALLRIS_Diagnose_2026-173_Nextcloud_Dokumente",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "f1a2b3c4-0081-4aaa-9bbb-000000000081",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "operation": "list",
+        "path": "/DiePARTEI/Allris/2026/vol_10698_2026_173_-_Vorlage_-_Sparkassenzweckverband_Hildesheim_Goslar_Peine_(ZV_SPK_HGP)/01_originale"
+      },
+      "id": "f1a2b3c4-0082-4aaa-9bbb-000000000082",
+      "name": "Liste 01_originale",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ],
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return [{ json: { fileCount: items.length, files: items.map(i => ({ name: i.json.name || i.json.basename, size: i.json.size, lastmod: i.json.lastmod })) } }];"
+      },
+      "id": "f1a2b3c4-0083-4aaa-9bbb-000000000083",
+      "name": "Fasse Ergebnis zusammen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ]
+    }
+  ],
+  "pinData": null,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "versionId": "433a6bc2-0f0e-4690-bb2b-cbdccc7250a8"
+}
