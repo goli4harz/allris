@@ -129,7 +129,8 @@
       "position": [
         0,
         0
-      ]
+      ],
+      "alwaysOutputData": true
     },
     {
       "parameters": {
