@@ -1,0 +1,103 @@
+{
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Konfiguriere Ziele",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Konfiguriere Ziele": {
+      "main": [
+        [
+          {
+            "node": "Setze auf needs_content zurueck",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "meta": {},
+  "name": "ALLRIS_Einmalig_2026-030_003_032_ContentStage_Retry",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "f1a2b3c4-00b1-4aaa-9bbb-0000000000b1",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Einmaliger Nachtrag 2026-08-01 (Nutzerfrage \"genauer\" zu 2026/032+030+003, gefunden ueber\n// die neue Konsistenz-Pruefung): alle 3 Zeilen haben sharepicNeedStage=topic_ok, aber P4 hat nie\n// echten Satire-Content (websiteArticle/facebookPost/instagramCaption/pressStatement) erzeugt:\n// - 2026/030 (vol_10421) und 2026/003 (vol_10378): P4s Source-Lock-Pruefung schlug am 29./30.07.\n//   fehl (faktenAgentJson.sourceTopic/requiredTerms damals leer/unzureichend). faktenAgentJson\n//   ist inzwischen live bestaetigt vollstaendig und gut - der urspruengliche Blocker existiert\n//   nicht mehr.\n// - 2026/032 (vol_10423): P4 hat die Zeile nie angefasst (contentCreatedAt leer) - P7 kam zuvor.\n// In allen 3 Faellen hat P7 danach per Fallback den neutralen golietz.de-Post veroeffentlicht und\n// contentStage auf 'content_posted' gesetzt - das schloss die Zeilen dauerhaft aus P4s Abfrage\n// (Hole needs_content: contentStage='needs_content') aus, siehe Systemfix in P7 (Speichere\n// WordPress Erfolg, selbe Session). Dieser Nachtrag oeffnet die 3 bestehenden Zeilen erneut fuer\n// einen P4-Versuch. wordpressPosted bleibt unangetastet - der golietz.de-Post existiert bereits\n// und wird nicht erneut veroeffentlicht (P7 ueberspringt wordpressPosted=true ohnehin).\nconst TARGETS = [\n  { vorgangKey: 'vol_10421', vorgangsnummer: '2026/030' },\n  { vorgangKey: 'vol_10378', vorgangsnummer: '2026/003' },\n  { vorgangKey: 'vol_10423', vorgangsnummer: '2026/032' }\n];\n\nreturn TARGETS.map(t => ({\n  json: {\n    vorgangKey: t.vorgangKey,\n    vorgangsnummer: t.vorgangsnummer,\n    contentStage: 'needs_content',\n    contentErrorReason: ''\n  }\n}));"
+      },
+      "id": "f1a2b3c4-00b2-4aaa-9bbb-0000000000b2",
+      "name": "Konfiguriere Ziele",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "contentStage": "={{ $json.contentStage }}",
+            "contentErrorReason": "={{ $json.contentErrorReason }}"
+          },
+          "matchingColumns": [
+            "vorgangKey"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "f1a2b3c4-00b3-4aaa-9bbb-0000000000b3",
+      "name": "Setze auf needs_content zurueck",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        440,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "versionId": "12be8e95-0e8c-4433-bcb1-1f363bc8766a",
+  "id": "9RwXT3Amm3RsbEH6"
+}

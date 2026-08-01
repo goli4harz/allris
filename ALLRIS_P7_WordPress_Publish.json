@@ -968,7 +968,7 @@
           "mappingMode": "defineBelow",
           "value": {
             "wordpressPosted": "={{ true }}",
-            "contentStage": "content_posted",
+            "contentStage": "={{ $json.contentStage === 'content_generated' ? 'content_posted' : $json.contentStage }}",
             "wordpressPostId": "={{ $json.wordpressPostId || '' }}",
             "wordpressPostLink": "={{ $json.wordpressPostLink || '' }}",
             "wordpressSlug": "={{ $json.wordpressSlug || '' }}",
