@@ -1,0 +1,168 @@
+{
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Setze Zieldateien",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Setze Zieldateien": {
+      "main": [
+        [
+          {
+            "node": "Nextcloud Download",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nextcloud Download": {
+      "main": [
+        [
+          {
+            "node": "Tika Extraktion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tika Extraktion": {
+      "main": [
+        [
+          {
+            "node": "Bericht",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "hulKHpx5ETRvGK9p",
+  "meta": null,
+  "name": "ALLRIS_Diagnose_2026-173_Tika_Test",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "f1a2b3c4-0091-4aaa-9bbb-000000000091",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const base = '/DiePARTEI/Allris/2026/vol_10698_2026_173_-_Vorlage_-_Sparkassenzweckverband_Hildesheim_Goslar_Peine_(ZV_SPK_HGP)/01_originale/';\nreturn [\n  { json: { _ncFilePath: base + 'dol_352024.pdf', _ncFileName: 'dol_352024.pdf' } },\n  { json: { _ncFilePath: base + 'dol_352042.pdf', _ncFileName: 'dol_352042.pdf' } }\n];"
+      },
+      "id": "f1a2b3c4-0092-4aaa-9bbb-000000000092",
+      "name": "Setze Zieldateien",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "path": "={{ $json._ncFilePath }}"
+      },
+      "id": "f1a2b3c4-0093-4aaa-9bbb-000000000093",
+      "name": "Nextcloud Download",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [
+        440,
+        0
+      ],
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "http://tika:9998/tika",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "text/plain"
+            },
+            {
+              "name": "Content-Type",
+              "value": "={{ $binary.data.mimeType || 'application/octet-stream' }}"
+            },
+            {
+              "name": "X-Tika-PDFOcrStrategy",
+              "value": "auto"
+            },
+            {
+              "name": "X-Tika-OCRLanguage",
+              "value": "deu"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "data",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text",
+              "outputPropertyName": "tikaText"
+            }
+          },
+          "timeout": 300000
+        }
+      },
+      "id": "f1a2b3c4-0094-4aaa-9bbb-000000000094",
+      "name": "Tika Extraktion",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const original = $('Setze Zieldateien').itemMatching($itemIndex).json || {};\nconst text = String($json.tikaText || '');\nreturn { json: { fileName: original._ncFileName, textLength: text.length, error: $json.error || '', preview: text.slice(0, 500) } };"
+      },
+      "id": "f1a2b3c4-0095-4aaa-9bbb-000000000095",
+      "name": "Bericht",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ]
+    }
+  ],
+  "pinData": null,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "versionId": "07efd4e4-3acc-4bdc-a42a-3a7a59d4cd89"
+}
