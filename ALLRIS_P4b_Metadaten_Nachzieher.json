@@ -2226,7 +2226,8 @@
       "position": [
         1760,
         0
-      ]
+      ],
+      "alwaysOutputData": true
     },
     {
       "parameters": {
