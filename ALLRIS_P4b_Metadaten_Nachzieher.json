@@ -2319,7 +2319,7 @@
             {
               "id": "wpgok1",
               "leftValue": "={{ String($json.date_gmt || '').replace(/\\.\\d+Z?$/, '').replace(/Z$/, '').slice(0, 19) }}",
-              "rightValue": "={{ (String($('IF golietz.de gepostet?').item.json.vorlageDatum||'') ? new Date(new Date($('IF golietz.de gepostet?').item.json.vorlageDatum).getTime() + 3*24*60*60*1000).toISOString() : '').replace(/\\.\\d+Z?$/, '').replace(/Z$/, '').slice(0, 19) }}",
+              "rightValue": "={{ (String($('IF golietz.de gepostet?').first().json.vorlageDatum||'') ? new Date(new Date($('IF golietz.de gepostet?').first().json.vorlageDatum).getTime() + 3*24*60*60*1000).toISOString() : '').replace(/\\.\\d+Z?$/, '').replace(/Z$/, '').slice(0, 19) }}",
               "operator": {
                 "type": "string",
                 "operation": "equals"
@@ -2342,12 +2342,12 @@
     {
       "parameters": {
         "method": "PATCH",
-        "url": "={{ 'https://www.golietz.de/wp-json/wp/v2/posts/' + $('IF golietz.de gepostet?').item.json.wordpressPostId }}",
+        "url": "={{ 'https://www.golietz.de/wp-json/wp/v2/posts/' + $('IF golietz.de gepostet?').first().json.wordpressPostId }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "wordpressApi",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ date_gmt: new Date(new Date($('IF golietz.de gepostet?').item.json.vorlageDatum).getTime() + 3*24*60*60*1000).toISOString() }) }}",
+        "jsonBody": "={{ JSON.stringify({ date_gmt: new Date(new Date($('IF golietz.de gepostet?').first().json.vorlageDatum).getTime() + 3*24*60*60*1000).toISOString() }) }}",
         "options": {
           "timeout": 10000
         }
@@ -2372,7 +2372,7 @@
     },
     {
       "parameters": {
-        "url": "={{ 'https://www.golietz.de/wp-json/wp/v2/posts/' + $('IF golietz.de gepostet?').item.json.wordpressPostId + '?context=edit' }}",
+        "url": "={{ 'https://www.golietz.de/wp-json/wp/v2/posts/' + $('IF golietz.de gepostet?').first().json.wordpressPostId + '?context=edit' }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "wordpressApi",
         "options": {
@@ -2502,7 +2502,7 @@
             {
               "id": "wppok1",
               "leftValue": "={{ String($json.date_gmt || '').replace(/\\.\\d+Z?$/, '').replace(/Z$/, '').slice(0, 19) }}",
-              "rightValue": "={{ (String($('IF diepartei gepostet?').item.json.vorlageDatum||'') ? new Date(new Date($('IF diepartei gepostet?').item.json.vorlageDatum).getTime() + 3*24*60*60*1000).toISOString() : '').replace(/\\.\\d+Z?$/, '').replace(/Z$/, '').slice(0, 19) }}",
+              "rightValue": "={{ (String($('IF diepartei gepostet?').first().json.vorlageDatum||'') ? new Date(new Date($('IF diepartei gepostet?').first().json.vorlageDatum).getTime() + 3*24*60*60*1000).toISOString() : '').replace(/\\.\\d+Z?$/, '').replace(/Z$/, '').slice(0, 19) }}",
               "operator": {
                 "type": "string",
                 "operation": "equals"
@@ -2525,12 +2525,12 @@
     {
       "parameters": {
         "method": "PATCH",
-        "url": "={{ 'https://die-partei.net/goslar/wp-json/wp/v2/posts/' + $('IF diepartei gepostet?').item.json.wordpressGoslarPostId }}",
+        "url": "={{ 'https://die-partei.net/goslar/wp-json/wp/v2/posts/' + $('IF diepartei gepostet?').first().json.wordpressGoslarPostId }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "wordpressApi",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ date_gmt: new Date(new Date($('IF diepartei gepostet?').item.json.vorlageDatum).getTime() + 3*24*60*60*1000).toISOString() }) }}",
+        "jsonBody": "={{ JSON.stringify({ date_gmt: new Date(new Date($('IF diepartei gepostet?').first().json.vorlageDatum).getTime() + 3*24*60*60*1000).toISOString() }) }}",
         "options": {
           "timeout": 10000
         }
@@ -2555,7 +2555,7 @@
     },
     {
       "parameters": {
-        "url": "={{ 'https://die-partei.net/goslar/wp-json/wp/v2/posts/' + $('IF diepartei gepostet?').item.json.wordpressGoslarPostId + '?context=edit' }}",
+        "url": "={{ 'https://die-partei.net/goslar/wp-json/wp/v2/posts/' + $('IF diepartei gepostet?').first().json.wordpressGoslarPostId + '?context=edit' }}",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "wordpressApi",
         "options": {
