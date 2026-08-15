@@ -75,7 +75,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "return items.filter(i => String((i.json||{}).claim_owner || '').trim() !== '').map(i => ({ json: { id: i.json.id, vorgangKey: i.json.vorgangKey } }));"
+        "jsCode": "function isExpired(v) { const t = Date.parse(String(v||'')); return Number.isFinite(t) && t < Date.now(); }\nreturn items.filter(i => {\n  const j = i.json || {};\n  if (String(j.claim_owner || '').trim() === '') return false;\n  return isExpired(j.claim_expires_at);\n}).map(i => ({ json: { id: i.json.id, vorgangKey: i.json.vorgangKey, claim_owner: i.json.claim_owner, claim_expires_at: i.json.claim_expires_at } }));"
       },
       "id": "b1000001-0000-4000-8000-000000000003",
       "name": "Filtere geclaimte Zeilen",
