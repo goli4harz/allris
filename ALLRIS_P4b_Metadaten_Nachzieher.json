@@ -2400,7 +2400,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "return { json: $('Schreibe Metadaten (vollstaendig)').item.json };"
+        "jsCode": "// FIX 2026-08-15 (Nutzerwunsch, Nachfassen zum 2026/010-Datumsbug): .item (singular) ist hier\n// nicht sicher aufloesbar, wenn 'Aggregiere Texte' zuvor mehrere PDF-Items (z.B. 5 bei\n// 2026/112) zu einem einzelnen Ergebnis-Item zusammengefasst hat, ohne dabei ein eindeutiges\n// pairedItem zu setzen - n8n kann die Herkunft dann nicht mehr automatisch zurückverfolgen.\n// Gleiche robuste Technik wie bereits in 'Aggregiere Texte' verwendet (.all(0, $runIndex)\n// statt .item), mit Fallback auf $json, falls die Auflösung trotzdem fehlschlaegt.\nfunction resolveMetadaten() {\n  try { const a = $('Schreibe Metadaten (vollstaendig)').all(0, $runIndex); return Array.isArray(a) && a.length ? a[0].json : null; }\n  catch (e) { return null; }\n}\nconst resolved = resolveMetadaten();\nreturn { json: resolved || $json };"
       },
       "id": "n17",
       "name": "Weiter (golietz)",
@@ -2662,7 +2662,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const ziel = $('Bereite Claim vor').item.json;\nconst id = ziel.id;\nconst vorgangKey = String(ziel.vorgangKey || '').trim();\nif (!vorgangKey) throw new Error('[P4b Claim Release] vorgangKey fehlt.');\nif (!id) throw new Error('[P4b Claim Release] id fehlt - Release-Matching in ALLRIS_Claim_Lease braucht id + claim_owner.');\nreturn { json: { id, vorgangKey, claimAction: 'release', claimOwner: 'ALLRIS_P4b_Metadaten_Nachzieher:' + $execution.id } };"
+        "jsCode": "// FIX 2026-08-15 (selbes Muster wie 'Weiter (golietz)'): .item (singular) robust ersetzt.\nfunction resolveZiel() {\n  try { const a = $('Bereite Claim vor').all(0, $runIndex); return Array.isArray(a) && a.length ? a[0].json : {}; }\n  catch (e) { return {}; }\n}\nconst ziel = resolveZiel();\nconst id = ziel.id;\nconst vorgangKey = String(ziel.vorgangKey || '').trim();\nif (!vorgangKey) throw new Error('[P4b Claim Release] vorgangKey fehlt.');\nif (!id) throw new Error('[P4b Claim Release] id fehlt - Release-Matching in ALLRIS_Claim_Lease braucht id + claim_owner.');\nreturn { json: { id, vorgangKey, claimAction: 'release', claimOwner: 'ALLRIS_P4b_Metadaten_Nachzieher:' + $execution.id } };"
       },
       "id": "claim-release-prep-0001",
       "name": "Bereite Claim-Freigabe vor",
