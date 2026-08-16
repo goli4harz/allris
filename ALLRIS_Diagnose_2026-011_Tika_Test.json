@@ -1,0 +1,333 @@
+{
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hole Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole Vorgang": {
+      "main": [
+        [
+          {
+            "node": "Baue NC Pfad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue NC Pfad": {
+      "main": [
+        [
+          {
+            "node": "NC Liste Diag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Liste Diag": {
+      "main": [
+        [
+          {
+            "node": "Nur PDFs Diag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nur PDFs Diag": {
+      "main": [
+        [
+          {
+            "node": "NC Download Diag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Download Diag": {
+      "main": [
+        [
+          {
+            "node": "Tika Extract Diag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tika Extract Diag": {
+      "main": [
+        [
+          {
+            "node": "Diagnose pro Datei",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Diagnose pro Datei": {
+      "main": [
+        [
+          {
+            "node": "Sammle Diagnose",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sammle Diagnose": {
+      "main": [
+        [
+          {
+            "node": "Schreibe Diagnose (temp)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "obvCACJBBR7BnOb3",
+  "meta": null,
+  "name": "ALLRIS_Diagnose_2026-011_Tika_Test",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "c834e6d6-6dce-4e91-b073-0662131c5489",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "vol_10388"
+            }
+          ]
+        },
+        "matchType": "allConditions"
+      },
+      "id": "9877e640-9b06-417e-a4e8-ea670a748eb3",
+      "name": "Hole Vorgang",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $input.first().json;\nreturn { json: { ...j, _diagPath: (j.nextcloudFolder || '').replace(/\\/+$/, '') + '/01_originale' } };"
+      },
+      "id": "be40fcf8-c327-43df-a4d6-fd0769040f35",
+      "name": "Baue NC Pfad",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "operation": "list",
+        "path": "={{ $json._diagPath }}"
+      },
+      "id": "a506fd27-bb69-4bad-8815-3154518bb7ff",
+      "name": "NC Liste Diag",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [
+        660,
+        0
+      ],
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().filter(item => {\n  const p = String(item.json.path || '').toLowerCase();\n  return p.endsWith('.pdf') && item.json.type !== 'dir' && !item.json.isDirectory;\n}).map(item => ({ json: { ...item.json, path: decodeURIComponent(item.json.path) } }));"
+      },
+      "id": "fa6613be-e104-43e7-9e4e-a365bbbcd1ec",
+      "name": "Nur PDFs Diag",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "path": "={{ $json.path }}"
+      },
+      "id": "bb433ca6-0fe4-44e0-b7a8-deba2f9a0daa",
+      "name": "NC Download Diag",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        0
+      ],
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "http://tika:9998/tika",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "text/plain"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/octet-stream"
+            },
+            {
+              "name": "X-Tika-PDFOcrStrategy",
+              "value": "auto"
+            },
+            {
+              "name": "X-Tika-OCRLanguage",
+              "value": "deu"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "data",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "id": "29608fe5-af02-4dd7-8fb1-4a426fd3adaf",
+      "name": "Tika Extract Diag",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item = $input.item;\nconst j = item.json || {};\nlet dlName = '';\ntry { dlName = ($('NC Download Diag').item.json.path || '').split('/').pop(); } catch (e) {}\nlet text = j.body ?? j.data ?? j.text ?? j.response ?? j.result ?? j.content ?? '';\nif (typeof text !== 'string') text = JSON.stringify(text);\ntext = String(text || '');\nconst hasError = !!j.error;\nconst errMsg = j.error ? (j.error.message || JSON.stringify(j.error)) : '';\nreturn { json: {\n  fileName: dlName,\n  httpError: hasError,\n  errorMessage: errMsg,\n  textLength: text.length,\n  containsGoslarComma: /Goslar,\\s*\\d{1,2}\\./.test(text),\n  preview: text.slice(0, 400)\n} };"
+      },
+      "id": "04df916c-2bd5-4ce5-95de-a06c82f574d1",
+      "name": "Diagnose pro Datei",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1540,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { diagResults: $input.all().map(i => i.json), diagCount: $input.all().length } }];"
+      },
+      "id": "4e34fd77-41bd-482f-b65d-d793038c4552",
+      "name": "Sammle Diagnose",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "vol_10388"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "textExtractionError": "={{ JSON.stringify($json.diagResults) }}"
+          },
+          "matchingColumns": [
+            "vorgangKey"
+          ],
+          "schema": []
+        }
+      },
+      "id": "1a4734ff-88bb-4ca3-a6c7-04d7324d584d",
+      "name": "Schreibe Diagnose (temp)",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1980,
+        0
+      ]
+    }
+  ],
+  "pinData": null,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "versionId": "b2b78c1f-c52f-4fb3-b4c4-b44a310e8c3d"
+}

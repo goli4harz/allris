@@ -1,0 +1,418 @@
+{
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hole alle Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole alle Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Filter: gepostet + Datum vorhanden",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter: gepostet + Datum vorhanden": {
+      "main": [
+        [
+          {
+            "node": "Loop (1x)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop (1x)": {
+      "main": [
+        [
+          {
+            "node": "Schreibe Sammelergebnis",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GET Live-Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Live-Post": {
+      "main": [
+        [
+          {
+            "node": "Vergleiche Datum",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vergleiche Datum": {
+      "main": [
+        [
+          {
+            "node": "IF Datum falsch?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Datum falsch?": {
+      "main": [
+        [
+          {
+            "node": "PATCH Datum korrigieren",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Kein Patch noetig",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PATCH Datum korrigieren": {
+      "main": [
+        [
+          {
+            "node": "Nach Patch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nach Patch": {
+      "main": [
+        [
+          {
+            "node": "Sammle Ergebnis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kein Patch noetig": {
+      "main": [
+        [
+          {
+            "node": "Sammle Ergebnis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sammle Ergebnis": {
+      "main": [
+        [
+          {
+            "node": "Warte kurz",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Warte kurz": {
+      "main": [
+        [
+          {
+            "node": "Loop (1x)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "i5pA0WBtGuSTvvwE",
+  "meta": null,
+  "name": "ALLRIS_Einmalig_WordPressPartei_Datum_Sweep",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "e0fc1a2b-70b9-4376-9b46-e7c94e45b8a5",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge"
+        },
+        "returnAll": true
+      },
+      "id": "5bd28162-6b9c-4671-bf55-3aa8c31ae2d9",
+      "name": "Hole alle Vorgaenge",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction safeBool(v) { if (v === true) return true; if (typeof v === 'string') return v.trim().toLowerCase() === 'true'; return false; }\nreturn $input.all().filter(item => {\n  const j = item.json || {};\n  return safeBool(j.wordpressGoslarPosted) && !!safeStr(j.wordpressGoslarPostId) && !!safeStr(j.vorlageDatum);\n}).map(item => ({ json: item.json }));"
+      },
+      "id": "23d862f4-8729-4056-9fcb-753467daefdf",
+      "name": "Filter: gepostet + Datum vorhanden",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "batchSize": 1
+        }
+      },
+      "id": "2c2c8c7f-41a2-435c-82c2-83dbd0bc42db",
+      "name": "Loop (1x)",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        660,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://die-partei.net/goslar/wp-json/wp/v2/posts/' + $json.wordpressGoslarPostId + '?context=edit' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "300ff9d1-38b9-4fa1-8301-d7b962efe364",
+      "name": "GET Live-Post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        0
+      ],
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const j = $json;\nfunction resolveZiel() {\n  try { const a = $('Loop (1x)').all(1, $runIndex); return Array.isArray(a) && a.length ? a[0].json : {}; }\n  catch (e) { return {}; }\n}\nconst ziel = resolveZiel();\nfunction trunc(s) { return String(s || '').replace(/\\.\\d+Z?$/, '').replace(/Z$/, '').slice(0, 19); }\nconst expected = ziel.vorlageDatum ? new Date(new Date(ziel.vorlageDatum).getTime() + 3*24*60*60*1000).toISOString() : '';\nreturn { json: {\n  vorgangsnummer: ziel.vorgangsnummer,\n  wordpressGoslarPostId: ziel.wordpressGoslarPostId,\n  vorlageDatum: ziel.vorlageDatum,\n  actualDateGmt: j.date_gmt || '',\n  expectedDateGmt: expected,\n  actualTrunc: trunc(j.date_gmt),\n  expectedTrunc: trunc(expected),\n  mismatch: trunc(j.date_gmt) !== trunc(expected),\n  httpError: !!j.error\n} };"
+      },
+      "id": "0b530f58-0f95-4e17-9a0e-722f7bf75a3f",
+      "name": "Vergleiche Datum",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.mismatch }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b6ed2979-04c5-46b6-8a16-6572835209ef",
+      "name": "IF Datum falsch?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://die-partei.net/goslar/wp-json/wp/v2/posts/' + $json.wordpressGoslarPostId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ date_gmt: $json.expectedDateGmt }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "1c126f6e-b4db-4f2e-bbd4-191c54017160",
+      "name": "PATCH Datum korrigieren",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        -80
+      ],
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const j = $json;\nfunction resolveOrig() {\n  try { const a = $('Vergleiche Datum').all(0, $runIndex); return Array.isArray(a) && a.length ? a[0].json : {}; }\n  catch (e) { return {}; }\n}\nconst orig = resolveOrig();\nreturn { json: { ...orig, patched: !j.error, patchError: j.error ? (j.error.message||'') : '' } };"
+      },
+      "id": "d86e8ed0-55e7-417f-8735-b699f2a6a41e",
+      "name": "Nach Patch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return { json: { ...$json, patched: false, patchError: '' } };"
+      },
+      "id": "2f30da39-9a2d-4498-9e7a-b0944872e28b",
+      "name": "Kein Patch noetig",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const all = $getWorkflowStaticData('global');\nif (!all.results) all.results = [];\nall.results.push($input.first().json);\nreturn [{ json: { collected: all.results.length } }];"
+      },
+      "id": "2892e163-66de-414e-997a-ee5fce5e1cfe",
+      "name": "Sammle Ergebnis",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1980,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 1,
+        "unit": "seconds"
+      },
+      "id": "4567c98b-29e1-44d4-ae81-3af394242b00",
+      "name": "Warte kurz",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        2200,
+        0
+      ],
+      "webhookId": "3bc789d2-8451-4c38-8825-f2abd0e2499b"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "vol_10387"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "wordpressGoslarError": "={{ JSON.stringify($getWorkflowStaticData('global').results) }}"
+          },
+          "matchingColumns": [
+            "vorgangKey"
+          ],
+          "schema": []
+        }
+      },
+      "id": "1235a1f1-4582-4597-a989-ccbd3e81da35",
+      "name": "Schreibe Sammelergebnis",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2420,
+        0
+      ]
+    }
+  ],
+  "pinData": null,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "versionId": "40a3ac4a-871a-4faf-b2b2-b1247049fee9"
+}

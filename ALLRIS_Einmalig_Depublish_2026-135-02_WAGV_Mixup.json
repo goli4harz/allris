@@ -1,0 +1,238 @@
+{
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Konfiguriere Ziele",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Konfiguriere Ziele": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Vorgaenge": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Setze Post auf Entwurf zurueck",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Setze Post auf Entwurf zurueck": {
+      "main": [
+        [
+          {
+            "node": "Pruefe Unpublish-Ergebnis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pruefe Unpublish-Ergebnis": {
+      "main": [
+        [
+          {
+            "node": "Setze DB-Status zurueck",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Setze DB-Status zurueck": {
+      "main": [
+        [
+          {
+            "node": "Naechster Eintrag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Naechster Eintrag": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "i1lHwIVviiHaj95S",
+  "meta": null,
+  "name": "ALLRIS_Einmalig_Depublish_2026-135-02_WAGV_Mixup",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "depub-0001-4000-8000-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Notfall-Fix 2026-08-16: 2026/135-02 (Berliner Allee) hatte seit 07.08. einen live\n// veroeffentlichten Post mit KI-Content eines ANDEREN Vorgangs (2026/152-01, WAGV-\n// Jahresabschluss) - gleiche itemMatching/pairedItem-Vermischung wie im 07-28-Vorfall.\n// Setzt den Post zurueck auf draft und gibt contentStage zur Neugenerierung frei.\nconst TARGETS = [\n  { vorgangKey: 'vol_10744', vorgangsnummer: '2026/135-02', wordpressGoslarDraftId: '353' }\n];\nreturn TARGETS.map(t => ({ json: t }));"
+      },
+      "id": "depub-0002-4000-8000-000000000002",
+      "name": "Konfiguriere Ziele",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "depub-0003-4000-8000-000000000003",
+      "name": "Loop Vorgaenge",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://die-partei.net/goslar/wp-json/wp/v2/posts/' + $json.wordpressGoslarDraftId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ status: 'draft' }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "depub-0004-4000-8000-000000000004",
+      "name": "Setze Post auf Entwurf zurueck",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        -80
+      ],
+      "retryOnFail": false,
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const idx = $itemIndex;\nconst original = $('Loop Vorgaenge').itemMatching(idx).json;\nconst resp = $json || {};\nconst ok = resp.status === 'draft' && !resp.error;\nreturn { json: { ...original, unpublishOk: ok, unpublishError: ok ? '' : String(resp.error?.message || resp.message || JSON.stringify(resp)).slice(0, 500) } };"
+      },
+      "id": "depub-0005-4000-8000-000000000005",
+      "name": "Pruefe Unpublish-Ergebnis",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "wordpressGoslarPosted": "={{ false }}",
+            "wordpressGoslarPostedAt": "",
+            "contentStage": "needs_content",
+            "contentErrorReason": "",
+            "last_error_code": "",
+            "last_error_message": "={{ $json.unpublishOk ? '' : ('Depublish-Fehler: ' + $json.unpublishError) }}",
+            "last_error_stage": "",
+            "last_error_at": "",
+            "next_retry_at": "",
+            "retry_count": 0
+          },
+          "matchingColumns": [
+            "vorgangKey"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "depub-0006-4000-8000-000000000006",
+      "name": "Setze DB-Status zurueck",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $input.item.json }];"
+      },
+      "id": "depub-0007-4000-8000-000000000007",
+      "name": "Naechster Eintrag",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        -80
+      ]
+    }
+  ],
+  "pinData": null,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "versionId": "8a4a83e2-b231-47ee-8b34-30f37661d8e5"
+}
