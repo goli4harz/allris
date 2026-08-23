@@ -1,0 +1,109 @@
+{
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Konfiguriere Ziele",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Konfiguriere Ziele": {
+      "main": [
+        [
+          {
+            "node": "Setze contentStage zurueck",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "dxpxH4xxZKqwM7Da",
+  "meta": null,
+  "name": "ALLRIS_Einmalig_ContentStage_Reset",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "e1a2b3c4-0001-4aaa-9bbb-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Einmaliger Reset 2026-08-01 (6. Verwendung): 4 Vorgaenge hatten contentStage komplett\n// leer statt eines gueltigen Wertes - live bis zur Ursache zurueckverfolgt (siehe Commit\n// 1600f2b): P3 hatte contentStage korrekt berechnet (watching/needs_content je nach\n// empfehlung), P3d's \"Verarbeite Eignungs-Entscheidung\" hat es aber bei einem Paired-Item-\n// Verlust (itemMatching ueber die Execute-Workflow-Grenze) mit einem leeren String\n// ueberschrieben - nur bei Zeilen, die zu dem Zeitpunkt sharepicNeedStage='topic_error'\n// hatten. Der Bug selbst ist jetzt gefixt; das hier setzt nur die bereits betroffenen 4\n// Zeilen auf den empfehlung-passenden Wert zurueck, den P3 damals schon korrekt berechnet\n// hatte (verifiziert per historischer Execution 20228 fuer vol_10576).\n// 7. Verwendung 2026-08-01: 2026/008 + 2025/464-01 hatten denselben contentStage-Wipe-Bug\n// (empfehlung=BEOBACHTEN, sharepicNeedStage war offenbar zwischenzeitlich topic_error) - auf\n// 'watching' gesetzt, analog zu den 4 zuvor gefixten Zeilen. 2026/115 ist ein anderer Fall\n// (P6 contentStage-Downgrade-Bug, vor dem Fix von heute 08:49 passiert, wordpressPosted=true\n// steht schon lange fest) - direkt auf 'content_posted' gesetzt statt ueber P6 neu laufen zu\n// lassen, das Bild ist schon fertig.\nconst TARGETS = [\n  { vorgangKey: 'vol_10576', vorgangsnummer: '2026/094', targetStage: 'watching' },\n  { vorgangKey: 'vol_10597', vorgangsnummer: '2026/107', targetStage: 'watching' },\n  { vorgangKey: 'vol_10582', vorgangsnummer: '2026/099', targetStage: 'needs_content' },\n  { vorgangKey: 'vol_10363', vorgangsnummer: '2025/464', targetStage: 'watching' },\n  { vorgangKey: 'vol_10385', vorgangsnummer: '2026/008', targetStage: 'watching' },\n  { vorgangKey: 'vol_10368', vorgangsnummer: '2025/464-01', targetStage: 'watching' },\n  { vorgangKey: 'vol_10607', vorgangsnummer: '2026/115', targetStage: 'content_posted' }\n];\n\nif (!TARGETS.length) {\n  throw new Error('[ContentStage-Reset] TARGETS im Node \"Konfiguriere Ziele\" befuellen.');\n}\n\n// Bewusst NICHT dabei diesmal: headlineChoiceStage/visualPromptStage/judgmentChainProcessedAt -\n// die wurden fuer diese 4 Zeilen bereits heute per sharepicNeedStage-Reset korrekt auf\n// topic_ok/needs_prompt gesetzt (2 vorherige Einmalig-Workflows), ein erneutes Leeren wuerde\n// diesen Fortschritt zunichtemachen und unnoetig einen kompletten Agenten-Ketten-Rerun erzwingen.\nreturn TARGETS.map(t => ({\n  json: {\n    vorgangKey: t.vorgangKey,\n    vorgangsnummer: t.vorgangsnummer,\n    contentStage: t.targetStage || 'needs_summary',\n    contentErrorReason: '',\n    last_error_code: '',\n    last_error_message: '',\n    last_error_stage: '',\n    last_error_at: '',\n    next_retry_at: '',\n    retry_count: 0\n  }\n}));"
+      },
+      "id": "e1a2b3c4-0002-4aaa-9bbb-000000000002",
+      "name": "Konfiguriere Ziele",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "contentStage": "={{ $json.contentStage }}",
+            "contentErrorReason": "={{ $json.contentErrorReason }}",
+            "last_error_code": "={{ $json.last_error_code }}",
+            "last_error_message": "={{ $json.last_error_message }}",
+            "last_error_stage": "={{ $json.last_error_stage }}",
+            "last_error_at": "={{ $json.last_error_at }}",
+            "next_retry_at": "={{ $json.next_retry_at }}",
+            "retry_count": "={{ $json.retry_count }}"
+          },
+          "matchingColumns": [
+            "vorgangKey"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "e1a2b3c4-0003-4aaa-9bbb-000000000003",
+      "name": "Setze contentStage zurueck",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        440,
+        0
+      ]
+    }
+  ],
+  "pinData": null,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "versionId": "1973fb01-d74c-4c36-a430-5c19c8b94819"
+}
