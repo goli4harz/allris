@@ -1,0 +1,263 @@
+{
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hole alle Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole alle Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Baue Nachtrag-Nachrichten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue Nachtrag-Nachrichten": {
+      "main": [
+        [
+          {
+            "node": "Sende Nachtrag-Zusammenfassung",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sende Nachtrag-Zusammenfassung": {
+      "main": [
+        [
+          {
+            "node": "Prüfe Erfolg",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prüfe Erfolg": {
+      "main": [
+        [
+          {
+            "node": "IF gesendet?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF gesendet?": {
+      "main": [
+        [
+          {
+            "node": "Markiere gepostet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "meta": {},
+  "name": "ALLRIS_Einmalig_Matrix_Zusammenfassung_Nachtrag_v2_20260823",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "mc-manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -900,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": []
+        },
+        "returnAll": true
+      },
+      "id": "mc-get-all",
+      "name": "Hole alle Vorgaenge",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        -660,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Einmalig 2026-08-23 (v2 - Korrektur nach fehlgeschlagenem 1. Versuch, siehe Commit-\n// Historie): Nachtraeglicher Matrix-Versand fuer die verbliebenen 21 Zusammenfassungen,\n// die waehrend des 5-taegigen Matrix-Ausfalls nie gepostet wurden. vol_10811 (2026/248)\n// bereits im 1. Versuch erfolgreich gesendet (event_id bestaetigt) - hier bewusst\n// ausgeschlossen, um keine Dopplung zu erzeugen. v1 nutzte eine SplitInBatches-Schleife,\n// die nach dem 1. Item lautlos abgebrochen ist (Ursache nicht abschliessend geklaert,\n// manuelle 'Execute workflow'-Laeufe scheinen mit dieser Schleifenkonstruktion nicht\n// zuverlaessig zu funktionieren) - v2 verzichtet komplett auf eine eigene Schleife und\n// nutzt stattdessen httpRequest's eingebautes Batching (options.batching), exakt wie\n// P1s bereits produktiv bewaehrtes 'HTTP Vorgangsseiten'.\nconst TARGET_KEYS = [\"vol_10832\",\"vol_10833\",\"vol_10836\",\"vol_10843\",\"vol_10837\",\"vol_10845\",\"vol_10846\",\"vol_10838\",\"vol_10826\",\"vol_10828\",\"vol_10834\",\"vol_10835\",\"vol_10801\",\"vol_10802\",\"vol_10803\",\"vol_10805\",\"vol_10812\",\"vol_10814\",\"vol_10822\",\"vol_10808\",\"vol_10809\"];\n\nfunction parseList(value) {\n  if (Array.isArray(value)) return value.filter(Boolean).map(v => String(v).trim());\n  if (value === null || value === undefined || value === '') return [];\n  const t = String(value).trim();\n  if (!t) return [];\n  try {\n    const parsed = JSON.parse(t);\n    if (Array.isArray(parsed)) return parsed.filter(Boolean).map(v => String(v).trim());\n  } catch (e) {}\n  return t.split(/\\s*\\|\\s*/).filter(Boolean).map(v => String(v).trim());\n}\n\nconst rows = $input.all().map(i => i.json).filter(r => TARGET_KEYS.includes(r.vorgangKey));\nconsole.log('[Matrix-Nachtrag v2] ' + rows.length + ' von ' + TARGET_KEYS.length + ' Ziel-Zeilen gefunden.');\n\nreturn rows.map(j => {\n  const sentences = parseList(j.summarySentences);\n  const betroffene = parseList(j.betroffene);\n  const offenePunkte = parseList(j.offenePunkte);\n  const unsicherheiten = parseList(j.unsicherheitenSummary);\n\n  let vorgangsketteBlock = '';\n  if (j.istFolgevorgang === true || String(j.istFolgevorgang || '').trim() === 'true') {\n    let details = [];\n    try { details = JSON.parse(j.vorgangsketteDetails || '[]'); } catch (e) {}\n    let fehlend = [];\n    try { fehlend = JSON.parse(j.fehlendeVorherigeVorgaenge || '[]'); } catch (e) {}\n    const vollstaendig = j.vorgangsketteVollstaendig === true || String(j.vorgangsketteVollstaendig||'').trim()==='true';\n    let ketteLines = ['', 'Bezug zu vorherigen Vorgängen:', ''];\n    ketteLines.push(`* Stammvorgang: ${j.stammVorgangsnummer || ''}`);\n    const beruecksichtigt = details.filter(d => d.gefunden && d.kontextVerwendet);\n    const nichtBeruecksichtigt = details.filter(d => d.gefunden && !d.kontextVerwendet);\n    if (beruecksichtigt.length > 0) {\n      ketteLines.push('* Berücksichtigte Vorgänge:');\n      for (const d of beruecksichtigt) {\n        const quelleText = d.kontextQuelle === 'summary' ? 'vorhandene Zusammenfassung' : 'Dokumenttext als Fallback';\n        ketteLines.push(`  * ${d.vorgangsnummer} – ${quelleText}`);\n      }\n    }\n    if (nichtBeruecksichtigt.length > 0) {\n      ketteLines.push('* Gefunden, aber in diesem Lauf nicht als Kontext verfügbar:');\n      for (const d of nichtBeruecksichtigt) ketteLines.push(`  * ${d.vorgangsnummer}`);\n    }\n    if (fehlend.length > 0) {\n      ketteLines.push('* Fehlende Vorgänge:');\n      for (const vn of fehlend) ketteLines.push(`  * ${vn}`);\n    }\n    ketteLines.push(`* Vorgangskette vollständig: ${vollstaendig ? 'Ja' : 'Nein'}`);\n    vorgangsketteBlock = ketteLines.join('\\n');\n  }\n\n  let msg = `📄 Neue ALLRIS-Vorlage (nachtraeglich gesendet, Matrix-Ausfall 18.-23.08.)\\n\\n`;\n  msg += `Titel:\\n${j.title || ''}\\n\\n`;\n  msg += `Vorgangsnummer:\\n${j.vorgangsnummer || ''}\\n\\n`;\n  msg += `Link:\\n${j.allrisUrl || ''}\\n\\n`;\n  if (vorgangsketteBlock) msg += vorgangsketteBlock + '\\n\\n';\n  msg += `Kurzfassung:\\n`;\n  let summaryBlock = '';\n  if (j.summaryText && String(j.summaryText).trim()) summaryBlock = String(j.summaryText).trim();\n  else if (sentences.length > 0) summaryBlock = sentences.join(' ');\n  else summaryBlock = '(keine Zusammenfassung)';\n  summaryBlock = summaryBlock.replace(/\\r\\n/g, '\\n').replace(/[ \\t]+\\n/g, '\\n').replace(/\\n{3,}/g, '\\n\\n').trim();\n  msg += summaryBlock;\n  msg += `\\n\\nEinordnung:\\n`;\n  msg += `- Thema: ${j.thema || '—'}\\n`;\n  msg += `- Betroffene: ${betroffene.join(', ') || '—'}\\n`;\n  msg += `- Kosten/Haushalt: ${j.kostenHaushalt || '—'}\\n`;\n  msg += `- Bürgerwirkung: ${j.buergerwirkung || '—'}\\n`;\n  if (offenePunkte.length > 0) msg += `- Offene Punkte:\\n` + offenePunkte.map(p => `  • ${p}`).join('\\n') + '\\n';\n  if (unsicherheiten.length > 0) msg += `- Unsicherheiten:\\n` + unsicherheiten.map(p => `  • ${p}`).join('\\n') + '\\n';\n\n  const txnId = 'sumcatchup2_' + Date.now() + '_' + (j.vorgangKey || '').replace(/[^a-zA-Z0-9]/g,'').substring(0,10);\n\n  return { json: { vorgangKey: j.vorgangKey, vorgangsnummer: j.vorgangsnummer, verfasser: j.verfasser || '', fachdienst: j.fachdienst || '', summaryMessage: msg, txnId } };\n});"
+      },
+      "id": "mc-build-messages",
+      "name": "Baue Nachtrag-Nachrichten",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -420,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://matrix.org/_matrix/client/v3/rooms/!JDEhirqKydgJuFeWDH:matrix.golietz.de/send/m.room.message/{{ $json.txnId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ msgtype: 'm.text', body: $json.summaryMessage }) }}",
+        "options": {
+          "timeout": 30000,
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 2000
+            }
+          }
+        }
+      },
+      "id": "mc-send-matrix",
+      "name": "Sende Nachtrag-Zusammenfassung",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -160,
+        0
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "od1pN1F5wy2irSDs",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// $('Baue Nachtrag-Nachrichten').item löst dank n8ns pairedItem-Tracking pro Item\n// korrekt zurück, auch nachdem der HTTP-Node $json durch die reine Matrix-API-Antwort\n// ersetzt hat (kein vorgangKey mehr in $json selbst).\nconst original = $('Baue Nachtrag-Nachrichten').item.json;\nconst item = $input.item;\nconst j = item.json || {};\nconst hasError = !!(item.error || j.error || j.__error);\nconst eventId = j.event_id || j.eventId || '';\nconst matrixSuccess = !hasError && typeof eventId === 'string' && eventId.startsWith('$');\nreturn { json: { ...original, _sentOk: matrixSuccess, _eventId: eventId } };"
+      },
+      "id": "mc-check-success",
+      "name": "Prüfe Erfolg",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "mc-ok-1",
+              "leftValue": "={{ $json._sentOk }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "mc-if-ok",
+      "name": "IF gesendet?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        320,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "summaryPosted": "={{ $now.toISO() }}",
+            "summaryRoomPostedAt": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [
+            "vorgangKey"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "mc-mark-posted",
+      "name": "Markiere gepostet",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        560,
+        -60
+      ]
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "id": "5kjfqPTUhNhOMbG5"
+}
