@@ -692,7 +692,7 @@
     {
       "parameters": {
         "method": "PUT",
-        "url": "={{ 'https://matrix.org/_matrix/client/v3/rooms/' + encodeURIComponent('!tMRdHxOLwIKDiQlIRz:matrix.golietz.de') + '/send/m.room.message/' + encodeURIComponent($json.matrixTxnId + '_caption') }}",
+        "url": "={{ 'https://matrix.org/_matrix/client/v3/rooms/' + encodeURIComponent('!WBFKSWyDadLuAdfyfd:matrix.golietz.de') + '/send/m.room.message/' + encodeURIComponent($json.matrixTxnId + '_caption') }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
@@ -735,7 +735,7 @@
     {
       "parameters": {
         "method": "PUT",
-        "url": "={{ 'https://matrix.org/_matrix/client/v3/rooms/' + encodeURIComponent('!tMRdHxOLwIKDiQlIRz:matrix.golietz.de') + '/send/m.room.message/' + encodeURIComponent($('Bereite Matrix Message vor').item.json.matrixTxnId) }}",
+        "url": "={{ 'https://matrix.org/_matrix/client/v3/rooms/' + encodeURIComponent('!WBFKSWyDadLuAdfyfd:matrix.golietz.de') + '/send/m.room.message/' + encodeURIComponent($('Bereite Matrix Message vor').item.json.matrixTxnId) }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,

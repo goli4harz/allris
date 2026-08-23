@@ -2149,7 +2149,7 @@
     {
       "parameters": {
         "method": "PUT",
-        "url": "={{ 'https://matrix.org/_matrix/client/v3/rooms/' + encodeURIComponent('!WBFKSWyDadLuAdfyfd:matrix.golietz.de') + '/send/m.room.message/' + encodeURIComponent($json.matrixTxnId) }}",
+        "url": "={{ 'https://matrix.org/_matrix/client/v3/rooms/' + encodeURIComponent('!tMRdHxOLwIKDiQlIRz:matrix.golietz.de') + '/send/m.room.message/' + encodeURIComponent($json.matrixTxnId) }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
@@ -2184,7 +2184,7 @@
       "credentials": {
         "httpHeaderAuth": {
           "id": "od1pN1F5wy2irSDs",
-          "name": "Header Auth account"
+          "name": "Matrix Auth account"
         }
       },
       "retryOnFail": true
@@ -2255,7 +2255,7 @@
       "credentials": {
         "httpHeaderAuth": {
           "id": "od1pN1F5wy2irSDs",
-          "name": "Header Auth account"
+          "name": "Matrix Auth account"
         }
       },
       "retryOnFail": true
@@ -4997,7 +4997,7 @@
       ],
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "// FIX 2026-07-25: 'Schreibe Presseartikel Final' (Data-Table-update) ersetzt $json durch die\n// zurueckgegebene DB-Zeile (echte Spalten wie pressStatement) - das nur workflow-interne Feld\n// pressStatementFinal ging dabei verloren, die Matrix-Nachricht zeigte danach woertlich\n// 'undefined' statt des Artikeltexts. Kontext aus 'Parse Presseartikel Final' wiederherstellen.\nconst original = $('Parse Presseartikel Final').itemMatching($itemIndex).json;\nconst j = { ...original, ...$json };\nconst room = '!WBFKSWyDadLuAdfyfd:matrix.golietz.de';\nconst txnId = 'presse_' + Date.now() + '_' + String(j.vorgangKey||'').replace(/[^a-zA-Z0-9]/g,'').substring(0,10);\nreturn { json: { ...j, matrixPresseRoom: room, matrixPresseTxnId: txnId } };\n"
+        "jsCode": "// FIX 2026-07-25: 'Schreibe Presseartikel Final' (Data-Table-update) ersetzt $json durch die\n// zurueckgegebene DB-Zeile (echte Spalten wie pressStatement) - das nur workflow-interne Feld\n// pressStatementFinal ging dabei verloren, die Matrix-Nachricht zeigte danach woertlich\n// 'undefined' statt des Artikeltexts. Kontext aus 'Parse Presseartikel Final' wiederherstellen.\nconst original = $('Parse Presseartikel Final').itemMatching($itemIndex).json;\nconst j = { ...original, ...$json };\nconst room = '!tMRdHxOLwIKDiQlIRz:matrix.golietz.de';\nconst txnId = 'presse_' + Date.now() + '_' + String(j.vorgangKey||'').replace(/[^a-zA-Z0-9]/g,'').substring(0,10);\nreturn { json: { ...j, matrixPresseRoom: room, matrixPresseTxnId: txnId } };\n"
       }
     },
     {
@@ -5013,7 +5013,7 @@
       "credentials": {
         "httpHeaderAuth": {
           "id": "od1pN1F5wy2irSDs",
-          "name": "Header Auth account"
+          "name": "Matrix Auth account"
         }
       },
       "parameters": {
@@ -6353,7 +6353,9 @@
   "pinData": {},
   "settings": {
     "executionOrder": "v1",
-    "errorWorkflow": "qPheJKPv0k06tkro"
+    "binaryMode": "separate",
+    "errorWorkflow": "qPheJKPv0k06tkro",
+    "saveDataSuccessExecution": "all"
   },
   "tags": [
     {
@@ -6369,5 +6371,5 @@
       "name": "instagram"
     }
   ],
-  "versionId": "0691a169-7f1f-47e5-af3e-e97933ebf1bc"
+  "versionId": "08e185e5-d789-47f9-8a25-c6b920151f30"
 }

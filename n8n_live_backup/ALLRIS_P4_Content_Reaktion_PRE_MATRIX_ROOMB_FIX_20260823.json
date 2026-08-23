@@ -444,7 +444,7 @@
         ]
       ]
     },
-    "Prüfe Source-Lock (Content)": {
+    "Pr��fe Source-Lock (Content)": {
       "main": [
         [
           {
@@ -1724,7 +1724,7 @@
     {
       "parameters": {
         "method": "PUT",
-        "url": "=https://matrix.org/_matrix/client/v3/rooms/!WBFKSWyDadLuAdfyfd:matrix.golietz.de/send/m.room.message/{{ $('Build Reaction Message').item.json.txnId }}",
+        "url": "=https://matrix.org/_matrix/client/v3/rooms/!tMRdHxOLwIKDiQlIRz:matrix.golietz.de/send/m.room.message/{{ $('Build Reaction Message').item.json.txnId }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
@@ -1755,7 +1755,7 @@
       "credentials": {
         "httpHeaderAuth": {
           "id": "od1pN1F5wy2irSDs",
-          "name": "Header Auth account"
+          "name": "Matrix Auth account"
         }
       },
       "continueOnFail": true,
@@ -3478,7 +3478,7 @@
       "credentials": {
         "httpHeaderAuth": {
           "id": "od1pN1F5wy2irSDs",
-          "name": "Header Auth account"
+          "name": "Matrix Auth account"
         }
       },
       "continueOnFail": true,
@@ -3969,8 +3969,10 @@
   "pinData": {},
   "settings": {
     "executionOrder": "v1",
-    "errorWorkflow": "qPheJKPv0k06tkro"
+    "binaryMode": "separate",
+    "errorWorkflow": "qPheJKPv0k06tkro",
+    "saveDataSuccessExecution": "all"
   },
   "tags": [],
-  "versionId": "f5033c90-694d-4b42-a080-fa97aa9b051a"
+  "versionId": "03bc934b-ea0f-4707-94d0-e9d72fd7d638"
 }
