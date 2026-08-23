@@ -584,7 +584,7 @@
     {
       "parameters": {
         "method": "PUT",
-        "url": "=https://matrix.org/_matrix/client/v3/rooms/!JDEhirqKydgJuFeWDH:matrix.golietz.de/send/m.room.message/{{ $json.txnId }}",
+        "url": "=https://matrix.org/_matrix/client/v3/rooms/!COxTeLJyPszYlaHbIx:matrix.golietz.de/send/m.room.message/{{ $json.txnId }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
@@ -615,7 +615,7 @@
       "credentials": {
         "httpHeaderAuth": {
           "id": "od1pN1F5wy2irSDs",
-          "name": "Header Auth account"
+          "name": "Matrix Auth account"
         }
       },
       "onError": "continueRegularOutput"
@@ -651,7 +651,7 @@
     {
       "parameters": {
         "method": "PUT",
-        "url": "=https://matrix.org/_matrix/client/v3/rooms/!JDEhirqKydgJuFeWDH:matrix.golietz.de/send/m.room.message/{{ $json.txnId }}",
+        "url": "=https://matrix.org/_matrix/client/v3/rooms/!COxTeLJyPszYlaHbIx:matrix.golietz.de/send/m.room.message/{{ $json.txnId }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
@@ -682,7 +682,7 @@
       "credentials": {
         "httpHeaderAuth": {
           "id": "od1pN1F5wy2irSDs",
-          "name": "Header Auth account"
+          "name": "Matrix Auth account"
         }
       },
       "onError": "continueRegularOutput"
@@ -1041,8 +1041,9 @@
   "pinData": null,
   "settings": {
     "executionOrder": "v1",
-    "errorWorkflow": "qPheJKPv0k06tkro"
+    "errorWorkflow": "qPheJKPv0k06tkro",
+    "saveDataSuccessExecution": "all"
   },
   "tags": [],
-  "versionId": "3f26eac7-682b-46dd-91bf-05afdfebe5a8"
+  "versionId": "bd81e0c2-c1f3-4bcd-9637-7246b0e2fc28"
 }

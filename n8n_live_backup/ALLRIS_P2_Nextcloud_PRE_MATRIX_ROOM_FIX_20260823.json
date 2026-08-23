@@ -1423,7 +1423,7 @@
     {
       "parameters": {
         "method": "PUT",
-        "url": "=https://matrix.org/_matrix/client/v3/rooms/!JDEhirqKydgJuFeWDH:matrix.golietz.de/send/m.room.message/{{ $json.txnId }}",
+        "url": "=https://matrix.org/_matrix/client/v3/rooms/!COxTeLJyPszYlaHbIx:matrix.golietz.de/send/m.room.message/{{ $json.txnId }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
@@ -1454,7 +1454,7 @@
       "credentials": {
         "httpHeaderAuth": {
           "id": "od1pN1F5wy2irSDs",
-          "name": "Header Auth account"
+          "name": "Matrix Auth account"
         }
       },
       "onError": "continueRegularOutput"
@@ -1682,8 +1682,9 @@
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate",
-    "errorWorkflow": "qPheJKPv0k06tkro"
+    "errorWorkflow": "qPheJKPv0k06tkro",
+    "saveDataSuccessExecution": "all"
   },
   "tags": [],
-  "versionId": "9bca7252-f39a-4578-a154-1b8666d02308"
+  "versionId": "cef0dd64-42a1-4d04-9669-1a01d2ffdd1b"
 }

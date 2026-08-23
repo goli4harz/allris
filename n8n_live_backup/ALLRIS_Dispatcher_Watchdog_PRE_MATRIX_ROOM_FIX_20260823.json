@@ -237,7 +237,7 @@
     {
       "parameters": {
         "method": "PUT",
-        "url": "=https://matrix.org/_matrix/client/v3/rooms/!JDEhirqKydgJuFeWDH:matrix.golietz.de/send/m.room.message/{{ $json.txnId }}",
+        "url": "=https://matrix.org/_matrix/client/v3/rooms/!COxTeLJyPszYlaHbIx:matrix.golietz.de/send/m.room.message/{{ $json.txnId }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
@@ -377,7 +377,9 @@
             "claim_acquired_at": "={{ $json.claimAcquiredAt }}",
             "claim_expires_at": "={{ $json.claimExpiresAt }}"
           },
-          "matchingColumns": ["id"],
+          "matchingColumns": [
+            "id"
+          ],
           "schema": []
         },
         "options": {}
@@ -448,7 +450,8 @@
         2048,
         496
       ],
-      "notes": "Doppelclaim-Test: waehrend dieses Fensters denselben Manual Trigger ein zweites Mal starten. Der zweite Lauf darf den fremden Owner nicht bestaetigen."
+      "notes": "Doppelclaim-Test: waehrend dieses Fensters denselben Manual Trigger ein zweites Mal starten. Der zweite Lauf darf den fremden Owner nicht bestaetigen.",
+      "webhookId": "e6ffeaf6-7238-4b98-8015-050282bf752c"
     },
     {
       "parameters": {
@@ -481,7 +484,9 @@
             "claim_acquired_at": null,
             "claim_expires_at": null
           },
-          "matchingColumns": ["id"],
+          "matchingColumns": [
+            "id"
+          ],
           "schema": []
         },
         "options": {}
@@ -540,11 +545,10 @@
       ]
     }
   ],
-  "pinData": {},
+  "pinData": null,
   "settings": {
-    "executionOrder": "v1",
-    "binaryMode": "separate"
+    "executionOrder": "v1"
   },
   "tags": [],
-  "versionId": "39fc3e23-a255-46b9-a063-e6a4efe5e1b3"
+  "versionId": "e21ae682-ee4e-42ec-9ac4-d68b3ab5bd51"
 }
