@@ -1,0 +1,137 @@
+{
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "40 Ziele",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "40 Ziele": {
+      "main": [
+        [
+          {
+            "node": "Schreibe vorlageDatum",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schreibe vorlageDatum": {
+      "main": [
+        [
+          {
+            "node": "Korrigiere golietz.de Datum",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "meta": {},
+  "name": "ALLRIS_Einmalig_VorlagenDatum_Nachtrag_40_20260823",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "bf40-manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -600,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Einmalig 2026-08-23: Nachtrag fuer 40 golietz.de-Vorgaenge, deren vorlageDatum leer\n// war, obwohl das Datum im bereits archivierten Dokumenttext eindeutig vorhanden ist\n// (Stichprobe zeigte 1-18 Tage falsche Anzeige-Daten). Wurde durch den heutigen Fix\n// verursacht, der 36 nachgelagerte Knoten daran gehindert hat, vorlageDatum blind mit\n// Leerstring zu ueberschreiben (siehe Commit c75ca2b) - dieser Nachtrag repariert nur\n// den bereits entstandenen Bestand, keine neuen Faelle sollten mehr dazukommen.\n// vorlageDatum/vorlageDatumPdf jeweils per Regex aus dem archivierten combinedText\n// extrahiert (\"Stadt Goslar Goslar, DD.MM.YYYY\"), targetDateLocal = vorlageDatum+3\n// Tage um 01:00 Uhr lokal (dieselbe Konvention wie P7/P8b), mit korrektem MEZ/MESZ-\n// Offset pro Zieldatum vorab berechnet.\n//\n// 2 aehnliche Zeilen (2026/099, 2026/010) bewusst NICHT enthalten - fuer diese beiden\n// liefert dieselbe Regex kein Datum (chronisches, unabhaengiges Extraktionsproblem,\n// siehe Memory allris-2026-08-15-p4b-p2-forcerefresh-session).\nconst TARGETS = [\n  { vorgangKey: \"vol_10576\", vorgangsnummer: \"2026/094\", vorlageDatum: \"2026-03-17\", wordpressPostId: \"2503\", targetDateLocal: \"2026-03-20T01:00:00.000+01:00\" },\n  { vorgangKey: \"vol_10363\", vorgangsnummer: \"2025/464\", vorlageDatum: \"2025-12-22\", wordpressPostId: \"2474\", targetDateLocal: \"2025-12-25T01:00:00.000+01:00\" },\n  { vorgangKey: \"vol_10783\", vorgangsnummer: \"2026/223\", vorlageDatum: \"2026-08-02\", wordpressPostId: \"2637\", targetDateLocal: \"2026-08-05T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10793\", vorgangsnummer: \"2026/232\", vorlageDatum: \"2026-08-06\", wordpressPostId: \"2655\", targetDateLocal: \"2026-08-09T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10774\", vorgangsnummer: \"2026/217\", vorlageDatum: \"2026-07-27\", wordpressPostId: \"2654\", targetDateLocal: \"2026-07-30T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10797\", vorgangsnummer: \"2026/235\", vorlageDatum: \"2026-08-10\", wordpressPostId: \"2658\", targetDateLocal: \"2026-08-13T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10807\", vorgangsnummer: \"2026/244\", vorlageDatum: \"2026-08-12\", wordpressPostId: \"2666\", targetDateLocal: \"2026-08-15T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10804\", vorgangsnummer: \"2026/242\", vorlageDatum: \"2026-08-11\", wordpressPostId: \"2665\", targetDateLocal: \"2026-08-14T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10800\", vorgangsnummer: \"2026/238\", vorlageDatum: \"2026-08-12\", wordpressPostId: \"2663\", targetDateLocal: \"2026-08-15T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10799\", vorgangsnummer: \"2026/237\", vorlageDatum: \"2026-08-11\", wordpressPostId: \"2664\", targetDateLocal: \"2026-08-14T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10791\", vorgangsnummer: \"2026/231\", vorlageDatum: \"2026-08-11\", wordpressPostId: \"2662\", targetDateLocal: \"2026-08-14T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10790\", vorgangsnummer: \"2026/230\", vorlageDatum: \"2026-08-11\", wordpressPostId: \"2661\", targetDateLocal: \"2026-08-14T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10789\", vorgangsnummer: \"2026/229\", vorlageDatum: \"2026-08-06\", wordpressPostId: \"2660\", targetDateLocal: \"2026-08-09T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10776\", vorgangsnummer: \"2026/219\", vorlageDatum: \"2026-07-28\", wordpressPostId: \"2673\", targetDateLocal: \"2026-07-31T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10769\", vorgangsnummer: \"2026/214\", vorlageDatum: \"2026-07-21\", wordpressPostId: \"2672\", targetDateLocal: \"2026-07-24T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10763\", vorgangsnummer: \"2026/209\", vorlageDatum: \"2026-07-14\", wordpressPostId: \"2671\", targetDateLocal: \"2026-07-17T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10757\", vorgangsnummer: \"2026/203\", vorlageDatum: \"2026-07-09\", wordpressPostId: \"2670\", targetDateLocal: \"2026-07-12T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10754\", vorgangsnummer: \"2026/201\", vorlageDatum: \"2026-07-06\", wordpressPostId: \"2669\", targetDateLocal: \"2026-07-09T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10752\", vorgangsnummer: \"2026/199\", vorlageDatum: \"2026-07-02\", wordpressPostId: \"2668\", targetDateLocal: \"2026-07-05T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10818\", vorgangsnummer: \"2026/254\", vorlageDatum: \"2026-08-13\", wordpressPostId: \"2677\", targetDateLocal: \"2026-08-16T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10817\", vorgangsnummer: \"2026/253\", vorlageDatum: \"2026-08-13\", wordpressPostId: \"2676\", targetDateLocal: \"2026-08-16T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10785\", vorgangsnummer: \"2026/225\", vorlageDatum: \"2026-08-04\", wordpressPostId: \"2675\", targetDateLocal: \"2026-08-07T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10771\", vorgangsnummer: \"2026/215\", vorlageDatum: \"2026-07-24\", wordpressPostId: \"2674\", targetDateLocal: \"2026-07-27T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10820\", vorgangsnummer: \"2026/256\", vorlageDatum: \"2026-08-15\", wordpressPostId: \"2692\", targetDateLocal: \"2026-08-18T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10795\", vorgangsnummer: \"2026/233\", vorlageDatum: \"2026-08-10\", wordpressPostId: \"2693\", targetDateLocal: \"2026-08-13T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10833\", vorgangsnummer: \"2026/266\", vorlageDatum: \"2026-08-19\", wordpressPostId: \"2702\", targetDateLocal: \"2026-08-22T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10832\", vorgangsnummer: \"2026/265\", vorlageDatum: \"2026-08-19\", wordpressPostId: \"2701\", targetDateLocal: \"2026-08-22T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10846\", vorgangsnummer: \"2026/242-01\", vorlageDatum: \"2026-08-21\", wordpressPostId: \"2708\", targetDateLocal: \"2026-08-24T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10845\", vorgangsnummer: \"2026/240-01\", vorlageDatum: \"2026-08-21\", wordpressPostId: \"2707\", targetDateLocal: \"2026-08-24T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10843\", vorgangsnummer: \"2026/236-01\", vorlageDatum: \"2026-08-20\", wordpressPostId: \"2705\", targetDateLocal: \"2026-08-23T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10837\", vorgangsnummer: \"2026/238-01\", vorlageDatum: \"2026-08-20\", wordpressPostId: \"2706\", targetDateLocal: \"2026-08-23T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10835\", vorgangsnummer: \"2026/268\", vorlageDatum: \"2026-08-19\", wordpressPostId: \"2712\", targetDateLocal: \"2026-08-22T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10834\", vorgangsnummer: \"2026/267\", vorlageDatum: \"2026-08-19\", wordpressPostId: \"2711\", targetDateLocal: \"2026-08-22T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10828\", vorgangsnummer: \"2026/261\", vorlageDatum: \"2026-08-18\", wordpressPostId: \"2710\", targetDateLocal: \"2026-08-21T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10826\", vorgangsnummer: \"2026/260\", vorlageDatum: \"2026-08-18\", wordpressPostId: \"2709\", targetDateLocal: \"2026-08-21T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10822\", vorgangsnummer: \"2026/257-01\", vorlageDatum: \"2026-08-17\", wordpressPostId: \"2716\", targetDateLocal: \"2026-08-20T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10812\", vorgangsnummer: \"2026/249\", vorlageDatum: \"2026-08-12\", wordpressPostId: \"2715\", targetDateLocal: \"2026-08-15T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10805\", vorgangsnummer: \"2026/243\", vorlageDatum: \"2026-08-11\", wordpressPostId: \"2717\", targetDateLocal: \"2026-08-14T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10803\", vorgangsnummer: \"2026/241\", vorlageDatum: \"2026-08-11\", wordpressPostId: \"2714\", targetDateLocal: \"2026-08-14T01:00:00.000+02:00\" },\n  { vorgangKey: \"vol_10802\", vorgangsnummer: \"2026/240\", vorlageDatum: \"2026-08-11\", wordpressPostId: \"2713\", targetDateLocal: \"2026-08-14T01:00:00.000+02:00\" }\n];\n\nreturn TARGETS.map(t => ({ json: t }));"
+      },
+      "id": "bf40-config",
+      "name": "40 Ziele",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -360,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "vorlageDatumPdf": "={{ $json.vorlageDatum }}",
+            "vorlageDatum": "={{ $json.vorlageDatum }}"
+          },
+          "matchingColumns": [
+            "vorgangKey"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "bf40-write-db",
+      "name": "Schreibe vorlageDatum",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        -120,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "postId": "={{ $json.wordpressPostId }}",
+        "updateFields": {
+          "date": "={{ $json.targetDateLocal }}"
+        }
+      },
+      "id": "bf40-patch-wp",
+      "name": "Korrigiere golietz.de Datum",
+      "type": "n8n-nodes-base.wordpress",
+      "typeVersion": 1,
+      "position": [
+        120,
+        0
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "wordpressApi": {
+          "id": "8k2HqYswPaPVS4dr",
+          "name": "Ollies Wordpress"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "id": "vffhq8gAf18ugi2k"
+}
