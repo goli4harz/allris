@@ -1,0 +1,102 @@
+{
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "2 verbliebene Ziele",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2 verbliebene Ziele": {
+      "main": [
+        [
+          {
+            "node": "Markiere gepostet (final)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "meta": {},
+  "name": "ALLRIS_Einmalig_Matrix_Zusammenfassung_Nachtrag_v4_final_20260823",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "mc4-manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Einmalig 2026-08-23 (v4 - letzter Rest nach v2/v3): vol_10805 (2026/243) und\n// vol_10802 (2026/240) wurden in v3s Execution-Daten mit echter event_id als\n// erfolgreich gesendet bestaetigt, aber 'Markiere gepostet (v3)' hat wegen derselben\n// httpRequest-Batching/pairedItem-Faelle wie in v2 nur 1 von 3 erneut gesendeten\n// Items markiert. Kein erneuter Versand hier - nur der fehlende DB-Flag, ganz ohne\n// httpRequest-Knoten in diesem Workflow.\nconst TARGET_KEYS = [\"vol_10805\",\"vol_10802\"];\nreturn TARGET_KEYS.map(k => ({ json: { vorgangKey: k } }));"
+      },
+      "id": "mc4-targets",
+      "name": "2 verbliebene Ziele",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "summaryPosted": "={{ $now.toISO() }}",
+            "summaryRoomPostedAt": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [
+            "vorgangKey"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "mc4-mark",
+      "name": "Markiere gepostet (final)",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        80,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "id": "gVb73i8qhmCAj7Xs"
+}
