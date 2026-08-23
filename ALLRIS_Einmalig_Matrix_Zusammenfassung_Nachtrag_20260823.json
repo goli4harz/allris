@@ -1,0 +1,325 @@
+{
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hole alle Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole alle Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Baue Nachtrag-Nachrichten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue Nachtrag-Nachrichten": {
+      "main": [
+        [
+          {
+            "node": "Loop (1x)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop (1x)": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Warte 2s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Warte 2s": {
+      "main": [
+        [
+          {
+            "node": "Sende Nachtrag-Zusammenfassung",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sende Nachtrag-Zusammenfassung": {
+      "main": [
+        [
+          {
+            "node": "Prüfe Erfolg",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prüfe Erfolg": {
+      "main": [
+        [
+          {
+            "node": "IF gesendet?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF gesendet?": {
+      "main": [
+        [
+          {
+            "node": "Markiere gepostet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop (1x)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Markiere gepostet": {
+      "main": [
+        [
+          {
+            "node": "Loop (1x)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "meta": {},
+  "name": "ALLRIS_Einmalig_Matrix_Zusammenfassung_Nachtrag_20260823",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "mc-manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -900,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": []
+        },
+        "returnAll": true
+      },
+      "id": "mc-get-all",
+      "name": "Hole alle Vorgaenge",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        -660,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Einmalig 2026-08-23: Nachtraeglicher Matrix-Versand fuer 22 Zusammenfassungen,\n// die waehrend des 5-taegigen Matrix-Ausfalls (veraltete Raum-ID, seit 2026-08-18\n// 06:06 behoben in Commit a9c53a3) nie gepostet wurden - die Zusammenfassungen selbst\n// sind bereits vollstaendig in der DB vorhanden (summaryCreatedAt gesetzt,\n// summaryRoomPostedAt leer), hier wird nur der fehlende Matrix-Post nachgeholt.\n// Nachrichtentext 1:1 nach der Logik von 'Build Summary Message' in\n// ALLRIS_P3_Bewertung nachgebaut (keine Logik neu erfunden).\nconst TARGET_KEYS = [\"vol_10832\",\"vol_10833\",\"vol_10836\",\"vol_10843\",\"vol_10837\",\"vol_10845\",\"vol_10846\",\"vol_10838\",\"vol_10826\",\"vol_10828\",\"vol_10834\",\"vol_10835\",\"vol_10801\",\"vol_10802\",\"vol_10803\",\"vol_10805\",\"vol_10812\",\"vol_10814\",\"vol_10822\",\"vol_10808\",\"vol_10809\",\"vol_10811\"];\n\nfunction parseList(value) {\n  if (Array.isArray(value)) return value.filter(Boolean).map(v => String(v).trim());\n  if (value === null || value === undefined || value === '') return [];\n  const t = String(value).trim();\n  if (!t) return [];\n  try {\n    const parsed = JSON.parse(t);\n    if (Array.isArray(parsed)) return parsed.filter(Boolean).map(v => String(v).trim());\n  } catch (e) {}\n  return t.split(/\\s*\\|\\s*/).filter(Boolean).map(v => String(v).trim());\n}\n\nconst rows = $input.all().map(i => i.json).filter(r => TARGET_KEYS.includes(r.vorgangKey));\nconsole.log('[Matrix-Nachtrag] ' + rows.length + ' von ' + TARGET_KEYS.length + ' Ziel-Zeilen gefunden.');\n\nreturn rows.map(j => {\n  const sentences = parseList(j.summarySentences);\n  const betroffene = parseList(j.betroffene);\n  const offenePunkte = parseList(j.offenePunkte);\n  const unsicherheiten = parseList(j.unsicherheitenSummary);\n\n  let vorgangsketteBlock = '';\n  if (j.istFolgevorgang === true || String(j.istFolgevorgang || '').trim() === 'true') {\n    let details = [];\n    try { details = JSON.parse(j.vorgangsketteDetails || '[]'); } catch (e) {}\n    let fehlend = [];\n    try { fehlend = JSON.parse(j.fehlendeVorherigeVorgaenge || '[]'); } catch (e) {}\n    const vollstaendig = j.vorgangsketteVollstaendig === true || String(j.vorgangsketteVollstaendig||'').trim()==='true';\n    let ketteLines = ['', 'Bezug zu vorherigen Vorgängen:', ''];\n    ketteLines.push(`* Stammvorgang: ${j.stammVorgangsnummer || ''}`);\n    const beruecksichtigt = details.filter(d => d.gefunden && d.kontextVerwendet);\n    const nichtBeruecksichtigt = details.filter(d => d.gefunden && !d.kontextVerwendet);\n    if (beruecksichtigt.length > 0) {\n      ketteLines.push('* Berücksichtigte Vorgänge:');\n      for (const d of beruecksichtigt) {\n        const quelleText = d.kontextQuelle === 'summary' ? 'vorhandene Zusammenfassung' : 'Dokumenttext als Fallback';\n        ketteLines.push(`  * ${d.vorgangsnummer} – ${quelleText}`);\n      }\n    }\n    if (nichtBeruecksichtigt.length > 0) {\n      ketteLines.push('* Gefunden, aber in diesem Lauf nicht als Kontext verfügbar:');\n      for (const d of nichtBeruecksichtigt) ketteLines.push(`  * ${d.vorgangsnummer}`);\n    }\n    if (fehlend.length > 0) {\n      ketteLines.push('* Fehlende Vorgänge:');\n      for (const vn of fehlend) ketteLines.push(`  * ${vn}`);\n    }\n    ketteLines.push(`* Vorgangskette vollständig: ${vollstaendig ? 'Ja' : 'Nein'}`);\n    vorgangsketteBlock = ketteLines.join('\\n');\n  }\n\n  let msg = `📄 Neue ALLRIS-Vorlage (nachtraeglich gesendet, Matrix-Ausfall 18.-23.08.)\\n\\n`;\n  msg += `Titel:\\n${j.title || ''}\\n\\n`;\n  msg += `Vorgangsnummer:\\n${j.vorgangsnummer || ''}\\n\\n`;\n  msg += `Link:\\n${j.allrisUrl || ''}\\n\\n`;\n  if (vorgangsketteBlock) msg += vorgangsketteBlock + '\\n\\n';\n  msg += `Kurzfassung:\\n`;\n  let summaryBlock = '';\n  if (j.summaryText && String(j.summaryText).trim()) summaryBlock = String(j.summaryText).trim();\n  else if (sentences.length > 0) summaryBlock = sentences.join(' ');\n  else summaryBlock = '(keine Zusammenfassung)';\n  summaryBlock = summaryBlock.replace(/\\r\\n/g, '\\n').replace(/[ \\t]+\\n/g, '\\n').replace(/\\n{3,}/g, '\\n\\n').trim();\n  msg += summaryBlock;\n  msg += `\\n\\nEinordnung:\\n`;\n  msg += `- Thema: ${j.thema || '—'}\\n`;\n  msg += `- Betroffene: ${betroffene.join(', ') || '—'}\\n`;\n  msg += `- Kosten/Haushalt: ${j.kostenHaushalt || '—'}\\n`;\n  msg += `- Bürgerwirkung: ${j.buergerwirkung || '—'}\\n`;\n  if (offenePunkte.length > 0) msg += `- Offene Punkte:\\n` + offenePunkte.map(p => `  • ${p}`).join('\\n') + '\\n';\n  if (unsicherheiten.length > 0) msg += `- Unsicherheiten:\\n` + unsicherheiten.map(p => `  • ${p}`).join('\\n') + '\\n';\n\n  const txnId = 'sumcatchup_' + Date.now() + '_' + (j.vorgangKey || '').replace(/[^a-zA-Z0-9]/g,'').substring(0,10);\n\n  return { json: { ...j, summaryMessage: msg, txnId } };\n});"
+      },
+      "id": "mc-build-messages",
+      "name": "Baue Nachtrag-Nachrichten",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -420,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "mc-loop",
+      "name": "Loop (1x)",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -160,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "seconds"
+      },
+      "id": "mc-wait",
+      "name": "Warte 2s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        80,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://matrix.org/_matrix/client/v3/rooms/!JDEhirqKydgJuFeWDH:matrix.golietz.de/send/m.room.message/{{ $json.txnId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ msgtype: 'm.text', body: $json.summaryMessage }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "mc-send-matrix",
+      "name": "Sende Nachtrag-Zusammenfassung",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        320,
+        80
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "od1pN1F5wy2irSDs",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.item;\nconst j = item.json || {};\nconst hasError = !!(item.error || j.error || j.__error);\nconst eventId = j.event_id || j.eventId || '';\nconst matrixSuccess = !hasError && typeof eventId === 'string' && eventId.startsWith('$');\nreturn { json: { ...j, _sentOk: matrixSuccess } };"
+      },
+      "id": "mc-check-success",
+      "name": "Prüfe Erfolg",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "mc-ok-1",
+              "leftValue": "={{ $json._sentOk }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "mc-if-ok",
+      "name": "IF gesendet?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        800,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "summaryPosted": "={{ $now.toISO() }}",
+            "summaryRoomPostedAt": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [
+            "vorgangKey"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "mc-mark-posted",
+      "name": "Markiere gepostet",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        40
+      ]
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "id": "tHXlcWhcXOgHqjhW"
+}
