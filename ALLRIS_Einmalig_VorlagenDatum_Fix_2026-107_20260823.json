@@ -27,7 +27,7 @@
       "main": [
         [
           {
-            "node": "Korrigiere die-partei.net Datum",
+            "node": "Korrigiere die-partei.net Datum (nativ)",
             "type": "main",
             "index": 0
           }
@@ -105,22 +105,16 @@
     },
     {
       "parameters": {
-        "method": "PATCH",
-        "url": "={{ 'https://die-partei.net/goslar/wp-json/wp/v2/posts/' + $json.wordpressGoslarDraftId }}",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "wordpressApi",
-        "sendBody": true,
-        "contentType": "json",
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ date: $json.newDateLocal, date_gmt: $json.newDateGmt, status: \"publish\" }) }}",
-        "options": {
-          "timeout": 60000
+        "operation": "update",
+        "postId": "={{ $json.wordpressGoslarDraftId }}",
+        "updateFields": {
+          "date": "2026-03-26T01:00:00.000+01:00"
         }
       },
-      "id": "vd-patch-wp-001",
-      "name": "Korrigiere die-partei.net Datum",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "id": "vd-patch-wp-native-001",
+      "name": "Korrigiere die-partei.net Datum (nativ)",
+      "type": "n8n-nodes-base.wordpress",
+      "typeVersion": 1,
       "position": [
         360,
         0
