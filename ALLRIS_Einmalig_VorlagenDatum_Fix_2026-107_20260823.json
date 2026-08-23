@@ -1,0 +1,142 @@
+{
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Konfiguriere Fix",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Konfiguriere Fix": {
+      "main": [
+        [
+          {
+            "node": "Schreibe vorlageDatum",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schreibe vorlageDatum": {
+      "main": [
+        [
+          {
+            "node": "Korrigiere die-partei.net Datum",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "meta": {},
+  "name": "ALLRIS_Einmalig_VorlagenDatum_Fix_2026-107_20260823",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "vd-manual-trigger-001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Einmalig 2026-08-23: 2026/107 (vol_10597) zeigte auf die-partei.net das falsche\n// Datum 29.07.2026 (firstseen+3 Tage Fallback), weil vorlageDatum/vorlageDatumPdf\n// leer waren - vermutlich Kollateralschaden des bekannten P3d Paired-Item-Verlust-\n// Bugs vom 2026-08-01 (dieselbe Zeile wurde damals schon fuer contentStage repariert,\n// siehe ALLRIS_Einmalig_ContentStage_Reset, 4. Verwendung - die Datumsfelder wurden\n// dabei aber nicht mitgeprueft). Der echte Vorlagen-Kopf ('Stadt Goslar Goslar,\n// 23.03.2026') ist im bereits archivierten combinedText unveraendert vorhanden -\n// per Nutzer-Screenshot der Originalvorlage bestaetigt. golietz.de zeigt bereits\n// korrekt 26.03.2026 (23.03+3 Tage) - das Datum war zum Zeitpunkt jener\n// Veroeffentlichung noch intakt, nur die-partei.net wurde erst heute (23.08.,\n// lange nach dem Datenverlust) live geschaltet und traf dadurch den falschen\n// Fallback.\nreturn [{\n  json: {\n    vorgangKey: 'vol_10597',\n    vorlageDatumPdf: '2026-03-23',\n    vorlageDatum: '2026-03-23',\n    wordpressGoslarDraftId: '444',\n    newDateGmt: '2026-03-26T00:00:00.000Z'\n  }\n}];"
+      },
+      "id": "vd-config-001",
+      "name": "Konfiguriere Fix",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "vorlageDatumPdf": "={{ $json.vorlageDatumPdf }}",
+            "vorlageDatum": "={{ $json.vorlageDatum }}"
+          },
+          "matchingColumns": [
+            "vorgangKey"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "vd-write-db-001",
+      "name": "Schreibe vorlageDatum",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        100,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://die-partei.net/goslar/wp-json/wp/v2/posts/' + $json.wordpressGoslarDraftId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ date_gmt: $json.newDateGmt }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "vd-patch-wp-001",
+      "name": "Korrigiere die-partei.net Datum",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        360,
+        0
+      ],
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "id": "XYj5mk5w5IobaaG4"
+}
