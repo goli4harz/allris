@@ -5,14 +5,14 @@
       "main": [
         [
           {
-            "node": "2 verbliebene Ziele",
+            "node": "3 verbliebene Ziele",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "2 verbliebene Ziele": {
+    "3 verbliebene Ziele": {
       "main": [
         [
           {
@@ -40,10 +40,10 @@
     },
     {
       "parameters": {
-        "jsCode": "// Einmalig 2026-08-23 (v4 - letzter Rest nach v2/v3): vol_10805 (2026/243) und\n// vol_10802 (2026/240) wurden in v3s Execution-Daten mit echter event_id als\n// erfolgreich gesendet bestaetigt, aber 'Markiere gepostet (v3)' hat wegen derselben\n// httpRequest-Batching/pairedItem-Faelle wie in v2 nur 1 von 3 erneut gesendeten\n// Items markiert. Kein erneuter Versand hier - nur der fehlende DB-Flag, ganz ohne\n// httpRequest-Knoten in diesem Workflow.\nconst TARGET_KEYS = [\"vol_10805\",\"vol_10802\"];\nreturn TARGET_KEYS.map(k => ({ json: { vorgangKey: k } }));"
+        "jsCode": "// Einmalig 2026-08-23 (v4b - letzter Rest inkl. vol_10811 aus v1): vol_10805 (2026/243) und\n// vol_10802 (2026/240) wurden in v3s Execution-Daten mit echter event_id als\n// erfolgreich gesendet bestaetigt, aber 'Markiere gepostet (v3)' hat wegen derselben\n// httpRequest-Batching/pairedItem-Faelle wie in v2 nur 1 von 3 erneut gesendeten\n// Items markiert. Kein erneuter Versand hier - nur der fehlende DB-Flag, ganz ohne\n// httpRequest-Knoten in diesem Workflow.\nconst TARGET_KEYS = [\"vol_10805\",\"vol_10802\",\"vol_10811\"];\nreturn TARGET_KEYS.map(k => ({ json: { vorgangKey: k } }));"
       },
       "id": "mc4-targets",
-      "name": "2 verbliebene Ziele",
+      "name": "3 verbliebene Ziele",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
