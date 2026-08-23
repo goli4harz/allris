@@ -863,7 +863,6 @@
           "interval": [
             {
               "field": "hours",
-              "hoursInterval": 1,
               "triggerAtMinute": 37
             }
           ]
@@ -904,7 +903,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ============================================================\n// FIX 11.1: Filter gültige Datensätze\n// Erlaubt erneute Bildgenerierung nach image_qa_error,\n// wenn ein neuer vollständiger Visual Prompt vorhanden ist.\n// Zusätzlich kompatibel mit Force Image Refresh Schalter.\n// ============================================================\n\nconst items = $input.all();\n\nfunction safe(v) {\n  return v === null || v === undefined ? '' : String(v).trim();\n}\n\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try {\n    const p = JSON.parse(String(v));\n    return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {};\n  } catch (e) {\n    return {};\n  }\n}\n\nfunction asArr(v) {\n  if (Array.isArray(v)) {\n    return v.filter(Boolean).map(s => String(s).trim()).filter(Boolean);\n  }\n\n  if (typeof v === 'string' && v.trim()) {\n    try {\n      const p = JSON.parse(v);\n      if (Array.isArray(p)) {\n        return p.filter(Boolean).map(s => String(s).trim()).filter(Boolean);\n      }\n    } catch (e) {}\n  }\n\n  return [];\n}\n\nfunction robustBool(v) {\n  if (v === true || v === 1) return true;\n  if (typeof v === 'string') {\n    const s = v.trim().toLowerCase();\n    return s === 'true' || s === '1' || s === 'yes';\n  }\n  return false;\n}\n\n// FIX 2026-07-27 (Nutzerfrage \"wie kann die Anzahl der Bild fertig weniger werden\"):\n// 'composed' stand faelschlich mit in dieser Liste - ein bereits erfolgreich fertiges\n// Bild wurde dadurch nach Ablauf seines Claims (1h, identisch zum stuendlichen P6-\n// Rhythmus) jede Stunde erneut als \"retry-faehig\" erkannt und komplett neu generiert,\n// obwohl visualPromptStage danach nie zurueckgesetzt wird. Gemeint waren nur echte\n// Fehlerzustaende (der Kommentar oben spricht von \"nach image_qa_error\").\nconst RETRYABLE_IMAGE_STAGES = new Set([\n  'qa_pending',\n  'qa_failed',\n  'upload_failed'\n]);\n\nconst CONTENT_READY_STAGES = new Set([\n  'content_generated',\n  'content_posted'\n]);\n\nconst valid = items\n  .filter(item => {\n    const j = item.json || {};\n\n    const visualPromptStage = safe(j.visualPromptStage);\n    const contentStage = safe(j.contentStage);\n    const imageStage = safe(j.imageStage);\n\n    const promptComplete = !!(\n      safe(j.imagePrompt) &&\n      safe(j.imageHeadline) &&\n      safe(j.imageSubline)\n    );\n\n    if (visualPromptStage !== 'prompt_ready') return false;\n\n    // FIX 2026-07-27 Teil 2 (der erste Fix - 'composed' aus RETRYABLE_IMAGE_STAGES entfernen -\n    // war unvollstaendig): contentNormallyReady prueft NUR contentStage (bleibt nach Erfolg\n    // fuer immer 'content_generated'/'content_posted') und hat KEINEN Bezug zu imageStage -\n    // dieser Pfad liess ein bereits erfolgreich 'composed' fertiges Bild also unabhaengig von\n    // RETRYABLE_IMAGE_STAGES durch, live bestaetigt (dieselben 10 Vorgaenge wurden auch NACH\n    // dem ersten Fix noch einmal komplett neu generiert). Explizite, direkte Ausschluss-Regel:\n    // ein 'composed' Bild ist fertig und wird nur bei explizitem Force-Reset erneut verarbeitet.\n    if (imageStage === 'composed' && j.imageForceReset !== true) return false;\n\n    // FIX 2026-08-23 (P2-Vorfall-Nachschau, gleiche Bugklasse wie der 'composed'-Fix\n    // vom 2026-07-27): 'topic_error_final' ist ein bewusster Bild-Endzustand (siehe\n    // 'DB Update Bildkonzept endgueltig fehlgeschlagen') - ohne diesen Ausschluss blieb\n    // contentNormallyReady (contentStage='content_posted' bleibt fuer immer so) allein\n    // ausreichend, um die Zeile jede Stunde erneut durch die teure Bildgenerierung laufen\n    // zu lassen, obwohl sie endgueltig aufgegeben wurde. Live gefunden an 2026/010 und\n    // 2026/099, die seit 2026-08-10 taeglich denselben IMAGE_QA_FAILED-Fehler erneut\n    // erzeugten. Nur echter Force-Reset darf einen 'topic_error_final'-Datensatz erneut\n    // hereinlassen, exakt wie bei 'composed'.\n    if (imageStage === 'topic_error_final' && j.imageForceReset !== true) return false;\n\n    const contentNormallyReady = CONTENT_READY_STAGES.has(contentStage);\n    const contentRetryAllowed =\n      RETRYABLE_IMAGE_STAGES.has(imageStage) &&\n      visualPromptStage === 'prompt_ready' &&\n      promptComplete;\n\n    if (!contentNormallyReady && !contentRetryAllowed) return false;\n\n    if (!safe(j.vorgangKey) || !safe(j.nextcloudFolder)) return false;\n\n    if (!promptComplete) return false;\n\n    if (\n      !safe(j.summaryText) &&\n      !safe(j.combinedText) &&\n      !safe(j.kurzfassung) &&\n      !safe(j.title)\n    ) {\n      return false;\n    }\n\n    return true;\n  })\n  .map(item => {\n    const j = item.json || {};\n    const aj = parseObj(j.analysisJson);\n\n    const visualPromptStage = safe(j.visualPromptStage);\n    const imageStage = safe(j.imageStage);\n    const promptComplete = !!(\n      safe(j.imagePrompt) &&\n      safe(j.imageHeadline) &&\n      safe(j.imageSubline)\n    );\n\n    const retryAfterImageError =\n      RETRYABLE_IMAGE_STAGES.has(imageStage) &&\n      visualPromptStage === 'prompt_ready' &&\n      promptComplete;\n\n    // FIX 2026-07-25 (mirror des -OK-Handlers in P5b und der Repair-Sweeps in P4/P3b/P3c/P5):\n    // sl frisch aus faktenAgentJson bauen statt aus dem eingefrorenen analysisJson.sourceLock -\n    // letztes Gate vor der eigentlichen (teuren) Bildgenerierung, dieselbe Faelligkeit wie ueberall\n    // sonst in der Kette. va bleibt aus analysisJson.visualAnchors, das redundante eingefrorene\n    // vaValidFlag entfaellt (die 7 Feldchecks sind bereits die frische Ableitung).\n    const fakten = parseObj(j.faktenAgentJson || {});\n    const sl = {\n      sourceTopic: safe(fakten.sourceTopic),\n      sourceConflict: safe(fakten.sourceConflict),\n      requiredTerms: asArr(fakten.requiredTerms),\n      requiredObjects: asArr(fakten.requiredObjects),\n      requiredAction: safe(fakten.requiredAction),\n      affectedGroups: asArr(fakten.affectedGroups)\n    };\n    const va = parseObj(aj.visualAnchors || {});\n\n    const slOk = !!(\n      safe(sl.sourceTopic) &&\n      asArr(sl.requiredTerms).length >= 2 &&\n      asArr(sl.requiredObjects).length >= 2 &&\n      safe(sl.requiredAction) &&\n      fakten.parseError !== true\n    );\n\n    const vaOk = !!(\n      safe(va.satireThemaKonkret) &&\n      safe(va.satireKonfliktKonkret) &&\n      asArr(va.visualPflichtobjekte).length >= 2 &&\n      safe(va.visualPflichthandlung) &&\n      safe(va.visualErkennungssatz) &&\n      safe(va.visualUeberzeichnung) &&\n      asArr(va.visualVerboteneErsatzmotive).length >= 2\n    );\n\n    if (!slOk || !vaOk) {\n      return {\n        ...item,\n        json: {\n          ...j,\n          imageConceptReady: false,\n          imageConceptRepairNeeded: false,\n          sharepicNeedStage: 'blocked_source_lock',\n          _blockedReason: !slOk\n            ? 'sourceLock unvollstaendig/ungueltig (requiredObjects/requiredAction/requiredTerms pruefen)'\n            : 'visualAnchors unvollstaendig/ungueltig (visualVerboteneErsatzmotive/visualAnchorsValid pruefen)'\n        }\n      };\n    }\n\n    return {\n      ...item,\n      json: {\n        ...j,\n        imageConceptReady: true,\n        imageConceptRepairNeeded: false,\n        imageConceptRepairOrigin: retryAfterImageError\n          ? 'retry_after_image_error_or_refresh_with_visual_prompt'\n          : 'existing_visual_prompt',\n        imageConceptRepairAttempt: 0,\n        imageConceptRepairMaxAttempts: 2,\n        _filterPassedReason: retryAfterImageError\n          ? 'contentStage war Bildfehler/Bildlauf, aber vollstaendiger visualPromptStage=prompt_ready vorhanden'\n          : 'Content fertig und visualPromptStage=prompt_ready vorhanden'\n      }\n    };\n  });\n\nreturn valid;\n"
+        "jsCode": "// ============================================================\n// FIX 11.1: Filter gültige Datensätze\n// Erlaubt erneute Bildgenerierung nach image_qa_error,\n// wenn ein neuer vollständiger Visual Prompt vorhanden ist.\n// Zusätzlich kompatibel mit Force Image Refresh Schalter.\n// ============================================================\n\nconst items = $input.all();\n\nfunction safe(v) {\n  return v === null || v === undefined ? '' : String(v).trim();\n}\n\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try {\n    const p = JSON.parse(String(v));\n    return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {};\n  } catch (e) {\n    return {};\n  }\n}\n\nfunction asArr(v) {\n  if (Array.isArray(v)) {\n    return v.filter(Boolean).map(s => String(s).trim()).filter(Boolean);\n  }\n\n  if (typeof v === 'string' && v.trim()) {\n    try {\n      const p = JSON.parse(v);\n      if (Array.isArray(p)) {\n        return p.filter(Boolean).map(s => String(s).trim()).filter(Boolean);\n      }\n    } catch (e) {}\n  }\n\n  return [];\n}\n\nfunction robustBool(v) {\n  if (v === true || v === 1) return true;\n  if (typeof v === 'string') {\n    const s = v.trim().toLowerCase();\n    return s === 'true' || s === '1' || s === 'yes';\n  }\n  return false;\n}\n\n// FIX 2026-07-27 (Nutzerfrage \"wie kann die Anzahl der Bild fertig weniger werden\"):\n// 'composed' stand faelschlich mit in dieser Liste - ein bereits erfolgreich fertiges\n// Bild wurde dadurch nach Ablauf seines Claims (1h, identisch zum stuendlichen P6-\n// Rhythmus) jede Stunde erneut als \"retry-faehig\" erkannt und komplett neu generiert,\n// obwohl visualPromptStage danach nie zurueckgesetzt wird. Gemeint waren nur echte\n// Fehlerzustaende (der Kommentar oben spricht von \"nach image_qa_error\").\nconst RETRYABLE_IMAGE_STAGES = new Set([\n  'qa_pending',\n  'qa_failed',\n  'upload_failed'\n]);\n\nconst CONTENT_READY_STAGES = new Set([\n  'content_generated',\n  'content_posted'\n]);\n\nconst valid = items\n  .filter(item => {\n    const j = item.json || {};\n\n    const visualPromptStage = safe(j.visualPromptStage);\n    const contentStage = safe(j.contentStage);\n    const imageStage = safe(j.imageStage);\n\n    const promptComplete = !!(\n      safe(j.imagePrompt) &&\n      safe(j.imageHeadline) &&\n      safe(j.imageSubline)\n    );\n\n    if (visualPromptStage !== 'prompt_ready') return false;\n\n    // FIX 2026-07-27 Teil 2 (der erste Fix - 'composed' aus RETRYABLE_IMAGE_STAGES entfernen -\n    // war unvollstaendig): contentNormallyReady prueft NUR contentStage (bleibt nach Erfolg\n    // fuer immer 'content_generated'/'content_posted') und hat KEINEN Bezug zu imageStage -\n    // dieser Pfad liess ein bereits erfolgreich 'composed' fertiges Bild also unabhaengig von\n    // RETRYABLE_IMAGE_STAGES durch, live bestaetigt (dieselben 10 Vorgaenge wurden auch NACH\n    // dem ersten Fix noch einmal komplett neu generiert). Explizite, direkte Ausschluss-Regel:\n    // ein 'composed' Bild ist fertig und wird nur bei explizitem Force-Reset erneut verarbeitet.\n    if (imageStage === 'composed' && j.imageForceReset !== true) return false;\n\n    const contentNormallyReady = CONTENT_READY_STAGES.has(contentStage);\n    const contentRetryAllowed =\n      RETRYABLE_IMAGE_STAGES.has(imageStage) &&\n      visualPromptStage === 'prompt_ready' &&\n      promptComplete;\n\n    if (!contentNormallyReady && !contentRetryAllowed) return false;\n\n    if (!safe(j.vorgangKey) || !safe(j.nextcloudFolder)) return false;\n\n    if (!promptComplete) return false;\n\n    if (\n      !safe(j.summaryText) &&\n      !safe(j.combinedText) &&\n      !safe(j.kurzfassung) &&\n      !safe(j.title)\n    ) {\n      return false;\n    }\n\n    return true;\n  })\n  .map(item => {\n    const j = item.json || {};\n    const aj = parseObj(j.analysisJson);\n\n    const visualPromptStage = safe(j.visualPromptStage);\n    const imageStage = safe(j.imageStage);\n    const promptComplete = !!(\n      safe(j.imagePrompt) &&\n      safe(j.imageHeadline) &&\n      safe(j.imageSubline)\n    );\n\n    const retryAfterImageError =\n      RETRYABLE_IMAGE_STAGES.has(imageStage) &&\n      visualPromptStage === 'prompt_ready' &&\n      promptComplete;\n\n    // FIX 2026-07-25 (mirror des -OK-Handlers in P5b und der Repair-Sweeps in P4/P3b/P3c/P5):\n    // sl frisch aus faktenAgentJson bauen statt aus dem eingefrorenen analysisJson.sourceLock -\n    // letztes Gate vor der eigentlichen (teuren) Bildgenerierung, dieselbe Faelligkeit wie ueberall\n    // sonst in der Kette. va bleibt aus analysisJson.visualAnchors, das redundante eingefrorene\n    // vaValidFlag entfaellt (die 7 Feldchecks sind bereits die frische Ableitung).\n    const fakten = parseObj(j.faktenAgentJson || {});\n    const sl = {\n      sourceTopic: safe(fakten.sourceTopic),\n      sourceConflict: safe(fakten.sourceConflict),\n      requiredTerms: asArr(fakten.requiredTerms),\n      requiredObjects: asArr(fakten.requiredObjects),\n      requiredAction: safe(fakten.requiredAction),\n      affectedGroups: asArr(fakten.affectedGroups)\n    };\n    const va = parseObj(aj.visualAnchors || {});\n\n    const slOk = !!(\n      safe(sl.sourceTopic) &&\n      asArr(sl.requiredTerms).length >= 2 &&\n      asArr(sl.requiredObjects).length >= 2 &&\n      safe(sl.requiredAction) &&\n      fakten.parseError !== true\n    );\n\n    const vaOk = !!(\n      safe(va.satireThemaKonkret) &&\n      safe(va.satireKonfliktKonkret) &&\n      asArr(va.visualPflichtobjekte).length >= 2 &&\n      safe(va.visualPflichthandlung) &&\n      safe(va.visualErkennungssatz) &&\n      safe(va.visualUeberzeichnung) &&\n      asArr(va.visualVerboteneErsatzmotive).length >= 2\n    );\n\n    if (!slOk || !vaOk) {\n      return {\n        ...item,\n        json: {\n          ...j,\n          imageConceptReady: false,\n          imageConceptRepairNeeded: false,\n          sharepicNeedStage: 'blocked_source_lock',\n          _blockedReason: !slOk\n            ? 'sourceLock unvollstaendig/ungueltig (requiredObjects/requiredAction/requiredTerms pruefen)'\n            : 'visualAnchors unvollstaendig/ungueltig (visualVerboteneErsatzmotive/visualAnchorsValid pruefen)'\n        }\n      };\n    }\n\n    return {\n      ...item,\n      json: {\n        ...j,\n        imageConceptReady: true,\n        imageConceptRepairNeeded: false,\n        imageConceptRepairOrigin: retryAfterImageError\n          ? 'retry_after_image_error_or_refresh_with_visual_prompt'\n          : 'existing_visual_prompt',\n        imageConceptRepairAttempt: 0,\n        imageConceptRepairMaxAttempts: 2,\n        _filterPassedReason: retryAfterImageError\n          ? 'contentStage war Bildfehler/Bildlauf, aber vollstaendiger visualPromptStage=prompt_ready vorhanden'\n          : 'Content fertig und visualPromptStage=prompt_ready vorhanden'\n      }\n    };\n  });\n\nreturn valid;\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -961,13 +960,13 @@
       ],
       "id": "4ed4bb41-0769-4512-9080-36bad1c42218",
       "name": "OpenAI Generate Image",
+      "retryOnFail": true,
       "credentials": {
         "openAiApi": {
           "id": "RiT1gwJpQWzSo6NO",
           "name": "OpenAI account"
         }
       },
-      "retryOnFail": true,
       "onError": "continueRegularOutput"
     },
     {
@@ -1059,9 +1058,8 @@
         "operation": "text",
         "dataPropertyName": "rawImage",
         "text": "={{ $json.vorgangsnummer }}",
-        "font": "Arial-Bold",
-        "fontColor": "#e2001a",
         "fontSize": 26,
+        "fontColor": "#e2001a",
         "positionX": 940,
         "positionY": 1330,
         "options": {}
@@ -1071,7 +1069,7 @@
       "type": "n8n-nodes-base.editImage",
       "typeVersion": 1,
       "position": [
-        -344,
+        -352,
         528
       ]
     },
@@ -1109,8 +1107,8 @@
       "type": "n8n-nodes-base.nextCloud",
       "typeVersion": 1,
       "position": [
-        672,
-        752
+        -832,
+        928
       ],
       "id": "9d9569de-31ed-463c-9425-dd88e03fe05f",
       "name": "Create a folder",
@@ -1131,8 +1129,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        880,
-        752
+        -624,
+        928
       ]
     },
     {
@@ -1144,8 +1142,8 @@
       "type": "n8n-nodes-base.nextCloud",
       "typeVersion": 1,
       "position": [
-        1760,
-        752
+        256,
+        928
       ],
       "id": "308fbf36-0e18-4032-be39-e369f4a21dfb",
       "name": "Upload nach Nextcloud",
@@ -2161,8 +2159,8 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
       "position": [
-        2128,
-        752
+        624,
+        928
       ]
     },
     {
@@ -2175,8 +2173,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1232,
-        752
+        -272,
+        928
       ]
     },
     {
@@ -2211,16 +2209,16 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        1408,
-        752
+        -96,
+        928
       ],
+      "retryOnFail": true,
       "credentials": {
         "httpHeaderAuth": {
           "id": "od1pN1F5wy2irSDs",
-          "name": "Header Auth account"
+          "name": "Matrix Auth account"
         }
-      },
-      "retryOnFail": true
+      }
     },
     {
       "parameters": {
@@ -2232,8 +2230,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1584,
-        752
+        80,
+        928
       ]
     },
     {
@@ -2246,8 +2244,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        880,
-        752
+        -624,
+        928
       ]
     },
     {
@@ -2282,16 +2280,16 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        1056,
-        752
+        -448,
+        928
       ],
+      "retryOnFail": true,
       "credentials": {
         "httpHeaderAuth": {
           "id": "od1pN1F5wy2irSDs",
-          "name": "Header Auth account"
+          "name": "Matrix Auth account"
         }
-      },
-      "retryOnFail": true
+      }
     },
     {
       "parameters": {
@@ -2303,8 +2301,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1936,
-        752
+        432,
+        928
       ]
     },
     {
@@ -2328,18 +2326,18 @@
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 2.3,
       "position": [
-        -16,
-        528
+        48,
+        400
       ],
       "id": "112a496d-f2ca-44e0-9241-9bcddb0c6ea5",
       "name": "OpenAI Prüfe Bildthema und Satire",
+      "retryOnFail": true,
       "credentials": {
         "openAiApi": {
           "id": "RiT1gwJpQWzSo6NO",
           "name": "OpenAI account"
         }
       },
-      "retryOnFail": true,
       "onError": "continueRegularOutput"
     },
     {
@@ -3566,13 +3564,13 @@
         224,
         0
       ],
+      "retryOnFail": true,
       "credentials": {
         "openAiApi": {
           "id": "RiT1gwJpQWzSo6NO",
           "name": "OpenAI account"
         }
-      },
-      "retryOnFail": true
+      }
     },
     {
       "parameters": {
@@ -4738,8 +4736,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        432,
-        1024
+        -1120,
+        1104
       ],
       "onError": "continueRegularOutput"
     },
@@ -4764,18 +4762,18 @@
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 2.3,
       "position": [
-        656,
-        1024
+        -896,
+        1104
       ],
       "id": "cb3e4512-0123-442d-b4d7-2f4bad30b44e",
       "name": "OpenAI QA technisch wiederholen",
+      "retryOnFail": true,
       "credentials": {
         "openAiApi": {
           "id": "RiT1gwJpQWzSo6NO",
           "name": "OpenAI account"
         }
-      },
-      "retryOnFail": true
+      }
     },
     {
       "parameters": {
@@ -4785,8 +4783,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        880,
-        1024
+        -672,
+        1104
       ],
       "id": "d4da263f-5848-4824-ae96-584e28c0dc2f",
       "name": "Parse QA-Wiederholung",
@@ -4821,8 +4819,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1104,
-        1024
+        -448,
+        1104
       ]
     },
     {
@@ -4833,7 +4831,7 @@
       "typeVersion": 2,
       "position": [
         672,
-        528
+        704
       ],
       "id": "93bd6f9f-110a-4cdc-aebd-20aa6b3467a1",
       "name": "Gemeinsame QA-Freigabe"
@@ -4923,8 +4921,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -820,
-        700
+        -816,
+        704
       ]
     },
     {
@@ -4949,43 +4947,25 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -600,
-        700
+        -608,
+        704
       ]
     },
     {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nconst j = $json;\nreturn {\n  json: {\n    vorgangKey: safeStr(j.vorgangKey),\n    vorgangsnummer: safeStr(j.vorgangsnummer),\n    title: safeStr(j.title),\n    sprengstoff: safeStr(j.sprengstoff),\n    satireBrief: safeStr(j.satireBrief),\n    satireAngle: safeStr(j.satireAngle),\n    satirePunchlines: safeStr(j.satirePunchlines),\n    imageHeadline: safeStr(j.imageHeadline),\n    imageSubline: safeStr(j.imageSubline),\n    pressStatementBisher: safeStr(j.pressStatement),\n    absurdeForderung: safeStr(j.absurdeForderung)\n  }\n};\n"
+      },
       "id": "f275a770-ddbf-47ba-9fad-9d7d37c77afc",
       "name": "Presseartikel Final: Baue Eingabe",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        880,
-        1000
-      ],
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nconst j = $json;\nreturn {\n  json: {\n    vorgangKey: safeStr(j.vorgangKey),\n    vorgangsnummer: safeStr(j.vorgangsnummer),\n    title: safeStr(j.title),\n    sprengstoff: safeStr(j.sprengstoff),\n    satireBrief: safeStr(j.satireBrief),\n    satireAngle: safeStr(j.satireAngle),\n    satirePunchlines: safeStr(j.satirePunchlines),\n    imageHeadline: safeStr(j.imageHeadline),\n    imageSubline: safeStr(j.imageSubline),\n    pressStatementBisher: safeStr(j.pressStatement),\n    absurdeForderung: safeStr(j.absurdeForderung)\n  }\n};\n"
-      }
+        -672,
+        1088
+      ]
     },
     {
-      "id": "659f925a-5dda-4662-a665-945a26eaac25",
-      "name": "AI Presseartikel Final",
-      "type": "@n8n/n8n-nodes-langchain.openAi",
-      "typeVersion": 2.3,
-      "position": [
-        1120,
-        1000
-      ],
-      "retryOnFail": true,
-      "alwaysOutputData": true,
-      "credentials": {
-        "openAiApi": {
-          "id": "RiT1gwJpQWzSo6NO",
-          "name": "OpenAI account"
-        }
-      },
-      "notes": "FIX 2026-07-27 (Nutzerfrage 'warum tauchen Presseartikel mit falschem Vorgang auf'): onError war continueErrorOutput OHNE verbundenen Error-Output - ein fehlgeschlagener AI-Call liess das betroffene Item aus dem Datenstrom verschwinden, wodurch die nachfolgende itemMatching($itemIndex)-Verknuepfung gegen 'Presseartikel Final: Baue Eingabe' fuer ALLE folgenden Items im selben Lauf um eins verschoben war (Presseartikel-Text landete dauerhaft beim falschen Vorgang). Parse Presseartikel Final faengt eine leere/fehlerhafte AI-Antwort bereits ab (Fallback auf pressStatementBisher) - continueRegularOutput haelt die Item-Anzahl/Reihenfolge stabil und behebt die Verschiebung.",
-      "onError": "continueRegularOutput",
       "parameters": {
         "modelId": {
           "__rl": true,
@@ -5002,32 +4982,41 @@
         },
         "builtInTools": {},
         "options": {}
-      }
+      },
+      "id": "659f925a-5dda-4662-a665-945a26eaac25",
+      "name": "AI Presseartikel Final",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        -528,
+        1296
+      ],
+      "retryOnFail": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "openAiApi": {
+          "id": "RiT1gwJpQWzSo6NO",
+          "name": "OpenAI account"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "FIX 2026-07-27 (Nutzerfrage 'warum tauchen Presseartikel mit falschem Vorgang auf'): onError war continueErrorOutput OHNE verbundenen Error-Output - ein fehlgeschlagener AI-Call liess das betroffene Item aus dem Datenstrom verschwinden, wodurch die nachfolgende itemMatching($itemIndex)-Verknuepfung gegen 'Presseartikel Final: Baue Eingabe' fuer ALLE folgenden Items im selben Lauf um eins verschoben war (Presseartikel-Text landete dauerhaft beim falschen Vorgang). Parse Presseartikel Final faengt eine leere/fehlerhafte AI-Antwort bereits ab (Fallback auf pressStatementBisher) - continueRegularOutput haelt die Item-Anzahl/Reihenfolge stabil und behebt die Verschiebung."
     },
     {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function __repairJsonText(text) {\n  // Repairs two recurring AI-JSON breakage patterns (found live 2026-07-26 on\n  // Vorgang 2026/105's P3 analysis): (1) the model forgets to close a string\n  // value and just continues with a raw newline into the next \"key\": pattern,\n  // (2) the model emits a stray extra closing bracket/brace. Only touches\n  // content while tracking whether we're inside a string, so legitimate\n  // structural whitespace outside strings is left untouched.\n  var out = [];\n  var inString = false, escaped = false;\n  for (var i = 0; i < text.length; i++) {\n    var ch = text[i];\n    if (inString) {\n      if (escaped) { out.push(ch); escaped = false; continue; }\n      if (ch === '\\\\') { out.push(ch); escaped = true; continue; }\n      if (ch === '\"') { out.push(ch); inString = false; continue; }\n      if (ch === '\\n' || ch === '\\r') {\n        var rest = text.slice(i);\n        var m = /^[\\r\\n]+\\s*\"[A-Za-z_][A-Za-z0-9_]*\"\\s*:/.exec(rest);\n        if (m) {\n          out.push('\",'); inString = false; i += 1;\n          while (i < text.length && (text[i] === '\\r' || text[i] === '\\n')) i++;\n          i -= 1;\n          continue;\n        }\n        out.push(ch === '\\n' ? '\\\\n' : '\\\\r');\n        continue;\n      }\n      if (ch === '\\t') { out.push('\\\\t'); continue; }\n      out.push(ch);\n    } else {\n      if (ch === '\"') inString = true;\n      out.push(ch);\n    }\n  }\n  var stage1 = out.join('');\n\n  var out2 = [];\n  var stack = [];\n  inString = false; escaped = false;\n  var pairs = { '}': '{', ']': '[' };\n  for (var j = 0; j < stage1.length; j++) {\n    var c = stage1[j];\n    if (inString) {\n      out2.push(c);\n      if (escaped) { escaped = false; }\n      else if (c === '\\\\') { escaped = true; }\n      else if (c === '\"') { inString = false; }\n      continue;\n    }\n    if (c === '\"') { inString = true; out2.push(c); continue; }\n    if (c === '{' || c === '[') { stack.push(c); out2.push(c); continue; }\n    if (c === '}' || c === ']') {\n      if (stack.length && stack[stack.length - 1] === pairs[c]) { stack.pop(); out2.push(c); }\n      continue;\n    }\n    out2.push(c);\n  }\n  return out2.join('');\n}\n\nfunction __robustJsonParse(raw) {\n  try {\n    return JSON.parse(raw);\n  } catch (e1) {\n    try {\n      return JSON.parse(__repairJsonText(raw));\n    } catch (e2) {\n      throw e1;\n    }\n  }\n}\n\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n// FIX 2026-07-27 (bei der Reparatur falsch zugeordneter Presseartikel entdeckt): diese\n// OpenAI-Node-Konfiguration liefert manchmal das neuere \"output\"-Array-Format statt\n// message.content/content/text - ohne diesen Fallback blieb text leer und die Zeile\n// behielt stillschweigend den alten pressStatement-Wert, ohne sichtbaren Fehler.\nfunction getAiText(j) {\n  if (typeof j.content === 'string') return j.content;\n  if (typeof j.text === 'string') return j.text;\n  if (j.message && typeof j.message.content === 'string') return j.message.content;\n  if (Array.isArray(j.choices) && j.choices[0] && j.choices[0].message) return safeStr(j.choices[0].message.content);\n  if (Array.isArray(j.output)) {\n    const msg = j.output.find(function(o) { return o && o.type === 'message' && Array.isArray(o.content); });\n    const part = msg && msg.content.find(function(c) { return c && typeof c.text === 'string'; });\n    if (part) return part.text;\n  }\n  return '';\n}\nconst original = $('Presseartikel Final: Baue Eingabe').itemMatching($itemIndex).json;\nconst raw = $json;\nlet text = '';\ntry {\n  const content = getAiText(raw);\n  const cleaned = String(content).replace(/```json/gi, '').replace(/```/g, '').trim();\n  const parsed = __robustJsonParse(cleaned);\n  text = safeStr(parsed.pressStatement);\n} catch (e) {}\nconst finalText = text || original.pressStatementBisher;\nreturn { json: { ...original, pressStatementFinal: finalText, pressArtikelParseError: !text } };\n"
+      },
       "id": "258ebfcf-a49e-481e-9cb5-b12c9168c497",
       "name": "Parse Presseartikel Final",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1360,
-        1000
-      ],
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "function __repairJsonText(text) {\n  // Repairs two recurring AI-JSON breakage patterns (found live 2026-07-26 on\n  // Vorgang 2026/105's P3 analysis): (1) the model forgets to close a string\n  // value and just continues with a raw newline into the next \"key\": pattern,\n  // (2) the model emits a stray extra closing bracket/brace. Only touches\n  // content while tracking whether we're inside a string, so legitimate\n  // structural whitespace outside strings is left untouched.\n  var out = [];\n  var inString = false, escaped = false;\n  for (var i = 0; i < text.length; i++) {\n    var ch = text[i];\n    if (inString) {\n      if (escaped) { out.push(ch); escaped = false; continue; }\n      if (ch === '\\\\') { out.push(ch); escaped = true; continue; }\n      if (ch === '\"') { out.push(ch); inString = false; continue; }\n      if (ch === '\\n' || ch === '\\r') {\n        var rest = text.slice(i);\n        var m = /^[\\r\\n]+\\s*\"[A-Za-z_][A-Za-z0-9_]*\"\\s*:/.exec(rest);\n        if (m) {\n          out.push('\",'); inString = false; i += 1;\n          while (i < text.length && (text[i] === '\\r' || text[i] === '\\n')) i++;\n          i -= 1;\n          continue;\n        }\n        out.push(ch === '\\n' ? '\\\\n' : '\\\\r');\n        continue;\n      }\n      if (ch === '\\t') { out.push('\\\\t'); continue; }\n      out.push(ch);\n    } else {\n      if (ch === '\"') inString = true;\n      out.push(ch);\n    }\n  }\n  var stage1 = out.join('');\n\n  var out2 = [];\n  var stack = [];\n  inString = false; escaped = false;\n  var pairs = { '}': '{', ']': '[' };\n  for (var j = 0; j < stage1.length; j++) {\n    var c = stage1[j];\n    if (inString) {\n      out2.push(c);\n      if (escaped) { escaped = false; }\n      else if (c === '\\\\') { escaped = true; }\n      else if (c === '\"') { inString = false; }\n      continue;\n    }\n    if (c === '\"') { inString = true; out2.push(c); continue; }\n    if (c === '{' || c === '[') { stack.push(c); out2.push(c); continue; }\n    if (c === '}' || c === ']') {\n      if (stack.length && stack[stack.length - 1] === pairs[c]) { stack.pop(); out2.push(c); }\n      continue;\n    }\n    out2.push(c);\n  }\n  return out2.join('');\n}\n\nfunction __robustJsonParse(raw) {\n  try {\n    return JSON.parse(raw);\n  } catch (e1) {\n    try {\n      return JSON.parse(__repairJsonText(raw));\n    } catch (e2) {\n      throw e1;\n    }\n  }\n}\n\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n// FIX 2026-07-27 (bei der Reparatur falsch zugeordneter Presseartikel entdeckt): diese\n// OpenAI-Node-Konfiguration liefert manchmal das neuere \"output\"-Array-Format statt\n// message.content/content/text - ohne diesen Fallback blieb text leer und die Zeile\n// behielt stillschweigend den alten pressStatement-Wert, ohne sichtbaren Fehler.\nfunction getAiText(j) {\n  if (typeof j.content === 'string') return j.content;\n  if (typeof j.text === 'string') return j.text;\n  if (j.message && typeof j.message.content === 'string') return j.message.content;\n  if (Array.isArray(j.choices) && j.choices[0] && j.choices[0].message) return safeStr(j.choices[0].message.content);\n  if (Array.isArray(j.output)) {\n    const msg = j.output.find(function(o) { return o && o.type === 'message' && Array.isArray(o.content); });\n    const part = msg && msg.content.find(function(c) { return c && typeof c.text === 'string'; });\n    if (part) return part.text;\n  }\n  return '';\n}\nconst original = $('Presseartikel Final: Baue Eingabe').itemMatching($itemIndex).json;\nconst raw = $json;\nlet text = '';\ntry {\n  const content = getAiText(raw);\n  const cleaned = String(content).replace(/```json/gi, '').replace(/```/g, '').trim();\n  const parsed = __robustJsonParse(cleaned);\n  text = safeStr(parsed.pressStatement);\n} catch (e) {}\nconst finalText = text || original.pressStatementBisher;\nreturn { json: { ...original, pressStatementFinal: finalText, pressArtikelParseError: !text } };\n"
-      }
+        -192,
+        1088
+      ]
     },
     {
-      "id": "9caf30e3-0b41-4f7b-834c-b144451383ff",
-      "name": "Schreibe Presseartikel Final",
-      "type": "n8n-nodes-base.dataTable",
-      "typeVersion": 1.1,
-      "position": [
-        1600,
-        1000
-      ],
-      "alwaysOutputData": true,
       "parameters": {
         "operation": "update",
         "dataTableId": {
@@ -5119,38 +5108,32 @@
           ]
         },
         "options": {}
-      }
+      },
+      "id": "9caf30e3-0b41-4f7b-834c-b144451383ff",
+      "name": "Schreibe Presseartikel Final",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        48,
+        1088
+      ],
+      "alwaysOutputData": true
     },
     {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// FIX 2026-07-25: 'Schreibe Presseartikel Final' (Data-Table-update) ersetzt $json durch die\n// zurueckgegebene DB-Zeile (echte Spalten wie pressStatement) - das nur workflow-interne Feld\n// pressStatementFinal ging dabei verloren, die Matrix-Nachricht zeigte danach woertlich\n// 'undefined' statt des Artikeltexts. Kontext aus 'Parse Presseartikel Final' wiederherstellen.\nconst original = $('Parse Presseartikel Final').itemMatching($itemIndex).json;\nconst j = { ...original, ...$json };\nconst room = '!tMRdHxOLwIKDiQlIRz:matrix.golietz.de';\nconst txnId = 'presse_' + Date.now() + '_' + String(j.vorgangKey||'').replace(/[^a-zA-Z0-9]/g,'').substring(0,10);\nreturn { json: { ...j, matrixPresseRoom: room, matrixPresseTxnId: txnId } };\n"
+      },
       "id": "c66f006e-1e8c-400c-97a0-446e3072806f",
       "name": "Bereite Presseartikel Matrix-Post vor",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1840,
-        1000
-      ],
-      "parameters": {
-        "mode": "runOnceForEachItem",
-        "jsCode": "// FIX 2026-07-25: 'Schreibe Presseartikel Final' (Data-Table-update) ersetzt $json durch die\n// zurueckgegebene DB-Zeile (echte Spalten wie pressStatement) - das nur workflow-interne Feld\n// pressStatementFinal ging dabei verloren, die Matrix-Nachricht zeigte danach woertlich\n// 'undefined' statt des Artikeltexts. Kontext aus 'Parse Presseartikel Final' wiederherstellen.\nconst original = $('Parse Presseartikel Final').itemMatching($itemIndex).json;\nconst j = { ...original, ...$json };\nconst room = '!tMRdHxOLwIKDiQlIRz:matrix.golietz.de';\nconst txnId = 'presse_' + Date.now() + '_' + String(j.vorgangKey||'').replace(/[^a-zA-Z0-9]/g,'').substring(0,10);\nreturn { json: { ...j, matrixPresseRoom: room, matrixPresseTxnId: txnId } };\n"
-      }
+        288,
+        1088
+      ]
     },
     {
-      "id": "145f3ba6-a607-4c32-8dba-6ac6d406aef8",
-      "name": "Sende Presseartikel Matrix",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "onError": "continueErrorOutput",
-      "position": [
-        2080,
-        1000
-      ],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "od1pN1F5wy2irSDs",
-          "name": "Header Auth account"
-        }
-      },
       "parameters": {
         "method": "PUT",
         "url": "={{ 'https://matrix.org/_matrix/client/v3/rooms/' + encodeURIComponent($json.matrixPresseRoom) + '/send/m.room.message/' + encodeURIComponent($json.matrixPresseTxnId) }}",
@@ -5160,7 +5143,22 @@
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ msgtype: 'm.text', body: '📰 Presseartikel (final, zum Bild passend) - ' + ($json.vorgangsnummer || '') + ':\\n\\n' + $json.pressStatementFinal }) }}",
         "options": {}
-      }
+      },
+      "id": "145f3ba6-a607-4c32-8dba-6ac6d406aef8",
+      "name": "Sende Presseartikel Matrix",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        528,
+        1088
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "od1pN1F5wy2irSDs",
+          "name": "Matrix Auth account"
+        }
+      },
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -5209,8 +5207,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2320,
-        1000
+        768,
+        1088
       ]
     },
     {
@@ -5306,8 +5304,8 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        2560,
-        928
+        1008,
+        1008
       ]
     },
     {
@@ -5343,8 +5341,8 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        2560,
-        1088
+        1008,
+        1168
       ]
     },
     {
@@ -5356,8 +5354,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -600,
-        1168
+        -416,
+        704
       ]
     },
     {
@@ -5377,8 +5375,8 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        -360,
-        1168
+        -176,
+        704
       ]
     },
     {
@@ -5390,8 +5388,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -120,
-        1168
+        64,
+        704
       ]
     },
     {
@@ -5403,8 +5401,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1328,
-        1200
+        -224,
+        1280
       ]
     },
     {
@@ -5424,8 +5422,8 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        1568,
-        1200
+        16,
+        1280
       ]
     },
     {
@@ -5435,8 +5433,8 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
       "position": [
-        2128,
-        880
+        816,
+        912
       ]
     },
     {
@@ -5448,8 +5446,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2320,
-        880
+        1008,
+        832
       ]
     },
     {
@@ -6476,11 +6474,11 @@
       "name": "DB Update Bildgenerierung fehlgeschlagen",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
-      "onError": "continueRegularOutput",
       "position": [
         -1136,
         720
-      ]
+      ],
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -6512,8 +6510,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -956,
-        700
+        -960,
+        704
       ]
     },
     {
@@ -6546,15 +6544,17 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        576,
-        1220
+        -976,
+        1312
       ]
     }
   ],
   "pinData": {},
   "settings": {
     "executionOrder": "v1",
-    "errorWorkflow": "qPheJKPv0k06tkro"
+    "binaryMode": "separate",
+    "errorWorkflow": "qPheJKPv0k06tkro",
+    "saveDataSuccessExecution": "all"
   },
   "tags": [
     {
@@ -6570,5 +6570,5 @@
       "name": "instagram"
     }
   ],
-  "versionId": "0691a169-7f1f-47e5-af3e-e97933ebf1bc"
+  "versionId": "d1325f3c-bb68-4fe4-87a4-93f9fd4c687e"
 }
