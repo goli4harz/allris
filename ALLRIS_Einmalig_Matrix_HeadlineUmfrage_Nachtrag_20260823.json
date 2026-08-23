@@ -1,0 +1,141 @@
+{
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hole alle Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole alle Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Baue Umfrage-Nachtrag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue Umfrage-Nachtrag": {
+      "main": [
+        [
+          {
+            "node": "Sende Umfrage-Nachtrag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "meta": {},
+  "name": "ALLRIS_Einmalig_Matrix_HeadlineUmfrage_Nachtrag_20260823",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "hc-manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -900,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": []
+        },
+        "returnAll": true
+      },
+      "id": "hc-get-all",
+      "name": "Hole alle Vorgaenge",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        -660,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Einmalig 2026-08-23: Nachtraeglicher Matrix-Versand fuer 4 Kernbotschaft-Umfragen\n// (Headline-Auswahl), die waehrend/um den 5-taegigen Matrix-Ausfall (a9c53a3) haengen\n// geblieben sind - headlineChoiceStage='awaiting_headline_choice' seit Tagen ohne\n// Reaktionsmoeglichkeit, da die Umfrage nie ankam. Nachrichtentext 1:1 nach der Logik\n// von 'Satire-Ergebnis: Baue Text-Auswahl + Umfrage' in ALLRIS_P3e_Kernbotschaft\n// nachgebaut (satireAgentJson/faktenAgentJson sind bereits vollstaendig in der DB\n// vorhanden, keine neue KI-Anfrage noetig). Die optionale Lern-Agent-Einschaetzung\n// (rein informativ) wird bewusst weggelassen.\n//\n// 2 weitere aeltere haengende Umfragen (2026/030, 2026/003, beide von Ende Juli, lange\n// vor dem Ausfall) bewusst NICHT enthalten - unabhaengiges, separates Thema.\nconst TARGET_KEYS = [\"vol_10821\",\"vol_10845\",\"vol_10838\",\"vol_10801\"];\n\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseObj(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try { const p = JSON.parse(String(v)); return (p && typeof p === 'object' && !Array.isArray(p)) ? p : {}; }\n  catch (e) { return {}; }\n}\nfunction asArr(v) {\n  if (Array.isArray(v)) return v.filter(Boolean).map(safeStr);\n  if (typeof v === 'string' && v.trim()) { try { const p = JSON.parse(v); if (Array.isArray(p)) return p.filter(Boolean).map(safeStr); } catch (e) {} }\n  return [];\n}\nfunction normalizeGrounding(v) {\n  return safeStr(v).toLowerCase()\n    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')\n    .replace(/[^a-z0-9]+/g, ' ').replace(/\\s+/g, ' ').trim();\n}\nfunction groundingTokens(v) { return normalizeGrounding(v).split(' ').filter(t => t.length >= 4); }\nfunction candidateContainsTerm(text, term) {\n  const nt = normalizeGrounding(text), nq = normalizeGrounding(term);\n  if (!nt || !nq) return false;\n  if (nt.includes(nq)) return true;\n  const tt = groundingTokens(text), qt = groundingTokens(term);\n  return qt.some(q => tt.some(t => t.includes(q) || q.includes(t)));\n}\nfunction groundingHint(candidateText, groundingTerms) {\n  if (!groundingTerms.length) return '';\n  const hit = groundingTerms.find(t => candidateContainsTerm(candidateText, t));\n  return hit ? ('✓ nah an den Fakten (' + hit + ')') : '⚠️ wenig Bezug zu den Fakten – bitte prüfen';\n}\n\nconst rows = $input.all().map(i => i.json).filter(r => TARGET_KEYS.includes(r.vorgangKey));\nconsole.log('[Headline-Nachtrag] ' + rows.length + ' von ' + TARGET_KEYS.length + ' Ziel-Zeilen gefunden.');\n\nreturn rows.map(row => {\n  const satire = parseObj(row.satireAgentJson);\n  const variants = Array.isArray(satire.variants) ? satire.variants : [];\n  const kernbotschaft = safeStr(satire.kernbotschaft);\n  const fakten = parseObj(row.faktenAgentJson);\n  const groundingTerms = [...asArr(fakten.requiredTerms), ...asArr(fakten.concreteNumbers), ...asArr(fakten.requiredObjects)].filter(Boolean);\n  const vorgangKey = safeStr(row.vorgangKey);\n  const vorgangsnummer = safeStr(row.vorgangsnummer);\n  const title = safeStr(row.title);\n  const vnCode = vorgangsnummer.replace(/[^0-9A-Za-z]+/g, '-').replace(/^-+|-+$/g, '');\n\n  const candidates = variants.slice(0, 5).map((v, i) => {\n    const imageHeadline = safeStr(v.imageHeadline);\n    const imageSubline = safeStr(v.imageSubline);\n    const satireBrief = safeStr(v.satireBrief);\n    return {\n      code: (vnCode ? vnCode + '-' : '') + 'K' + (i + 1),\n      imageHeadline, imageSubline, satireBrief,\n      groundingHintText: groundingHint(imageHeadline + ' ' + imageSubline + ' ' + satireBrief, groundingTerms)\n    };\n  }).filter(c => c.imageHeadline && c.imageSubline);\n\n  if (candidates.length < 2 || !kernbotschaft) {\n    console.warn('[Headline-Nachtrag] ' + vorgangKey + ': zu wenige gueltige Kandidaten oder keine kernbotschaft, uebersprungen.');\n    return null;\n  }\n\n  const lines = ['🎯 Kernbotschaft für ' + vorgangsnummer + ' – ' + title + ' (nachtraeglich gesendet, Matrix-Ausfall 18.-23.08.)', '', kernbotschaft, '', '🎨 Formulierungen zur Auswahl:', ''];\n  for (const c of candidates) {\n    lines.push(c.code + ': ' + c.imageHeadline + ' – ' + c.imageSubline);\n    if (c.satireBrief) lines.push('   ' + c.satireBrief);\n    if (c.groundingHintText) lines.push('   ' + c.groundingHintText);\n  }\n  lines.push('');\n  const exampleCode = candidates[0].code;\n  lines.push('Antworte mit dem gewünschten Code (z.B. \"' + exampleCode + '\"), um Text UND Bild freizugeben, oder mit \"' + vnCode + '-X\" für eine komplett neue Kernbotschaft. Vor deiner Antwort wird noch nichts veröffentlicht.');\n  const matrixMessage = lines.join('\\n');\n  const txnId = 'satire_hdl_catchup_' + Date.now() + '_' + vorgangKey.replace(/[^a-zA-Z0-9]/g, '').substring(0, 10);\n\n  return { json: { vorgangKey, vorgangsnummer, matrixMessage, txnId } };\n}).filter(Boolean);"
+      },
+      "id": "hc-build-messages",
+      "name": "Baue Umfrage-Nachtrag",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -420,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://matrix.org/_matrix/client/v3/rooms/!JDEhirqKydgJuFeWDH:matrix.golietz.de/send/m.room.message/{{ $json.txnId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ msgtype: 'm.text', body: $json.matrixMessage }) }}",
+        "options": {
+          "timeout": 30000,
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 2000
+            }
+          }
+        }
+      },
+      "id": "hc-send-matrix",
+      "name": "Sende Umfrage-Nachtrag",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -160,
+        0
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "od1pN1F5wy2irSDs",
+          "name": "Header Auth account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "id": "xzd1mZJ2zWgQluCw"
+}
