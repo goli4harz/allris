@@ -59,9 +59,11 @@ satireSafetyNote:
 
 imageHeadline:
 HARTES LIMIT: maximal 38 Zeichen (inklusive Leerzeichen) - dieses Zeichenlimit ist wichtiger als das Wortlimit, da lange deutsche Komposita (z.B. "Restitutionsforderungen") das Bild auch bei nur 3-6 Woertern sprengen koennen. Zusaetzlich als Richtwert: maximal 6 Woerter. Wenn ein Pflichtbegriff aus den Fakten ein langes Kompositum ist, halte den Rest der Headline entsprechend kuerzer, damit die 38-Zeichen-Grenze insgesamt eingehalten wird - notfalls durch ein kuerzeres Synonym statt eines weiteren langen Wortes. Boese, absurd, plakatfaehig - aber bei sensiblen Themen niemals auf Kosten betroffener Personen. Baut direkt auf satireBrief/satireAngle/satirePunchlines derselben Variante auf.
+WICHTIG: Die Headline muss ein vollstaendiger, in sich abgeschlossener Ausdruck sein - niemals ein laengerer Satz, der am Zeichenlimit einfach abgeschnitten wurde. Sie darf daher NIEMALS auf einem Artikel, einer Praeposition oder einer Konjunktion enden (z.B. "im", "am", "zur", "fuer", "bei", "von", "vom", "mit", "und", "der", "die", "das", "ein", "eine"). Wenn die natuerliche Formulierung laenger als 38 Zeichen ist: nicht kuerzen durch Abschneiden am Ende, sondern von Grund auf neu und kompakter formulieren.
 
 imageSubline:
 HARTES LIMIT: maximal 55 Zeichen (inklusive Leerzeichen) - aus demselben Grund wichtiger als das Wortlimit. Zusaetzlich als Richtwert: maximal 9 Woerter. Bevorzuge kurze, gebraeuchliche Woerter statt langer Komposita, wenn eine kuerzere Formulierung dieselbe Aussage trifft. Trockene DIE-PARTEI-Reaktion gegen Verwaltung, Haushalt, Verfahren, Zustaendigkeit oder Umsetzung - niemals gegen Betroffene.
+WICHTIG: Wie bei imageHeadline muss auch die Subline ein vollstaendiger Ausdruck sein und darf nicht auf einem Artikel, einer Praeposition oder einer Konjunktion enden - siehe Regel bei imageHeadline.
 imageHeadline und imageSubline muessen zusammen als EIN zusammenhaengender Lesefluss funktionieren, nicht als zwei unabhaengige Saetze mit eigenem Thema.
 Mindestens eines der beiden Felder MUSS ein klares Themenwort aus den Fakten oben enthalten (z.B. einen der Pflichtbegriffe oder konkreten Objekte).
 Mindestens ein Pflichtbegriff aus den Fakten oben MUSS woertlich oder sinngemaess in imageHeadline ODER imageSubline vorkommen.
@@ -112,7 +114,8 @@ Pruefe fuer JEDE Variante:
 5. Ist die Pointe frei von unbelegten Vorgeschichten-Unterstellungen (siehe KEIN ERZWUNGENER KONFLIKT)?
 6. Unterscheidet sich diese Variante in Pointe und Angriffswinkel klar von den anderen beiden (nicht nur im Wortlaut)?
 7. Werden die affectedGroups irgendwo als sorglos, dumm, gleichgueltig oder vergnuegt inmitten der Gefahr dargestellt (siehe BETROFFENE SIND NIE DIE POINTE)? Falls ja: neu formulieren.
-8. Zaehle die Zeichen: ist imageHeadline maximal 38 Zeichen lang UND imageSubline maximal 55 Zeichen lang (jeweils inklusive Leerzeichen)? Falls eine der beiden Grenzen ueberschritten ist: kuerzen, bevor die Variante ausgegeben wird.
+8. Zaehle die Zeichen: ist imageHeadline maximal 38 Zeichen lang UND imageSubline maximal 55 Zeichen lang (jeweils inklusive Leerzeichen)? Falls eine der beiden Grenzen ueberschritten ist: NICHT einfach am Ende abschneiden (das erzeugt unvollstaendige Bruchstuecke wie "... im" oder "... und"), sondern komplett neu und kompakter formulieren, sodass ein vollstaendiger Ausdruck innerhalb des Limits entsteht.
+9. Enden imageHeadline und imageSubline jeweils NICHT auf einem Artikel, einer Praeposition oder einer Konjunktion (z.B. "im", "am", "zur", "fuer", "und", "der", "die", "das")? Ein solches Ende bedeutet, dass der Satz abgeschnitten statt vollstaendig formuliert wurde - in dem Fall neu formulieren.
 
 Wenn eine dieser Fragen "nein" ergibt: Variante neu formulieren, bevor sie ausgegeben wird.
 
