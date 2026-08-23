@@ -519,6 +519,9 @@
             "instagramCarouselNoetig": "={{ $json.instagramCarouselNoetig }}",
             "visualNeeded": "={{ $json.visualNeeded === true ? 'true' : 'false' }}",
             "contentStage": "={{ typeof $json.contentStage !== 'undefined' ? $json.contentStage : undefined }}",
+            "vorlageDatumWeb": "={{ $json.vorlageDatumWeb || '' }}",
+            "vorlageDatumPdf": "={{ $json.vorlageDatumPdf || '' }}",
+            "vorlageDatum": "={{ $json.vorlageDatum || $json.vorlageDatumWeb || '' }}",
             "verfasser": "={{ $json.verfasser || '' }}",
             "fachdienst": "={{ $json.fachdienst || '' }}"
           },
@@ -587,6 +590,36 @@
             {
               "id": "contentStage",
               "displayName": "contentStage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatumWeb",
+              "displayName": "vorlageDatumWeb",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatumPdf",
+              "displayName": "vorlageDatumPdf",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatum",
+              "displayName": "vorlageDatum",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -705,6 +738,9 @@
           "value": {
             "faktenAgentJson": "={{ $json.faktenAgentJson }}",
             "faktenComparisonJson": "={{ $json.faktenComparisonJson }}",
+            "vorlageDatumWeb": "={{ $json.vorlageDatumWeb || '' }}",
+            "vorlageDatumPdf": "={{ $json.vorlageDatumPdf || '' }}",
+            "vorlageDatum": "={{ $json.vorlageDatum || $json.vorlageDatumWeb || '' }}",
             "verfasser": "={{ $json.verfasser || '' }}",
             "fachdienst": "={{ $json.fachdienst || '' }}"
           },
@@ -723,6 +759,36 @@
             {
               "id": "faktenComparisonJson",
               "displayName": "faktenComparisonJson",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatumWeb",
+              "displayName": "vorlageDatumWeb",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatumPdf",
+              "displayName": "vorlageDatumPdf",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatum",
+              "displayName": "vorlageDatum",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -842,6 +908,9 @@
             "qaVerdictJson": "={{ $json.qaVerdictJson }}",
             "qaPassed": "={{ $json.qaPassed }}",
             "qaCheckedAt": "={{ $json.qaCheckedAt }}",
+            "vorlageDatumWeb": "={{ $json.vorlageDatumWeb || '' }}",
+            "vorlageDatumPdf": "={{ $json.vorlageDatumPdf || '' }}",
+            "vorlageDatum": "={{ $json.vorlageDatum || $json.vorlageDatumWeb || '' }}",
             "verfasser": "={{ $json.verfasser || '' }}",
             "fachdienst": "={{ $json.fachdienst || '' }}"
           },
@@ -870,6 +939,36 @@
             {
               "id": "qaCheckedAt",
               "displayName": "qaCheckedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatumWeb",
+              "displayName": "vorlageDatumWeb",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatumPdf",
+              "displayName": "vorlageDatumPdf",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatum",
+              "displayName": "vorlageDatum",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -991,6 +1090,9 @@
             "retry_count": "={{ Number($json.retry_count || 0) + 1 }}",
             "next_retry_at": "",
             "sharepicNeedStage": "={{ $json._qaBlockSharepicNeedStage }}",
+            "vorlageDatumWeb": "={{ $json.vorlageDatumWeb || '' }}",
+            "vorlageDatumPdf": "={{ $json.vorlageDatumPdf || '' }}",
+            "vorlageDatum": "={{ $json.vorlageDatum || $json.vorlageDatumWeb || '' }}",
             "verfasser": "={{ $json.verfasser || '' }}",
             "fachdienst": "={{ $json.fachdienst || '' }}"
           },
@@ -1021,6 +1123,36 @@
             {
               "id": "sharepicNeedStage",
               "displayName": "sharepicNeedStage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatumWeb",
+              "displayName": "vorlageDatumWeb",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatumPdf",
+              "displayName": "vorlageDatumPdf",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatum",
+              "displayName": "vorlageDatum",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1099,7 +1231,7 @@
       "credentials": {
         "httpHeaderAuth": {
           "id": "od1pN1F5wy2irSDs",
-          "name": "Header Auth account"
+          "name": "Matrix Auth account"
         }
       },
       "onError": "continueRegularOutput"
@@ -1174,6 +1306,9 @@
           "mappingMode": "defineBelow",
           "value": {
             "judgmentChainProcessedAt": "={{ $now.toISO() }}",
+            "vorlageDatumWeb": "={{ $json.vorlageDatumWeb || '' }}",
+            "vorlageDatumPdf": "={{ $json.vorlageDatumPdf || '' }}",
+            "vorlageDatum": "={{ $json.vorlageDatum || $json.vorlageDatumWeb || '' }}",
             "verfasser": "={{ $json.verfasser || '' }}",
             "fachdienst": "={{ $json.fachdienst || '' }}"
           },
@@ -1181,6 +1316,36 @@
             {
               "id": "judgmentChainProcessedAt",
               "displayName": "judgmentChainProcessedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatumWeb",
+              "displayName": "vorlageDatumWeb",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatumPdf",
+              "displayName": "vorlageDatumPdf",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatum",
+              "displayName": "vorlageDatum",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1360,8 +1525,10 @@
   "pinData": {},
   "settings": {
     "executionOrder": "v1",
-    "errorWorkflow": "qPheJKPv0k06tkro"
+    "binaryMode": "separate",
+    "errorWorkflow": "qPheJKPv0k06tkro",
+    "saveDataSuccessExecution": "all"
   },
   "tags": [],
-  "versionId": "0f3bd99c-b410-4eef-b324-6c188f5985de"
+  "versionId": "c094a8c5-4d93-4e28-b543-1b3f53bf5951"
 }

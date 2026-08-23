@@ -277,6 +277,9 @@
             "contentErrorReason": "={{ $json.contentErrorReason }}",
             "sharepicNeedStage": "={{ $json.sharepicNeedStage }}",
             "visualPromptStage": "={{ $json.visualPromptStage }}",
+            "vorlageDatumWeb": "={{ $json.vorlageDatumWeb || '' }}",
+            "vorlageDatumPdf": "={{ $json.vorlageDatumPdf || '' }}",
+            "vorlageDatum": "={{ $json.vorlageDatum || $json.vorlageDatumWeb || '' }}",
             "verfasser": "={{ $json.verfasser || '' }}",
             "fachdienst": "={{ $json.fachdienst || '' }}"
           },
@@ -354,6 +357,36 @@
             {
               "id": "contentErrorReason",
               "displayName": "contentErrorReason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatumWeb",
+              "displayName": "vorlageDatumWeb",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatumPdf",
+              "displayName": "vorlageDatumPdf",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatum",
+              "displayName": "vorlageDatum",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -523,6 +556,9 @@
             "satireTarget": "={{ $json.satireTarget }}",
             "sharepicNeedStage": "={{ $json.sharepicNeedStage }}",
             "visualPromptStage": "={{ $json.visualPromptStage }}",
+            "vorlageDatumWeb": "={{ $json.vorlageDatumWeb || '' }}",
+            "vorlageDatumPdf": "={{ $json.vorlageDatumPdf || '' }}",
+            "vorlageDatum": "={{ $json.vorlageDatum || $json.vorlageDatumWeb || '' }}",
             "verfasser": "={{ $json.verfasser || '' }}",
             "fachdienst": "={{ $json.fachdienst || '' }}"
           },
@@ -557,8 +593,10 @@
   ],
   "pinData": {},
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "saveDataSuccessExecution": "all"
   },
   "tags": [],
-  "versionId": "5e5944a0-3f42-45de-a426-9f8c55519542"
+  "versionId": "4841b661-8942-4d11-8594-92216b37dcf5"
 }

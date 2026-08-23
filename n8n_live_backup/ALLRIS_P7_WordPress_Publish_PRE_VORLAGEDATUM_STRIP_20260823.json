@@ -981,6 +981,9 @@
             "last_error_at": "={{ $json.last_error_stage === 'publication' ? '' : ($json.last_error_at || '') }}",
             "retry_count": "={{ $json.last_error_stage === 'publication' ? 0 : Number($json.retry_count || 0) }}",
             "next_retry_at": "={{ $json.last_error_stage === 'publication' ? '' : ($json.next_retry_at || '') }}",
+            "vorlageDatumWeb": "={{ $json.vorlageDatumWeb || '' }}",
+            "vorlageDatumPdf": "={{ $json.vorlageDatumPdf || '' }}",
+            "vorlageDatum": "={{ $json.vorlageDatum || $json.vorlageDatumWeb || '' }}",
             "verfasser": "={{ $json.verfasser || '' }}",
             "fachdienst": "={{ $json.fachdienst || '' }}"
           },
@@ -1066,6 +1069,36 @@
               "removed": false
             },
             {
+              "id": "vorlageDatumWeb",
+              "displayName": "vorlageDatumWeb",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatumPdf",
+              "displayName": "vorlageDatumPdf",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatum",
+              "displayName": "vorlageDatum",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
               "id": "verfasser",
               "displayName": "verfasser",
               "required": false,
@@ -1127,6 +1160,9 @@
             "last_error_at": "={{ $now.toISO() }}",
             "retry_count": "={{ Number($json.retry_count || 0) + 1 }}",
             "next_retry_at": "={{ $now.plus({ minutes: Math.min(1440, 15 * Math.pow(2, Math.max(0, Number($json.retry_count || 0)))) }).toISO() }}",
+            "vorlageDatumWeb": "={{ $json.vorlageDatumWeb || '' }}",
+            "vorlageDatumPdf": "={{ $json.vorlageDatumPdf || '' }}",
+            "vorlageDatum": "={{ $json.vorlageDatum || $json.vorlageDatumWeb || '' }}",
             "verfasser": "={{ $json.verfasser || '' }}",
             "fachdienst": "={{ $json.fachdienst || '' }}"
           },
@@ -1134,6 +1170,36 @@
             {
               "id": "rawAiText",
               "displayName": "rawAiText",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatumWeb",
+              "displayName": "vorlageDatumWeb",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatumPdf",
+              "displayName": "vorlageDatumPdf",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatum",
+              "displayName": "vorlageDatum",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1337,8 +1403,10 @@
   "pinData": {},
   "settings": {
     "executionOrder": "v1",
-    "errorWorkflow": "qPheJKPv0k06tkro"
+    "binaryMode": "separate",
+    "errorWorkflow": "qPheJKPv0k06tkro",
+    "saveDataSuccessExecution": "all"
   },
   "tags": [],
-  "versionId": "dd48efe8-3829-4184-8648-9f0f75e14ebf"
+  "versionId": "5cdb3124-2bf7-4cf3-a87a-52d925529e4d"
 }

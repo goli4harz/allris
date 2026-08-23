@@ -538,6 +538,9 @@
           "mappingMode": "defineBelow",
           "value": {
             "summaryMarkdownUploadedAt": "={{ $now.toISO() }}",
+            "vorlageDatumWeb": "={{ $json.vorlageDatumWeb || '' }}",
+            "vorlageDatumPdf": "={{ $json.vorlageDatumPdf || '' }}",
+            "vorlageDatum": "={{ $json.vorlageDatum || $json.vorlageDatumWeb || '' }}",
             "verfasser": "={{ $json.verfasser || '' }}",
             "fachdienst": "={{ $json.fachdienst || '' }}"
           },
@@ -545,6 +548,36 @@
             {
               "id": "summaryMarkdownUploadedAt",
               "displayName": "summaryMarkdownUploadedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatumWeb",
+              "displayName": "vorlageDatumWeb",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatumPdf",
+              "displayName": "vorlageDatumPdf",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "vorlageDatum",
+              "displayName": "vorlageDatum",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -689,8 +722,9 @@
   "pinData": null,
   "settings": {
     "executionOrder": "v1",
-    "errorWorkflow": "qPheJKPv0k06tkro"
+    "errorWorkflow": "qPheJKPv0k06tkro",
+    "saveDataSuccessExecution": "all"
   },
   "tags": [],
-  "versionId": "3ebaecb7-d8c8-409d-8b9a-3a02b4d77786"
+  "versionId": "0fd7b2fa-0864-4d08-9a0c-6c70da448ed0"
 }
