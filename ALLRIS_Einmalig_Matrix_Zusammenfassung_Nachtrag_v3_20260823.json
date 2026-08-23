@@ -1,0 +1,287 @@
+{
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hole alle Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole alle Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Baue v3 Liste",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue v3 Liste": {
+      "main": [
+        [
+          {
+            "node": "IF erneut senden?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF erneut senden?": {
+      "main": [
+        [
+          {
+            "node": "Sende (nur die 3 Fehlgeschlagenen)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Sende (nur die 3 Fehlgeschlagenen)": {
+      "main": [
+        [
+          {
+            "node": "Prüfe Erfolg (Resend)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prüfe Erfolg (Resend)": {
+      "main": [
+        [
+          {
+            "node": "Sammle zu markierende Zeilen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sammle zu markierende Zeilen": {
+      "main": [
+        [
+          {
+            "node": "Markiere gepostet (v3)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "meta": {},
+  "name": "ALLRIS_Einmalig_Matrix_Zusammenfassung_Nachtrag_v3_20260823",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "mc3-manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "filters": {
+          "conditions": []
+        },
+        "returnAll": true
+      },
+      "id": "mc3-get-all",
+      "name": "Hole alle Vorgaenge",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        -960,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Einmalig 2026-08-23 (v3 - Aufraeumen nach v2): v2 hat tatsaechlich alle 21 Nachrichten\n// gesendet (per Execution-Datenabgleich bestaetigt: 18 echte event_id, 3 Matrix-\n// Rate-Limit-Fehler), aber 'Markiere gepostet' hat wegen einer $('...').item-\n// Aufloesungsstoerung unter httpRequests eingebautem Batching nur fuer 1 von 21 Items\n// tatsaechlich geschrieben. v3 raeumt das auf: markiert die 18 bereits erfolgreich\n// gesendeten direkt (kein erneuter Versand), sendet nur die 3 tatsaechlich fehl-\n// geschlagenen erneut (mit mehr Abstand, 5s statt 2s).\nconst ALREADY_SENT_KEYS = [\"vol_10809\",\"vol_10808\",\"vol_10833\",\"vol_10832\",\"vol_10846\",\"vol_10845\",\"vol_10843\",\"vol_10838\",\"vol_10837\",\"vol_10836\",\"vol_10835\",\"vol_10834\",\"vol_10828\",\"vol_10826\",\"vol_10822\",\"vol_10814\",\"vol_10803\",\"vol_10801\"];\nconst NEEDS_RESEND_KEYS = [\"vol_10812\",\"vol_10805\",\"vol_10802\"];\n\nfunction parseList(value) {\n  if (Array.isArray(value)) return value.filter(Boolean).map(v => String(v).trim());\n  if (value === null || value === undefined || value === '') return [];\n  const t = String(value).trim();\n  if (!t) return [];\n  try { const parsed = JSON.parse(t); if (Array.isArray(parsed)) return parsed.filter(Boolean).map(v => String(v).trim()); } catch (e) {}\n  return t.split(/\\s*\\|\\s*/).filter(Boolean).map(v => String(v).trim());\n}\n\nconst allRows = $input.all().map(i => i.json);\nconst alreadySent = allRows.filter(r => ALREADY_SENT_KEYS.includes(r.vorgangKey))\n  .map(j => ({ json: { vorgangKey: j.vorgangKey, _needsResend: false } }));\n\nconst toResend = allRows.filter(r => NEEDS_RESEND_KEYS.includes(r.vorgangKey)).map(j => {\n  const sentences = parseList(j.summarySentences);\n  const betroffene = parseList(j.betroffene);\n  const offenePunkte = parseList(j.offenePunkte);\n  const unsicherheiten = parseList(j.unsicherheitenSummary);\n  let msg = `📄 Neue ALLRIS-Vorlage (nachtraeglich gesendet, Matrix-Ausfall 18.-23.08.)\\n\\n`;\n  msg += `Titel:\\n${j.title || ''}\\n\\n`;\n  msg += `Vorgangsnummer:\\n${j.vorgangsnummer || ''}\\n\\n`;\n  msg += `Link:\\n${j.allrisUrl || ''}\\n\\n`;\n  msg += `Kurzfassung:\\n`;\n  let summaryBlock = '';\n  if (j.summaryText && String(j.summaryText).trim()) summaryBlock = String(j.summaryText).trim();\n  else if (sentences.length > 0) summaryBlock = sentences.join(' ');\n  else summaryBlock = '(keine Zusammenfassung)';\n  summaryBlock = summaryBlock.replace(/\\r\\n/g, '\\n').replace(/[ \\t]+\\n/g, '\\n').replace(/\\n{3,}/g, '\\n\\n').trim();\n  msg += summaryBlock;\n  msg += `\\n\\nEinordnung:\\n`;\n  msg += `- Thema: ${j.thema || '—'}\\n`;\n  msg += `- Betroffene: ${betroffene.join(', ') || '—'}\\n`;\n  msg += `- Kosten/Haushalt: ${j.kostenHaushalt || '—'}\\n`;\n  msg += `- Bürgerwirkung: ${j.buergerwirkung || '—'}\\n`;\n  if (offenePunkte.length > 0) msg += `- Offene Punkte:\\n` + offenePunkte.map(p => `  • ${p}`).join('\\n') + '\\n';\n  if (unsicherheiten.length > 0) msg += `- Unsicherheiten:\\n` + unsicherheiten.map(p => `  • ${p}`).join('\\n') + '\\n';\n  const txnId = 'sumcatchup3_' + Date.now() + '_' + (j.vorgangKey || '').replace(/[^a-zA-Z0-9]/g,'').substring(0,10);\n  return { json: { vorgangKey: j.vorgangKey, summaryMessage: msg, txnId, _needsResend: true } };\n});\n\nconsole.log('[Matrix-Nachtrag v3] bereits gesendet (nur DB-Flag): ' + alreadySent.length + ', erneut senden: ' + toResend.length);\nreturn [...alreadySent, ...toResend];"
+      },
+      "id": "mc3-build",
+      "name": "Baue v3 Liste",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -720,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "mc3-resend-1",
+              "leftValue": "={{ $json._needsResend }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "mc3-if-resend",
+      "name": "IF erneut senden?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -480,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://matrix.org/_matrix/client/v3/rooms/!JDEhirqKydgJuFeWDH:matrix.golietz.de/send/m.room.message/{{ $json.txnId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ msgtype: 'm.text', body: $json.summaryMessage }) }}",
+        "options": {
+          "timeout": 30000,
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 5000
+            }
+          }
+        }
+      },
+      "id": "mc3-send",
+      "name": "Sende (nur die 3 Fehlgeschlagenen)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -240,
+        -80
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "od1pN1F5wy2irSDs",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Positionsbasierte Zuordnung statt $('...').item - httpRequests eingebautes Batching\n// hat in v2 die automatische pairedItem-Aufloesung fuer die meisten Items zerstoert.\n// Da Ein- und Ausgabereihenfolge nachweislich 1:1 erhalten bleibt (per v2-Execution-\n// Diff bestaetigt), wird hier stattdessen $itemIndex direkt gegen die Eingabeliste\n// dieses Zweigs verwendet.\nconst original = $('IF erneut senden?').all(0)[$itemIndex]?.json || {};\nconst item = $input.item;\nconst j = item.json || {};\nconst hasError = !!(item.error || j.error || j.__error);\nconst eventId = j.event_id || j.eventId || '';\nconst matrixSuccess = !hasError && typeof eventId === 'string' && eventId.startsWith('$');\nreturn { json: { vorgangKey: original.vorgangKey, _sentOk: matrixSuccess, _eventId: eventId } };"
+      },
+      "id": "mc3-check",
+      "name": "Prüfe Erfolg (Resend)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Zusammenfuehrung: bereits-gesendet-Zweig (immer markieren, direkt aus 'Baue v3\n// Liste' gelesen statt ueber eine zweite Verbindung - vermeidet Doppelausfuehrung)\n// + erfolgreich erneut gesendeter Zweig (nur bei _sentOk===true markieren).\nconst fullList = $('Baue v3 Liste').all();\nconst alreadySent = fullList.filter(i => i.json._needsResend === false);\nconst resendResults = $input.all().filter(i => i.json._sentOk === true);\nconst toMark = [...alreadySent, ...resendResults].map(i => ({ json: { vorgangKey: i.json.vorgangKey } }));\nconsole.log('[Matrix-Nachtrag v3] insgesamt als gepostet zu markieren: ' + toMark.length);\nreturn toMark;"
+      },
+      "id": "mc3-merge",
+      "name": "Sammle zu markierende Zeilen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "summaryPosted": "={{ $now.toISO() }}",
+            "summaryRoomPostedAt": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [
+            "vorgangKey"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "mc3-mark",
+      "name": "Markiere gepostet (v3)",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        480,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "id": "iouzzSp5nxx5YJoB"
+}
