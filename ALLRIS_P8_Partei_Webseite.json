@@ -296,7 +296,7 @@
       "main": [
         [
           {
-            "node": "Bestaetige Media-URL",
+            "node": "IF Upload hat Media-ID?",
             "type": "main",
             "index": 0
           }
@@ -400,6 +400,24 @@
     },
     "Bestaetige Media-URL": {
       "main": [
+        [
+          {
+            "node": "Stelle Kontext nach Media-Upload wieder her",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Upload hat Media-ID?": {
+      "main": [
+        [
+          {
+            "node": "Bestaetige Media-URL",
+            "type": "main",
+            "index": 0
+          }
+        ],
         [
           {
             "node": "Stelle Kontext nach Media-Upload wieder her",
@@ -570,7 +588,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const idx = $itemIndex;\nconst original = $('Baue Post-Body').itemMatching(idx).json;\nconst resp = $json || {};\nconst postId = resp.id || resp.data?.id || null;\nconst postLink = resp.link || resp.data?.link || '';\nconst postError = resp.error?.message || resp.error || resp.message || '';\nreturn {\n  json: {\n    ...original,\n    wpPostId: postId,\n    wpPostLink: postLink,\n    wpPostSuccess: !postError && !!postId,\n    wpPostError: postError ? String(postError) : ''\n  }\n};\n"
+        "jsCode": "// FIX 2026-08-26: original wurde ausschliesslich aus 'Baue Post-Body' (vor dem Bild-Upload)\n// wiederhergestellt - dabei gingen wpFeaturedMediaId/wpFeaturedMediaUrl (aus 'Stelle Kontext nach\n// Media-Upload wieder her') wieder verloren, kurz bevor 'Speichere Erfolg' sie braucht. Live an\n// vol_10731 bestaetigt: Upload+Bestaetigung lieferten die richtige URL, aber sie kam nie in der DB\n// an. itemMatching auf den Media-Kontext-Node schlaegt fuer die beiden Kurzschluss-Pfade (Slug\n// existiert bereits / Slug-Suche fehlgeschlagen) fehl, da dieser Node dort nie lief - deshalb defensiv\n// per try/catch, mit Fallback auf original (dort ohnehin nie gesetzt).\nconst idx = $itemIndex;\nconst original = $('Baue Post-Body').itemMatching(idx).json;\nlet mediaContext = {};\ntry {\n  mediaContext = $('Stelle Kontext nach Media-Upload wieder her').itemMatching(idx).json || {};\n} catch (e) {\n  mediaContext = {};\n}\nconst resp = $json || {};\nconst postId = resp.id || resp.data?.id || null;\nconst postLink = resp.link || resp.data?.link || '';\nconst postError = resp.error?.message || resp.error || resp.message || '';\nreturn {\n  json: {\n    ...original,\n    wpFeaturedMediaId: mediaContext.wpFeaturedMediaId ?? original.wpFeaturedMediaId ?? null,\n    wpFeaturedMediaUrl: mediaContext.wpFeaturedMediaUrl ?? original.wpFeaturedMediaUrl ?? '',\n    wpMediaUploadError: mediaContext.wpMediaUploadError ?? original.wpMediaUploadError ?? '',\n    wpPostId: postId,\n    wpPostLink: postLink,\n    wpPostSuccess: !postError && !!postId,\n    wpPostError: postError ? String(postError) : ''\n  }\n};"
       },
       "id": "072107c1-af05-45ab-b8e8-20478131591f",
       "name": "Stelle Kontext nach Post-Erstellung wieder her",
@@ -899,7 +917,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const original = $('Baue Post-Body').item.json;\nconst responses = $input.all().map(item => item.json || {});\n\nfunction safe(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction isLookupError(j) {\n  return Boolean(j.error || j.name === 'NodeApiError' || Number(j.statusCode || j.status || 0) >= 400);\n}\n\nconst lookupError = responses.find(isLookupError);\nconst expectedSlug = safe(original.wpSlug);\nconst existingPost = responses.find(j =>\n  !isLookupError(j) && Boolean(j.id) && safe(j.slug) === expectedSlug\n);\nconst lookupErrorMessage = lookupError\n  ? (safe(lookupError.error?.message) || safe(lookupError.message) || 'WordPress-Slug-Suche der Partei-Webseite fehlgeschlagen.')\n  : '';\n\nreturn [{\n  json: {\n    ...original,\n    _partySlugExists: Boolean(existingPost),\n    _partySlugLookupOk: !lookupError,\n    id: existingPost?.id || '',\n    link: existingPost?.link || '',\n    error: lookupError ? { message: lookupErrorMessage } : undefined\n  }\n}];\n"
+        "jsCode": "// FIX 2026-08-26: original wurde aus 'Baue Post-Body' wiederhergestellt - einem Node VOR\n// der Tag-Erstellung/-Aufloesung. Dadurch ging wordpressTagIds (aus 'Baue finale Tag-Liste\n// (Partei)') hier verloren, noch bevor 'Create a post' es verwenden konnte. Live bestaetigt:\n// Ermittle fehlende Tags berechnete korrekt 10 Tag-IDs, der tatsaechliche WordPress-Post\n// hatte trotzdem 0 Tags - betraf 78 von 100 Beitraegen seit Einfuehrung dieses Slug-Checks.\n// Gleiche Bugklasse wie der Media-URL-Context-Verlust vom selben Tag.\nconst idx = $itemIndex;\nconst original = $('Baue finale Tag-Liste (Partei)').itemMatching(idx).json;\nconst responses = $input.all().map(item => item.json || {});\n\nfunction safe(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction isLookupError(j) {\n  return Boolean(j.error || j.name === 'NodeApiError' || Number(j.statusCode || j.status || 0) >= 400);\n}\n\nconst lookupError = responses.find(isLookupError);\nconst expectedSlug = safe(original.wpSlug);\nconst existingPost = responses.find(j =>\n  !isLookupError(j) && Boolean(j.id) && safe(j.slug) === expectedSlug\n);\nconst lookupErrorMessage = lookupError\n  ? (safe(lookupError.error?.message) || safe(lookupError.message) || 'WordPress-Slug-Suche der Partei-Webseite fehlgeschlagen.')\n  : '';\n\nreturn [{\n  json: {\n    ...original,\n    _partySlugExists: Boolean(existingPost),\n    _partySlugLookupOk: !lookupError,\n    id: existingPost?.id || '',\n    link: existingPost?.link || '',\n    error: lookupError ? { message: lookupErrorMessage } : undefined\n  }\n}];"
       },
       "id": "41713efc-bef0-42bf-9f4c-ed4cdf855cf4",
       "name": "Bewerte Partei-Slug-Suche",
@@ -1349,7 +1367,7 @@
         1320
       ],
       "parameters": {
-        "jsCode": "// FIX 2026-07-30: NC Lade finales Bild hat onError:continueRegularOutput; ein\n// Fehlschlag (z.B. 404 auf Nextcloud) lieferte bisher nur {error:...} ohne\n// vorgangKey/id - das crashte zwei Nodes spaeter \"Bereite P8 Claim-Freigabe vor\"\n// und liess den Claim verwaist zurueck, statt ihn kontrolliert freizugeben.\n// Vorbild: die bereits bestehenden Kontext-Restores nach Media-Upload und\n// nach Post-Erstellung in diesem Workflow - hier fehlte das Gegenstueck.\nconst idx = $itemIndex;\nconst original = $('IF Bild vorhanden?').itemMatching(idx).json;\nconst downloadResult = $json;\nconst error = downloadResult && downloadResult.error ? downloadResult.error : undefined;\nreturn { json: { ...original, error } };"
+        "jsCode": "// FIX 2026-07-30: NC Lade finales Bild hat onError:continueRegularOutput; ein\n// Fehlschlag (z.B. 404 auf Nextcloud) lieferte bisher nur {error:...} ohne\n// vorgangKey/id - das crashte zwei Nodes spaeter \"Bereite P8 Claim-Freigabe vor\"\n// und liess den Claim verwaist zurueck, statt ihn kontrolliert freizugeben.\n// Vorbild: die bereits bestehenden Kontext-Restores nach Media-Upload und\n// nach Post-Erstellung in diesem Workflow - hier fehlte das Gegenstueck.\n//\n// FIX 2026-08-26: der obige Fix hat binary NIE weitergereicht (Code-Nodes geben ohne\n// explizites \"binary:\" im Return-Objekt nur json weiter) - dadurch schlug der WordPress-\n// Medien-Upload seit dem 30.07. IMMER fehl (\"no binary file 'data' found\"), live per\n// Diagnose an Zeile vol_10731 bestaetigt. binary jetzt explizit durchreichen.\nconst idx = $itemIndex;\nconst original = $('IF Bild vorhanden?').itemMatching(idx).json;\nconst item = $input.item;\nconst downloadResult = item.json;\nconst error = downloadResult && downloadResult.error ? downloadResult.error : undefined;\nreturn { json: { ...original, error }, binary: item.binary };"
       }
     },
     {
@@ -1375,6 +1393,39 @@
         }
       },
       "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "p8-upload-has-id-001",
+              "leftValue": "={{ String($json.id || '') }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "p8-gate-upload-ok-0001",
+      "name": "IF Upload hat Media-ID?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2240,
+        1184
+      ]
     }
   ],
   "pinData": {},
@@ -1385,5 +1436,5 @@
     "saveDataSuccessExecution": "all"
   },
   "tags": [],
-  "versionId": "6ee4d0e5-479b-4abe-a5de-e3e0e59e8e19"
+  "versionId": "b08201d8-82ab-484c-b222-ef848ea364c2"
 }
