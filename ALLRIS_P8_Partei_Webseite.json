@@ -296,7 +296,7 @@
       "main": [
         [
           {
-            "node": "Stelle Kontext nach Media-Upload wieder her",
+            "node": "Bestaetige Media-URL",
             "type": "main",
             "index": 0
           }
@@ -392,6 +392,17 @@
         [
           {
             "node": "IF Bild erfolgreich geladen?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bestaetige Media-URL": {
+      "main": [
+        [
+          {
+            "node": "Stelle Kontext nach Media-Upload wieder her",
             "type": "main",
             "index": 0
           }
@@ -1031,7 +1042,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const idx = $itemIndex;\nconst original = $('Baue Post-Body').itemMatching(idx).json;\nconst uploadResult = $json;\nfunction extractErrorText(v) {\n  if (!v) return '';\n  if (typeof v === 'string') return v;\n  if (typeof v === 'object') return String(v.message || v.description || v.error || JSON.stringify(v));\n  return String(v);\n}\nconst mediaId = uploadResult && uploadResult.id ? uploadResult.id : null;\nconst mediaUrl = uploadResult && uploadResult.source_url ? uploadResult.source_url : null;\n// FIX 2026-07-26: der Upload-Node hat onError:continueRegularOutput, ein Fehlschlag wurde\n// bisher aber nirgends erfasst - der Artikel ging dann klaglos ohne Bild raus (live an\n// 2026/100 gefunden: Bild fertig, Post erfolgreich, aber weder Media-URL noch Fehlermeldung).\nconst mediaUploadError = mediaId ? '' : (\n  extractErrorText(uploadResult && uploadResult.error) ||\n  extractErrorText(uploadResult && uploadResult.message) ||\n  'Medien-Upload zur Partei-Webseite lieferte keine Media-ID (Ursache unbekannt).'\n);\nreturn { json: { ...original, wpFeaturedMediaId: mediaId, wpFeaturedMediaUrl: mediaUrl, wpMediaUploadError: mediaUploadError } };"
+        "jsCode": "const idx = $itemIndex;\nconst original = $('Baue Post-Body').itemMatching(idx).json;\nconst uploadResult = $('Upload Media zu Partei-Webseite').itemMatching(idx).json;\nconst confirmResult = $json;\nfunction extractErrorText(v) {\n  if (!v) return '';\n  if (typeof v === 'string') return v;\n  if (typeof v === 'object') return String(v.message || v.description || v.error || JSON.stringify(v));\n  return String(v);\n}\nconst mediaId = uploadResult && uploadResult.id ? uploadResult.id : null;\n// FIX 2026-08-26: die POST-Upload-Antwort dieser WordPress-Instanz liefert source_url NIE\n// zuverlaessig (92/92 bisherige Drafts ohne Bild-URL, obwohl die Media-ID korrekt gesetzt\n// wurde - live verifiziert per Diagnose-Abfrage). Ein direktes GET auf dieselbe Media-ID\n// unmittelbar danach (neuer Node \"Bestaetige Media-URL\") liefert source_url dagegen\n// zuverlaessig. guid.rendered als zusaetzlicher Fallback, falls auch das bestaetigende GET\n// aus irgendeinem Grund fehlschlaegt oder source_url weiterhin fehlt.\nconst mediaUrl = (confirmResult && confirmResult.source_url)\n  || (confirmResult && confirmResult.guid && confirmResult.guid.rendered)\n  || (uploadResult && uploadResult.source_url)\n  || (uploadResult && uploadResult.guid && uploadResult.guid.rendered)\n  || null;\nconst mediaUploadError = mediaId ? '' : (\n  extractErrorText(uploadResult && uploadResult.error) ||\n  extractErrorText(uploadResult && uploadResult.message) ||\n  'Medien-Upload zur Partei-Webseite lieferte keine Media-ID (Ursache unbekannt).'\n);\nreturn { json: { ...original, wpFeaturedMediaId: mediaId, wpFeaturedMediaUrl: mediaUrl, wpMediaUploadError: mediaUploadError } };"
       },
       "id": "7dc1edea-1e5e-4cc0-9f84-6590475964b3",
       "name": "Stelle Kontext nach Media-Upload wieder her",
@@ -1340,13 +1351,39 @@
       "parameters": {
         "jsCode": "// FIX 2026-07-30: NC Lade finales Bild hat onError:continueRegularOutput; ein\n// Fehlschlag (z.B. 404 auf Nextcloud) lieferte bisher nur {error:...} ohne\n// vorgangKey/id - das crashte zwei Nodes spaeter \"Bereite P8 Claim-Freigabe vor\"\n// und liess den Claim verwaist zurueck, statt ihn kontrolliert freizugeben.\n// Vorbild: die bereits bestehenden Kontext-Restores nach Media-Upload und\n// nach Post-Erstellung in diesem Workflow - hier fehlte das Gegenstueck.\nconst idx = $itemIndex;\nconst original = $('IF Bild vorhanden?').itemMatching(idx).json;\nconst downloadResult = $json;\nconst error = downloadResult && downloadResult.error ? downloadResult.error : undefined;\nreturn { json: { ...original, error } };"
       }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://die-partei.net/goslar/wp-json/wp/v2/media/{{ $json.id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "options": {}
+      },
+      "id": "p8-confirm-media-url-0001",
+      "name": "Bestaetige Media-URL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2240,
+        1184
+      ],
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      },
+      "onError": "continueRegularOutput"
     }
   ],
   "pinData": {},
   "settings": {
     "executionOrder": "v1",
-    "errorWorkflow": "qPheJKPv0k06tkro"
+    "binaryMode": "separate",
+    "errorWorkflow": "qPheJKPv0k06tkro",
+    "saveDataSuccessExecution": "all"
   },
   "tags": [],
-  "versionId": "3f7e7287-8eb1-48b7-9d56-8caa29d60d5f"
+  "versionId": "6ee4d0e5-479b-4abe-a5de-e3e0e59e8e19"
 }
