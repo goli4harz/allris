@@ -1,5 +1,5 @@
 {
-  "active": false,
+  "active": true,
   "connections": {
     "Schedule Trigger": {
       "main": [
@@ -105,7 +105,7 @@
       "main": [
         [
           {
-            "node": "Poste Foto zu Facebook",
+            "node": "NC Lade finales Bild",
             "type": "main",
             "index": 0
           }
@@ -245,6 +245,17 @@
           }
         ]
       ]
+    },
+    "NC Lade finales Bild": {
+      "main": [
+        [
+          {
+            "node": "Poste Foto zu Facebook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "id": "0aj2K9lwFTK4dQX2",
@@ -256,14 +267,26 @@
         "rule": {
           "interval": [
             {
-              "triggerAtHour": 8,
-              "triggerAtMinute": 15
+              "triggerAtHour": 8
             },
             {
-              "triggerAtHour": 17,
-              "triggerAtMinute": 45
+              "triggerAtHour": 10,
+              "triggerAtMinute": 30
             },
-            {}
+            {
+              "triggerAtHour": 13
+            },
+            {
+              "triggerAtHour": 15,
+              "triggerAtMinute": 30
+            },
+            {
+              "triggerAtHour": 18
+            },
+            {
+              "triggerAtHour": 20,
+              "triggerAtMinute": 30
+            }
           ]
         }
       },
@@ -302,7 +325,7 @@
     },
     {
       "parameters": {
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction safeBool(v) {\n  if (v === true) return true;\n  if (typeof v === 'string') return v.trim().toLowerCase() === 'true';\n  return false;\n}\nconst items = $input.all();\nreturn items.filter(item => {\n  const j = item.json || {};\n  // Grundvoraussetzung: echter Facebook-Content vorhanden (analog Mastodon-Filter,\n  // dort instagramCaption/facebookPost als Fallback-Paar - hier facebookPost zuerst,\n  // da das der spezifisch fuer diesen Kanal generierte Text ist).\n  if (!safeStr(j.facebookPost)) return false;\n  if (safeBool(j.facebookPosted)) return false;\n  if (!safeStr(j.vorgangKey)) return false;\n  // Gleiches Wettlauf-Muster wie P9 vs. P6: bei sharepicNeedStage=topic_ok wird auf das\n  // fertige Bild gewartet (P6), ausser das Bildkonzept ist endgueltig gescheitert\n  // (imageStage=topic_error_final) - dann text-only posten statt ewig zu warten.\n  // wordpressGoslarImageUrl statt imageFinalPath, weil P11 (wie P10 Instagram) die\n  // oeffentliche URL direkt an Facebook uebergibt statt ueber Nextcloud hochzuladen.\n  if (safeStr(j.sharepicNeedStage) === 'topic_ok') {\n    const hasImage = !!safeStr(j.wordpressGoslarImageUrl);\n    const imageGivenUp = safeStr(j.imageStage) === 'topic_error_final';\n    const waitingForImage = !hasImage && !imageGivenUp;\n    if (waitingForImage) return false;\n  }\n  // Facebook-Post verlinkt auf den diePARTEI-Wordpress-Artikel, muss also immer nach P8\n  // kommen (identisches Muster zu P9).\n  if (!safeBool(j.wordpressGoslarPosted)) return false;\n  if (!safeStr(j.wordpressGoslarPostLink)) return false;\n  return true;\n});\n"
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction safeBool(v) {\n  if (v === true) return true;\n  if (typeof v === 'string') return v.trim().toLowerCase() === 'true';\n  return false;\n}\nconst items = $input.all();\nreturn items.filter(item => {\n  const j = item.json || {};\n  // Grundvoraussetzung: echter Facebook-Content vorhanden (analog Mastodon-Filter,\n  // dort instagramCaption/facebookPost als Fallback-Paar - hier facebookPost zuerst,\n  // da das der spezifisch fuer diesen Kanal generierte Text ist).\n  if (!safeStr(j.facebookPost)) return false;\n  if (safeBool(j.facebookPosted)) return false;\n  if (!safeStr(j.vorgangKey)) return false;\n  // Gleiches Wettlauf-Muster wie P9 vs. P6: bei sharepicNeedStage=topic_ok wird auf das\n  // fertige Bild gewartet (P6), ausser das Bildkonzept ist endgueltig gescheitert\n  // (imageStage=topic_error_final) - dann text-only posten statt ewig zu warten.\n  // FIX 2026-08-26 (Live-Test): wordpressGoslarImageUrl wird in der gesamten Tabelle nie\n  // befuellt (0 von 240 Zeilen) - imageFinalPath (NextCloud-Pfad, von P6 befuellt) ist das\n  // tatsaechlich nutzbare Feld, analog zu P9 Mastodon.\n  if (safeStr(j.sharepicNeedStage) === 'topic_ok') {\n    const hasImage = !!safeStr(j.imageFinalPath);\n    const imageGivenUp = safeStr(j.imageStage) === 'topic_error_final';\n    const waitingForImage = !hasImage && !imageGivenUp;\n    if (waitingForImage) return false;\n  }\n  // Facebook-Post verlinkt auf den diePARTEI-Wordpress-Artikel, muss also immer nach P8\n  // kommen (identisches Muster zu P9).\n  if (!safeBool(j.wordpressGoslarPosted)) return false;\n  if (!safeStr(j.wordpressGoslarPostLink)) return false;\n  return true;\n});\n"
       },
       "id": "p11-fb-0003",
       "name": "Filter Facebook-Kandidaten",
@@ -388,7 +411,7 @@
     },
     {
       "parameters": {
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseArr(v) {\n  try { const a = JSON.parse(v); return Array.isArray(a) ? a : []; } catch (e) { return []; }\n}\n// Gleicher defensiver Fix wie in P9 (Baue Toot-Text): P4-Prompt liess GPT-5-mini teils\n// woertlich \"Hook:\" als Label mit ausgeben, bereits generierte, noch nicht geposteten\n// Captions in der Data Table koennen das noch enthalten.\nfunction stripHookLabel(s) { return safeStr(s).replace(/^\\s*Hook\\s*:\\s*/i, ''); }\nfunction sanitizeTag(t) { return safeStr(t).replace(/^#/, '').replace(/[^\\p{L}\\p{N}_]/gu, ''); }\n// Gleiche feste Pflicht-Hashtags wie P9 (Nutzervorgabe), am Ende der Hashtag-Zeile.\nconst FIXED_HASHTAGS = ['meingoslar', 'goslar', 'meinklüngelkannmehr', 'prioritätenproblem'];\n\nconst j = $json;\n// facebookPost zuerst (kanal-spezifisch generiert), instagramCaption als Fallback -\n// umgekehrte Prioritaet zu P9 (dort instagramCaption zuerst), da facebookPost hier der\n// eigentlich vorgesehene Text ist.\nconst caption = stripHookLabel(safeStr(j.facebookPost) || safeStr(j.instagramCaption));\nconst postLink = safeStr(j.wordpressGoslarPostLink);\n\nconst rawTags = parseArr(j.facebookHashtags).length ? parseArr(j.facebookHashtags) : parseArr(j.instagramHashtags);\nconst sanitized = rawTags.map(sanitizeTag).filter(Boolean);\nconst seen = new Set();\nconst tags = [];\nfor (const t of [...sanitized, ...FIXED_HASHTAGS]) {\n  const key = t.toLowerCase();\n  if (seen.has(key)) continue;\n  seen.add(key);\n  tags.push('#' + t);\n}\nconst hashtagLine = tags.join(' ');\n\n// Facebook-Posts haben (anders als Mastodons 800-Zeichen-Limit) praktisch kein relevantes\n// Limit (63.206 Zeichen) - deshalb keine Kuerzungslogik noetig, anders als bei P9.\nlet postText = caption;\nif (postLink) postText += '\\n\\n' + postLink;\nif (hashtagLine) postText += '\\n\\n' + hashtagLine;\n\n// Oeffentliche Bild-URL direkt uebergeben (wie P10 Instagram) statt ueber Nextcloud\n// herunterzuladen und als multipart-Datei hochzuladen (wie P9 Mastodon) - Facebooks\n// /photos-Endpunkt akzeptiert eine URL direkt.\nconst imageUrl = safeStr(j.wordpressGoslarImageUrl);\nconst hasImage = !!imageUrl;\n\nreturn { json: { ...j, facebookPostText: postText, facebookImageUrl: imageUrl, hasImage } };\n"
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseArr(v) {\n  try { const a = JSON.parse(v); return Array.isArray(a) ? a : []; } catch (e) { return []; }\n}\n// Gleicher defensiver Fix wie in P9 (Baue Toot-Text): P4-Prompt liess GPT-5-mini teils\n// woertlich \"Hook:\" als Label mit ausgeben, bereits generierte, noch nicht geposteten\n// Captions in der Data Table koennen das noch enthalten.\nfunction stripHookLabel(s) { return safeStr(s).replace(/^\\s*Hook\\s*:\\s*/i, ''); }\nfunction sanitizeTag(t) { return safeStr(t).replace(/^#/, '').replace(/[^\\p{L}\\p{N}_]/gu, ''); }\n// Gleiche feste Pflicht-Hashtags wie P9 (Nutzervorgabe), am Ende der Hashtag-Zeile.\nconst FIXED_HASHTAGS = ['meingoslar', 'goslar', 'meinklüngelkannmehr', 'prioritätenproblem'];\n\nconst j = $json;\n// facebookPost zuerst (kanal-spezifisch generiert), instagramCaption als Fallback -\n// umgekehrte Prioritaet zu P9 (dort instagramCaption zuerst), da facebookPost hier der\n// eigentlich vorgesehene Text ist.\nconst caption = stripHookLabel(safeStr(j.facebookPost) || safeStr(j.instagramCaption));\nconst postLink = safeStr(j.wordpressGoslarPostLink);\n\nconst rawTags = parseArr(j.facebookHashtags).length ? parseArr(j.facebookHashtags) : parseArr(j.instagramHashtags);\nconst sanitized = rawTags.map(sanitizeTag).filter(Boolean);\nconst seen = new Set();\nconst tags = [];\nfor (const t of [...sanitized, ...FIXED_HASHTAGS]) {\n  const key = t.toLowerCase();\n  if (seen.has(key)) continue;\n  seen.add(key);\n  tags.push('#' + t);\n}\nconst hashtagLine = tags.join(' ');\n\n// Facebook-Posts haben (anders als Mastodons 800-Zeichen-Limit) praktisch kein relevantes\n// Limit (63.206 Zeichen) - deshalb keine Kuerzungslogik noetig, anders als bei P9.\nlet postText = caption;\nif (postLink) postText += '\\n\\n' + postLink;\nif (hashtagLine) postText += '\\n\\n' + hashtagLine;\n\n// Oeffentliche Bild-URL direkt uebergeben (wie P10 Instagram) statt ueber Nextcloud\n// herunterzuladen und als multipart-Datei hochzuladen (wie P9 Mastodon) - Facebooks\n// /photos-Endpunkt akzeptiert eine URL direkt.\nconst hasImage = !!safeStr(j.imageFinalPath);\n\nreturn { json: { ...j, facebookPostText: postText, hasImage } };\n"
       },
       "id": "p11-fb-0009",
       "name": "Baue Facebook-Post",
@@ -406,7 +429,7 @@
             "caseSensitive": true,
             "leftValue": "",
             "typeValidation": "strict",
-            "version": 2
+            "version": 1
           },
           "conditions": [
             {
@@ -428,26 +451,33 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        2000,
-        0
+        32,
+        384
       ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://graph.facebook.com/v21.0/FACEBOOK_PAGE_ID_HIER_EINTRAGEN/photos",
+        "url": "=https://graph.facebook.com/v26.0/1885103051701379/photos",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
             {
-              "name": "url",
-              "value": "={{ $json.facebookImageUrl }}"
-            },
-            {
               "name": "caption",
               "value": "={{ $json.facebookPostText }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "source",
+              "inputDataFieldName": "data"
             }
           ]
         },
@@ -460,15 +490,21 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2224,
-        -140
+        192,
+        240
       ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "NS1xsAxwYYD58mrD",
+          "name": "Facebook Page Token"
+        }
+      },
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://graph.facebook.com/v21.0/FACEBOOK_PAGE_ID_HIER_EINTRAGEN/feed",
+        "url": "=https://graph.facebook.com/v26.0/1885103051701379/feed",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendQuery": true,
@@ -489,9 +525,15 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2224,
-        140
+        256,
+        528
       ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "NS1xsAxwYYD58mrD",
+          "name": "Facebook Page Token"
+        }
+      },
       "onError": "continueRegularOutput"
     },
     {
@@ -503,8 +545,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2448,
-        0
+        480,
+        384
       ]
     },
     {
@@ -536,8 +578,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        2672,
-        0
+        704,
+        384
       ]
     },
     {
@@ -631,8 +673,8 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        2896,
-        -140
+        928,
+        240
       ]
     },
     {
@@ -2054,8 +2096,8 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        2896,
-        140
+        928,
+        528
       ]
     },
     {
@@ -2090,8 +2132,8 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        3120,
-        -140
+        1152,
+        240
       ]
     },
     {
@@ -2126,8 +2168,8 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        3120,
-        140
+        1152,
+        528
       ]
     },
     {
@@ -2139,8 +2181,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3344,
-        0
+        1376,
+        384
       ]
     },
     {
@@ -2152,8 +2194,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3344,
-        260
+        1376,
+        656
       ]
     },
     {
@@ -2173,15 +2215,36 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        3568,
-        260
+        1600,
+        656
       ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "path": "={{ $json.imageFinalPath }}"
+      },
+      "id": "p11-fb-nc-download",
+      "name": "NC Lade finales Bild",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [
+        368,
+        240
+      ],
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      }
     }
   ],
   "pinData": {},
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate"
   },
   "tags": [],
-  "versionId": "64019ff1-d83d-4028-801d-41a5d4e19675"
+  "versionId": "e2fe798c-04d2-4be7-918a-0f34c79c4b6d"
 }
