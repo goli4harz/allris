@@ -1,0 +1,100 @@
+{
+  "active": false,
+  "connections": {
+    "Manueller Start": {
+      "main": [
+        [
+          {
+            "node": "Ziel-Zeile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ziel-Zeile": {
+      "main": [
+        [
+          {
+            "node": "Gib Claim frei",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "name": "ALLRIS_Einmalig_P11_Test_Claim_Release",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "30000000-0000-4000-8000-000000000001",
+      "name": "Manueller Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { id: 3141 } }];"
+      },
+      "id": "30000000-0000-4000-8000-000000000002",
+      "name": "Ziel-Zeile",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -176,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "claim_owner": null,
+            "claim_stage": null,
+            "claim_acquired_at": null,
+            "claim_expires_at": null
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "30000000-0000-4000-8000-000000000003",
+      "name": "Gib Claim frei",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        48,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
