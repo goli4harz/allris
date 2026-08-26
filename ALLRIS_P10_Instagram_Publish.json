@@ -1,5 +1,5 @@
 {
-  "active": false,
+  "active": true,
   "connections": {
     "Schedule Trigger": {
       "main": [
@@ -505,7 +505,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://graph.facebook.com/v21.0/INSTAGRAM_BUSINESS_ACCOUNT_ID_HIER_EINTRAGEN/media",
+        "url": "https://graph.facebook.com/v21.0/17841406447654987/media",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "options": {
@@ -533,7 +533,13 @@
         2208,
         -96
       ],
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "2wurBL412xtoVRxO",
+          "name": "Instagram Page Token"
+        }
+      }
     },
     {
       "parameters": {
@@ -584,7 +590,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://graph.facebook.com/v21.0/INSTAGRAM_BUSINESS_ACCOUNT_ID_HIER_EINTRAGEN/media_publish",
+        "url": "https://graph.facebook.com/v21.0/17841406447654987/media_publish",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "options": {
@@ -608,7 +614,13 @@
         2880,
         -224
       ],
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "2wurBL412xtoVRxO",
+          "name": "Instagram Page Token"
+        }
+      }
     },
     {
       "parameters": {
@@ -683,7 +695,13 @@
         3552,
         -352
       ],
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "2wurBL412xtoVRxO",
+          "name": "Instagram Page Token"
+        }
+      }
     },
     {
       "parameters": {
@@ -903,10 +921,10 @@
       ]
     }
   ],
-  "pinData": null,
+  "pinData": {},
   "settings": {
     "executionOrder": "v1"
   },
   "tags": [],
-  "versionId": "eca3987f-3717-4884-863a-53bcbfecc134"
+  "versionId": "1ec01d3e-0bce-4ad0-ae63-ff6620e84d54"
 }
