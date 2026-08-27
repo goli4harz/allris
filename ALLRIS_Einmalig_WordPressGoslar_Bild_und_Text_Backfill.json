@@ -175,6 +175,54 @@
     },
     {
       "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond1",
+              "leftValue": "={{ $json._downloadOk }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "backfill-0001-000000000016",
+      "name": "IF Download ok?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1624,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Pruefe Download').itemMatching(idx).json;\nreturn { json: { ...ctx, imageBackfillStatus: 'download_fehlgeschlagen', imageBackfillDetail: 'NextCloud-Download von imageFinalPath fehlgeschlagen' } };",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "backfill-0001-000000000017",
+      "name": "Ergebnis Bild-Backfill (Download-Fehler)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1624,
+        60
+      ]
+    },
+    {
+      "parameters": {
         "operation": "information",
         "dataPropertyName": "data"
       },
@@ -509,7 +557,25 @@
       "main": [
         [
           {
+            "node": "IF Download ok?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Download ok?": {
+      "main": [
+        [
+          {
             "node": "Lies Masse (Backfill)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ergebnis Bild-Backfill (Download-Fehler)",
             "type": "main",
             "index": 0
           }
