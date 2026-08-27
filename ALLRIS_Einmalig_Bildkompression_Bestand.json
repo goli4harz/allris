@@ -1,0 +1,346 @@
+{
+  "name": "ALLRIS_Einmalig_Bildkompression_Bestand",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "einmalig-imgcomp-001-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge"
+        },
+        "filters": { "conditions": [] },
+        "returnAll": true
+      },
+      "id": "einmalig-imgcomp-001-000000000002",
+      "name": "Hole alle Vorgaenge",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [224, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Nur bereits fertig komponierte Bilder (imageStage=composed) mit noch\n// unkomprimiertem PNG als imageFinalPath - bereits migrierte (.jpg) oder\n// noch nicht fertige Zeilen werden uebersprungen. Original wird pro Zeile\n// explizit als _orig.png gesichert (Nutzerwunsch, NextCloud-Speicher ist\n// kein Engpass) - gleiche Konvention wie im laufenden P6-Pipeline-Fix.\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nconst items = $input.all();\nreturn items.filter(item => {\n  const j = item.json || {};\n  if (safeStr(j.imageStage) !== 'composed') return false;\n  if (!/\\.png$/i.test(safeStr(j.imageFinalPath))) return false;\n  if (!safeStr(j.vorgangKey)) return false;\n  return true;\n});"
+      },
+      "id": "einmalig-imgcomp-001-000000000003",
+      "name": "Filter Migrations-Kandidaten",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [448, 0]
+    },
+    {
+      "parameters": { "options": {} },
+      "id": "einmalig-imgcomp-001-000000000004",
+      "name": "Loop Vorgaenge",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [672, 0]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "path": "={{ $json.imageFinalPath }}"
+      },
+      "id": "einmalig-imgcomp-001-000000000005",
+      "name": "NC Lade Original",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [896, -96],
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Loop Vorgaenge').itemMatching(idx).json;\nconst downloadResult = $input.item;\nconst hasImage = !!(downloadResult.binary && downloadResult.binary.data);\nreturn [{\n  json: { ...ctx, _downloadOk: hasImage, _downloadError: hasImage ? '' : String((downloadResult.json && downloadResult.json.error) || 'Download fehlgeschlagen') },\n  binary: hasImage ? { data: downloadResult.binary.data } : {}\n}];"
+      },
+      "id": "einmalig-imgcomp-001-000000000006",
+      "name": "Pruefe Download",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, -96]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
+          "conditions": [
+            {
+              "id": "cond1",
+              "leftValue": "={{ $json._downloadOk }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "einmalig-imgcomp-001-000000000007",
+      "name": "IF Download ok?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1344, -96]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "path": "={{ $json.imageFinalPath.replace(/\\.png$/i, '_orig.png') }}",
+        "binaryDataUpload": true,
+        "binaryPropertyName": "data"
+      },
+      "id": "einmalig-imgcomp-001-000000000017",
+      "name": "NC Sichere Original (_orig)",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [1568, -96],
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const idx = $itemIndex;\nconst prev = $('Pruefe Download').itemMatching(idx);\nreturn [{ json: { ...prev.json }, binary: { data: prev.binary.data } }];"
+      },
+      "id": "einmalig-imgcomp-001-000000000018",
+      "name": "Stelle Kontext nach Original-Backup",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1680, -96]
+    },
+    {
+      "parameters": {
+        "operation": "information",
+        "dataPropertyName": "data"
+      },
+      "id": "einmalig-imgcomp-001-000000000008",
+      "name": "Lies Masse",
+      "type": "n8n-nodes-base.editImage",
+      "typeVersion": 1,
+      "position": [1792, -160]
+    },
+    {
+      "parameters": {
+        "jsCode": "const idx = $itemIndex;\nconst prev = $('Stelle Kontext nach Original-Backup').itemMatching(idx).json;\nreturn [{ json: { ...prev, _size: $json.size }, binary: $input.item.binary }];"
+      },
+      "id": "einmalig-imgcomp-001-000000000009",
+      "name": "Kontext nach Masse",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1792, -160]
+    },
+    {
+      "parameters": {
+        "operation": "resize",
+        "dataPropertyName": "data",
+        "width": "={{ Number($json._size.width) }}",
+        "height": "={{ Number($json._size.height) }}",
+        "resizeOption": "ignoreAspectRatio",
+        "options": { "format": "jpeg", "quality": 82 }
+      },
+      "id": "einmalig-imgcomp-001-000000000010",
+      "name": "Komprimiere",
+      "type": "n8n-nodes-base.editImage",
+      "typeVersion": 1,
+      "position": [2016, -160]
+    },
+    {
+      "parameters": {
+        "jsCode": "const idx = $itemIndex;\nconst prev = $('Kontext nach Masse').itemMatching(idx).json;\nconst oldPath = String(prev.imageFinalPath || '');\nconst newPath = oldPath.replace(/\\.png$/i, '.jpg');\nconst bin = $input.item.binary.data;\nbin.fileName = (bin.fileName || 'image').replace(/\\.png$/i, '.jpg');\nbin.fileExtension = 'jpg';\nbin.mimeType = 'image/jpeg';\nreturn [{ json: { ...prev, imageFinalPathNeu: newPath }, binary: { data: bin } }];"
+      },
+      "id": "einmalig-imgcomp-001-000000000011",
+      "name": "Berechne neuen Pfad",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2240, -160]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "path": "={{ $json.imageFinalPathNeu }}",
+        "binaryDataUpload": true,
+        "binaryPropertyName": "data"
+      },
+      "id": "einmalig-imgcomp-001-000000000012",
+      "name": "NC Upload komprimiert",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [2464, -160],
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const idx = $itemIndex;\nconst prev = $('Berechne neuen Pfad').itemMatching(idx).json;\nconst uploadResult = $input.item.json || {};\nconst uploadError = uploadResult.error || uploadResult.Error || null;\nconst ok = !uploadError;\nreturn [{ json: { ...prev, _migrationOk: ok, _migrationError: ok ? '' : String(uploadError) } }];"
+      },
+      "id": "einmalig-imgcomp-001-000000000013",
+      "name": "Stelle Kontext nach Upload wieder her",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2688, -160]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
+          "conditions": [
+            {
+              "id": "cond1",
+              "leftValue": "={{ $json._migrationOk }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "einmalig-imgcomp-001-000000000014",
+      "name": "IF Upload ok?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [2912, -160]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge"
+        },
+        "filters": {
+          "conditions": [
+            { "keyName": "vorgangKey", "keyValue": "={{ $json.vorgangKey }}" }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "imageFinalPath": "={{ $json.imageFinalPathNeu }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "imageFinalPath",
+              "displayName": "imageFinalPath",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "einmalig-imgcomp-001-000000000015",
+      "name": "DB Update imageFinalPath",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [3136, -224]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: {} }];"
+      },
+      "id": "einmalig-imgcomp-001-000000000016",
+      "name": "Naechster Vorgang",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3360, 0]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [[{ "node": "Hole alle Vorgaenge", "type": "main", "index": 0 }]]
+    },
+    "Hole alle Vorgaenge": {
+      "main": [[{ "node": "Filter Migrations-Kandidaten", "type": "main", "index": 0 }]]
+    },
+    "Filter Migrations-Kandidaten": {
+      "main": [[{ "node": "Loop Vorgaenge", "type": "main", "index": 0 }]]
+    },
+    "Loop Vorgaenge": {
+      "main": [[], [{ "node": "NC Lade Original", "type": "main", "index": 0 }]]
+    },
+    "NC Lade Original": {
+      "main": [[{ "node": "Pruefe Download", "type": "main", "index": 0 }]]
+    },
+    "Pruefe Download": {
+      "main": [[{ "node": "IF Download ok?", "type": "main", "index": 0 }]]
+    },
+    "IF Download ok?": {
+      "main": [
+        [{ "node": "NC Sichere Original (_orig)", "type": "main", "index": 0 }],
+        [{ "node": "Naechster Vorgang", "type": "main", "index": 0 }]
+      ]
+    },
+    "NC Sichere Original (_orig)": {
+      "main": [[{ "node": "Stelle Kontext nach Original-Backup", "type": "main", "index": 0 }]]
+    },
+    "Stelle Kontext nach Original-Backup": {
+      "main": [[{ "node": "Lies Masse", "type": "main", "index": 0 }]]
+    },
+    "Lies Masse": {
+      "main": [[{ "node": "Kontext nach Masse", "type": "main", "index": 0 }]]
+    },
+    "Kontext nach Masse": {
+      "main": [[{ "node": "Komprimiere", "type": "main", "index": 0 }]]
+    },
+    "Komprimiere": {
+      "main": [[{ "node": "Berechne neuen Pfad", "type": "main", "index": 0 }]]
+    },
+    "Berechne neuen Pfad": {
+      "main": [[{ "node": "NC Upload komprimiert", "type": "main", "index": 0 }]]
+    },
+    "NC Upload komprimiert": {
+      "main": [[{ "node": "Stelle Kontext nach Upload wieder her", "type": "main", "index": 0 }]]
+    },
+    "Stelle Kontext nach Upload wieder her": {
+      "main": [[{ "node": "IF Upload ok?", "type": "main", "index": 0 }]]
+    },
+    "IF Upload ok?": {
+      "main": [
+        [{ "node": "DB Update imageFinalPath", "type": "main", "index": 0 }],
+        [{ "node": "Naechster Vorgang", "type": "main", "index": 0 }]
+      ]
+    },
+    "DB Update imageFinalPath": {
+      "main": [[{ "node": "Naechster Vorgang", "type": "main", "index": 0 }]]
+    },
+    "Naechster Vorgang": {
+      "main": [[{ "node": "Loop Vorgaenge", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {}
+}
