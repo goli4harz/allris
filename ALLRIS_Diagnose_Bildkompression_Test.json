@@ -51,8 +51,8 @@
       "parameters": {
         "operation": "resize",
         "dataPropertyName": "data",
-        "width": "={{ Number($json.width) }}",
-        "height": "={{ Number($json.height) }}",
+        "width": "={{ Number($json.size.width) }}",
+        "height": "={{ Number($json.size.height) }}",
         "resizeOption": "ignoreAspectRatio",
         "options": {
           "format": "jpeg",
