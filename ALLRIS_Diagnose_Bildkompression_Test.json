@@ -38,10 +38,21 @@
     },
     {
       "parameters": {
+        "operation": "information",
+        "dataPropertyName": "data"
+      },
+      "id": "diag-imgcomp-0001-0000-0000-000000000006",
+      "name": "Lies tatsaechliche Masse",
+      "type": "n8n-nodes-base.editImage",
+      "typeVersion": 1,
+      "position": [672, 0]
+    },
+    {
+      "parameters": {
         "operation": "resize",
         "dataPropertyName": "data",
-        "width": 1080,
-        "height": 1378,
+        "width": "={{ $json.width }}",
+        "height": "={{ $json.height }}",
         "resizeOption": "ignoreAspectRatio",
         "options": {
           "format": "jpeg",
@@ -52,7 +63,7 @@
       "name": "Komprimiere Bild",
       "type": "n8n-nodes-base.editImage",
       "typeVersion": 1,
-      "position": [672, 0]
+      "position": [896, 0]
     },
     {
       "parameters": {
@@ -62,7 +73,7 @@
       "name": "Melde komprimierte Groesse",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [896, 0]
+      "position": [1120, 0]
     }
   ],
   "connections": {
@@ -81,6 +92,13 @@
       ]
     },
     "Melde Originalgroesse": {
+      "main": [
+        [
+          { "node": "Lies tatsaechliche Masse", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Lies tatsaechliche Masse": {
       "main": [
         [
           { "node": "Komprimiere Bild", "type": "main", "index": 0 }
