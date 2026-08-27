@@ -38,7 +38,7 @@
       "main": [
         [
           {
-            "node": "Bereite P10 Claims vor",
+            "node": "Begrenze auf 1 Post pro Lauf",
             "type": "main",
             "index": 0
           }
@@ -94,7 +94,7 @@
       "main": [
         [
           {
-            "node": "IF Bild-URL vorhanden?",
+            "node": "NC Erstelle Public Share",
             "type": "main",
             "index": 0
           }
@@ -307,6 +307,39 @@
           }
         ]
       ]
+    },
+    "NC Erstelle Public Share": {
+      "main": [
+        [
+          {
+            "node": "Baue Bild-URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue Bild-URL": {
+      "main": [
+        [
+          {
+            "node": "IF Bild-URL vorhanden?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Begrenze auf 1 Post pro Lauf": {
+      "main": [
+        [
+          {
+            "node": "Bereite P10 Claims vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "id": "yiWy0aKxpcvybMKj",
@@ -318,9 +351,16 @@
         "rule": {
           "interval": [
             {
-              "field": "hours",
-              "hoursInterval": 1,
-              "triggerAtMinute": 50
+              "triggerAtHour": 9
+            },
+            {
+              "triggerAtHour": 13
+            },
+            {
+              "triggerAtHour": 17
+            },
+            {
+              "triggerAtHour": 21
             }
           ]
         }
@@ -359,7 +399,7 @@
     },
     {
       "parameters": {
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction safeBool(v) {\n  if (v === true) return true;\n  if (typeof v === 'string') return v.trim().toLowerCase() === 'true';\n  return false;\n}\nconst items = $input.all();\nreturn items.filter(item => {\n  const j = item.json || {};\n  // Gleiche Kohorte wie P8/P9: nur satiretaugliche Vorgaenge mit echtem Instagram-Text.\n  if (safeStr(j.sharepicNeedStage) !== 'topic_ok') return false;\n  if (!safeStr(j.instagramCaption)) return false;\n  if (safeBool(j.instagramPosted)) return false;\n  if (!safeStr(j.vorgangKey)) return false;\n  // Instagram-Feedposts brauchen zwingend ein Bild - anders als Mastodon kein Text-only-Fallback.\n  // Die oeffentliche Bild-URL kommt von P8 (WordPress-Medienbibliothek), also muss P8 fertig sein\n  // UND tatsaechlich ein Bild hochgeladen haben (nur der Fall, wenn P6 vorher erfolgreich war).\n  if (!safeBool(j.wordpressGoslarPosted)) return false;\n  if (!safeStr(j.wordpressGoslarImageUrl)) return false;\n  return true;\n});"
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction safeBool(v) {\n  if (v === true) return true;\n  if (typeof v === 'string') return v.trim().toLowerCase() === 'true';\n  return false;\n}\nconst items = $input.all();\nreturn items.filter(item => {\n  const j = item.json || {};\n  // Gleiche Kohorte wie P8/P9: nur satiretaugliche Vorgaenge mit echtem Instagram-Text.\n  if (safeStr(j.sharepicNeedStage) !== 'topic_ok') return false;\n  if (!safeStr(j.instagramCaption)) return false;\n  if (safeBool(j.instagramPosted)) return false;\n  if (!safeStr(j.vorgangKey)) return false;\n  // Instagram-Feedposts brauchen zwingend ein Bild - anders als Mastodon kein Text-only-Fallback.\n  // Die oeffentliche Bild-URL kommt von P8 (WordPress-Medienbibliothek), also muss P8 fertig sein\n  // UND tatsaechlich ein Bild hochgeladen haben (nur der Fall, wenn P6 vorher erfolgreich war).\n  if (!safeBool(j.wordpressGoslarPosted)) return false;\n  // FIX 2026-08-26 (Nutzerwunsch): WordPress-Medien-Upload aktuell serverseitig blockiert -\n  // Instagram entkoppelt sich davon und nutzt stattdessen einen NextCloud-Freigabelink\n  // (siehe 'NC Erstelle Public Share' Node) auf Basis von imageFinalPath.\n  if (!safeStr(j.imageFinalPath)) return false;\n  return true;\n});"
       },
       "id": "fa10b001-0000-4000-9000-000000000003",
       "name": "Filter Instagram-Kandidaten",
@@ -445,7 +485,7 @@
     },
     {
       "parameters": {
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseArr(v) {\n  try { const a = JSON.parse(v); return Array.isArray(a) ? a : []; } catch (e) { return []; }\n}\nfunction sanitizeTag(t) {\n  return safeStr(t).replace(/^#/, '').replace(/[^\\p{L}\\p{N}_]/gu, '');\n}\n// Instagram-Captions: 2200 Zeichen Limit, bis zu 30 Hashtags erlaubt. Links im Caption-Text\n// sind nicht klickbar, deshalb (anders als bei Mastodon) kein wordpressGoslarPostLink-Anhang.\nconst INSTAGRAM_CHAR_LIMIT = 2200;\nconst FIXED_HASHTAGS = ['meingoslar', 'goslar'];\n\nconst j = $json;\nconst caption = safeStr(j.instagramCaption);\n\nconst rawTags = parseArr(j.instagramHashtags).length ? parseArr(j.instagramHashtags) : parseArr(j.facebookHashtags);\nconst sanitized = rawTags.map(sanitizeTag).filter(Boolean);\nconst seen = new Set();\nconst tags = [];\nfor (const t of [...sanitized, ...FIXED_HASHTAGS]) {\n  const key = t.toLowerCase();\n  if (seen.has(key)) continue;\n  seen.add(key);\n  tags.push('#' + t);\n}\nconst hashtagLine = tags.join(' ');\n\nconst hashtagReserve = hashtagLine ? (2 + hashtagLine.length) : 0;\nconst bodyLimit = Math.max(0, INSTAGRAM_CHAR_LIMIT - hashtagReserve);\n\nlet body = caption;\nif (body.length > bodyLimit) {\n  const cut = body.slice(0, Math.max(0, bodyLimit - 1));\n  const lastBreak = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('! '), cut.lastIndexOf('? '));\n  body = (lastBreak > bodyLimit * 0.5 ? cut.slice(0, lastBreak + 1) : cut) + '…';\n}\n\nlet instagramCaptionFinal = body;\nif (hashtagLine) instagramCaptionFinal += '\\n\\n' + hashtagLine;\n\nreturn { json: { ...j, instagramCaptionFinal } };"
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction parseArr(v) {\n  try { const a = JSON.parse(v); return Array.isArray(a) ? a : []; } catch (e) { return []; }\n}\nfunction sanitizeTag(t) {\n  return safeStr(t).replace(/^#/, '').replace(/[^\\p{L}\\p{N}_]/gu, '');\n}\n// Instagram-Captions: 2200 Zeichen Limit, bis zu 30 Hashtags erlaubt.\nconst INSTAGRAM_CHAR_LIMIT = 2200;\nconst FIXED_HASHTAGS = ['meingoslar', 'goslar', 'meinklüngelkannmehr', 'prioritätenproblem'];\n\nconst j = $json;\nconst caption = safeStr(j.instagramCaption);\n\n// FIX 2026-08-26 (Nutzerfeedback: Post ohne Link zum Webseiten-Artikel): Links in Instagram-\n// Captions sind zwar nicht klickbar, aber als Klartext trotzdem sichtbar/kopierbar - gleiches\n// Muster wie P9 Mastodon (wordpressGoslarPostLink, immer vorhanden sobald wordpressGoslarPosted\n// true ist, was der Filter bereits voraussetzt).\nconst postLink = safeStr(j.wordpressGoslarPostLink);\n\nconst rawTags = parseArr(j.instagramHashtags).length ? parseArr(j.instagramHashtags) : parseArr(j.facebookHashtags);\nconst sanitized = rawTags.map(sanitizeTag).filter(Boolean);\nconst seen = new Set();\nconst tags = [];\nfor (const t of [...sanitized, ...FIXED_HASHTAGS]) {\n  const key = t.toLowerCase();\n  if (seen.has(key)) continue;\n  seen.add(key);\n  tags.push('#' + t);\n}\nconst hashtagLine = tags.join(' ');\n\nconst hashtagReserve = hashtagLine ? (2 + hashtagLine.length) : 0;\nconst linkReserve = postLink ? (2 + postLink.length) : 0;\nconst bodyLimit = Math.max(0, INSTAGRAM_CHAR_LIMIT - hashtagReserve - linkReserve);\n\nlet body = caption;\nif (body.length > bodyLimit) {\n  const cut = body.slice(0, Math.max(0, bodyLimit - 1));\n  const lastBreak = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('! '), cut.lastIndexOf('? '));\n  body = (lastBreak > bodyLimit * 0.5 ? cut.slice(0, lastBreak + 1) : cut) + '…';\n}\n\nlet instagramCaptionFinal = body;\nif (postLink) instagramCaptionFinal += '\\n\\n' + postLink;\nif (hashtagLine) instagramCaptionFinal += '\\n\\n' + hashtagLine;\n\nreturn { json: { ...j, instagramCaptionFinal } };"
       },
       "id": "fa10b001-0000-4000-9000-000000000009",
       "name": "Baue Instagram-Caption",
@@ -468,7 +508,7 @@
           "conditions": [
             {
               "id": "cond1",
-              "leftValue": "={{ $json.wordpressGoslarImageUrl }}",
+              "leftValue": "={{ $json.instagramImageUrl }}",
               "rightValue": "",
               "operator": {
                 "type": "string",
@@ -508,21 +548,21 @@
         "url": "https://graph.facebook.com/v21.0/17841406447654987/media",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
-        "options": {
-          "timeout": 60000
-        },
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
             {
               "name": "image_url",
-              "value": "={{ $json.wordpressGoslarImageUrl }}"
+              "value": "={{ $json.instagramImageUrl }}"
             },
             {
               "name": "caption",
               "value": "={{ $json.instagramCaptionFinal }}"
             }
           ]
+        },
+        "options": {
+          "timeout": 60000
         }
       },
       "id": "fa10b001-0000-4000-9000-000000000012",
@@ -531,15 +571,15 @@
       "typeVersion": 4.2,
       "position": [
         2208,
-        -96
+        -160
       ],
-      "onError": "continueRegularOutput",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "2wurBL412xtoVRxO",
-          "name": "Instagram Page Token"
+          "id": "dR97FiFZqXJKUsAW",
+          "name": "Facebook Page Token"
         }
-      }
+      },
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -550,8 +590,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2432,
-        -96
+        -16,
+        640
       ]
     },
     {
@@ -583,8 +623,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        2656,
-        -96
+        208,
+        640
       ]
     },
     {
@@ -593,9 +633,6 @@
         "url": "https://graph.facebook.com/v21.0/17841406447654987/media_publish",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
-        "options": {
-          "timeout": 60000
-        },
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -604,6 +641,9 @@
               "value": "={{ $json.instagramCreationId }}"
             }
           ]
+        },
+        "options": {
+          "timeout": 60000
         }
       },
       "id": "fa10b001-0000-4000-9000-000000000015",
@@ -611,16 +651,16 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2880,
-        -224
+        432,
+        512
       ],
-      "onError": "continueRegularOutput",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "2wurBL412xtoVRxO",
-          "name": "Instagram Page Token"
+          "id": "dR97FiFZqXJKUsAW",
+          "name": "Facebook Page Token"
         }
-      }
+      },
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -631,8 +671,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3104,
-        -224
+        656,
+        512
       ]
     },
     {
@@ -664,19 +704,15 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        3328,
-        -224
+        880,
+        512
       ]
     },
     {
       "parameters": {
-        "method": "GET",
         "url": "={{ 'https://graph.facebook.com/v21.0/' + $json.instagramPostId }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
-        "options": {
-          "timeout": 30000
-        },
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -685,6 +721,9 @@
               "value": "permalink"
             }
           ]
+        },
+        "options": {
+          "timeout": 30000
         }
       },
       "id": "fa10b001-0000-4000-9000-000000000017b",
@@ -692,16 +731,16 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        3552,
-        -352
+        1104,
+        384
       ],
-      "onError": "continueRegularOutput",
       "credentials": {
         "httpHeaderAuth": {
-          "id": "2wurBL412xtoVRxO",
-          "name": "Instagram Page Token"
+          "id": "dR97FiFZqXJKUsAW",
+          "name": "Facebook Page Token"
         }
-      }
+      },
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -712,8 +751,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3776,
-        -352
+        1328,
+        384
       ]
     },
     {
@@ -724,6 +763,15 @@
           "value": "hBLqpqeVEojPpOJl",
           "mode": "list",
           "cachedResultName": "allris_vorgaenge"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -738,24 +786,15 @@
             "vorgangKey"
           ]
         },
-        "options": {},
-        "matchType": "allConditions",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "vorgangKey",
-              "keyValue": "={{ $json.vorgangKey }}"
-            }
-          ]
-        }
+        "options": {}
       },
       "id": "fa10b001-0000-4000-9000-000000000018",
       "name": "Speichere Erfolg (Instagram)",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
       "position": [
-        4000,
-        -352
+        1552,
+        384
       ]
     },
     {
@@ -766,6 +805,15 @@
           "value": "hBLqpqeVEojPpOJl",
           "mode": "list",
           "cachedResultName": "allris_vorgaenge"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -781,24 +829,15 @@
             "vorgangKey"
           ]
         },
-        "options": {},
-        "matchType": "allConditions",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "vorgangKey",
-              "keyValue": "={{ $json.vorgangKey }}"
-            }
-          ]
-        }
+        "options": {}
       },
       "id": "fa10b001-0000-4000-9000-000000000019",
       "name": "Speichere Fehler (Instagram)",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
       "position": [
-        4000,
-        128
+        1552,
+        864
       ]
     },
     {
@@ -833,8 +872,8 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
       "position": [
-        4224,
-        -352
+        1776,
+        384
       ]
     },
     {
@@ -869,8 +908,8 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
       "position": [
-        4224,
-        128
+        1776,
+        864
       ]
     },
     {
@@ -882,8 +921,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4448,
-        -112
+        2000,
+        624
       ]
     },
     {
@@ -895,8 +934,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4448,
-        16
+        2000,
+        752
       ]
     },
     {
@@ -916,15 +955,65 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        4672,
-        16
+        2224,
+        752
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "share",
+        "path": "={{ $json.imageFinalPath }}",
+        "shareType": 3,
+        "options": {}
+      },
+      "id": "p10-nc-share-0001",
+      "name": "NC Erstelle Public Share",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [
+        1984,
+        0
+      ],
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const idx = $itemIndex;\nconst original = $('Baue Instagram-Caption').itemMatching(idx).json;\nconst shareResult = $json || {};\n// FIX 2026-08-26: WordPress-Medien-Upload ist aktuell serverseitig blockiert (rest_upload_sideload_error).\n// Instagram braucht zwingend eine oeffentliche Bild-URL (kein Binaer-Upload moeglich, anders als\n// Facebook/Mastodon) - deshalb NextCloud-Freigabelink statt wordpressGoslarImageUrl. '/download'\n// liefert die Datei direkt (Content-Type: image/png), nicht nur die Vorschauseite - live verifiziert.\nconst shareUrl = shareResult && shareResult.url ? String(shareResult.url) : '';\nconst instagramImageUrl = shareUrl ? (shareUrl + '/download') : (original.wordpressGoslarImageUrl || '');\nreturn { json: { ...original, instagramImageUrl } };"
+      },
+      "id": "p10-build-imgurl-0001",
+      "name": "Baue Bild-URL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2208,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Nutzerwunsch 2026-08-26: 64 Alt-Kandidaten sollen bis zur Wahl am 13.09. regelmaessig\n// verteilt gepostet werden, nicht alle auf einmal. 4 Laeufe/Tag x 1 Post/Lauf = genug Slots\n// bis 13.09. mit Puffer fuer neu hinzukommende Vorgaenge.\nconst MAX_PER_RUN = 1;\nconst items = $input.all();\nreturn items.slice(0, MAX_PER_RUN);"
+      },
+      "id": "p10-runlimit-0001",
+      "name": "Begrenze auf 1 Post pro Lauf",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        160
       ]
     }
   ],
   "pinData": {},
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate"
   },
   "tags": [],
-  "versionId": "1ec01d3e-0bce-4ad0-ae63-ff6620e84d54"
+  "versionId": "c4913fe7-6e84-459c-b629-99c87fd53bea"
 }
