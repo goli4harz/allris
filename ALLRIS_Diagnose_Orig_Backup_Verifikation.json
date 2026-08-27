@@ -1,0 +1,82 @@
+{
+  "name": "ALLRIS_Diagnose_Orig_Backup_Verifikation",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "verify-orig-0001-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge"
+        },
+        "filters": { "conditions": [] },
+        "returnAll": true
+      },
+      "id": "verify-orig-0001-000000000002",
+      "name": "Hole alle Vorgaenge",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [224, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nconst items = $input.all();\nreturn items\n  .filter(item => /\\.jpg$/i.test(safeStr(item.json.imageFinalPath)))\n  .map(item => {\n    const j = item.json;\n    const origPath = safeStr(j.imageFinalPath).replace(/\\.jpg$/i, '_orig.png');\n    return { json: { vorgangsnummer: j.vorgangsnummer, vorgangKey: j.vorgangKey, _origPath: origPath } };\n  });"
+      },
+      "id": "verify-orig-0001-000000000003",
+      "name": "Filter migrierte Zeilen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [448, 0]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "path": "={{ $json._origPath }}"
+      },
+      "id": "verify-orig-0001-000000000004",
+      "name": "NC Lade _orig (Existenz-Check)",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [672, 0],
+      "credentials": {
+        "nextCloudApi": { "id": "jlZlwASXZbJyNpfA", "name": "NextCloud account" }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Filter migrierte Zeilen').itemMatching(idx).json;\nconst item = $input.item;\nconst exists = !!(item.binary && item.binary.data);\nconst size = exists ? (item.binary.data.fileSize || '') : '';\nreturn [{ json: { vorgangsnummer: ctx.vorgangsnummer, origPath: ctx._origPath, origBackupExists: exists, origFileSize: size } }];"
+      },
+      "id": "verify-orig-0001-000000000005",
+      "name": "Pruefe ob _orig vorhanden",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [896, 0]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [[{ "node": "Hole alle Vorgaenge", "type": "main", "index": 0 }]]
+    },
+    "Hole alle Vorgaenge": {
+      "main": [[{ "node": "Filter migrierte Zeilen", "type": "main", "index": 0 }]]
+    },
+    "Filter migrierte Zeilen": {
+      "main": [[{ "node": "NC Lade _orig (Existenz-Check)", "type": "main", "index": 0 }]]
+    },
+    "NC Lade _orig (Existenz-Check)": {
+      "main": [[{ "node": "Pruefe ob _orig vorhanden", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {}
+}

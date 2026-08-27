@@ -267,25 +267,28 @@
         "rule": {
           "interval": [
             {
-              "triggerAtHour": 8
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
             },
             {
-              "triggerAtHour": 10,
-              "triggerAtMinute": 30
+              "field": "cronExpression",
+              "expression": "30 10 * * *"
             },
             {
-              "triggerAtHour": 13
+              "field": "cronExpression",
+              "expression": "0 13 * * *"
             },
             {
-              "triggerAtHour": 15,
-              "triggerAtMinute": 30
+              "field": "cronExpression",
+              "expression": "30 15 * * *"
             },
             {
-              "triggerAtHour": 18
+              "field": "cronExpression",
+              "expression": "0 18 * * *"
             },
             {
-              "triggerAtHour": 20,
-              "triggerAtMinute": 30
+              "field": "cronExpression",
+              "expression": "30 20 * * *"
             }
           ]
         }
@@ -495,7 +498,7 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "NS1xsAxwYYD58mrD",
+          "id": "dR97FiFZqXJKUsAW",
           "name": "Facebook Page Token"
         }
       },
@@ -530,7 +533,7 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "NS1xsAxwYYD58mrD",
+          "id": "dR97FiFZqXJKUsAW",
           "name": "Facebook Page Token"
         }
       },
@@ -2246,5 +2249,5 @@
     "binaryMode": "separate"
   },
   "tags": [],
-  "versionId": "e2fe798c-04d2-4be7-918a-0f34c79c4b6d"
+  "versionId": "8d1d4d22-c20a-42f8-85d3-3c95623607da"
 }

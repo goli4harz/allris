@@ -351,20 +351,16 @@
         "rule": {
           "interval": [
             {
-              "field": "cronExpression",
-              "expression": "0 9 * * *"
+              "triggerAtHour": 9
             },
             {
-              "field": "cronExpression",
-              "expression": "0 13 * * *"
+              "triggerAtHour": 13
             },
             {
-              "field": "cronExpression",
-              "expression": "0 17 * * *"
+              "triggerAtHour": 17
             },
             {
-              "field": "cronExpression",
-              "expression": "0 21 * * *"
+              "triggerAtHour": 21
             }
           ]
         }
@@ -1019,5 +1015,5 @@
     "binaryMode": "separate"
   },
   "tags": [],
-  "versionId": "4abc86ca-4a2c-4526-821e-12fa753dff71"
+  "versionId": "c4913fe7-6e84-459c-b629-99c87fd53bea"
 }

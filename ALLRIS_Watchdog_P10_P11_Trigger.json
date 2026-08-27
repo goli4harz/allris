@@ -1,15 +1,68 @@
 {
+  "active": false,
+  "connections": {
+    "Schedule Trigger (alle 5 Min)": {
+      "main": [
+        [
+          {
+            "node": "P11 deaktivieren",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "P10 deaktivieren",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P11 deaktivieren": {
+      "main": [
+        [
+          {
+            "node": "P11 reaktivieren",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "P10 deaktivieren": {
+      "main": [
+        [
+          {
+            "node": "P10 reaktivieren",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "3y0dgb7gI9TK71o2",
+  "meta": null,
   "name": "ALLRIS_Watchdog_P10_P11_Trigger",
   "nodes": [
     {
       "parameters": {
-        "rule": { "interval": [ { "field": "minutes", "minutesInterval": 5 } ] }
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
       },
       "id": "watchdog-0001-000000000001",
       "name": "Schedule Trigger (alle 5 Min)",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [0, 0]
+      "position": [
+        0,
+        0
+      ]
     },
     {
       "parameters": {
@@ -17,15 +70,23 @@
         "url": "http://172.16.1.14:5678/api/v1/workflows/0aj2K9lwFTK4dQX2/deactivate",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
-        "options": { "timeout": 15000 }
+        "options": {
+          "timeout": 15000
+        }
       },
       "id": "watchdog-0001-000000000002",
       "name": "P11 deaktivieren",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [224, -80],
+      "position": [
+        224,
+        -80
+      ],
       "credentials": {
-        "httpHeaderAuth": { "id": "amzwQCkTviWyG2pW", "name": "ALLRIS n8n API Key (Watchdog)" }
+        "httpHeaderAuth": {
+          "id": "amzwQCkTviWyG2pW",
+          "name": "ALLRIS n8n API Key (Watchdog)"
+        }
       },
       "continueOnFail": true,
       "onError": "continueRegularOutput"
@@ -36,15 +97,23 @@
         "url": "http://172.16.1.14:5678/api/v1/workflows/0aj2K9lwFTK4dQX2/activate",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
-        "options": { "timeout": 15000 }
+        "options": {
+          "timeout": 15000
+        }
       },
       "id": "watchdog-0001-000000000003",
       "name": "P11 reaktivieren",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [448, -80],
+      "position": [
+        448,
+        -80
+      ],
       "credentials": {
-        "httpHeaderAuth": { "id": "amzwQCkTviWyG2pW", "name": "ALLRIS n8n API Key (Watchdog)" }
+        "httpHeaderAuth": {
+          "id": "amzwQCkTviWyG2pW",
+          "name": "ALLRIS n8n API Key (Watchdog)"
+        }
       },
       "continueOnFail": true,
       "onError": "continueRegularOutput"
@@ -55,15 +124,23 @@
         "url": "http://172.16.1.14:5678/api/v1/workflows/yiWy0aKxpcvybMKj/deactivate",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
-        "options": { "timeout": 15000 }
+        "options": {
+          "timeout": 15000
+        }
       },
       "id": "watchdog-0001-000000000004",
       "name": "P10 deaktivieren",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [224, 80],
+      "position": [
+        224,
+        80
+      ],
       "credentials": {
-        "httpHeaderAuth": { "id": "amzwQCkTviWyG2pW", "name": "ALLRIS n8n API Key (Watchdog)" }
+        "httpHeaderAuth": {
+          "id": "amzwQCkTviWyG2pW",
+          "name": "ALLRIS n8n API Key (Watchdog)"
+        }
       },
       "continueOnFail": true,
       "onError": "continueRegularOutput"
@@ -74,35 +151,30 @@
         "url": "http://172.16.1.14:5678/api/v1/workflows/yiWy0aKxpcvybMKj/activate",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
-        "options": { "timeout": 15000 }
+        "options": {
+          "timeout": 15000
+        }
       },
       "id": "watchdog-0001-000000000005",
       "name": "P10 reaktivieren",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [448, 80],
+      "position": [
+        448,
+        80
+      ],
       "credentials": {
-        "httpHeaderAuth": { "id": "amzwQCkTviWyG2pW", "name": "ALLRIS n8n API Key (Watchdog)" }
+        "httpHeaderAuth": {
+          "id": "amzwQCkTviWyG2pW",
+          "name": "ALLRIS n8n API Key (Watchdog)"
+        }
       },
       "continueOnFail": true,
       "onError": "continueRegularOutput"
     }
   ],
-  "connections": {
-    "Schedule Trigger (alle 5 Min)": {
-      "main": [
-        [
-          { "node": "P11 deaktivieren", "type": "main", "index": 0 },
-          { "node": "P10 deaktivieren", "type": "main", "index": 0 }
-        ]
-      ]
-    },
-    "P11 deaktivieren": {
-      "main": [[{ "node": "P11 reaktivieren", "type": "main", "index": 0 }]]
-    },
-    "P10 deaktivieren": {
-      "main": [[{ "node": "P10 reaktivieren", "type": "main", "index": 0 }]]
-    }
-  },
-  "settings": {}
+  "pinData": null,
+  "settings": {},
+  "tags": [],
+  "versionId": "e566fd4f-dbc8-4452-be45-ee5fbf1af5ec"
 }
