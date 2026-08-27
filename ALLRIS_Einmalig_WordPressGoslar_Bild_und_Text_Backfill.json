@@ -277,7 +277,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Pruefe Download').itemMatching(idx).json;\nconst resp = $input.item.json || {};\nconst mediaId = resp && resp.id ? resp.id : null;\nconst mediaError = mediaId ? '' : (resp.error?.message || resp.message || 'Media-Upload fehlgeschlagen');\nreturn { json: { ...ctx, _mediaId: mediaId, _mediaError: mediaError } };",
+        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Pruefe Download').itemMatching(idx).json;\nconst resp = $input.item.json || {};\nconst mediaId = resp && resp.id ? String(resp.id) : null;\nconst mediaError = mediaId ? '' : (resp.error?.message || resp.message || 'Media-Upload fehlgeschlagen');\nreturn { json: { ...ctx, _mediaId: mediaId, _mediaError: mediaError } };",
         "mode": "runOnceForEachItem"
       },
       "id": "backfill-0001-00000000000a",
@@ -344,7 +344,7 @@
         "nodeCredentialType": "wordpressApi",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ featured_media: $json._mediaId }) }}",
+        "jsonBody": "={{ JSON.stringify({ featured_media: Number($json._mediaId) }) }}",
         "options": {
           "timeout": 30000
         }
