@@ -1211,8 +1211,7 @@
             "imageNegativePrompt": "={{ $json.imageNegativePrompt || '' }}",
             "visualPromptStage": "prompt_ready",
             "verfasser": "={{ $json.verfasser || '' }}",
-            "fachdienst": "={{ $json.fachdienst || '' }}",
-            "imageForceReset": "={{ false }}"
+            "fachdienst": "={{ $json.fachdienst || '' }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -2133,16 +2132,6 @@
               "defaultMatch": false,
               "display": true,
               "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "imageForceReset",
-              "displayName": "imageForceReset",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "boolean",
               "readOnly": false,
               "removed": false
             }
@@ -2473,8 +2462,7 @@
             "retry_count": "={{ Number($json.retry_count || 0) + 1 }}",
             "next_retry_at": "={{ $now.plus({ minutes: Math.min(1440, 15 * Math.pow(2, Math.max(0, Number($json.retry_count || 0)))) }).toISO() }}",
             "verfasser": "={{ $json.verfasser || '' }}",
-            "fachdienst": "={{ $json.fachdienst || '' }}",
-            "imageForceReset": "={{ false }}"
+            "fachdienst": "={{ $json.fachdienst || '' }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -3425,16 +3413,6 @@
               "defaultMatch": false,
               "display": true,
               "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "imageForceReset",
-              "displayName": "imageForceReset",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "boolean",
               "readOnly": false,
               "removed": false
             }
@@ -3667,8 +3645,7 @@
             "retry_count": "={{ Number($json.retry_count || 0) + 1 }}",
             "next_retry_at": "={{ $now.plus({ minutes: Math.min(1440, 15 * Math.pow(2, Math.max(0, Number($json.retry_count || 0)))) }).toISO() }}",
             "verfasser": "={{ $json.verfasser || '' }}",
-            "fachdienst": "={{ $json.fachdienst || '' }}",
-            "imageForceReset": "={{ false }}"
+            "fachdienst": "={{ $json.fachdienst || '' }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -4621,16 +4598,6 @@
               "type": "string",
               "readOnly": false,
               "removed": false
-            },
-            {
-              "id": "imageForceReset",
-              "displayName": "imageForceReset",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "boolean",
-              "readOnly": false,
-              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -4849,8 +4816,7 @@
             "imageStage": "={{ $json.imageFinalPath ? 'composed' : 'not_started' }}",
             "sharepicNeedStage": "blocked_source_lock",
             "verfasser": "={{ $json.verfasser || '' }}",
-            "fachdienst": "={{ $json.fachdienst || '' }}",
-            "imageForceReset": "={{ false }}"
+            "fachdienst": "={{ $json.fachdienst || '' }}"
           }
         },
         "options": {}
@@ -5365,8 +5331,7 @@
             "retry_count": "={{ Number($json.retry_count || 0) + 1 }}",
             "next_retry_at": "={{ $now.plus({ minutes: Math.min(1440, 15 * Math.pow(2, Math.max(0, Number($json.retry_count || 0)))) }).toISO() }}",
             "verfasser": "={{ $json.verfasser || '' }}",
-            "fachdienst": "={{ $json.fachdienst || '' }}",
-            "imageForceReset": "={{ false }}"
+            "fachdienst": "={{ $json.fachdienst || '' }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -6317,16 +6282,6 @@
               "defaultMatch": false,
               "display": true,
               "type": "string",
-              "readOnly": false,
-              "removed": false
-            },
-            {
-              "id": "imageForceReset",
-              "displayName": "imageForceReset",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "boolean",
               "readOnly": false,
               "removed": false
             }
