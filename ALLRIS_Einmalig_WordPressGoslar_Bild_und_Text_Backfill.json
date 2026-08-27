@@ -91,7 +91,7 @@
     },
     {
       "parameters": {
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction stripHtml(html) {\n  return safeStr(html)\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '\"').replace(/&#039;/g, \"'\")\n    .replace(/\\s+/g, ' ').trim();\n}\nfunction hasMojibake(s) {\n  return /Ã[¤¶¼\\x9f\\u0084\\u0096\\u009c]|â€[žœ¦\\x9c\\x9d]/.test(s);\n}\n\nconst idx = $itemIndex;\nconst ctx = $('Filter veroeffentlichte Beitraege').itemMatching(idx).json;\nconst resp = $input.item.json || {};\n\nconst fetchError = resp.error || (resp.code && resp.message) ? true : false;\nif (fetchError || !resp.id) {\n  return [{ json: { ...ctx, _fetchError: true, _fetchErrorDetail: JSON.stringify(resp).slice(0,300), textCheck: 'fetch_fehlgeschlagen', needsImageBackfill: false } }];\n}\n\nconst liveContentRaw = (resp.content && (resp.content.raw || resp.content.rendered)) || '';\nconst livePlain = stripHtml(liveContentRaw);\nconst expectedPlain = safeStr(ctx.websiteArticle);\nconst canary = expectedPlain.slice(0, 80);\nconst textMatches = canary.length > 0 ? livePlain.includes(canary) : true;\nconst mojibake = hasMojibake(liveContentRaw);\n\nlet textCheck = 'ok';\nif (mojibake) textCheck = 'mojibake_verdacht';\nelse if (!textMatches) textCheck = 'abweichung_verdacht';\n\nconst featuredMedia = Number(resp.featured_media || 0);\nconst hasRealImage = !!safeStr(ctx.imageFinalPath);\nconst needsImageBackfill = hasRealImage && featuredMedia === 0;\n\nreturn [{\n  json: {\n    ...ctx,\n    textCheck,\n    livePlainPreview: livePlain.slice(0, 150),\n    needsImageBackfill,\n    wpFeaturedMediaExisting: featuredMedia\n  }\n}];",
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction stripHtml(html) {\n  return safeStr(html)\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '\"').replace(/&#039;/g, \"'\")\n    .replace(/\\s+/g, ' ').trim();\n}\nfunction hasMojibake(s) {\n  return /Ã[¤¶¼\\x9f\\u0084\\u0096\\u009c]|â€[žœ¦\\x9c\\x9d]/.test(s);\n}\n\nconst idx = $itemIndex;\nconst ctx = $('Filter veroeffentlichte Beitraege').itemMatching(idx).json;\nconst resp = $input.item.json || {};\n\nconst fetchError = resp.error || (resp.code && resp.message) ? true : false;\nif (fetchError || !resp.id) {\n  return { json: { ...ctx, _fetchError: true, _fetchErrorDetail: JSON.stringify(resp).slice(0,300), textCheck: 'fetch_fehlgeschlagen', needsImageBackfill: false } };\n}\n\nconst liveContentRaw = (resp.content && (resp.content.raw || resp.content.rendered)) || '';\nconst livePlain = stripHtml(liveContentRaw);\nconst expectedPlain = safeStr(ctx.websiteArticle);\nconst canary = expectedPlain.slice(0, 80);\nconst textMatches = canary.length > 0 ? livePlain.includes(canary) : true;\nconst mojibake = hasMojibake(liveContentRaw);\n\nlet textCheck = 'ok';\nif (mojibake) textCheck = 'mojibake_verdacht';\nelse if (!textMatches) textCheck = 'abweichung_verdacht';\n\nconst featuredMedia = Number(resp.featured_media || 0);\nconst hasRealImage = !!safeStr(ctx.imageFinalPath);\nconst needsImageBackfill = hasRealImage && featuredMedia === 0;\n\nreturn {\n  json: {\n    ...ctx,\n    textCheck,\n    livePlainPreview: livePlain.slice(0, 150),\n    needsImageBackfill,\n    wpFeaturedMediaExisting: featuredMedia\n  }\n};",
         "mode": "runOnceForEachItem"
       },
       "id": "backfill-0001-000000000005",
@@ -161,7 +161,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Vergleiche Text + Ermittle Bild-Bedarf').itemMatching(idx).json;\nconst item = $input.item;\nconst hasImage = !!(item.binary && item.binary.data);\nreturn [{\n  json: { ...ctx, _downloadOk: hasImage },\n  binary: hasImage ? { data: item.binary.data } : {}\n}];",
+        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Vergleiche Text + Ermittle Bild-Bedarf').itemMatching(idx).json;\nconst item = $input.item;\nconst hasImage = !!(item.binary && item.binary.data);\nreturn {\n  json: { ...ctx, _downloadOk: hasImage },\n  binary: hasImage ? { data: item.binary.data } : {}\n};",
         "mode": "runOnceForEachItem"
       },
       "id": "backfill-0001-000000000008",
@@ -189,7 +189,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const idx = $itemIndex;\nconst prev = $('Pruefe Download').itemMatching(idx).json;\nreturn [{ json: { ...prev, _size: $json.size }, binary: $input.item.binary }];",
+        "jsCode": "const idx = $itemIndex;\nconst prev = $('Pruefe Download').itemMatching(idx).json;\nreturn { json: { ...prev, _size: $json.size }, binary: $input.item.binary };",
         "mode": "runOnceForEachItem"
       },
       "id": "backfill-0001-000000000011",
@@ -277,7 +277,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Pruefe Download').itemMatching(idx).json;\nconst resp = $input.item.json || {};\nconst mediaId = resp && resp.id ? resp.id : null;\nconst mediaError = mediaId ? '' : (resp.error?.message || resp.message || 'Media-Upload fehlgeschlagen');\nreturn [{ json: { ...ctx, _mediaId: mediaId, _mediaError: mediaError } }];",
+        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Pruefe Download').itemMatching(idx).json;\nconst resp = $input.item.json || {};\nconst mediaId = resp && resp.id ? resp.id : null;\nconst mediaError = mediaId ? '' : (resp.error?.message || resp.message || 'Media-Upload fehlgeschlagen');\nreturn { json: { ...ctx, _mediaId: mediaId, _mediaError: mediaError } };",
         "mode": "runOnceForEachItem"
       },
       "id": "backfill-0001-00000000000a",
@@ -368,7 +368,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Kontext nach Media-Upload').itemMatching(idx).json;\nconst resp = $input.item.json || {};\nconst ok = !!(resp && resp.id);\nreturn [{ json: { ...ctx, imageBackfillStatus: ok ? 'erfolgreich' : 'post_update_fehlgeschlagen', imageBackfillDetail: ok ? '' : JSON.stringify(resp).slice(0,300) } }];",
+        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Kontext nach Media-Upload').itemMatching(idx).json;\nconst resp = $input.item.json || {};\nconst ok = !!(resp && resp.id);\nreturn { json: { ...ctx, imageBackfillStatus: ok ? 'erfolgreich' : 'post_update_fehlgeschlagen', imageBackfillDetail: ok ? '' : JSON.stringify(resp).slice(0,300) } };",
         "mode": "runOnceForEachItem"
       },
       "id": "backfill-0001-00000000000d",
@@ -382,7 +382,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Kontext nach Media-Upload').itemMatching(idx).json;\nreturn [{ json: { ...ctx, imageBackfillStatus: 'media_upload_fehlgeschlagen', imageBackfillDetail: ctx._mediaError || '' } }];",
+        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Kontext nach Media-Upload').itemMatching(idx).json;\nreturn { json: { ...ctx, imageBackfillStatus: 'media_upload_fehlgeschlagen', imageBackfillDetail: ctx._mediaError || '' } };",
         "mode": "runOnceForEachItem"
       },
       "id": "backfill-0001-00000000000e",
@@ -396,7 +396,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Vergleiche Text + Ermittle Bild-Bedarf').itemMatching(idx).json;\nreturn [{ json: { ...ctx, imageBackfillStatus: ctx.needsImageBackfill ? 'noch_offen' : (ctx.wordpressGoslarImageUrl || Number(ctx.wpFeaturedMediaExisting||0) > 0 ? 'bereits_vorhanden' : 'kein_sharepic') } }];",
+        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Vergleiche Text + Ermittle Bild-Bedarf').itemMatching(idx).json;\nreturn { json: { ...ctx, imageBackfillStatus: ctx.needsImageBackfill ? 'noch_offen' : (ctx.wordpressGoslarImageUrl || Number(ctx.wpFeaturedMediaExisting||0) > 0 ? 'bereits_vorhanden' : 'kein_sharepic') } };",
         "mode": "runOnceForEachItem"
       },
       "id": "backfill-0001-00000000000f",
