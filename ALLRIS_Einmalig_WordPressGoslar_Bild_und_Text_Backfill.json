@@ -1,0 +1,275 @@
+{
+  "name": "ALLRIS_Einmalig_WordPressGoslar_Bild_und_Text_Backfill",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "backfill-0001-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge"
+        },
+        "filters": { "conditions": [] },
+        "returnAll": true
+      },
+      "id": "backfill-0001-000000000002",
+      "name": "Hole alle Vorgaenge",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [224, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nconst items = $input.all();\nreturn items.filter(item => {\n  const j = item.json || {};\n  const posted = j.wordpressGoslarPosted === true || j.wordpressGoslarPosted === 'true';\n  if (!posted) return false;\n  if (!safeStr(j.wordpressGoslarPostId)) return false;\n  return true;\n});"
+      },
+      "id": "backfill-0001-000000000003",
+      "name": "Filter veroeffentlichte Beitraege",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [448, 0]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://die-partei.net/goslar/wp-json/wp/v2/posts/{{ $json.wordpressGoslarPostId }}?context=edit",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "options": { "timeout": 30000 }
+      },
+      "id": "backfill-0001-000000000004",
+      "name": "HTTP Live-Post laden",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [672, 0],
+      "credentials": {
+        "wordpressApi": { "id": "tzwuM0QBLpYYZfXQ", "name": "DiePARTEI Wordpress" }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction stripHtml(html) {\n  return safeStr(html)\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '\"').replace(/&#039;/g, \"'\")\n    .replace(/\\s+/g, ' ').trim();\n}\nfunction hasMojibake(s) {\n  return /Ã[¤¶¼\\x9f\\u0084\\u0096\\u009c]|â€[žœ¦\\x9c\\x9d]/.test(s);\n}\n\nconst idx = $itemIndex;\nconst ctx = $('Filter veroeffentlichte Beitraege').itemMatching(idx).json;\nconst resp = $input.item.json || {};\n\nconst fetchError = resp.error || (resp.code && resp.message) ? true : false;\nif (fetchError || !resp.id) {\n  return [{ json: { ...ctx, _fetchError: true, _fetchErrorDetail: JSON.stringify(resp).slice(0,300), textCheck: 'fetch_fehlgeschlagen', needsImageBackfill: false } }];\n}\n\nconst liveContentRaw = (resp.content && (resp.content.raw || resp.content.rendered)) || '';\nconst livePlain = stripHtml(liveContentRaw);\nconst expectedPlain = safeStr(ctx.websiteArticle);\nconst canary = expectedPlain.slice(0, 80);\nconst textMatches = canary.length > 0 ? livePlain.includes(canary) : true;\nconst mojibake = hasMojibake(liveContentRaw);\n\nlet textCheck = 'ok';\nif (mojibake) textCheck = 'mojibake_verdacht';\nelse if (!textMatches) textCheck = 'abweichung_verdacht';\n\nconst featuredMedia = Number(resp.featured_media || 0);\nconst hasRealImage = !!safeStr(ctx.imageFinalPath);\nconst needsImageBackfill = hasRealImage && featuredMedia === 0;\n\nreturn [{\n  json: {\n    ...ctx,\n    textCheck,\n    livePlainPreview: livePlain.slice(0, 150),\n    needsImageBackfill,\n    wpFeaturedMediaExisting: featuredMedia\n  }\n}];"
+      },
+      "id": "backfill-0001-000000000005",
+      "name": "Vergleiche Text + Ermittle Bild-Bedarf",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [896, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
+          "conditions": [
+            {
+              "id": "cond1",
+              "leftValue": "={{ $json.needsImageBackfill }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "backfill-0001-000000000006",
+      "name": "IF Bild-Backfill noetig?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1120, 0]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "path": "={{ $json.imageFinalPath }}"
+      },
+      "id": "backfill-0001-000000000007",
+      "name": "NC Lade Bild",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [1344, -160],
+      "credentials": {
+        "nextCloudApi": { "id": "jlZlwASXZbJyNpfA", "name": "NextCloud account" }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Vergleiche Text + Ermittle Bild-Bedarf').itemMatching(idx).json;\nconst item = $input.item;\nconst hasImage = !!(item.binary && item.binary.data);\nreturn [{\n  json: { ...ctx, _downloadOk: hasImage },\n  binary: hasImage ? { data: item.binary.data } : {}\n}];"
+      },
+      "id": "backfill-0001-000000000008",
+      "name": "Pruefe Download",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1568, -160]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://die-partei.net/goslar/wp-json/wp/v2/media",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Disposition", "value": "={{ 'attachment; filename=\"' + ($json.vorgangKey || 'sharepic') + '.' + (($json.imageFinalPath||'').split('.').pop() || 'png') + '\"' }}" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "data",
+        "options": { "timeout": 30000 }
+      },
+      "id": "backfill-0001-000000000009",
+      "name": "HTTP Media hochladen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1792, -160],
+      "credentials": {
+        "wordpressApi": { "id": "tzwuM0QBLpYYZfXQ", "name": "DiePARTEI Wordpress" }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Pruefe Download').itemMatching(idx).json;\nconst resp = $input.item.json || {};\nconst mediaId = resp && resp.id ? resp.id : null;\nconst mediaError = mediaId ? '' : (resp.error?.message || resp.message || 'Media-Upload fehlgeschlagen');\nreturn [{ json: { ...ctx, _mediaId: mediaId, _mediaError: mediaError } }];"
+      },
+      "id": "backfill-0001-00000000000a",
+      "name": "Kontext nach Media-Upload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2016, -160]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
+          "conditions": [
+            {
+              "id": "cond1",
+              "leftValue": "={{ $json._mediaId }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEquals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "backfill-0001-00000000000b",
+      "name": "IF Media-Upload ok?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [2240, -160]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://die-partei.net/goslar/wp-json/wp/v2/posts/{{ $json.wordpressGoslarPostId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ featured_media: $json._mediaId }) }}",
+        "options": { "timeout": 30000 }
+      },
+      "id": "backfill-0001-00000000000c",
+      "name": "HTTP Post aktualisieren (featured_media)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2464, -224],
+      "credentials": {
+        "wordpressApi": { "id": "tzwuM0QBLpYYZfXQ", "name": "DiePARTEI Wordpress" }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Kontext nach Media-Upload').itemMatching(idx).json;\nconst resp = $input.item.json || {};\nconst ok = !!(resp && resp.id);\nreturn [{ json: { ...ctx, imageBackfillStatus: ok ? 'erfolgreich' : 'post_update_fehlgeschlagen', imageBackfillDetail: ok ? '' : JSON.stringify(resp).slice(0,300) } }];"
+      },
+      "id": "backfill-0001-00000000000d",
+      "name": "Ergebnis Bild-Backfill (Erfolg)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2688, -224]
+    },
+    {
+      "parameters": {
+        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Kontext nach Media-Upload').itemMatching(idx).json;\nreturn [{ json: { ...ctx, imageBackfillStatus: 'media_upload_fehlgeschlagen', imageBackfillDetail: ctx._mediaError || '' } }];"
+      },
+      "id": "backfill-0001-00000000000e",
+      "name": "Ergebnis Bild-Backfill (Media-Fehler)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2464, -80]
+    },
+    {
+      "parameters": {
+        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Vergleiche Text + Ermittle Bild-Bedarf').itemMatching(idx).json;\nreturn [{ json: { ...ctx, imageBackfillStatus: ctx.needsImageBackfill ? 'noch_offen' : (ctx.wordpressGoslarImageUrl || Number(ctx.wpFeaturedMediaExisting||0) > 0 ? 'bereits_vorhanden' : 'kein_sharepic') } }];"
+      },
+      "id": "backfill-0001-00000000000f",
+      "name": "Ergebnis ohne Bild-Backfill",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1344, 160]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [[{ "node": "Hole alle Vorgaenge", "type": "main", "index": 0 }]]
+    },
+    "Hole alle Vorgaenge": {
+      "main": [[{ "node": "Filter veroeffentlichte Beitraege", "type": "main", "index": 0 }]]
+    },
+    "Filter veroeffentlichte Beitraege": {
+      "main": [[{ "node": "HTTP Live-Post laden", "type": "main", "index": 0 }]]
+    },
+    "HTTP Live-Post laden": {
+      "main": [[{ "node": "Vergleiche Text + Ermittle Bild-Bedarf", "type": "main", "index": 0 }]]
+    },
+    "Vergleiche Text + Ermittle Bild-Bedarf": {
+      "main": [[{ "node": "IF Bild-Backfill noetig?", "type": "main", "index": 0 }]]
+    },
+    "IF Bild-Backfill noetig?": {
+      "main": [
+        [{ "node": "NC Lade Bild", "type": "main", "index": 0 }],
+        [{ "node": "Ergebnis ohne Bild-Backfill", "type": "main", "index": 0 }]
+      ]
+    },
+    "NC Lade Bild": {
+      "main": [[{ "node": "Pruefe Download", "type": "main", "index": 0 }]]
+    },
+    "Pruefe Download": {
+      "main": [[{ "node": "HTTP Media hochladen", "type": "main", "index": 0 }]]
+    },
+    "HTTP Media hochladen": {
+      "main": [[{ "node": "Kontext nach Media-Upload", "type": "main", "index": 0 }]]
+    },
+    "Kontext nach Media-Upload": {
+      "main": [[{ "node": "IF Media-Upload ok?", "type": "main", "index": 0 }]]
+    },
+    "IF Media-Upload ok?": {
+      "main": [
+        [{ "node": "HTTP Post aktualisieren (featured_media)", "type": "main", "index": 0 }],
+        [{ "node": "Ergebnis Bild-Backfill (Media-Fehler)", "type": "main", "index": 0 }]
+      ]
+    },
+    "HTTP Post aktualisieren (featured_media)": {
+      "main": [[{ "node": "Ergebnis Bild-Backfill (Erfolg)", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {}
+}
