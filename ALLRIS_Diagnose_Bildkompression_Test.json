@@ -28,13 +28,49 @@
     },
     {
       "parameters": {
-        "jsCode": "const bin = $input.item.binary.data;\nreturn [{\n  json: {\n    originalFileSize: bin.fileSize || (Buffer.from(bin.data, 'base64').length + ' bytes (berechnet)'),\n    originalMimeType: bin.mimeType\n  },\n  binary: $input.item.binary\n}];"
+        "operation": "upload",
+        "path": "/DiePARTEI/diagnose_original_test.png",
+        "binaryDataUpload": true
+      },
+      "id": "diag-imgcomp-0001-0000-0000-000000000009",
+      "name": "Upload Original zu NextCloud",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [448, 0],
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "share",
+        "path": "/DiePARTEI/diagnose_original_test.png",
+        "shareType": 3
+      },
+      "id": "diag-imgcomp-0001-0000-0000-000000000010",
+      "name": "Share Original",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [672, 0],
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Bild fuer die Kompressions-Schritte wiederherstellen (Upload/Share-Response hat\n// eigenes json/binary), Original-Freigabelink zwischenspeichern.\nconst idx = $itemIndex;\nconst orig = $('NC Lade echtes Sharepic').itemMatching(idx);\nconst bin = orig.binary.data;\nreturn [{\n  json: {\n    original_ansehen: ($json.url || '') + '/download',\n    originalFileSize: bin.fileSize || (Buffer.from(bin.data, 'base64').length + ' bytes (berechnet)'),\n    originalMimeType: bin.mimeType\n  },\n  binary: orig.binary\n}];"
       },
       "id": "diag-imgcomp-0001-0000-0000-000000000003",
-      "name": "Melde Originalgroesse",
+      "name": "Stelle Bild wieder her + Originalgroesse",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [448, 0]
+      "position": [896, 0]
     },
     {
       "parameters": {
@@ -45,7 +81,17 @@
       "name": "Lies tatsaechliche Masse",
       "type": "n8n-nodes-base.editImage",
       "typeVersion": 1,
-      "position": [672, 0]
+      "position": [1120, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const idx = $itemIndex;\nconst prev = $('Stelle Bild wieder her + Originalgroesse').itemMatching(idx).json;\nreturn [{ json: { ...prev, size: $json.size }, binary: $input.item.binary }];"
+      },
+      "id": "diag-imgcomp-0001-0000-0000-000000000012",
+      "name": "Kontext nach Masse-Lesen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1344, 0]
     },
     {
       "parameters": {
@@ -63,17 +109,63 @@
       "name": "Komprimiere Bild",
       "type": "n8n-nodes-base.editImage",
       "typeVersion": 1,
-      "position": [896, 0]
+      "position": [1568, 0]
     },
     {
       "parameters": {
-        "jsCode": "const bin = $input.item.binary.data;\nreturn [{\n  json: {\n    ...$input.item.json,\n    compressedFileSize: bin.fileSize || (Buffer.from(bin.data, 'base64').length + ' bytes (berechnet)'),\n    compressedMimeType: bin.mimeType\n  },\n  binary: $input.item.binary\n}];"
+        "jsCode": "const idx = $itemIndex;\nconst prev = $('Kontext nach Masse-Lesen').itemMatching(idx).json;\nconst bin = $input.item.binary.data;\nreturn [{\n  json: {\n    ...prev,\n    compressedFileSize: bin.fileSize || (Buffer.from(bin.data, 'base64').length + ' bytes (berechnet)'),\n    compressedMimeType: bin.mimeType\n  },\n  binary: $input.item.binary\n}];"
       },
       "id": "diag-imgcomp-0001-0000-0000-000000000005",
       "name": "Melde komprimierte Groesse",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1120, 0]
+      "position": [1792, 0]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "path": "/DiePARTEI/diagnose_komprimiert_test.jpg",
+        "binaryDataUpload": true
+      },
+      "id": "diag-imgcomp-0001-0000-0000-000000000007",
+      "name": "Upload komprimiert zu NextCloud",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [2016, 0],
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "share",
+        "path": "/DiePARTEI/diagnose_komprimiert_test.jpg",
+        "shareType": 3
+      },
+      "id": "diag-imgcomp-0001-0000-0000-000000000008",
+      "name": "Share komprimiert",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [2240, 0],
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const idx = $itemIndex;\nconst prev = $('Melde komprimierte Groesse').itemMatching(idx).json;\nreturn [{\n  json: {\n    ...prev,\n    komprimiert_ansehen: ($json.url || '') + '/download'\n  }\n}];"
+      },
+      "id": "diag-imgcomp-0001-0000-0000-000000000011",
+      "name": "Zeige Links",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2464, 0]
     }
   ],
   "connections": {
@@ -87,11 +179,25 @@
     "NC Lade echtes Sharepic": {
       "main": [
         [
-          { "node": "Melde Originalgroesse", "type": "main", "index": 0 }
+          { "node": "Upload Original zu NextCloud", "type": "main", "index": 0 }
         ]
       ]
     },
-    "Melde Originalgroesse": {
+    "Upload Original zu NextCloud": {
+      "main": [
+        [
+          { "node": "Share Original", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Share Original": {
+      "main": [
+        [
+          { "node": "Stelle Bild wieder her + Originalgroesse", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Stelle Bild wieder her + Originalgroesse": {
       "main": [
         [
           { "node": "Lies tatsaechliche Masse", "type": "main", "index": 0 }
@@ -99,6 +205,13 @@
       ]
     },
     "Lies tatsaechliche Masse": {
+      "main": [
+        [
+          { "node": "Kontext nach Masse-Lesen", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Kontext nach Masse-Lesen": {
       "main": [
         [
           { "node": "Komprimiere Bild", "type": "main", "index": 0 }
@@ -109,6 +222,27 @@
       "main": [
         [
           { "node": "Melde komprimierte Groesse", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Melde komprimierte Groesse": {
+      "main": [
+        [
+          { "node": "Upload komprimiert zu NextCloud", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Upload komprimiert zu NextCloud": {
+      "main": [
+        [
+          { "node": "Share komprimiert", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Share komprimiert": {
+      "main": [
+        [
+          { "node": "Zeige Links", "type": "main", "index": 0 }
         ]
       ]
     }
