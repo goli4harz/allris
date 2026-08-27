@@ -1,0 +1,81 @@
+{
+  "name": "ALLRIS_Diagnose_WordPress_Goslar_Media_Test",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "diag-wpmedia-0001-0000-0000-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Winzige 1x1-Pixel PNG (transparent), rein zum Testen ob der Medien-Upload\n// auf die zweite WordPress-Seite (die-partei.net/goslar) ueberhaupt technisch\n// durchkommt - unabhaengig von Dateigroesse/Inhalt der echten Sharepics.\nconst base64Png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';\nreturn [{\n  json: {},\n  binary: {\n    data: {\n      data: base64Png,\n      mimeType: 'image/png',\n      fileName: 'diagnose-test.png'\n    }\n  }\n}];"
+      },
+      "id": "diag-wpmedia-0001-0000-0000-000000000002",
+      "name": "Erzeuge Test-Bild",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [224, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://die-partei.net/goslar/wp-json/wp/v2/media",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Disposition",
+              "value": "attachment; filename=\"diagnose-test.png\""
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "data",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "diag-wpmedia-0001-0000-0000-000000000003",
+      "name": "POST Test-Upload zu DiePARTEI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [448, 0],
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          { "node": "Erzeuge Test-Bild", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Erzeuge Test-Bild": {
+      "main": [
+        [
+          { "node": "POST Test-Upload zu DiePARTEI", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {}
+}
