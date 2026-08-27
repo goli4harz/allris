@@ -39,6 +39,17 @@
     },
     {
       "parameters": {
+        "amount": 1.5,
+        "unit": "seconds"
+      },
+      "id": "backfill-0001-000000000013",
+      "name": "Warte vor GET (Rate-Limit-Schutz)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [560, 0]
+    },
+    {
+      "parameters": {
         "method": "GET",
         "url": "=https://die-partei.net/goslar/wp-json/wp/v2/posts/{{ $json.wordpressGoslarPostId }}?context=edit",
         "authentication": "predefinedCredentialType",
@@ -152,6 +163,17 @@
     },
     {
       "parameters": {
+        "amount": 2,
+        "unit": "seconds"
+      },
+      "id": "backfill-0001-000000000014",
+      "name": "Warte vor Media-Upload (Rate-Limit-Schutz)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1760, -160]
+    },
+    {
+      "parameters": {
         "method": "POST",
         "url": "https://die-partei.net/goslar/wp-json/wp/v2/media",
         "authentication": "predefinedCredentialType",
@@ -209,6 +231,17 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [2240, -160]
+    },
+    {
+      "parameters": {
+        "amount": 1,
+        "unit": "seconds"
+      },
+      "id": "backfill-0001-000000000015",
+      "name": "Warte vor Post-Update",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [2352, -224]
     },
     {
       "parameters": {
@@ -271,6 +304,9 @@
       "main": [[{ "node": "Filter veroeffentlichte Beitraege", "type": "main", "index": 0 }]]
     },
     "Filter veroeffentlichte Beitraege": {
+      "main": [[{ "node": "Warte vor GET (Rate-Limit-Schutz)", "type": "main", "index": 0 }]]
+    },
+    "Warte vor GET (Rate-Limit-Schutz)": {
       "main": [[{ "node": "HTTP Live-Post laden", "type": "main", "index": 0 }]]
     },
     "HTTP Live-Post laden": {
@@ -298,6 +334,9 @@
       "main": [[{ "node": "Komprimiere (Backfill)", "type": "main", "index": 0 }]]
     },
     "Komprimiere (Backfill)": {
+      "main": [[{ "node": "Warte vor Media-Upload (Rate-Limit-Schutz)", "type": "main", "index": 0 }]]
+    },
+    "Warte vor Media-Upload (Rate-Limit-Schutz)": {
       "main": [[{ "node": "HTTP Media hochladen", "type": "main", "index": 0 }]]
     },
     "HTTP Media hochladen": {
@@ -308,9 +347,12 @@
     },
     "IF Media-Upload ok?": {
       "main": [
-        [{ "node": "HTTP Post aktualisieren (featured_media)", "type": "main", "index": 0 }],
+        [{ "node": "Warte vor Post-Update", "type": "main", "index": 0 }],
         [{ "node": "Ergebnis Bild-Backfill (Media-Fehler)", "type": "main", "index": 0 }]
       ]
+    },
+    "Warte vor Post-Update": {
+      "main": [[{ "node": "HTTP Post aktualisieren (featured_media)", "type": "main", "index": 0 }]]
     },
     "HTTP Post aktualisieren (featured_media)": {
       "main": [[{ "node": "Ergebnis Bild-Backfill (Erfolg)", "type": "main", "index": 0 }]]
