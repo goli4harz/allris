@@ -268,11 +268,27 @@
           "interval": [
             {
               "field": "cronExpression",
+              "expression": "0 7 * * *"
+            },
+            {
+              "field": "cronExpression",
               "expression": "0 8 * * *"
             },
             {
               "field": "cronExpression",
-              "expression": "30 10 * * *"
+              "expression": "0 9 * * *"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "0 10 * * *"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "0 11 * * *"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "0 12 * * *"
             },
             {
               "field": "cronExpression",
@@ -280,7 +296,19 @@
             },
             {
               "field": "cronExpression",
-              "expression": "30 15 * * *"
+              "expression": "0 14 * * *"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "0 15 * * *"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "0 16 * * *"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "0 17 * * *"
             },
             {
               "field": "cronExpression",
@@ -288,7 +316,15 @@
             },
             {
               "field": "cronExpression",
-              "expression": "30 20 * * *"
+              "expression": "0 19 * * *"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "0 20 * * *"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "0 21 * * *"
             }
           ]
         }
