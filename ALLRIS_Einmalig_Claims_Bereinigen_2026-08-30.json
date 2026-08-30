@@ -1,0 +1,83 @@
+{
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Baue Release-Liste",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue Release-Liste": {
+      "main": [
+        [
+          {
+            "node": "Release verwaiste Claims",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "7gkiQe2zMqCCLJhG",
+  "meta": null,
+  "name": "ALLRIS_Einmalig_Claims_Bereinigen_2026-08-30",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "ccc-0000",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const TARGETS = [\n  {\n    \"id\": 3134,\n    \"vorgangKey\": \"vol_10581\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71341\"\n  },\n  {\n    \"id\": 3136,\n    \"vorgangKey\": \"vol_10583\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71341\"\n  },\n  {\n    \"id\": 3139,\n    \"vorgangKey\": \"vol_10591\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71341\"\n  },\n  {\n    \"id\": 3150,\n    \"vorgangKey\": \"vol_10613\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71341\"\n  },\n  {\n    \"id\": 3151,\n    \"vorgangKey\": \"vol_10615\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71341\"\n  },\n  {\n    \"id\": 3152,\n    \"vorgangKey\": \"vol_10616\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71341\"\n  },\n  {\n    \"id\": 3153,\n    \"vorgangKey\": \"vol_10617\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71341\"\n  },\n  {\n    \"id\": 3160,\n    \"vorgangKey\": \"vol_10631\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71341\"\n  },\n  {\n    \"id\": 3164,\n    \"vorgangKey\": \"vol_10639\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71341\"\n  },\n  {\n    \"id\": 3166,\n    \"vorgangKey\": \"vol_10641\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71341\"\n  },\n  {\n    \"id\": 3168,\n    \"vorgangKey\": \"vol_10643\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71341\"\n  },\n  {\n    \"id\": 3169,\n    \"vorgangKey\": \"vol_10644\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71341\"\n  },\n  {\n    \"id\": 3170,\n    \"vorgangKey\": \"vol_10645\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71341\"\n  },\n  {\n    \"id\": 3171,\n    \"vorgangKey\": \"vol_10646\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71341\"\n  },\n  {\n    \"id\": 3173,\n    \"vorgangKey\": \"vol_10650\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71341\"\n  },\n  {\n    \"id\": 3175,\n    \"vorgangKey\": \"vol_10654\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71341\"\n  },\n  {\n    \"id\": 3177,\n    \"vorgangKey\": \"vol_10660\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71341\"\n  },\n  {\n    \"id\": 3181,\n    \"vorgangKey\": \"vol_10677\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71341\"\n  },\n  {\n    \"id\": 3182,\n    \"vorgangKey\": \"vol_10679\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71341\"\n  },\n  {\n    \"id\": 3186,\n    \"vorgangKey\": \"vol_10695\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71341\"\n  },\n  {\n    \"id\": 3187,\n    \"vorgangKey\": \"vol_10697\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71341\"\n  },\n  {\n    \"id\": 3188,\n    \"vorgangKey\": \"vol_10698\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71341\"\n  },\n  {\n    \"id\": 3189,\n    \"vorgangKey\": \"vol_10699\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71341\"\n  },\n  {\n    \"id\": 3191,\n    \"vorgangKey\": \"vol_10701\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71341\"\n  },\n  {\n    \"id\": 3195,\n    \"vorgangKey\": \"vol_10706\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71341\"\n  },\n  {\n    \"id\": 3196,\n    \"vorgangKey\": \"vol_10707\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71341\"\n  },\n  {\n    \"id\": 3198,\n    \"vorgangKey\": \"vol_10709\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71341\"\n  },\n  {\n    \"id\": 3239,\n    \"vorgangKey\": \"vol_10471\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71307\"\n  },\n  {\n    \"id\": 3241,\n    \"vorgangKey\": \"vol_10473\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71307\"\n  },\n  {\n    \"id\": 3249,\n    \"vorgangKey\": \"vol_10484\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71307\"\n  },\n  {\n    \"id\": 3250,\n    \"vorgangKey\": \"vol_10485\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71307\"\n  },\n  {\n    \"id\": 3251,\n    \"vorgangKey\": \"vol_10487\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71307\"\n  },\n  {\n    \"id\": 3252,\n    \"vorgangKey\": \"vol_10489\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71307\"\n  },\n  {\n    \"id\": 3256,\n    \"vorgangKey\": \"vol_10524\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71307\"\n  },\n  {\n    \"id\": 3258,\n    \"vorgangKey\": \"vol_10528\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71307\"\n  },\n  {\n    \"id\": 3260,\n    \"vorgangKey\": \"vol_10533\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71307\"\n  },\n  {\n    \"id\": 3262,\n    \"vorgangKey\": \"vol_10555\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71307\"\n  },\n  {\n    \"id\": 3266,\n    \"vorgangKey\": \"vol_10574\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71307\"\n  },\n  {\n    \"id\": 3271,\n    \"vorgangKey\": \"vol_10665\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71307\"\n  },\n  {\n    \"id\": 3274,\n    \"vorgangKey\": \"vol_10347\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71307\"\n  },\n  {\n    \"id\": 3287,\n    \"vorgangKey\": \"vol_10383\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71307\"\n  },\n  {\n    \"id\": 3290,\n    \"vorgangKey\": \"vol_10388\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71307\"\n  },\n  {\n    \"id\": 3292,\n    \"vorgangKey\": \"vol_10390\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71307\"\n  },\n  {\n    \"id\": 3295,\n    \"vorgangKey\": \"vol_10394\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71307\"\n  },\n  {\n    \"id\": 3299,\n    \"vorgangKey\": \"vol_10405\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71307\"\n  },\n  {\n    \"id\": 3301,\n    \"vorgangKey\": \"vol_10410\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71307\"\n  },\n  {\n    \"id\": 3302,\n    \"vorgangKey\": \"vol_10411\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71307\"\n  },\n  {\n    \"id\": 3309,\n    \"vorgangKey\": \"vol_10546\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71307\"\n  },\n  {\n    \"id\": 3314,\n    \"vorgangKey\": \"vol_10761\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71307\"\n  },\n  {\n    \"id\": 3315,\n    \"vorgangKey\": \"vol_10755\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71307\"\n  },\n  {\n    \"id\": 3326,\n    \"vorgangKey\": \"vol_10798\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71307\"\n  },\n  {\n    \"id\": 3347,\n    \"vorgangKey\": \"vol_10821\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71307\"\n  },\n  {\n    \"id\": 3353,\n    \"vorgangKey\": \"vol_10845\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71307\"\n  },\n  {\n    \"id\": 3355,\n    \"vorgangKey\": \"vol_10838\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71307\"\n  },\n  {\n    \"id\": 3368,\n    \"vorgangKey\": \"vol_10801\",\n    \"claimOwner\": \"ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:71307\"\n  }\n];\nreturn TARGETS.map(t => ({ json: { id: t.id, vorgangKey: t.vorgangKey, claimAction: 'release', claimOwner: t.claimOwner } }));"
+      },
+      "id": "ccc-0001",
+      "name": "Baue Release-Liste",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D7cmBsy3exuOkBd9",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Claim_Lease"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "ccc-0002",
+      "name": "Release verwaiste Claims",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        440,
+        0
+      ]
+    }
+  ],
+  "pinData": null,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "versionId": "cc49c25e-54a4-47e3-bc0c-d12857c8c505"
+}
