@@ -575,7 +575,7 @@
         ],
         [
           {
-            "node": "Naechster Vorgang",
+            "node": "Naechster Vorgang (Skip - kein eigener Claim)",
             "type": "main",
             "index": 0
           }
@@ -593,7 +593,18 @@
         ],
         [
           {
-            "node": "Naechster Vorgang",
+            "node": "Naechster Vorgang (Skip - kein eigener Claim)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Naechster Vorgang (Skip - kein eigener Claim)": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgaenge",
             "type": "main",
             "index": 0
           }
@@ -1975,6 +1986,19 @@
         3120,
         200
       ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $input.item.json }];"
+      },
+      "id": "pr-0045",
+      "name": "Naechster Vorgang (Skip - kein eigener Claim)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3010,
+        400
+      ]
     }
   ],
   "pinData": {},
@@ -1983,5 +2007,5 @@
     "binaryMode": "separate"
   },
   "tags": [],
-  "versionId": "e3504d9e-b71b-4a5a-9b04-e28f76d128b1"
+  "versionId": "4ac6b358-fbfe-40ad-a02d-c1bc22882c44"
 }
