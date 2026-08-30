@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-08-30T17:16:12.700Z",
+  "updatedAt": "2026-08-30T17:45:09.569Z",
   "createdAt": "2026-08-30T16:57:41.914Z",
   "id": "kV048lIhxj2pigFp",
   "name": "ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen",
@@ -1338,7 +1338,7 @@
       "main": [
         [
           {
-            "node": "Loop Vorgaenge",
+            "node": "Bereite Claim vor",
             "type": "main",
             "index": 0
           }
@@ -1350,7 +1350,7 @@
         [],
         [
           {
-            "node": "Bereite Claim vor",
+            "node": "HTTP Live-Post pruefen",
             "type": "main",
             "index": 0
           }
@@ -1383,7 +1383,7 @@
       "main": [
         [
           {
-            "node": "HTTP Live-Post pruefen",
+            "node": "Loop Vorgaenge",
             "type": "main",
             "index": 0
           }
@@ -1884,7 +1884,7 @@
   "meta": null,
   "nodeGroups": [],
   "pinData": {},
-  "versionId": "9597a3c9-2e3f-4923-8ece-a4571a1873ee",
+  "versionId": "16555812-797a-41c9-9eb2-b7c376e60374",
   "activeVersionId": null,
   "versionCounter": 4,
   "triggerCount": 0,
