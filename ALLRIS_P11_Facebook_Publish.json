@@ -377,7 +377,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Wie P9: genau 1 Kandidat pro Lauf (aeltestes lastAnalysisAt zuerst), damit die\n// geplanten Zeitpunkte eine verlaessliche Post-Anzahl pro Tag ergeben.\nreturn [...items].sort((a, b) => {\n  const ta = Date.parse(a.json.lastAnalysisAt || '') || 0;\n  const tb = Date.parse(b.json.lastAnalysisAt || '') || 0;\n  return ta - tb;\n}).slice(0, 1);\n"
+        "jsCode": "// Nutzerentscheidung 2026-08-30: aufsteigende Brisanz zum 13.09. (Kommunalwahl) -\n// niedrige/mittlere Brisanz zuerst posten, die brisantesten Themen fuer die letzten\n// Tage vor der Wahl aufsparen (Recency-Effekt: was unmittelbar vor dem Waehlen zu\n// sehen ist, wirkt ueberproportional staerker nach). Kapazitaet (15 Laeufe/Tag, siehe\n// Schedule Trigger) ist bewusst so bemessen, dass der Rueckstand (170, Stand 30.08.)\n// bis zum 13.09. komplett abgearbeitet wird - die am hoechsten bewerteten Vorgaenge\n// landen dadurch automatisch in den letzten Tagen vor der Wahl, ohne ein festes Datum\n// im Code zu verdrahten. combinedScore kombiniert kommunikationspotenzial (0-8, von P3)\n// mit sprengstoff (KEINER/GERING/MITTEL/HOCH, x3 gewichtet, da das die eigentliche\n// \"Brisanz\"-Dimension ist). Alter bleibt nur noch Tie-Breaker innerhalb gleicher Scores -\n// kein Anti-Verhungerungs-Mechanismus noetig, da die Kapazitaet den ganzen Rueckstand deckt.\n// ACHTUNG: nach dem 13.09. neu bewerten - reine Score-Sortierung ohne Alters-Schutz kann\n// im Dauerbetrieb niedrig bewertete Vorgaenge unbegrenzt liegen lassen.\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction safeNum(v) { const n = Number(v); return isNaN(n) ? 0 : n; }\nconst SPRENGSTOFF_WEIGHT = { KEINER: 0, GERING: 1, MITTEL: 2, HOCH: 3 };\nfunction combinedScore(j) {\n  const kompot = safeNum(j.kommunikationspotenzial);\n  const sprengstoff = SPRENGSTOFF_WEIGHT[safeStr(j.sprengstoff).toUpperCase()] || 0;\n  return kompot + sprengstoff * 3;\n}\nreturn [...items].sort((a, b) => {\n  const sa = combinedScore(a.json), sb = combinedScore(b.json);\n  if (sa !== sb) return sa - sb;\n  const ta = Date.parse(a.json.lastAnalysisAt || '') || 0;\n  const tb = Date.parse(b.json.lastAnalysisAt || '') || 0;\n  return ta - tb;\n}).slice(0, 1);\n"
       },
       "id": "p11-fb-0004",
       "name": "Sortiere Vorgaenge",
@@ -2289,5 +2289,5 @@
     "availableInMCP": false
   },
   "tags": [],
-  "versionId": "865aa7e6-09a7-46aa-8b81-f59510fecc52"
+  "versionId": "7ac6d992-f743-4b8e-a01a-f92be90d1d24"
 }
