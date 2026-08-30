@@ -1,11 +1,609 @@
 {
-  "updatedAt": "2026-08-30T17:45:09.569Z",
-  "createdAt": "2026-08-30T16:57:41.914Z",
-  "id": "kV048lIhxj2pigFp",
-  "name": "ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen",
-  "description": null,
   "active": false,
-  "isArchived": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hole alle Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole alle Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Filter Kandidaten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Kandidaten": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Vorgaenge": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Bereite Claim vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereite Claim vor": {
+      "main": [
+        [
+          {
+            "node": "IF Claim noetig?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Erwerbe Claim": {
+      "main": [
+        [
+          {
+            "node": "Nur bestaetigte Claims",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nur bestaetigte Claims": {
+      "main": [
+        [
+          {
+            "node": "IF Claim bestaetigt?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Live-Post pruefen": {
+      "main": [
+        [
+          {
+            "node": "Werte Live-Post aus",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Werte Live-Post aus": {
+      "main": [
+        [
+          {
+            "node": "IF Post vorhanden?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Post vorhanden?": {
+      "main": [
+        [
+          {
+            "node": "HTTP Post loeschen",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Kontext vor DB-Reset",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Post loeschen": {
+      "main": [
+        [
+          {
+            "node": "Warte vor Bild-Loeschen (alt)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Warte vor Bild-Loeschen (alt)": {
+      "main": [
+        [
+          {
+            "node": "Kontext vor Bild-Loeschen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kontext vor Bild-Loeschen": {
+      "main": [
+        [
+          {
+            "node": "IF Altes Bild vorhanden?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Altes Bild vorhanden?": {
+      "main": [
+        [
+          {
+            "node": "HTTP Altes Bild loeschen",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Kontext vor DB-Reset",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Altes Bild loeschen": {
+      "main": [
+        [
+          {
+            "node": "Kontext vor DB-Reset",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kontext vor DB-Reset": {
+      "main": [
+        [
+          {
+            "node": "DB Felder zuruecksetzen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB Felder zuruecksetzen": {
+      "main": [
+        [
+          {
+            "node": "Baue Post-Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue Post-Body": {
+      "main": [
+        [
+          {
+            "node": "HTTP Suche WP Tags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Suche WP Tags": {
+      "main": [
+        [
+          {
+            "node": "Ermittle fehlende Tags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ermittle fehlende Tags": {
+      "main": [
+        [
+          {
+            "node": "Split fehlende Tags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split fehlende Tags": {
+      "main": [
+        [
+          {
+            "node": "HTTP Erstelle WP Tag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Erstelle WP Tag": {
+      "main": [
+        [
+          {
+            "node": "Baue finale Tag-Liste",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue finale Tag-Liste": {
+      "main": [
+        [
+          {
+            "node": "Suche Partei-Beitrag per Slug",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Suche Partei-Beitrag per Slug": {
+      "main": [
+        [
+          {
+            "node": "Bewerte Partei-Slug-Suche",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bewerte Partei-Slug-Suche": {
+      "main": [
+        [
+          {
+            "node": "IF Slug noch vorhanden?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Slug noch vorhanden?": {
+      "main": [
+        [
+          {
+            "node": "Markiere Slug-Konflikt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF Slug-Suche ok?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Markiere Slug-Konflikt": {
+      "main": [
+        [
+          {
+            "node": "DB Fehler speichern",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Slug-Suche ok?": {
+      "main": [
+        [
+          {
+            "node": "IF Bild vorhanden?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Markiere Slug-Suchfehler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Markiere Slug-Suchfehler": {
+      "main": [
+        [
+          {
+            "node": "DB Fehler speichern",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Bild vorhanden?": {
+      "main": [
+        [
+          {
+            "node": "NC Lade finales Bild",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create a post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Lade finales Bild": {
+      "main": [
+        [
+          {
+            "node": "Stelle Kontext nach Bildladen wieder her",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stelle Kontext nach Bildladen wieder her": {
+      "main": [
+        [
+          {
+            "node": "IF Bild erfolgreich geladen?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Bild erfolgreich geladen?": {
+      "main": [
+        [
+          {
+            "node": "Upload Media zu Partei-Webseite",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Markiere Bildladefehler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Markiere Bildladefehler": {
+      "main": [
+        [
+          {
+            "node": "DB Fehler speichern",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Media zu Partei-Webseite": {
+      "main": [
+        [
+          {
+            "node": "IF Upload hat Media-ID?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Upload hat Media-ID?": {
+      "main": [
+        [
+          {
+            "node": "Bestaetige Media-URL",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stelle Kontext nach Media-Upload wieder her",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bestaetige Media-URL": {
+      "main": [
+        [
+          {
+            "node": "Stelle Kontext nach Media-Upload wieder her",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stelle Kontext nach Media-Upload wieder her": {
+      "main": [
+        [
+          {
+            "node": "Create a post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a post": {
+      "main": [
+        [
+          {
+            "node": "Stelle Kontext nach Post-Erstellung wieder her",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stelle Kontext nach Post-Erstellung wieder her": {
+      "main": [
+        [
+          {
+            "node": "IF Post erfolgreich?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Post erfolgreich?": {
+      "main": [
+        [
+          {
+            "node": "DB Erfolg speichern",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "DB Fehler speichern",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB Erfolg speichern": {
+      "main": [
+        [
+          {
+            "node": "Naechster Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB Fehler speichern": {
+      "main": [
+        [
+          {
+            "node": "Naechster Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Naechster Vorgang": {
+      "main": [
+        [
+          {
+            "node": "Bereite Claim-Freigabe vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereite Claim-Freigabe vor": {
+      "main": [
+        [
+          {
+            "node": "Release Claim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Release Claim": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Claim noetig?": {
+      "main": [
+        [
+          {
+            "node": "Erwerbe Claim",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Naechster Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Claim bestaetigt?": {
+      "main": [
+        [
+          {
+            "node": "HTTP Live-Post pruefen",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Naechster Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "kV048lIhxj2pigFp",
+  "meta": null,
+  "name": "ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen",
   "nodes": [
     {
       "parameters": {},
@@ -60,13 +658,13 @@
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        672,
-        0
+        752,
+        192
       ]
     },
     {
       "parameters": {
-        "jsCode": "const now = Date.now();\nconst owner = `ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:${$execution.id}`;\nreturn items\n  .filter(item => {\n    const j = item.json || {};\n    const oldOwner = String(j.claim_owner || '').trim();\n    const expires = Date.parse(String(j.claim_expires_at || ''));\n    return !oldOwner || !Number.isFinite(expires) || expires <= now;\n  })\n  .map(item => ({ json: {\n    ...item.json,\n    claimAction: 'acquire',\n    claimOwner: owner,\n    claimStage: 'publication',\n    leaseMinutes: 30,\n    expectedClaimOwner: item.json.claim_owner ?? null,\n    expectedClaimExpiresAt: item.json.claim_expires_at ?? null\n  } }));"
+        "jsCode": "const now = Date.now();\nconst owner = `ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:${$execution.id}`;\nreturn items.map(item => {\n  const j = item.json || {};\n  const oldOwner = String(j.claim_owner || '').trim();\n  const expires = Date.parse(String(j.claim_expires_at || ''));\n  const eligible = !oldOwner || !Number.isFinite(expires) || expires <= now;\n  return { json: {\n    ...j,\n    claimAction: 'acquire',\n    claimOwner: owner,\n    claimStage: 'publication',\n    leaseMinutes: 30,\n    expectedClaimOwner: j.claim_owner ?? null,\n    expectedClaimExpiresAt: j.claim_expires_at ?? null,\n    needsClaimAttempt: eligible\n  } };\n});"
       },
       "id": "pr-0005",
       "name": "Bereite Claim vor",
@@ -100,7 +698,7 @@
     },
     {
       "parameters": {
-        "jsCode": "return items.filter(item => item.json?.claimAcquired === true);"
+        "jsCode": "return items;"
       },
       "id": "pr-0007",
       "name": "Nur bestaetigte Claims",
@@ -1309,606 +1907,81 @@
         720,
         1216
       ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.needsClaimAttempt }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "pr-0043",
+      "name": "IF Claim noetig?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2900,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.claimAcquired }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "pr-0044",
+      "name": "IF Claim bestaetigt?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3120,
+        200
+      ]
     }
   ],
-  "connections": {
-    "Manual Trigger": {
-      "main": [
-        [
-          {
-            "node": "Hole alle Vorgaenge",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Hole alle Vorgaenge": {
-      "main": [
-        [
-          {
-            "node": "Filter Kandidaten",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Filter Kandidaten": {
-      "main": [
-        [
-          {
-            "node": "Bereite Claim vor",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Loop Vorgaenge": {
-      "main": [
-        [],
-        [
-          {
-            "node": "HTTP Live-Post pruefen",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Bereite Claim vor": {
-      "main": [
-        [
-          {
-            "node": "Erwerbe Claim",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Erwerbe Claim": {
-      "main": [
-        [
-          {
-            "node": "Nur bestaetigte Claims",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Nur bestaetigte Claims": {
-      "main": [
-        [
-          {
-            "node": "Loop Vorgaenge",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "HTTP Live-Post pruefen": {
-      "main": [
-        [
-          {
-            "node": "Werte Live-Post aus",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Werte Live-Post aus": {
-      "main": [
-        [
-          {
-            "node": "IF Post vorhanden?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF Post vorhanden?": {
-      "main": [
-        [
-          {
-            "node": "HTTP Post loeschen",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Kontext vor DB-Reset",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "HTTP Post loeschen": {
-      "main": [
-        [
-          {
-            "node": "Warte vor Bild-Loeschen (alt)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Warte vor Bild-Loeschen (alt)": {
-      "main": [
-        [
-          {
-            "node": "Kontext vor Bild-Loeschen",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Kontext vor Bild-Loeschen": {
-      "main": [
-        [
-          {
-            "node": "IF Altes Bild vorhanden?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF Altes Bild vorhanden?": {
-      "main": [
-        [
-          {
-            "node": "HTTP Altes Bild loeschen",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Kontext vor DB-Reset",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "HTTP Altes Bild loeschen": {
-      "main": [
-        [
-          {
-            "node": "Kontext vor DB-Reset",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Kontext vor DB-Reset": {
-      "main": [
-        [
-          {
-            "node": "DB Felder zuruecksetzen",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "DB Felder zuruecksetzen": {
-      "main": [
-        [
-          {
-            "node": "Baue Post-Body",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Baue Post-Body": {
-      "main": [
-        [
-          {
-            "node": "HTTP Suche WP Tags",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "HTTP Suche WP Tags": {
-      "main": [
-        [
-          {
-            "node": "Ermittle fehlende Tags",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Ermittle fehlende Tags": {
-      "main": [
-        [
-          {
-            "node": "Split fehlende Tags",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Split fehlende Tags": {
-      "main": [
-        [
-          {
-            "node": "HTTP Erstelle WP Tag",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "HTTP Erstelle WP Tag": {
-      "main": [
-        [
-          {
-            "node": "Baue finale Tag-Liste",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Baue finale Tag-Liste": {
-      "main": [
-        [
-          {
-            "node": "Suche Partei-Beitrag per Slug",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Suche Partei-Beitrag per Slug": {
-      "main": [
-        [
-          {
-            "node": "Bewerte Partei-Slug-Suche",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Bewerte Partei-Slug-Suche": {
-      "main": [
-        [
-          {
-            "node": "IF Slug noch vorhanden?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF Slug noch vorhanden?": {
-      "main": [
-        [
-          {
-            "node": "Markiere Slug-Konflikt",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "IF Slug-Suche ok?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Markiere Slug-Konflikt": {
-      "main": [
-        [
-          {
-            "node": "DB Fehler speichern",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF Slug-Suche ok?": {
-      "main": [
-        [
-          {
-            "node": "IF Bild vorhanden?",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Markiere Slug-Suchfehler",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Markiere Slug-Suchfehler": {
-      "main": [
-        [
-          {
-            "node": "DB Fehler speichern",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF Bild vorhanden?": {
-      "main": [
-        [
-          {
-            "node": "NC Lade finales Bild",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Create a post",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NC Lade finales Bild": {
-      "main": [
-        [
-          {
-            "node": "Stelle Kontext nach Bildladen wieder her",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Stelle Kontext nach Bildladen wieder her": {
-      "main": [
-        [
-          {
-            "node": "IF Bild erfolgreich geladen?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF Bild erfolgreich geladen?": {
-      "main": [
-        [
-          {
-            "node": "Upload Media zu Partei-Webseite",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Markiere Bildladefehler",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Markiere Bildladefehler": {
-      "main": [
-        [
-          {
-            "node": "DB Fehler speichern",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Upload Media zu Partei-Webseite": {
-      "main": [
-        [
-          {
-            "node": "IF Upload hat Media-ID?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF Upload hat Media-ID?": {
-      "main": [
-        [
-          {
-            "node": "Bestaetige Media-URL",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Stelle Kontext nach Media-Upload wieder her",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Bestaetige Media-URL": {
-      "main": [
-        [
-          {
-            "node": "Stelle Kontext nach Media-Upload wieder her",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Stelle Kontext nach Media-Upload wieder her": {
-      "main": [
-        [
-          {
-            "node": "Create a post",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Create a post": {
-      "main": [
-        [
-          {
-            "node": "Stelle Kontext nach Post-Erstellung wieder her",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Stelle Kontext nach Post-Erstellung wieder her": {
-      "main": [
-        [
-          {
-            "node": "IF Post erfolgreich?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF Post erfolgreich?": {
-      "main": [
-        [
-          {
-            "node": "DB Erfolg speichern",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "DB Fehler speichern",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "DB Erfolg speichern": {
-      "main": [
-        [
-          {
-            "node": "Naechster Vorgang",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "DB Fehler speichern": {
-      "main": [
-        [
-          {
-            "node": "Naechster Vorgang",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Naechster Vorgang": {
-      "main": [
-        [
-          {
-            "node": "Bereite Claim-Freigabe vor",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Bereite Claim-Freigabe vor": {
-      "main": [
-        [
-          {
-            "node": "Release Claim",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Release Claim": {
-      "main": [
-        [
-          {
-            "node": "Loop Vorgaenge",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
+  "pinData": {},
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "staticData": null,
-  "meta": null,
-  "nodeGroups": [],
-  "pinData": {},
-  "versionId": "16555812-797a-41c9-9eb2-b7c376e60374",
-  "activeVersionId": null,
-  "versionCounter": 4,
-  "triggerCount": 0,
-  "sourceWorkflowId": null,
-  "shared": [
-    {
-      "updatedAt": "2026-08-30T16:57:41.914Z",
-      "createdAt": "2026-08-30T16:57:41.914Z",
-      "role": "workflow:owner",
-      "workflowId": "kV048lIhxj2pigFp",
-      "projectId": "CrnegVcMvlcRU0OP",
-      "project": {
-        "updatedAt": "2026-05-23T11:38:39.411Z",
-        "createdAt": "2026-05-23T11:33:40.374Z",
-        "id": "CrnegVcMvlcRU0OP",
-        "name": "Oliver Lietz <oliver.lietz@golietz.de>",
-        "type": "personal",
-        "icon": null,
-        "description": null,
-        "customTelemetryTags": [],
-        "creatorId": "66557ab1-dd68-4186-b616-ecaa8f1bea61"
-      }
-    }
-  ],
   "tags": [],
-  "activeVersion": null
+  "versionId": "e3504d9e-b71b-4a5a-9b04-e28f76d128b1"
 }
