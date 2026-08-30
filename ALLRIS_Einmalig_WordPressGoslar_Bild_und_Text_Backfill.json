@@ -1,462 +1,5 @@
 {
-  "name": "ALLRIS_Einmalig_WordPressGoslar_Bild_und_Text_Backfill",
-  "nodes": [
-    {
-      "parameters": {},
-      "id": "backfill-0001-000000000001",
-      "name": "Manual Trigger",
-      "type": "n8n-nodes-base.manualTrigger",
-      "typeVersion": 1,
-      "position": [
-        0,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "get",
-        "dataTableId": {
-          "__rl": true,
-          "value": "hBLqpqeVEojPpOJl",
-          "mode": "list",
-          "cachedResultName": "allris_vorgaenge"
-        },
-        "filters": {
-          "conditions": []
-        },
-        "returnAll": true
-      },
-      "id": "backfill-0001-000000000002",
-      "name": "Hole alle Vorgaenge",
-      "type": "n8n-nodes-base.dataTable",
-      "typeVersion": 1,
-      "position": [
-        224,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nconst items = $input.all();\nreturn items.filter(item => {\n  const j = item.json || {};\n  const posted = j.wordpressGoslarPosted === true || j.wordpressGoslarPosted === 'true';\n  if (!posted) return false;\n  if (!safeStr(j.wordpressGoslarPostId)) return false;\n  return true;\n});"
-      },
-      "id": "backfill-0001-000000000003",
-      "name": "Filter veroeffentlichte Beitraege",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        448,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "amount": 1.5,
-        "unit": "seconds"
-      },
-      "id": "backfill-0001-000000000013",
-      "name": "Warte vor GET (Rate-Limit-Schutz)",
-      "type": "n8n-nodes-base.wait",
-      "typeVersion": 1.1,
-      "position": [
-        560,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "method": "GET",
-        "url": "=https://die-partei.net/goslar/wp-json/wp/v2/posts/{{ $json.wordpressGoslarPostId }}?context=edit",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "wordpressApi",
-        "options": {
-          "timeout": 30000
-        }
-      },
-      "id": "backfill-0001-000000000004",
-      "name": "HTTP Live-Post laden",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        672,
-        0
-      ],
-      "credentials": {
-        "wordpressApi": {
-          "id": "tzwuM0QBLpYYZfXQ",
-          "name": "DiePARTEI Wordpress"
-        }
-      },
-      "continueOnFail": true,
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction stripHtml(html) {\n  return safeStr(html)\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '\"').replace(/&#039;/g, \"'\")\n    .replace(/\\s+/g, ' ').trim();\n}\nfunction hasMojibake(s) {\n  return /Ã[¤¶¼\\x9f\\u0084\\u0096\\u009c]|â€[žœ¦\\x9c\\x9d]/.test(s);\n}\n\nconst idx = $itemIndex;\nconst ctx = $('Filter veroeffentlichte Beitraege').itemMatching(idx).json;\nconst resp = $input.item.json || {};\n\nconst fetchError = resp.error || (resp.code && resp.message) ? true : false;\nif (fetchError || !resp.id) {\n  return { json: { ...ctx, _fetchError: true, _fetchErrorDetail: JSON.stringify(resp).slice(0,300), textCheck: 'fetch_fehlgeschlagen', needsImageBackfill: false } };\n}\n\nconst liveContentRaw = (resp.content && (resp.content.raw || resp.content.rendered)) || '';\nconst livePlain = stripHtml(liveContentRaw);\nconst expectedPlain = safeStr(ctx.websiteArticle);\nconst canary = expectedPlain.slice(0, 80);\nconst textMatches = canary.length > 0 ? livePlain.includes(canary) : true;\nconst mojibake = hasMojibake(liveContentRaw);\n\nlet textCheck = 'ok';\nif (mojibake) textCheck = 'mojibake_verdacht';\nelse if (!textMatches) textCheck = 'abweichung_verdacht';\n\nconst featuredMedia = Number(resp.featured_media || 0);\nconst hasRealImage = !!safeStr(ctx.imageFinalPath);\nconst needsImageBackfill = hasRealImage && featuredMedia === 0;\n\nreturn {\n  json: {\n    ...ctx,\n    textCheck,\n    livePlainPreview: livePlain.slice(0, 150),\n    needsImageBackfill,\n    wpFeaturedMediaExisting: featuredMedia\n  }\n};",
-        "mode": "runOnceForEachItem"
-      },
-      "id": "backfill-0001-000000000005",
-      "name": "Vergleiche Text + Ermittle Bild-Bedarf",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        896,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "id": "cond1",
-              "leftValue": "={{ $json.needsImageBackfill }}",
-              "rightValue": true,
-              "operator": {
-                "type": "boolean",
-                "operation": "true",
-                "singleValue": true
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "backfill-0001-000000000006",
-      "name": "IF Bild-Backfill noetig?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        1120,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "download",
-        "path": "={{ $json.imageFinalPath }}"
-      },
-      "id": "backfill-0001-000000000007",
-      "name": "NC Lade Bild",
-      "type": "n8n-nodes-base.nextCloud",
-      "typeVersion": 1,
-      "position": [
-        1344,
-        -160
-      ],
-      "credentials": {
-        "nextCloudApi": {
-          "id": "jlZlwASXZbJyNpfA",
-          "name": "NextCloud account"
-        }
-      },
-      "continueOnFail": true,
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Vergleiche Text + Ermittle Bild-Bedarf').itemMatching(idx).json;\nconst item = $input.item;\nconst hasImage = !!(item.binary && item.binary.data);\nreturn {\n  json: { ...ctx, _downloadOk: hasImage },\n  binary: hasImage ? { data: item.binary.data } : {}\n};",
-        "mode": "runOnceForEachItem"
-      },
-      "id": "backfill-0001-000000000008",
-      "name": "Pruefe Download",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1568,
-        -160
-      ]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "id": "cond1",
-              "leftValue": "={{ $json._downloadOk }}",
-              "rightValue": true,
-              "operator": {
-                "type": "boolean",
-                "operation": "true",
-                "singleValue": true
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "backfill-0001-000000000016",
-      "name": "IF Download ok?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        1624,
-        -160
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Pruefe Download').itemMatching(idx).json;\nreturn { json: { ...ctx, imageBackfillStatus: 'download_fehlgeschlagen', imageBackfillDetail: 'NextCloud-Download von imageFinalPath fehlgeschlagen' } };",
-        "mode": "runOnceForEachItem"
-      },
-      "id": "backfill-0001-000000000017",
-      "name": "Ergebnis Bild-Backfill (Download-Fehler)",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1624,
-        60
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "information",
-        "dataPropertyName": "data"
-      },
-      "id": "backfill-0001-000000000010",
-      "name": "Lies Masse (Backfill)",
-      "type": "n8n-nodes-base.editImage",
-      "typeVersion": 1,
-      "position": [
-        1680,
-        -160
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const idx = $itemIndex;\nconst prev = $('Pruefe Download').itemMatching(idx).json;\nreturn { json: { ...prev, _size: $json.size }, binary: $input.item.binary };",
-        "mode": "runOnceForEachItem"
-      },
-      "id": "backfill-0001-000000000011",
-      "name": "Kontext nach Masse (Backfill)",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1720,
-        -160
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "resize",
-        "dataPropertyName": "data",
-        "width": "={{ Number($json._size.width) }}",
-        "height": "={{ Number($json._size.height) }}",
-        "resizeOption": "ignoreAspectRatio",
-        "options": {
-          "format": "jpeg",
-          "quality": 82
-        }
-      },
-      "id": "backfill-0001-000000000012",
-      "name": "Komprimiere (Backfill)",
-      "type": "n8n-nodes-base.editImage",
-      "typeVersion": 1,
-      "position": [
-        1740,
-        -160
-      ]
-    },
-    {
-      "parameters": {
-        "amount": 2,
-        "unit": "seconds"
-      },
-      "id": "backfill-0001-000000000014",
-      "name": "Warte vor Media-Upload (Rate-Limit-Schutz)",
-      "type": "n8n-nodes-base.wait",
-      "typeVersion": 1.1,
-      "position": [
-        1760,
-        -160
-      ]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "https://die-partei.net/goslar/wp-json/wp/v2/media",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "wordpressApi",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Disposition",
-              "value": "={{ 'attachment; filename=\"' + ($json.vorgangKey || 'sharepic') + '.jpg\"' }}"
-            }
-          ]
-        },
-        "sendBody": true,
-        "contentType": "binaryData",
-        "inputDataFieldName": "data",
-        "options": {
-          "timeout": 30000
-        }
-      },
-      "id": "backfill-0001-000000000009",
-      "name": "HTTP Media hochladen",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        1792,
-        -160
-      ],
-      "credentials": {
-        "wordpressApi": {
-          "id": "tzwuM0QBLpYYZfXQ",
-          "name": "DiePARTEI Wordpress"
-        }
-      },
-      "continueOnFail": true,
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Pruefe Download').itemMatching(idx).json;\nconst resp = $input.item.json || {};\nconst mediaId = resp && resp.id ? String(resp.id) : null;\nconst mediaError = mediaId ? '' : (resp.error?.message || resp.message || 'Media-Upload fehlgeschlagen');\nreturn { json: { ...ctx, _mediaId: mediaId, _mediaError: mediaError } };",
-        "mode": "runOnceForEachItem"
-      },
-      "id": "backfill-0001-00000000000a",
-      "name": "Kontext nach Media-Upload",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        2016,
-        -160
-      ]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "id": "cond1",
-              "leftValue": "={{ $json._mediaId }}",
-              "rightValue": "",
-              "operator": {
-                "type": "string",
-                "operation": "notEquals"
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "backfill-0001-00000000000b",
-      "name": "IF Media-Upload ok?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        2240,
-        -160
-      ]
-    },
-    {
-      "parameters": {
-        "amount": 1,
-        "unit": "seconds"
-      },
-      "id": "backfill-0001-000000000015",
-      "name": "Warte vor Post-Update",
-      "type": "n8n-nodes-base.wait",
-      "typeVersion": 1.1,
-      "position": [
-        2352,
-        -224
-      ]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "=https://die-partei.net/goslar/wp-json/wp/v2/posts/{{ $json.wordpressGoslarPostId }}",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "wordpressApi",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ featured_media: Number($json._mediaId) }) }}",
-        "options": {
-          "timeout": 30000
-        }
-      },
-      "id": "backfill-0001-00000000000c",
-      "name": "HTTP Post aktualisieren (featured_media)",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        2464,
-        -224
-      ],
-      "credentials": {
-        "wordpressApi": {
-          "id": "tzwuM0QBLpYYZfXQ",
-          "name": "DiePARTEI Wordpress"
-        }
-      },
-      "continueOnFail": true,
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Kontext nach Media-Upload').itemMatching(idx).json;\nconst resp = $input.item.json || {};\nconst ok = !!(resp && resp.id);\nreturn { json: { ...ctx, imageBackfillStatus: ok ? 'erfolgreich' : 'post_update_fehlgeschlagen', imageBackfillDetail: ok ? '' : JSON.stringify(resp).slice(0,300) } };",
-        "mode": "runOnceForEachItem"
-      },
-      "id": "backfill-0001-00000000000d",
-      "name": "Ergebnis Bild-Backfill (Erfolg)",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        2688,
-        -224
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Kontext nach Media-Upload').itemMatching(idx).json;\nreturn { json: { ...ctx, imageBackfillStatus: 'media_upload_fehlgeschlagen', imageBackfillDetail: ctx._mediaError || '' } };",
-        "mode": "runOnceForEachItem"
-      },
-      "id": "backfill-0001-00000000000e",
-      "name": "Ergebnis Bild-Backfill (Media-Fehler)",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        2464,
-        -80
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Vergleiche Text + Ermittle Bild-Bedarf').itemMatching(idx).json;\nreturn { json: { ...ctx, imageBackfillStatus: ctx.needsImageBackfill ? 'noch_offen' : (ctx.wordpressGoslarImageUrl || Number(ctx.wpFeaturedMediaExisting||0) > 0 ? 'bereits_vorhanden' : 'kein_sharepic') } };",
-        "mode": "runOnceForEachItem"
-      },
-      "id": "backfill-0001-00000000000f",
-      "name": "Ergebnis ohne Bild-Backfill",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1344,
-        160
-      ]
-    }
-  ],
+  "active": false,
   "connections": {
     "Manual Trigger": {
       "main": [
@@ -681,6 +224,79 @@
       "main": [
         [
           {
+            "node": "Pruefe Post-Update + altes Bild",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pruefe Post-Update + altes Bild": {
+      "main": [
+        [
+          {
+            "node": "IF Altes Bild loeschen?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Altes Bild loeschen?": {
+      "main": [
+        [
+          {
+            "node": "Warte vor Bild-Loeschen (Rate-Limit-Schutz)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Kein Altes Bild zu loeschen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Warte vor Bild-Loeschen (Rate-Limit-Schutz)": {
+      "main": [
+        [
+          {
+            "node": "HTTP Altes Bild loeschen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Altes Bild loeschen": {
+      "main": [
+        [
+          {
+            "node": "Kontext nach Bild-Loeschen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kontext nach Bild-Loeschen": {
+      "main": [
+        [
+          {
+            "node": "Ergebnis Bild-Backfill (Erfolg)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kein Altes Bild zu loeschen": {
+      "main": [
+        [
+          {
             "node": "Ergebnis Bild-Backfill (Erfolg)",
             "type": "main",
             "index": 0
@@ -689,5 +305,598 @@
       ]
     }
   },
-  "settings": {}
+  "id": "54r9U1ZEYUiyr7nh",
+  "meta": null,
+  "name": "ALLRIS_Einmalig_WordPressGoslar_Bild_und_Text_Backfill",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "backfill-0001-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge"
+        },
+        "filters": {
+          "conditions": []
+        },
+        "returnAll": true
+      },
+      "id": "backfill-0001-000000000002",
+      "name": "Hole alle Vorgaenge",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nconst items = $input.all();\nreturn items.filter(item => {\n  const j = item.json || {};\n  const posted = j.wordpressGoslarPosted === true || j.wordpressGoslarPosted === 'true';\n  if (!posted) return false;\n  if (!safeStr(j.wordpressGoslarPostId)) return false;\n  return true;\n});"
+      },
+      "id": "backfill-0001-000000000003",
+      "name": "Filter veroeffentlichte Beitraege",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 1.5,
+        "unit": "seconds"
+      },
+      "id": "backfill-0001-000000000013",
+      "name": "Warte vor GET (Rate-Limit-Schutz)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        560,
+        0
+      ],
+      "webhookId": "f72ec721-8169-4dae-904c-77f8016c28fa"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://die-partei.net/goslar/wp-json/wp/v2/posts/{{ $json.wordpressGoslarPostId }}?context=edit",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "backfill-0001-000000000004",
+      "name": "HTTP Live-Post laden",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        672,
+        0
+      ],
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction stripHtml(html) {\n  return safeStr(html)\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '\"').replace(/&#039;/g, \"'\")\n    .replace(/\\s+/g, ' ').trim();\n}\nfunction hasMojibake(s) {\n  return /Ã[¤¶¼\\x9f\\u0084\\u0096\\u009c]|â€[žœ¦\\x9c\\x9d]/.test(s);\n}\n\nconst idx = $itemIndex;\nconst ctx = $('Filter veroeffentlichte Beitraege').itemMatching(idx).json;\nconst resp = $input.item.json || {};\n\nconst fetchError = resp.error || (resp.code && resp.message) ? true : false;\nif (fetchError || !resp.id) {\n  return { json: { ...ctx, _fetchError: true, _fetchErrorDetail: JSON.stringify(resp).slice(0,300), textCheck: 'fetch_fehlgeschlagen', needsImageBackfill: false } };\n}\n\nconst liveContentRaw = (resp.content && (resp.content.raw || resp.content.rendered)) || '';\nconst livePlain = stripHtml(liveContentRaw);\nconst expectedPlain = safeStr(ctx.websiteArticle);\nconst canary = expectedPlain.slice(0, 80);\nconst textMatches = canary.length > 0 ? livePlain.includes(canary) : true;\nconst mojibake = hasMojibake(liveContentRaw);\n\nlet textCheck = 'ok';\nif (mojibake) textCheck = 'mojibake_verdacht';\nelse if (!textMatches) textCheck = 'abweichung_verdacht';\n\nconst featuredMedia = Number(resp.featured_media || 0);\nconst hasRealImage = !!safeStr(ctx.imageFinalPath);\n// Nutzerentscheidung 2026-08-30: aus \"nur nachfuellen wenn leer\" wurde ein echter Bildtausch -\n// synchronisiert das Beitragsbild immer auf das aktuell korrekte Bild, egal ob vorher schon\n// eines gesetzt war. Ein evtl. vorhandenes altes Bild wird nach erfolgreichem Tausch separat\n// geloescht (siehe \"HTTP Altes Bild loeschen\" weiter unten).\nconst needsImageBackfill = hasRealImage;\n\nreturn {\n  json: {\n    ...ctx,\n    textCheck,\n    livePlainPreview: livePlain.slice(0, 150),\n    needsImageBackfill,\n    wpFeaturedMediaExisting: featuredMedia\n  }\n};",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "backfill-0001-000000000005",
+      "name": "Vergleiche Text + Ermittle Bild-Bedarf",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond1",
+              "leftValue": "={{ $json.needsImageBackfill }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "backfill-0001-000000000006",
+      "name": "IF Bild-Backfill noetig?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "path": "={{ $json.imageFinalPath }}"
+      },
+      "id": "backfill-0001-000000000007",
+      "name": "NC Lade Bild",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [
+        1344,
+        -160
+      ],
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Vergleiche Text + Ermittle Bild-Bedarf').itemMatching(idx).json;\nconst item = $input.item;\nconst hasImage = !!(item.binary && item.binary.data);\nreturn {\n  json: { ...ctx, _downloadOk: hasImage },\n  binary: hasImage ? { data: item.binary.data } : {}\n};",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "backfill-0001-000000000008",
+      "name": "Pruefe Download",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond1",
+              "leftValue": "={{ $json._downloadOk }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "backfill-0001-000000000016",
+      "name": "IF Download ok?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1624,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Pruefe Download').itemMatching(idx).json;\nreturn { json: { ...ctx, imageBackfillStatus: 'download_fehlgeschlagen', imageBackfillDetail: 'NextCloud-Download von imageFinalPath fehlgeschlagen' } };",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "backfill-0001-000000000017",
+      "name": "Ergebnis Bild-Backfill (Download-Fehler)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1624,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "information",
+        "dataPropertyName": "data"
+      },
+      "id": "backfill-0001-000000000010",
+      "name": "Lies Masse (Backfill)",
+      "type": "n8n-nodes-base.editImage",
+      "typeVersion": 1,
+      "position": [
+        1680,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const idx = $itemIndex;\nconst prev = $('Pruefe Download').itemMatching(idx).json;\nreturn { json: { ...prev, _size: $json.size }, binary: $input.item.binary };",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "backfill-0001-000000000011",
+      "name": "Kontext nach Masse (Backfill)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1720,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "resize",
+        "dataPropertyName": "data",
+        "width": "={{ Number($json._size.width) }}",
+        "height": "={{ Number($json._size.height) }}",
+        "resizeOption": "ignoreAspectRatio",
+        "options": {
+          "format": "jpeg",
+          "quality": 82
+        }
+      },
+      "id": "backfill-0001-000000000012",
+      "name": "Komprimiere (Backfill)",
+      "type": "n8n-nodes-base.editImage",
+      "typeVersion": 1,
+      "position": [
+        1740,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "seconds"
+      },
+      "id": "backfill-0001-000000000014",
+      "name": "Warte vor Media-Upload (Rate-Limit-Schutz)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1760,
+        -160
+      ],
+      "webhookId": "19704453-ce54-4370-8170-3edca359f97f"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://die-partei.net/goslar/wp-json/wp/v2/media",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Disposition",
+              "value": "={{ 'attachment; filename=\"' + ($json.vorgangKey || 'sharepic') + '.jpg\"' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "data",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "backfill-0001-000000000009",
+      "name": "HTTP Media hochladen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1792,
+        -160
+      ],
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Pruefe Download').itemMatching(idx).json;\nconst resp = $input.item.json || {};\nconst mediaId = resp && resp.id ? String(resp.id) : null;\nconst mediaError = mediaId ? '' : (resp.error?.message || resp.message || 'Media-Upload fehlgeschlagen');\nreturn { json: { ...ctx, _mediaId: mediaId, _mediaError: mediaError } };",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "backfill-0001-00000000000a",
+      "name": "Kontext nach Media-Upload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond1",
+              "leftValue": "={{ $json._mediaId }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "backfill-0001-00000000000b",
+      "name": "IF Media-Upload ok?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2240,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 1,
+        "unit": "seconds"
+      },
+      "id": "backfill-0001-000000000015",
+      "name": "Warte vor Post-Update",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2352,
+        -224
+      ],
+      "webhookId": "3e7fa746-34ad-4f5c-8efe-5ecf6631a441"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://die-partei.net/goslar/wp-json/wp/v2/posts/{{ $json.wordpressGoslarPostId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ featured_media: Number($json._mediaId) }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "backfill-0001-00000000000c",
+      "name": "HTTP Post aktualisieren (featured_media)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2464,
+        -224
+      ],
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $json;\nconst ok = j._postUpdateOk === true;\nlet status = ok ? 'erfolgreich' : 'post_update_fehlgeschlagen';\nlet detail = ok ? '' : (j._postUpdateResp || '');\nif (ok && j._oldImageDeleted === true) status = 'erfolgreich_altes_bild_geloescht';\nelse if (ok && j._oldImageDeleted === false) { status = 'erfolgreich_altes_bild_loeschen_fehlgeschlagen'; detail = j._oldImageDeleteError || ''; }\nreturn { json: { ...j, imageBackfillStatus: status, imageBackfillDetail: detail } };",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "backfill-0001-00000000000d",
+      "name": "Ergebnis Bild-Backfill (Erfolg)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3680,
+        -224
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Kontext nach Media-Upload').itemMatching(idx).json;\nreturn { json: { ...ctx, imageBackfillStatus: 'media_upload_fehlgeschlagen', imageBackfillDetail: ctx._mediaError || '' } };",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "backfill-0001-00000000000e",
+      "name": "Ergebnis Bild-Backfill (Media-Fehler)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2464,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Vergleiche Text + Ermittle Bild-Bedarf').itemMatching(idx).json;\nreturn { json: { ...ctx, imageBackfillStatus: ctx.needsImageBackfill ? 'noch_offen' : (ctx.wordpressGoslarImageUrl || Number(ctx.wpFeaturedMediaExisting||0) > 0 ? 'bereits_vorhanden' : 'kein_sharepic') } };",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "backfill-0001-00000000000f",
+      "name": "Ergebnis ohne Bild-Backfill",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Kontext nach Media-Upload').itemMatching(idx).json;\nconst resp = $input.item.json || {};\nconst updateOk = !!(resp && resp.id);\nconst oldMediaId = Number(ctx.wpFeaturedMediaExisting || 0);\nconst newMediaId = Number(ctx._mediaId || 0);\nconst shouldDeleteOld = updateOk && oldMediaId > 0 && oldMediaId !== newMediaId;\nreturn { json: { ...ctx, _postUpdateOk: updateOk, _postUpdateResp: JSON.stringify(resp).slice(0,300), _shouldDeleteOldImage: shouldDeleteOld, _oldMediaIdToDelete: oldMediaId } };",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "backfill-0001-delete-0001",
+      "name": "Pruefe Post-Update + altes Bild",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2560,
+        -224
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond1",
+              "leftValue": "={{ $json._shouldDeleteOldImage }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "backfill-0001-delete-0002",
+      "name": "IF Altes Bild loeschen?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2784,
+        -224
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 1,
+        "unit": "seconds"
+      },
+      "id": "backfill-0001-delete-0003",
+      "name": "Warte vor Bild-Loeschen (Rate-Limit-Schutz)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        3008,
+        -320
+      ],
+      "webhookId": "841adc49-0bdb-437d-8653-d6e715f202fc"
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "=https://die-partei.net/goslar/wp-json/wp/v2/media/{{ $json._oldMediaIdToDelete }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "force",
+              "value": "true"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "backfill-0001-delete-0004",
+      "name": "HTTP Altes Bild loeschen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3232,
+        -320
+      ],
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Pruefe Post-Update + altes Bild').itemMatching(idx).json;\nconst resp = $input.item.json || {};\nconst deleted = !!(resp && (resp.deleted === true || resp.id));\nreturn { json: { ...ctx, _oldImageDeleted: deleted, _oldImageDeleteError: deleted ? '' : JSON.stringify(resp).slice(0,300) } };",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "backfill-0001-delete-0005",
+      "name": "Kontext nach Bild-Loeschen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3456,
+        -320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return { json: { ...$json, _oldImageDeleted: null, _oldImageDeleteError: '' } };",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "backfill-0001-delete-0006",
+      "name": "Kein Altes Bild zu loeschen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3008,
+        -128
+      ]
+    }
+  ],
+  "pinData": null,
+  "settings": {},
+  "tags": [],
+  "versionId": "f36d747c-6f97-4f07-add8-8c35089db142"
 }
