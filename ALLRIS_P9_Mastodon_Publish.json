@@ -300,13 +300,45 @@
         "rule": {
           "interval": [
             {
-              "triggerAtHour": 8
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
             },
             {
-              "triggerAtHour": 17,
-              "triggerAtMinute": 30
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
             },
-            {}
+            {
+              "field": "cronExpression",
+              "expression": "0 10 * * *"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "0 11 * * *"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "0 12 * * *"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "0 13 * * *"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "0 14 * * *"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "0 15 * * *"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "0 16 * * *"
+            },
+            {
+              "field": "cronExpression",
+              "expression": "0 17 * * *"
+            }
           ]
         }
       },
@@ -358,7 +390,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// FIX 2026-07-28: P9 hatte bisher kein 'nur 1 pro Lauf'-Limit (im Unterschied zu P8b) -\n// es postete bei jedem Lauf ALLE gerade faelligen Kandidaten. Jetzt auf genau 1 pro Lauf\n// begrenzt (aeltestes lastAnalysisAt zuerst), damit die zwei taeglichen Zeitpunkte\n// zuverlaessig 2 Posts/Tag ergeben statt einer variablen Anzahl.\nreturn [...items].sort((a, b) => {\n  const ta = Date.parse(a.json.lastAnalysisAt || '') || 0;\n  const tb = Date.parse(b.json.lastAnalysisAt || '') || 0;\n  return ta - tb;\n}).slice(0, 1);"
+        "jsCode": "// Nutzerentscheidung 2026-08-30 (analog P11 Facebook): aufsteigende Brisanz zum\n// 13.09. (Kommunalwahl) - niedrige/mittlere Brisanz zuerst posten, die brisantesten\n// Themen fuer die letzten Tage vor der Wahl aufsparen (Recency-Effekt). Kapazitaet\n// (10 Laeufe/Tag, siehe Schedule Trigger) ist bewusst so bemessen, dass der\n// Rueckstand (98, Stand 30.08.) bis zum 12.09. komplett abgearbeitet wird - die am\n// hoechsten bewerteten Vorgaenge landen dadurch automatisch in den letzten Tagen vor\n// der Wahl. combinedScore kombiniert kommunikationspotenzial (0-8, von P3) mit\n// sprengstoff (KEINER/GERING/MITTEL/HOCH, x3 gewichtet). Alter bleibt nur noch\n// Tie-Breaker innerhalb gleicher Scores - kein Anti-Verhungerungs-Mechanismus noetig,\n// da die Kapazitaet den ganzen Rueckstand deckt.\n// ACHTUNG: nach dem 13.09. neu bewerten - reine Score-Sortierung ohne Alters-Schutz\n// kann im Dauerbetrieb niedrig bewertete Vorgaenge unbegrenzt liegen lassen.\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction safeNum(v) { const n = Number(v); return isNaN(n) ? 0 : n; }\nconst SPRENGSTOFF_WEIGHT = { KEINER: 0, GERING: 1, MITTEL: 2, HOCH: 3 };\nfunction combinedScore(j) {\n  const kompot = safeNum(j.kommunikationspotenzial);\n  const sprengstoff = SPRENGSTOFF_WEIGHT[safeStr(j.sprengstoff).toUpperCase()] || 0;\n  return kompot + sprengstoff * 3;\n}\nreturn [...items].sort((a, b) => {\n  const sa = combinedScore(a.json), sb = combinedScore(b.json);\n  if (sa !== sb) return sa - sb;\n  const ta = Date.parse(a.json.lastAnalysisAt || '') || 0;\n  const tb = Date.parse(b.json.lastAnalysisAt || '') || 0;\n  return ta - tb;\n}).slice(0, 1);\n"
       },
       "id": "f9a1b001-0000-4000-9000-000000000004",
       "name": "Sortiere Vorgaenge",
@@ -2313,5 +2345,5 @@
     "saveDataSuccessExecution": "all"
   },
   "tags": [],
-  "versionId": "b3c0079b-6987-42f4-bdea-b28ec950ab1c"
+  "versionId": "9dceb711-7380-4735-9978-262b6229de11"
 }
