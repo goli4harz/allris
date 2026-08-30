@@ -1,0 +1,1886 @@
+{
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hole alle Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole alle Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Filter Kandidaten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Kandidaten": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Vorgaenge": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Bereite Claim vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereite Claim vor": {
+      "main": [
+        [
+          {
+            "node": "Erwerbe Claim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Erwerbe Claim": {
+      "main": [
+        [
+          {
+            "node": "Nur bestaetigte Claims",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nur bestaetigte Claims": {
+      "main": [
+        [
+          {
+            "node": "HTTP Live-Post pruefen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Live-Post pruefen": {
+      "main": [
+        [
+          {
+            "node": "Werte Live-Post aus",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Werte Live-Post aus": {
+      "main": [
+        [
+          {
+            "node": "IF Post vorhanden?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Post vorhanden?": {
+      "main": [
+        [
+          {
+            "node": "HTTP Post loeschen",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Kontext vor DB-Reset",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Post loeschen": {
+      "main": [
+        [
+          {
+            "node": "Warte vor Bild-Loeschen (alt)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Warte vor Bild-Loeschen (alt)": {
+      "main": [
+        [
+          {
+            "node": "Kontext vor Bild-Loeschen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kontext vor Bild-Loeschen": {
+      "main": [
+        [
+          {
+            "node": "IF Altes Bild vorhanden?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Altes Bild vorhanden?": {
+      "main": [
+        [
+          {
+            "node": "HTTP Altes Bild loeschen",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Kontext vor DB-Reset",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Altes Bild loeschen": {
+      "main": [
+        [
+          {
+            "node": "Kontext vor DB-Reset",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kontext vor DB-Reset": {
+      "main": [
+        [
+          {
+            "node": "DB Felder zuruecksetzen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB Felder zuruecksetzen": {
+      "main": [
+        [
+          {
+            "node": "Baue Post-Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue Post-Body": {
+      "main": [
+        [
+          {
+            "node": "HTTP Suche WP Tags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Suche WP Tags": {
+      "main": [
+        [
+          {
+            "node": "Ermittle fehlende Tags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ermittle fehlende Tags": {
+      "main": [
+        [
+          {
+            "node": "Split fehlende Tags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split fehlende Tags": {
+      "main": [
+        [
+          {
+            "node": "HTTP Erstelle WP Tag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Erstelle WP Tag": {
+      "main": [
+        [
+          {
+            "node": "Baue finale Tag-Liste",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue finale Tag-Liste": {
+      "main": [
+        [
+          {
+            "node": "Suche Partei-Beitrag per Slug",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Suche Partei-Beitrag per Slug": {
+      "main": [
+        [
+          {
+            "node": "Bewerte Partei-Slug-Suche",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bewerte Partei-Slug-Suche": {
+      "main": [
+        [
+          {
+            "node": "IF Slug noch vorhanden?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Slug noch vorhanden?": {
+      "main": [
+        [
+          {
+            "node": "Markiere Slug-Konflikt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF Slug-Suche ok?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Markiere Slug-Konflikt": {
+      "main": [
+        [
+          {
+            "node": "DB Fehler speichern",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Slug-Suche ok?": {
+      "main": [
+        [
+          {
+            "node": "IF Bild vorhanden?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Markiere Slug-Suchfehler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Markiere Slug-Suchfehler": {
+      "main": [
+        [
+          {
+            "node": "DB Fehler speichern",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Bild vorhanden?": {
+      "main": [
+        [
+          {
+            "node": "NC Lade finales Bild",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create a post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Lade finales Bild": {
+      "main": [
+        [
+          {
+            "node": "Stelle Kontext nach Bildladen wieder her",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stelle Kontext nach Bildladen wieder her": {
+      "main": [
+        [
+          {
+            "node": "IF Bild erfolgreich geladen?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Bild erfolgreich geladen?": {
+      "main": [
+        [
+          {
+            "node": "Upload Media zu Partei-Webseite",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Markiere Bildladefehler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Markiere Bildladefehler": {
+      "main": [
+        [
+          {
+            "node": "DB Fehler speichern",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Media zu Partei-Webseite": {
+      "main": [
+        [
+          {
+            "node": "IF Upload hat Media-ID?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Upload hat Media-ID?": {
+      "main": [
+        [
+          {
+            "node": "Bestaetige Media-URL",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stelle Kontext nach Media-Upload wieder her",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bestaetige Media-URL": {
+      "main": [
+        [
+          {
+            "node": "Stelle Kontext nach Media-Upload wieder her",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stelle Kontext nach Media-Upload wieder her": {
+      "main": [
+        [
+          {
+            "node": "Create a post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a post": {
+      "main": [
+        [
+          {
+            "node": "Stelle Kontext nach Post-Erstellung wieder her",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stelle Kontext nach Post-Erstellung wieder her": {
+      "main": [
+        [
+          {
+            "node": "IF Post erfolgreich?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Post erfolgreich?": {
+      "main": [
+        [
+          {
+            "node": "DB Erfolg speichern",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "DB Fehler speichern",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB Erfolg speichern": {
+      "main": [
+        [
+          {
+            "node": "Naechster Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB Fehler speichern": {
+      "main": [
+        [
+          {
+            "node": "Naechster Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Naechster Vorgang": {
+      "main": [
+        [
+          {
+            "node": "Bereite Claim-Freigabe vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereite Claim-Freigabe vor": {
+      "main": [
+        [
+          {
+            "node": "Release Claim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Release Claim": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "kV048lIhxj2pigFp",
+  "meta": null,
+  "name": "ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "pr-0001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge"
+        },
+        "returnAll": true
+      },
+      "id": "pr-0002",
+      "name": "Hole alle Vorgaenge",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction safeBool(v) { return v === true || v === 'true'; }\n// Vollstaendiger Post+Bild-Ersatz (Nutzerentscheidung 2026-08-30, Ausbaustufe des vorherigen\n// reinen Backfill-Tools) - unconditional fuer JEDEN bereits auf diePARTEI veroeffentlichten\n// Vorgang mit einem echten aktuellen Bild, nicht nur bei fehlendem Beitragsbild.\nreturn $input.all().filter(item => {\n  const j = item.json || {};\n  if (!safeBool(j.wordpressGoslarPosted)) return false;\n  if (!safeStr(j.wordpressGoslarPostId)) return false;\n  if (!safeStr(j.imageFinalPath)) return false;\n  if (!safeStr(j.websiteArticle)) return false;\n  if (!safeStr(j.vorgangKey)) return false;\n  return true;\n});"
+      },
+      "id": "pr-0003",
+      "name": "Filter Kandidaten",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "pr-0004",
+      "name": "Loop Vorgaenge",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        660,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = Date.now();\nconst owner = `ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:${$execution.id}`;\nreturn items\n  .filter(item => {\n    const j = item.json || {};\n    const oldOwner = String(j.claim_owner || '').trim();\n    const expires = Date.parse(String(j.claim_expires_at || ''));\n    return !oldOwner || !Number.isFinite(expires) || expires <= now;\n  })\n  .map(item => ({ json: {\n    ...item.json,\n    claimAction: 'acquire',\n    claimOwner: owner,\n    claimStage: 'publication',\n    leaseMinutes: 30,\n    expectedClaimOwner: item.json.claim_owner ?? null,\n    expectedClaimExpiresAt: item.json.claim_expires_at ?? null\n  } }));"
+      },
+      "id": "pr-0005",
+      "name": "Bereite Claim vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D7cmBsy3exuOkBd9",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Claim_Lease"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "pr-0006",
+      "name": "Erwerbe Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1100,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.filter(item => item.json?.claimAcquired === true);"
+      },
+      "id": "pr-0007",
+      "name": "Nur bestaetigte Claims",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://die-partei.net/goslar/wp-json/wp/v2/posts/{{ $json.wordpressGoslarPostId }}?context=edit",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "pr-0008",
+      "name": "HTTP Live-Post pruefen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        -120
+      ],
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Nur bestaetigte Claims').itemMatching(idx).json;\nconst resp = $json || {};\nconst postExists = !!(resp && resp.id && !resp.error);\nconst oldFeaturedMedia = postExists ? Number(resp.featured_media || 0) : 0;\nreturn { json: { ...ctx, _postExists: postExists, _oldFeaturedMedia: oldFeaturedMedia } };"
+      },
+      "id": "pr-0009",
+      "name": "Werte Live-Post aus",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json._postExists }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "pr-0010",
+      "name": "IF Post vorhanden?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1980,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "=https://die-partei.net/goslar/wp-json/wp/v2/posts/{{ $json.wordpressGoslarPostId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "force",
+              "value": "true"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "pr-0011",
+      "name": "HTTP Post loeschen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2200,
+        -240
+      ],
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "amount": 1,
+        "unit": "seconds"
+      },
+      "id": "pr-0012",
+      "name": "Warte vor Bild-Loeschen (alt)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2420,
+        -240
+      ],
+      "webhookId": "bb04c08f-9289-489b-9f64-4587ba7275c7"
+    },
+    {
+      "parameters": {
+        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Werte Live-Post aus').itemMatching(idx).json;\nreturn { json: { ...ctx } };"
+      },
+      "id": "pr-0013b",
+      "name": "Kontext vor Bild-Loeschen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ Number($json._oldFeaturedMedia) }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "pr-0013",
+      "name": "IF Altes Bild vorhanden?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2860,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "=https://die-partei.net/goslar/wp-json/wp/v2/media/{{ $json._oldFeaturedMedia }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "force",
+              "value": "true"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "pr-0014",
+      "name": "HTTP Altes Bild loeschen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3080,
+        -320
+      ],
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Werte Live-Post aus').itemMatching(idx).json;\nreturn { json: { ...ctx } };"
+      },
+      "id": "pr-0015pre",
+      "name": "Kontext vor DB-Reset",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3300,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "wordpressGoslarPosted": "={{ false }}",
+            "wordpressGoslarPostId": "",
+            "wordpressGoslarPostLink": "",
+            "wordpressGoslarDraftId": "",
+            "wordpressGoslarImageUrl": "",
+            "wordpressGoslarError": ""
+          },
+          "schema": [
+            {
+              "id": "wordpressGoslarPosted",
+              "displayName": "wordpressGoslarPosted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wordpressGoslarPostId",
+              "displayName": "wordpressGoslarPostId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wordpressGoslarPostLink",
+              "displayName": "wordpressGoslarPostLink",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wordpressGoslarDraftId",
+              "displayName": "wordpressGoslarDraftId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wordpressGoslarImageUrl",
+              "displayName": "wordpressGoslarImageUrl",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wordpressGoslarError",
+              "displayName": "wordpressGoslarError",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "pr-0015",
+      "name": "DB Felder zuruecksetzen",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3520,
+        -120
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction esc(v) { return safeStr(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }\nfunction slugify(v) {\n  return safeStr(v).toLowerCase()\n    .replace(/[ä]/g,'ae').replace(/[ö]/g,'oe').replace(/[ü]/g,'ue').replace(/[ß]/g,'ss')\n    .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').substring(0,80);\n}\nfunction uniqueTags(tags) {\n  return Array.from(new Set(\n    tags.map(t => safeStr(t)).filter(Boolean).filter(t => t.length <= 50)\n  ));\n}\nfunction topicTagsFromText(text) {\n  const t = String(text || '').toLowerCase();\n  const tags = [];\n  function hasAny(words) { return words.some(w => t.indexOf(String(w).toLowerCase()) !== -1); }\n  if (hasAny(['bus','stadtbus','linie','liniennetz','haltestelle','oepnv','öpnv','fahrplan','verkehr','umleitung','sperrung','radweg','parkplatz'])) tags.push('Verkehr','ÖPNV');\n  if (hasAny(['bauschutt','baustelle','bauzaun','abbruch','abriss','baustellensicherheit','absperrung'])) tags.push('Baustelle','Sicherheit');\n  if (hasAny(['stadtbus','haltestelle','fahrgast','fahrgäste','linienfuehrung','schuljahresbeginn'])) tags.push('Stadtbus');\n  if (hasAny(['denkmalschutz','altstadt','unesco','welterbe','denkmal','sanierung','historisch'])) tags.push('Altstadt','Denkmalschutz','UNESCO');\n  if (hasAny(['haushalt','kosten','finanz','haushaltsmittel','foerderung','investition','gebühr','zuschuss'])) tags.push('Haushalt','Finanzen','Kosten');\n  if (hasAny(['schule','schüler','schülerinnen','kita','kindergarten','bildung','jugend','schulweg'])) tags.push('Schule','Bildung');\n  if (hasAny(['mülleimer','papierkorb','abfall','bänke','bank','sitzbank','stadtbild','aufenthaltsqualität','innenstadt','standort'])) tags.push('Stadtbild','Aufenthaltsqualität');\n  if (hasAny(['digitalisierung','software','open source','verwaltung','transparenz','daten','portal','online','it'])) tags.push('Verwaltung','Digitalisierung','Transparenz');\n  if (hasAny(['energie','wärme','wärmeplanung','klima','klimaschutz','heizung','wärmenetz','fernwärme'])) tags.push('Energie','Wärmeplanung','Klimaschutz');\n  if (hasAny(['barriere','barrierefreiheit','inklusion','teilhabe','behinderung','senioren','ältere menschen'])) tags.push('Barrierefreiheit','Inklusion');\n  if (hasAny(['wahl','wahlwerbung','plakat','plakate','sondernutzung','wahlvorschlag','kandidierende','einzelbewerbung','chancengleichheit'])) tags.push('Wahl','Wahlwerbung','Chancengleichheit');\n  return tags;\n}\nconst ALWAYS_TAGS = ['Goslar', 'MeinGoslar', 'UnserKlüngelKannMehr'];\n\nconst j = $json;\nconst title = safeStr(j.websiteHeadline) || (safeStr(j.vorgangsnummer) + ' - ' + safeStr(j.title));\nconst paragraphs = safeStr(j.websiteArticle).split(/\\n\\s*\\n/).filter(Boolean).map(p => '<p>' + esc(p).replace(/\\n/g, '<br>') + '</p>').join('\\n');\nconst footer = '<p><em>Vorgangsnummer: ' + esc(j.vorgangsnummer) + ' | <a href=\"' + esc(j.allrisUrl) + '\">Original bei ALLRIS</a></em></p>';\nconst content = paragraphs + '\\n' + footer;\nconst slug = slugify(safeStr(j.vorgangsnummer) + ' ' + title);\nconst hasImage = !!safeStr(j.imageFinalPath);\n\nconst combinedTagText = [title, j.vorgangsnummer, j.thema, j.betroffene, j.kostenHaushalt, j.buergerwirkung, j.websiteArticle].map(safeStr).join(' ');\nconst wpTags = uniqueTags([...ALWAYS_TAGS, ...topicTagsFromText(combinedTagText), ...(j.fachdienst ? [j.fachdienst] : [])]);\n\nreturn {\n  json: {\n    ...j,\n    wpTitle: title,\n    wpContent: content,\n    wpSlug: slug,\n    hasImage: hasImage,\n    wpTags: wpTags\n  }\n};"
+      },
+      "id": "pr-0016",
+      "name": "Baue Post-Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3740,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://die-partei.net/goslar/wp-json/wp/v2/tags",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "per_page",
+              "value": "100"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "pr-0017",
+      "name": "HTTP Suche WP Tags",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3960,
+        -120
+      ],
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const current = $('Baue Post-Body').first().json;\nconst wpTags = Array.isArray(current.wpTags) ? current.wpTags : [];\n\nfunction norm(v) { return String(v || '').trim().toLowerCase(); }\n\nconst rawExisting = $input.all().map(i => i.json);\nlet existingList = rawExisting;\nif (rawExisting.length === 1 && Array.isArray(rawExisting[0])) {\n  existingList = rawExisting[0];\n}\n\nconst existingByName = new Map();\nfor (const t of existingList) {\n  if (t && t.name) existingByName.set(norm(t.name), t.id);\n}\n\nconst resolvedTagIds = [];\nconst missingTagNames = [];\nconst seen = new Set();\n\nfor (const rawName of wpTags) {\n  const name = String(rawName || '').trim();\n  if (!name) continue;\n  const n = norm(name);\n  if (seen.has(n)) continue;\n  seen.add(n);\n  if (existingByName.has(n)) {\n    resolvedTagIds.push(existingByName.get(n));\n  } else {\n    missingTagNames.push(name);\n  }\n}\n\nreturn [{\n  json: {\n    ...current,\n    resolvedTagIds,\n    missingTagNames\n  }\n}];"
+      },
+      "id": "pr-0018",
+      "name": "Ermittle fehlende Tags",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4180,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const current = $input.first().json;\nconst missing = Array.isArray(current.missingTagNames) ? current.missingTagNames : [];\n\nif (missing.length === 0) {\n  return [{ json: { tagName: '', isSentinel: true } }];\n}\n\nreturn missing.map(name => ({ json: { tagName: name, isSentinel: false } }));"
+      },
+      "id": "pr-0019",
+      "name": "Split fehlende Tags",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4400,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://die-partei.net/goslar/wp-json/wp/v2/tags",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ name: $json.tagName }) }}",
+        "options": {}
+      },
+      "id": "pr-0020",
+      "name": "HTTP Erstelle WP Tag",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4620,
+        -120
+      ],
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const original = $('Ermittle fehlende Tags').first().json;\nconst resolvedTagIds = Array.isArray(original.resolvedTagIds) ? original.resolvedTagIds : [];\n\nfunction extractTagId(j) {\n  if (!j) return null;\n  if (j.id) return j.id;\n  if (j.body && j.body.id) return j.body.id;\n  if (j.data && j.data.term_id) return j.data.term_id;\n  if (j.error && j.error.data && j.error.data.term_id) return j.error.data.term_id;\n  return null;\n}\n\nconst newTagIds = [];\nfor (const item of $input.all()) {\n  const id = extractTagId(item.json || {});\n  if (id) newTagIds.push(id);\n}\n\nreturn [{\n  json: {\n    ...original,\n    wordpressTagIds: [...new Set([...resolvedTagIds, ...newTagIds])]\n  }\n}];"
+      },
+      "id": "pr-0021",
+      "name": "Baue finale Tag-Liste",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4840,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://die-partei.net/goslar/wp-json/wp/v2/posts",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "slug",
+              "value": "={{ $json.wpSlug }}"
+            },
+            {
+              "name": "status",
+              "value": "any"
+            },
+            {
+              "name": "per_page",
+              "value": "1"
+            },
+            {
+              "name": "context",
+              "value": "edit"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "pr-0022",
+      "name": "Suche Partei-Beitrag per Slug",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5060,
+        -120
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const idx = $itemIndex;\nconst original = $('Baue finale Tag-Liste').itemMatching(idx).json;\nconst responses = $input.all().map(item => item.json || {});\n\nfunction safe(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction isLookupError(j) {\n  return Boolean(j.error || j.name === 'NodeApiError' || Number(j.statusCode || j.status || 0) >= 400);\n}\n\nconst lookupError = responses.find(isLookupError);\nconst expectedSlug = safe(original.wpSlug);\nconst existingPost = responses.find(j =>\n  !isLookupError(j) && Boolean(j.id) && safe(j.slug) === expectedSlug\n);\nconst lookupErrorMessage = lookupError\n  ? (safe(lookupError.error?.message) || safe(lookupError.message) || 'WordPress-Slug-Suche der Partei-Webseite fehlgeschlagen.')\n  : '';\n\nreturn [{\n  json: {\n    ...original,\n    _partySlugExists: Boolean(existingPost),\n    _partySlugLookupOk: !lookupError,\n    _existingId: existingPost?.id || '',\n    _existingLink: existingPost?.link || '',\n    error: lookupError ? { message: lookupErrorMessage } : undefined\n  }\n}];"
+      },
+      "id": "pr-0023",
+      "name": "Bewerte Partei-Slug-Suche",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5280,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json._partySlugExists }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "pr-0024",
+      "name": "IF Slug noch vorhanden?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        5500,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $json;\nreturn { json: { ...j, wpPostSuccess: false, wpPostError: 'Slug existiert nach Loeschversuch weiterhin (id ' + j._existingId + ') - Neuanlage sicherheitshalber uebersprungen, manuell pruefen.', wpPostId: null, wpPostLink: '' } };"
+      },
+      "id": "pr-0024b",
+      "name": "Markiere Slug-Konflikt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5720,
+        -280
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json._partySlugLookupOk }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "pr-0025",
+      "name": "IF Slug-Suche ok?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        5720,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $json;\nreturn { json: { ...j, wpPostSuccess: false, wpPostError: 'Slug-Suche fehlgeschlagen: ' + (j.error?.message || 'unbekannt'), wpPostId: null, wpPostLink: '' } };"
+      },
+      "id": "pr-0025b",
+      "name": "Markiere Slug-Suchfehler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5940,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "has-image",
+              "leftValue": "={{ $json.hasImage }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "pr-0026",
+      "name": "IF Bild vorhanden?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        5940,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "path": "={{ $json.imageFinalPath }}"
+      },
+      "id": "pr-0027",
+      "name": "NC Lade finales Bild",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [
+        6160,
+        -240
+      ],
+      "retryOnFail": true,
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const idx = $itemIndex;\nconst original = $('IF Bild vorhanden?').itemMatching(idx).json;\nconst item = $input.item;\nconst downloadResult = item.json;\nconst error = downloadResult && downloadResult.error ? downloadResult.error : undefined;\nreturn { json: { ...original, error }, binary: item.binary };"
+      },
+      "id": "pr-0028",
+      "name": "Stelle Kontext nach Bildladen wieder her",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6380,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "imgok1",
+              "leftValue": "={{ !$json.error }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "pr-0029",
+      "name": "IF Bild erfolgreich geladen?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        6600,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://die-partei.net/goslar/wp-json/wp/v2/media",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Disposition",
+              "value": "={{ 'attachment; filename=\"' + ($json.vorgangKey || 'sharepic') + '.' + (((($json.imageFinalPath || '').split('.').pop()) || 'png')) + '\"' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "data",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "pr-0030",
+      "name": "Upload Media zu Partei-Webseite",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        6820,
+        -340
+      ],
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ String($json.id || '') }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "pr-0031",
+      "name": "IF Upload hat Media-ID?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        7040,
+        -340
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://die-partei.net/goslar/wp-json/wp/v2/media/{{ $json.id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "pr-0032",
+      "name": "Bestaetige Media-URL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        7260,
+        -400
+      ],
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const idx = $itemIndex;\nconst original = $('Baue Post-Body').itemMatching(idx).json;\nconst uploadResult = $('Upload Media zu Partei-Webseite').itemMatching(idx).json;\nconst confirmResult = $json;\nfunction extractErrorText(v) {\n  if (!v) return '';\n  if (typeof v === 'string') return v;\n  if (typeof v === 'object') return String(v.message || v.description || v.error || JSON.stringify(v));\n  return String(v);\n}\nconst mediaId = uploadResult && uploadResult.id ? uploadResult.id : null;\nconst mediaUrl = (confirmResult && confirmResult.source_url)\n  || (confirmResult && confirmResult.guid && confirmResult.guid.rendered)\n  || (uploadResult && uploadResult.source_url)\n  || (uploadResult && uploadResult.guid && uploadResult.guid.rendered)\n  || null;\nconst mediaUploadError = mediaId ? '' : (\n  extractErrorText(uploadResult && uploadResult.error) ||\n  extractErrorText(uploadResult && uploadResult.message) ||\n  'Medien-Upload zur Partei-Webseite lieferte keine Media-ID (Ursache unbekannt).'\n);\nreturn { json: { ...original, wpFeaturedMediaId: mediaId, wpFeaturedMediaUrl: mediaUrl, wpMediaUploadError: mediaUploadError } };"
+      },
+      "id": "pr-0033",
+      "name": "Stelle Kontext nach Media-Upload wieder her",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7480,
+        -340
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://die-partei.net/goslar/wp-json/wp/v2/posts",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ title: $json.wpTitle, content: ($json.wpFeaturedMediaUrl ? '<img src=\"' + $json.wpFeaturedMediaUrl + '\" alt=\"\" style=\"max-width:100%;height:auto;\" />\\n\\n' : '') + $json.wpContent, slug: $json.wpSlug, status: 'publish', featured_media: $json.wpFeaturedMediaId || 0, tags: $json.wordpressTagIds || [] }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "pr-0034",
+      "name": "Create a post",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        7700,
+        -120
+      ],
+      "credentials": {
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const idx = $itemIndex;\nconst original = $('Baue Post-Body').itemMatching(idx).json;\nlet mediaContext = {};\ntry {\n  mediaContext = $('Stelle Kontext nach Media-Upload wieder her').itemMatching(idx).json || {};\n} catch (e) {\n  mediaContext = {};\n}\nconst resp = $json || {};\nconst postId = resp.id || resp.data?.id || null;\nconst postLink = resp.link || resp.data?.link || '';\nconst postError = resp.error?.message || resp.error || resp.message || '';\nreturn {\n  json: {\n    ...original,\n    wpFeaturedMediaId: mediaContext.wpFeaturedMediaId ?? original.wpFeaturedMediaId ?? null,\n    wpFeaturedMediaUrl: mediaContext.wpFeaturedMediaUrl ?? original.wpFeaturedMediaUrl ?? '',\n    wpMediaUploadError: mediaContext.wpMediaUploadError ?? original.wpMediaUploadError ?? '',\n    wpPostId: postId,\n    wpPostLink: postLink,\n    wpPostSuccess: !postError && !!postId,\n    wpPostError: postError ? String(postError) : ''\n  }\n};"
+      },
+      "id": "pr-0035",
+      "name": "Stelle Kontext nach Post-Erstellung wieder her",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7920,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ok",
+              "leftValue": "={{ $json.wpPostSuccess }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "pr-0036",
+      "name": "IF Post erfolgreich?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        8140,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "wordpressGoslarPosted": "={{ true }}",
+            "wordpressGoslarPostedAt": "={{ $now.toISO() }}",
+            "wordpressGoslarPostId": "={{ $json.wpPostId }}",
+            "wordpressGoslarPostLink": "={{ $json.wpPostLink }}",
+            "wordpressGoslarImageUrl": "={{ $json.wpFeaturedMediaUrl || '' }}",
+            "wordpressGoslarError": "={{ $json.wpMediaUploadError || '' }}",
+            "wordpressGoslarDraftId": "",
+            "last_error_code": "",
+            "last_error_message": "",
+            "last_error_stage": "",
+            "last_error_at": "",
+            "retry_count": "={{ 0 }}",
+            "next_retry_at": ""
+          },
+          "schema": [
+            {
+              "id": "wordpressGoslarPosted",
+              "displayName": "wordpressGoslarPosted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wordpressGoslarPostedAt",
+              "displayName": "wordpressGoslarPostedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wordpressGoslarPostId",
+              "displayName": "wordpressGoslarPostId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wordpressGoslarPostLink",
+              "displayName": "wordpressGoslarPostLink",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wordpressGoslarImageUrl",
+              "displayName": "wordpressGoslarImageUrl",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wordpressGoslarError",
+              "displayName": "wordpressGoslarError",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wordpressGoslarDraftId",
+              "displayName": "wordpressGoslarDraftId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "last_error_code",
+              "displayName": "last_error_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "last_error_message",
+              "displayName": "last_error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "last_error_stage",
+              "displayName": "last_error_stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "last_error_at",
+              "displayName": "last_error_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "retry_count",
+              "displayName": "retry_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "next_retry_at",
+              "displayName": "next_retry_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "pr-0037",
+      "name": "DB Erfolg speichern",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        8360,
+        -220
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "wordpressGoslarError": "={{ String($json.wpPostError || '').slice(0, 500) }}",
+            "last_error_code": "WORDPRESS_REPLACE_FAILED",
+            "last_error_message": "={{ String($json.wpPostError || 'Post-Neuanlage nach Loeschung fehlgeschlagen').slice(0, 4000) }}",
+            "last_error_stage": "publication",
+            "last_error_at": "={{ $now.toISO() }}"
+          },
+          "schema": [
+            {
+              "id": "wordpressGoslarError",
+              "displayName": "wordpressGoslarError",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "last_error_code",
+              "displayName": "last_error_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "last_error_message",
+              "displayName": "last_error_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "last_error_stage",
+              "displayName": "last_error_stage",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "last_error_at",
+              "displayName": "last_error_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "pr-0038",
+      "name": "DB Fehler speichern",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        8360,
+        -20
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $input.item.json }];"
+      },
+      "id": "pr-0039",
+      "name": "Naechster Vorgang",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8580,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const vorgangKey = String($json.vorgangKey || '').trim();\nconst id = $json.id;\nif (!vorgangKey) throw new Error('[Claim Release] vorgangKey fehlt.');\nif (!id) throw new Error('[Claim Release] id fehlt.');\nreturn [{ json: { id, vorgangKey, claimAction: 'release', claimOwner: `ALLRIS_Einmalig_WordPressGoslar_Post_Bild_Ersetzen:${$execution.id}` } }];"
+      },
+      "id": "pr-0040",
+      "name": "Bereite Claim-Freigabe vor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8800,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D7cmBsy3exuOkBd9",
+          "mode": "list",
+          "cachedResultName": "ALLRIS_Claim_Lease"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "pr-0041",
+      "name": "Release Claim",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        9020,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const idx = $itemIndex;\nconst ctx = $('Stelle Kontext nach Bildladen wieder her').itemMatching(idx).json;\nreturn { json: { ...ctx, wpPostError: 'Bild-Download fehlgeschlagen: ' + JSON.stringify(ctx.error || {}).slice(0,300) } };"
+      },
+      "id": "pr-0042",
+      "name": "Markiere Bildladefehler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6820,
+        -60
+      ]
+    }
+  ],
+  "pinData": null,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "versionId": "e1e1d4b8-388b-497c-8225-ee15e7dda8be"
+}
