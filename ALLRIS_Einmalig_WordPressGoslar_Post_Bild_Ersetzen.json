@@ -649,7 +649,7 @@
     },
     {
       "parameters": {
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction safeBool(v) { return v === true || v === 'true'; }\n// Vollstaendiger Post+Bild-Ersatz (Nutzerentscheidung 2026-08-30, Ausbaustufe des vorherigen\n// reinen Backfill-Tools) - unconditional fuer JEDEN bereits auf diePARTEI veroeffentlichten\n// Vorgang mit einem echten aktuellen Bild, nicht nur bei fehlendem Beitragsbild.\nreturn $input.all().filter(item => {\n  const j = item.json || {};\n  if (!safeBool(j.wordpressGoslarPosted)) return false;\n  if (!safeStr(j.wordpressGoslarPostId)) return false;\n  if (!safeStr(j.imageFinalPath)) return false;\n  if (!safeStr(j.websiteArticle)) return false;\n  if (!safeStr(j.vorgangKey)) return false;\n  return true;\n});"
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction safeBool(v) { return v === true || v === 'true'; }\n// Vollstaendiger Post+Bild-Ersatz (Nutzerentscheidung 2026-08-30, Ausbaustufe des vorherigen\n// reinen Backfill-Tools) - unconditional fuer JEDEN bereits auf diePARTEI veroeffentlichten\n// Vorgang mit einem echten aktuellen Bild, nicht nur bei fehlendem Beitragsbild.\n// FIX 2026-08-30: wordpressGoslarReplacedAt ausschliessen, sonst bearbeitet jeder Lauf\n// dieselben bereits erledigten Kandidaten erneut, statt bei den noch offenen weiterzumachen.\nreturn $input.all().filter(item => {\n  const j = item.json || {};\n  if (safeStr(j.wordpressGoslarReplacedAt)) return false;\n  if (!safeBool(j.wordpressGoslarPosted)) return false;\n  if (!safeStr(j.wordpressGoslarPostId)) return false;\n  if (!safeStr(j.imageFinalPath)) return false;\n  if (!safeStr(j.websiteArticle)) return false;\n  if (!safeStr(j.vorgangKey)) return false;\n  return true;\n});"
       },
       "id": "pr-0003",
       "name": "Filter Kandidaten",
@@ -1621,7 +1621,8 @@
             "last_error_stage": "",
             "last_error_at": "",
             "retry_count": "={{ 0 }}",
-            "next_retry_at": ""
+            "next_retry_at": "",
+            "wordpressGoslarReplacedAt": "={{ $now.toISO() }}"
           },
           "schema": [
             {
@@ -1747,6 +1748,16 @@
             {
               "id": "next_retry_at",
               "displayName": "next_retry_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "wordpressGoslarReplacedAt",
+              "displayName": "wordpressGoslarReplacedAt",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -2007,5 +2018,5 @@
     "binaryMode": "separate"
   },
   "tags": [],
-  "versionId": "4ac6b358-fbfe-40ad-a02d-c1bc22882c44"
+  "versionId": "0585d074-d8b2-4d97-b646-0c5cd954a54b"
 }
