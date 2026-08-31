@@ -1,5 +1,33 @@
 # ALLRIS
 
+## Was ist das – und was bringt es mir?
+
+**Kurz gesagt:** Diese Software beobachtet automatisch das Goslarer Ratsinformationssystem (ALLRIS) und macht aus neuen politischen Vorgängen – Anträgen, Anfragen, Mitteilungen der Verwaltung – automatisch fertige, satirische Social-Media-Beiträge samt passendem Bild. Ohne dass jemand manuell Ratsdokumente durchforsten oder Beiträge von Hand schreiben muss.
+
+Diese Dokumentation richtet sich zunächst an Sie als kommunalpolitisch Aktive, die wissen wollen, was das Werkzeug bringt – nicht an Techniker. Der technische Teil weiter unten ist für die Wartung gedacht und kann übersprungen werden.
+
+### Was das konkret für Sie bedeutet
+
+- **Sie verpassen nichts mehr.** Jeder neue Vorgang im Ratsinformationssystem wird automatisch erkannt – auch dann, wenn gerade niemand Zeit hatte, selbst nachzuschauen.
+- **Kein manuelles Wälzen von Sitzungsunterlagen.** Die Software liest die oft langen, sperrigen Verwaltungsdokumente, fasst sie zusammen und bewertet, ob ein Vorgang politisch relevant und öffentlichkeitswirksam ist.
+- **Fertige Social-Media-Beiträge, ohne dass jemand am Schreibtisch sitzen muss.** Website-Artikel sowie Facebook-, Instagram- und Mastodon-Beiträge werden inklusive Bild automatisch erstellt und veröffentlicht – im typischen, satirischen Ton der PARTEI.
+- **Kontinuierliche Präsenz ohne Mehraufwand.** Statt „wir posten, wenn mal wieder wer Zeit findet" gibt es einen verlässlichen, mehrmals täglich laufenden Automatismus.
+- **Der Mensch bleibt an den wichtigen Stellen im Boot.** Bei der Auswahl der besten Schlagzeile für ein Sharepic wird kurz per Chat-Umfrage nachgefragt – kein Beitrag geht ganz ohne redaktionelle Kontrolle raus.
+- **Mehr Zeit für echte politische Arbeit.** Der Zeitaufwand, der sonst für Social-Media-Redaktion draufgeht, entfällt weitgehend.
+
+### Wie das grob funktioniert (ohne Technik-Details)
+
+1. Die Software schaut regelmäßig ins Ratsinformationssystem und merkt sich neue Vorgänge.
+2. Zugehörige Dokumente werden automatisch geladen und ausgewertet.
+3. Eine KI entscheidet, ob ein Vorgang interessant genug für eine öffentliche Reaktion ist.
+4. Für relevante Vorgänge werden automatisch Texte für Website, Facebook, Instagram und Mastodon geschrieben.
+5. Falls ein Bild (Sharepic) sinnvoll ist, wird passendes Bildmaterial automatisch erzeugt – die beste Schlagzeile dafür wird kurz per Chat abgefragt.
+6. Alles wird zeitversetzt und automatisch veröffentlicht.
+
+Für alles Weitere – wie das im Detail technisch aufgebaut ist – richtet sich der Rest dieser Dokumentation an Personen, die das System warten oder weiterentwickeln.
+
+## Technische Dokumentation
+
 n8n-Automatisierungspipeline für DIE PARTEI Kreisverband Goslar. Überwacht das Goslarer Ratsinformationssystem ALLRIS, bewertet neue Vorgänge, und generiert daraus automatisiert satirische Social-Media-Inhalte und Sharepics.
 
 ## Produktions-Pipeline (P1–P9 + P3b/P3c/P3d/P3e + P8b)
