@@ -846,7 +846,8 @@
             "stammVorgangsnummer": "={{ $json.stammVorgangsnummer || $json.vorgangsnummer || '' }}",
             "folgeNummer": "={{ $json.folgeNummer || '' }}",
             "istFolgevorgang": "={{ $json.istFolgevorgang === true }}",
-            "vorlageDatumWeb": "={{ $json.vorlageDatumWeb || '' }}"
+            "vorlageDatumWeb": "={{ $json.vorlageDatumWeb || '' }}",
+            "claim_version": 0
           },
           "matchingColumns": [],
           "schema": [
@@ -1974,7 +1975,8 @@
             "vorfilterKeywords": "={{ JSON.stringify([]) }}",
             "documentsJson": "={{ JSON.stringify([]) }}",
             "documentCount": "={{ 0 }}",
-            "combinedText": "(Vorgangsseite konnte nicht geladen werden)"
+            "combinedText": "(Vorgangsseite konnte nicht geladen werden)",
+            "claim_version": 0
           },
           "schema": [
             {
@@ -2508,5 +2510,5 @@
     "saveDataSuccessExecution": "all"
   },
   "tags": [],
-  "versionId": "e486aab0-75a4-42e2-a43e-f1c3f303e496"
+  "versionId": "ff50b312-bad9-47e0-ae70-90b43c5950f8"
 }
