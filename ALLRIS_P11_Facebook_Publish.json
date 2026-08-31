@@ -2286,7 +2286,8 @@
     "timeSavedMode": "fixed",
     "saveDataSuccessExecution": "all",
     "callerPolicy": "workflowsFromSameOwner",
-    "availableInMCP": false
+    "availableInMCP": false,
+    "errorWorkflow": "qPheJKPv0k06tkro"
   },
   "tags": [],
   "versionId": "7ac6d992-f743-4b8e-a01a-f92be90d1d24"
