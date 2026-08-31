@@ -1755,7 +1755,7 @@
       "credentials": {
         "httpHeaderAuth": {
           "id": "od1pN1F5wy2irSDs",
-          "name": "Header Auth account"
+          "name": "Matrix Auth account"
         }
       },
       "continueOnFail": true,
@@ -1998,7 +1998,8 @@
           "id": "jlZlwASXZbJyNpfA",
           "name": "NextCloud account"
         }
-      }
+      },
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -3478,7 +3479,7 @@
       "credentials": {
         "httpHeaderAuth": {
           "id": "od1pN1F5wy2irSDs",
-          "name": "Header Auth account"
+          "name": "Matrix Auth account"
         }
       },
       "continueOnFail": true,
@@ -3969,8 +3970,10 @@
   "pinData": {},
   "settings": {
     "executionOrder": "v1",
-    "errorWorkflow": "qPheJKPv0k06tkro"
+    "binaryMode": "separate",
+    "errorWorkflow": "qPheJKPv0k06tkro",
+    "saveDataSuccessExecution": "all"
   },
   "tags": [],
-  "versionId": "f5033c90-694d-4b42-a080-fa97aa9b051a"
+  "versionId": "24e5fff9-9cdd-431d-9607-b2fe463dd90c"
 }
