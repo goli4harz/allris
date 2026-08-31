@@ -101,7 +101,7 @@
       "main": [
         [
           {
-            "node": "Erwerbe Claim CAS",
+            "node": "IF Reclaim (vorheriger Owner vorhanden)?",
             "type": "main",
             "index": 0
           }
@@ -131,6 +131,35 @@
         [
           {
             "node": "Loop Claims (1 pro Durchlauf)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Reclaim (vorheriger Owner vorhanden)?": {
+      "main": [
+        [
+          {
+            "node": "Erwerbe Claim CAS (Reclaim)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Erwerbe Claim CAS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Erwerbe Claim CAS (Reclaim)": {
+      "main": [
+        [
+          {
+            "node": "Bestaetige Claim",
             "type": "main",
             "index": 0
           }
@@ -407,6 +436,86 @@
       "position": [
         1792,
         600
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c3d4e5f6-9001-4c3d-8e4f-000000000021",
+              "leftValue": "={{ $json._currentOwner }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c3d4e5f6-9002-4c3d-8e4f-000000000022",
+      "name": "IF Reclaim (vorheriger Owner vorhanden)?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1536,
+        650
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.id }}"
+            },
+            {
+              "keyName": "claim_owner",
+              "keyValue": "={{ $json._currentOwner }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "claim_owner": "={{ $json.claimOwner }}",
+            "claim_stage": "={{ $json.claimStage }}",
+            "claim_acquired_at": "={{ $json.claimAcquiredAt }}",
+            "claim_expires_at": "={{ $json.claimExpiresAt }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "c3d4e5f6-9003-4c3d-8e4f-000000000023",
+      "name": "Erwerbe Claim CAS (Reclaim)",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1792,
+        650
       ]
     }
   ],

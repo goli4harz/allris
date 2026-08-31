@@ -407,7 +407,7 @@
         "filters": {
           "conditions": [
             {
-              "keyName": "vorgangKey",
+              "keyName": "id",
               "keyValue": "={{ $('Bereite Test-Claim vor').item.json.id }}"
             }
           ]
@@ -514,7 +514,7 @@
         "filters": {
           "conditions": [
             {
-              "keyName": "vorgangKey",
+              "keyName": "id",
               "keyValue": "={{ $('Bereite Test-Claim vor').item.json.id }}"
             }
           ]

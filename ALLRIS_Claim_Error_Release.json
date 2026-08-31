@@ -122,6 +122,10 @@
             {
               "keyName": "id",
               "keyValue": "={{ $json.id }}"
+            },
+            {
+              "keyName": "claim_owner",
+              "keyValue": "={{ $('Baue Owner-String').item.json.ownerString }}"
             }
           ]
         },
