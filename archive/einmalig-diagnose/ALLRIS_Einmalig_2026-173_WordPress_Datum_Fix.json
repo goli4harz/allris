@@ -80,7 +80,9 @@
             "vorlageDatum": "2026-05-22",
             "vorlageDatumPdf": "2026-05-22"
           },
-          "matchingColumns": ["vorgangKey"],
+          "matchingColumns": [
+            "vorgangKey"
+          ],
           "schema": []
         },
         "options": {}
@@ -100,5 +102,5 @@
     "executionOrder": "v1"
   },
   "tags": [],
-  "versionId": "1e4266c6-dc1f-4779-9cd6-6e34fb473763"
+  "versionId": "3671a6e3-0de3-4b04-84a2-39ada778175a"
 }

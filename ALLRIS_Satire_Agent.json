@@ -1,4 +1,5 @@
 {
+  "active": true,
   "connections": {
     "Execute Workflow Trigger": {
       "main": [
@@ -55,6 +56,10 @@
         ]
       ]
     }
+  },
+  "id": "NO17q38BeKyS25LY",
+  "meta": {
+    "templateCredsSetupCompleted": true
   },
   "name": "ALLRIS_Satire_Agent",
   "nodes": [
@@ -203,6 +208,9 @@
   "pinData": {},
   "settings": {
     "executionOrder": "v1",
-    "binaryMode": "separate"
-  }
+    "binaryMode": "separate",
+    "saveDataSuccessExecution": "all"
+  },
+  "tags": [],
+  "versionId": "977970d8-38ed-417a-8f79-503b5e3ea467"
 }

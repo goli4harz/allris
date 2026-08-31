@@ -268,7 +268,7 @@
       "credentials": {
         "httpHeaderAuth": {
           "id": "od1pN1F5wy2irSDs",
-          "name": "Header Auth account"
+          "name": "Matrix Auth account"
         }
       },
       "onError": "continueRegularOutput"
@@ -377,7 +377,9 @@
             "claim_acquired_at": "={{ $json.claimAcquiredAt }}",
             "claim_expires_at": "={{ $json.claimExpiresAt }}"
           },
-          "matchingColumns": ["id"],
+          "matchingColumns": [
+            "id"
+          ],
           "schema": []
         },
         "options": {}
@@ -448,7 +450,8 @@
         2048,
         496
       ],
-      "notes": "Doppelclaim-Test: waehrend dieses Fensters denselben Manual Trigger ein zweites Mal starten. Der zweite Lauf darf den fremden Owner nicht bestaetigen."
+      "notes": "Doppelclaim-Test: waehrend dieses Fensters denselben Manual Trigger ein zweites Mal starten. Der zweite Lauf darf den fremden Owner nicht bestaetigen.",
+      "webhookId": "86526eed-63bd-4f22-b507-6c574c003291"
     },
     {
       "parameters": {
@@ -481,7 +484,9 @@
             "claim_acquired_at": null,
             "claim_expires_at": null
           },
-          "matchingColumns": ["id"],
+          "matchingColumns": [
+            "id"
+          ],
           "schema": []
         },
         "options": {}
@@ -540,11 +545,10 @@
       ]
     }
   ],
-  "pinData": {},
+  "pinData": null,
   "settings": {
-    "executionOrder": "v1",
-    "binaryMode": "separate"
+    "executionOrder": "v1"
   },
   "tags": [],
-  "versionId": "39fc3e23-a255-46b9-a063-e6a4efe5e1b3"
+  "versionId": "312b25bc-dfc5-47f5-9875-23a79051a51c"
 }

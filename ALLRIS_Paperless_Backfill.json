@@ -2584,12 +2584,12 @@
     "executionOrder": "v1",
     "binaryMode": "separate",
     "timeSavedMode": "fixed",
-    "saveManualExecutions": false,
     "callerPolicy": "workflowsFromSameOwner",
     "availableInMCP": false,
-    "saveDataSuccessExecution": "none",
-    "errorWorkflow": "qPheJKPv0k06tkro"
+    "saveDataSuccessExecution": "all",
+    "errorWorkflow": "qPheJKPv0k06tkro",
+    "saveManualExecutions": false
   },
   "tags": [],
-  "versionId": "c2225496-692f-4436-8e00-baf790e6d381"
+  "versionId": "0a15984a-5fca-46cd-948e-765b45723d88"
 }

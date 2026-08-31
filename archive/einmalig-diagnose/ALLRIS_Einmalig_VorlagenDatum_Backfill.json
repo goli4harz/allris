@@ -1,4 +1,42 @@
 {
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hole alle Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole alle Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Extrahiere Vorlagen-Metadaten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrahiere Vorlagen-Metadaten": {
+      "main": [
+        [
+          {
+            "node": "Schreibe Vorlagen-Metadaten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "LMcagLutNTA2QwCV",
+  "meta": null,
   "name": "ALLRIS_Einmalig_VorlagenDatum_Backfill",
   "nodes": [
     {
@@ -93,43 +131,10 @@
       ]
     }
   ],
-  "connections": {
-    "Manual Trigger": {
-      "main": [
-        [
-          {
-            "node": "Hole alle Vorgaenge",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Hole alle Vorgaenge": {
-      "main": [
-        [
-          {
-            "node": "Extrahiere Vorlagen-Metadaten",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Extrahiere Vorlagen-Metadaten": {
-      "main": [
-        [
-          {
-            "node": "Schreibe Vorlagen-Metadaten",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
-  "pinData": {},
+  "pinData": null,
   "settings": {
     "executionOrder": "v1"
-  }
+  },
+  "tags": [],
+  "versionId": "544f305d-0683-46ed-b28b-697226533737"
 }

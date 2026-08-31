@@ -2730,7 +2730,8 @@
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate",
-    "errorWorkflow": "qPheJKPv0k06tkro"
+    "errorWorkflow": "qPheJKPv0k06tkro",
+    "saveDataSuccessExecution": "all"
   },
   "tags": [],
   "versionId": "e52529be-1184-4aa5-b1fa-f6ddd711e868"

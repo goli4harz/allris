@@ -1,4 +1,119 @@
 {
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Baue Test-Datei",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue Test-Datei": {
+      "main": [
+        [
+          {
+            "node": "POST Test-Tag erstellen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST Test-Tag erstellen": {
+      "main": [
+        [
+          {
+            "node": "Extrahiere Test-Tag-ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrahiere Test-Tag-ID": {
+      "main": [
+        [
+          {
+            "node": "GET ALLRIS-Tag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET ALLRIS-Tag": {
+      "main": [
+        [
+          {
+            "node": "Extrahiere ALLRIS-Tag-ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrahiere ALLRIS-Tag-ID": {
+      "main": [
+        [
+          {
+            "node": "POST Test-Dokument hochladen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST Test-Dokument hochladen": {
+      "main": [
+        [
+          {
+            "node": "Log Upload-Ergebnis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Upload-Ergebnis": {
+      "main": [
+        [
+          {
+            "node": "Warte auf Paperless-Consumer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Warte auf Paperless-Consumer": {
+      "main": [
+        [
+          {
+            "node": "GET Test-Dokument suchen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Test-Dokument suchen": {
+      "main": [
+        [
+          {
+            "node": "Ergebnis auswerten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "IyXLgn0yaaCIWKop",
+  "meta": null,
   "name": "ALLRIS_Einmalig_Paperless_MultiTag_Test",
   "nodes": [
     {
@@ -7,7 +122,10 @@
       "name": "Manual Trigger",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [0, 0]
+      "position": [
+        0,
+        0
+      ]
     },
     {
       "parameters": {
@@ -18,7 +136,10 @@
       "name": "Baue Test-Datei",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [220, 0]
+      "position": [
+        220,
+        0
+      ]
     },
     {
       "parameters": {
@@ -29,16 +150,24 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ name: $json.testTagName }) }}",
-        "options": { "timeout": 30000 }
+        "options": {
+          "timeout": 30000
+        }
       },
       "id": "b1a2c3d4-0003-4000-8000-000000000003",
       "name": "POST Test-Tag erstellen",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [440, 0],
+      "position": [
+        440,
+        0
+      ],
       "retryOnFail": false,
       "credentials": {
-        "httpHeaderAuth": { "id": "XZ0dfa9bGWssam8f", "name": "Paperless API" }
+        "httpHeaderAuth": {
+          "id": "XZ0dfa9bGWssam8f",
+          "name": "Paperless API"
+        }
       },
       "continueOnFail": true,
       "onError": "continueRegularOutput"
@@ -52,7 +181,10 @@
       "name": "Extrahiere Test-Tag-ID",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [660, 0]
+      "position": [
+        660,
+        0
+      ]
     },
     {
       "parameters": {
@@ -61,10 +193,19 @@
         "genericAuthType": "httpHeaderAuth",
         "sendQuery": true,
         "queryParameters": {
-          "parameters": [{ "name": "name__iexact", "value": "ALLRIS" }]
+          "parameters": [
+            {
+              "name": "name__iexact",
+              "value": "ALLRIS"
+            }
+          ]
         },
         "options": {
-          "response": { "response": { "responseFormat": "json" } },
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
           "timeout": 30000
         }
       },
@@ -72,10 +213,16 @@
       "name": "GET ALLRIS-Tag",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [880, 0],
+      "position": [
+        880,
+        0
+      ],
       "retryOnFail": false,
       "credentials": {
-        "httpHeaderAuth": { "id": "XZ0dfa9bGWssam8f", "name": "Paperless API" }
+        "httpHeaderAuth": {
+          "id": "XZ0dfa9bGWssam8f",
+          "name": "Paperless API"
+        }
       },
       "continueOnFail": true,
       "onError": "continueRegularOutput"
@@ -89,7 +236,10 @@
       "name": "Extrahiere ALLRIS-Tag-ID",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1100, 0]
+      "position": [
+        1100,
+        0
+      ]
     },
     {
       "parameters": {
@@ -101,22 +251,43 @@
         "contentType": "multipart-form-data",
         "bodyParameters": {
           "parameters": [
-            { "parameterType": "formBinaryData", "name": "document", "inputDataFieldName": "data" },
-            { "name": "title", "value": "={{ $json.testTitle }}" },
-            { "name": "tags", "value": "={{ $json.allrisTagId }}" },
-            { "name": "tags", "value": "={{ $json.testTagId }}" }
+            {
+              "parameterType": "formBinaryData",
+              "name": "document",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "title",
+              "value": "={{ $json.testTitle }}"
+            },
+            {
+              "name": "tags",
+              "value": "={{ $json.allrisTagId }}"
+            },
+            {
+              "name": "tags",
+              "value": "={{ $json.testTagId }}"
+            }
           ]
         },
-        "options": { "timeout": 90000 }
+        "options": {
+          "timeout": 90000
+        }
       },
       "id": "b1a2c3d4-0007-4000-8000-000000000007",
       "name": "POST Test-Dokument hochladen",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1320, 0],
+      "position": [
+        1320,
+        0
+      ],
       "retryOnFail": false,
       "credentials": {
-        "httpHeaderAuth": { "id": "XZ0dfa9bGWssam8f", "name": "Paperless API" }
+        "httpHeaderAuth": {
+          "id": "XZ0dfa9bGWssam8f",
+          "name": "Paperless API"
+        }
       },
       "continueOnFail": true,
       "onError": "continueRegularOutput"
@@ -130,7 +301,10 @@
       "name": "Log Upload-Ergebnis",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1540, 0]
+      "position": [
+        1540,
+        0
+      ]
     },
     {
       "parameters": {
@@ -141,7 +315,10 @@
       "name": "Warte auf Paperless-Consumer",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
-      "position": [1760, 0],
+      "position": [
+        1760,
+        0
+      ],
       "webhookId": "b1a2c3d4-0009-webhook-000000000009"
     },
     {
@@ -152,12 +329,22 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "title__icontains", "value": "={{ $json.testTitle }}" },
-            { "name": "ordering", "value": "-id" }
+            {
+              "name": "title__icontains",
+              "value": "={{ $json.testTitle }}"
+            },
+            {
+              "name": "ordering",
+              "value": "-id"
+            }
           ]
         },
         "options": {
-          "response": { "response": { "responseFormat": "json" } },
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
           "timeout": 30000
         }
       },
@@ -165,10 +352,16 @@
       "name": "GET Test-Dokument suchen",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1980, 0],
+      "position": [
+        1980,
+        0
+      ],
       "retryOnFail": false,
       "credentials": {
-        "httpHeaderAuth": { "id": "XZ0dfa9bGWssam8f", "name": "Paperless API" }
+        "httpHeaderAuth": {
+          "id": "XZ0dfa9bGWssam8f",
+          "name": "Paperless API"
+        }
       },
       "continueOnFail": true,
       "onError": "continueRegularOutput"
@@ -182,23 +375,16 @@
       "name": "Ergebnis auswerten",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2200, 0]
+      "position": [
+        2200,
+        0
+      ]
     }
   ],
-  "connections": {
-    "Manual Trigger": { "main": [[{ "node": "Baue Test-Datei", "type": "main", "index": 0 }]] },
-    "Baue Test-Datei": { "main": [[{ "node": "POST Test-Tag erstellen", "type": "main", "index": 0 }]] },
-    "POST Test-Tag erstellen": { "main": [[{ "node": "Extrahiere Test-Tag-ID", "type": "main", "index": 0 }]] },
-    "Extrahiere Test-Tag-ID": { "main": [[{ "node": "GET ALLRIS-Tag", "type": "main", "index": 0 }]] },
-    "GET ALLRIS-Tag": { "main": [[{ "node": "Extrahiere ALLRIS-Tag-ID", "type": "main", "index": 0 }]] },
-    "Extrahiere ALLRIS-Tag-ID": { "main": [[{ "node": "POST Test-Dokument hochladen", "type": "main", "index": 0 }]] },
-    "POST Test-Dokument hochladen": { "main": [[{ "node": "Log Upload-Ergebnis", "type": "main", "index": 0 }]] },
-    "Log Upload-Ergebnis": { "main": [[{ "node": "Warte auf Paperless-Consumer", "type": "main", "index": 0 }]] },
-    "Warte auf Paperless-Consumer": { "main": [[{ "node": "GET Test-Dokument suchen", "type": "main", "index": 0 }]] },
-    "GET Test-Dokument suchen": { "main": [[{ "node": "Ergebnis auswerten", "type": "main", "index": 0 }]] }
-  },
-  "pinData": {},
+  "pinData": null,
   "settings": {
     "executionOrder": "v1"
-  }
+  },
+  "tags": [],
+  "versionId": "70fbceb4-cb56-47bc-8738-a7292d0ccff7"
 }

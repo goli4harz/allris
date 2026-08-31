@@ -1,4 +1,31 @@
 {
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Erzeuge Test-Bild",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Erzeuge Test-Bild": {
+      "main": [
+        [
+          {
+            "node": "POST Test-Upload zu DiePARTEI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "fveHzyxOWZ3lv3RK",
+  "meta": null,
   "name": "ALLRIS_Diagnose_WordPress_Goslar_Media_Test",
   "nodes": [
     {
@@ -7,7 +34,10 @@
       "name": "Manual Trigger",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [0, 0]
+      "position": [
+        0,
+        0
+      ]
     },
     {
       "parameters": {
@@ -17,7 +47,10 @@
       "name": "Erzeuge Test-Bild",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [224, 0]
+      "position": [
+        224,
+        0
+      ]
     },
     {
       "parameters": {
@@ -50,7 +83,10 @@
       "name": "POST Test-Upload zu DiePARTEI",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [448, 0],
+      "position": [
+        448,
+        0
+      ],
       "credentials": {
         "wordpressApi": {
           "id": "tzwuM0QBLpYYZfXQ",
@@ -61,21 +97,8 @@
       "onError": "continueRegularOutput"
     }
   ],
-  "connections": {
-    "Manual Trigger": {
-      "main": [
-        [
-          { "node": "Erzeuge Test-Bild", "type": "main", "index": 0 }
-        ]
-      ]
-    },
-    "Erzeuge Test-Bild": {
-      "main": [
-        [
-          { "node": "POST Test-Upload zu DiePARTEI", "type": "main", "index": 0 }
-        ]
-      ]
-    }
-  },
-  "settings": {}
+  "pinData": null,
+  "settings": {},
+  "tags": [],
+  "versionId": "6e09f8f4-7fba-4c9a-a501-a2491fb462b0"
 }

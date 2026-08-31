@@ -1668,8 +1668,10 @@
   "pinData": {},
   "settings": {
     "executionOrder": "v1",
-    "errorWorkflow": "qPheJKPv0k06tkro"
+    "binaryMode": "separate",
+    "errorWorkflow": "qPheJKPv0k06tkro",
+    "saveDataSuccessExecution": "all"
   },
   "tags": [],
-  "versionId": "28464c04-790d-437b-a6d4-abd7dd615100"
+  "versionId": "338e0fff-ddad-46b2-90a1-37c339d3c98f"
 }

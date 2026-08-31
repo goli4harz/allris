@@ -689,8 +689,9 @@
   "pinData": null,
   "settings": {
     "executionOrder": "v1",
-    "errorWorkflow": "qPheJKPv0k06tkro"
+    "errorWorkflow": "qPheJKPv0k06tkro",
+    "saveDataSuccessExecution": "all"
   },
   "tags": [],
-  "versionId": "3ebaecb7-d8c8-409d-8b9a-3a02b4d77786"
+  "versionId": "62391293-655c-41eb-b9a9-33554407741a"
 }

@@ -1,4 +1,240 @@
 {
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hole alle Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole alle Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Identifiziere betroffene Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Identifiziere betroffene Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Vorgaenge": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Prepare Summary Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Summary Input": {
+      "main": [
+        [
+          {
+            "node": "Build NC Originale Path",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build NC Originale Path": {
+      "main": [
+        [
+          {
+            "node": "NC Liste Dokumente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Liste Dokumente": {
+      "main": [
+        [
+          {
+            "node": "NC Split Dateien",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Split Dateien": {
+      "main": [
+        [
+          {
+            "node": "IF NC Datei vorhanden?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF NC Datei vorhanden?": {
+      "main": [
+        [
+          {
+            "node": "NC Loop Dateien",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "NC Aggregiere Texte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Loop Dateien": {
+      "main": [
+        [
+          {
+            "node": "NC Aggregiere Texte",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "NC Lade Datei",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Lade Datei": {
+      "main": [
+        [
+          {
+            "node": "NC Prüfe Binary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Prüfe Binary": {
+      "main": [
+        [
+          {
+            "node": "NC IF sendToTika?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC IF sendToTika?": {
+      "main": [
+        [
+          {
+            "node": "NC Tika",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "NC Handle PDF Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Tika": {
+      "main": [
+        [
+          {
+            "node": "NC Metadaten nach Tika",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Metadaten nach Tika": {
+      "main": [
+        [
+          {
+            "node": "NC Handle PDF Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Handle PDF Text": {
+      "main": [
+        [
+          {
+            "node": "NC Loop Dateien",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Aggregiere Texte": {
+      "main": [
+        [
+          {
+            "node": "Schreibe Ergebnis zurueck",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schreibe Ergebnis zurueck": {
+      "main": [
+        [
+          {
+            "node": "Naechster Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Naechster Vorgang": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "p33Zj8ShZDbvD4X7",
+  "meta": null,
   "name": "ALLRIS_Einmalig_Nextcloud_Unvollstaendig_Reset",
   "nodes": [
     {
@@ -393,241 +629,10 @@
       ]
     }
   ],
-  "connections": {
-    "Manual Trigger": {
-      "main": [
-        [
-          {
-            "node": "Hole alle Vorgaenge",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Hole alle Vorgaenge": {
-      "main": [
-        [
-          {
-            "node": "Identifiziere betroffene Vorgaenge",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Identifiziere betroffene Vorgaenge": {
-      "main": [
-        [
-          {
-            "node": "Loop Vorgaenge",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Loop Vorgaenge": {
-      "main": [
-        [],
-        [
-          {
-            "node": "Prepare Summary Input",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Prepare Summary Input": {
-      "main": [
-        [
-          {
-            "node": "Build NC Originale Path",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Build NC Originale Path": {
-      "main": [
-        [
-          {
-            "node": "NC Liste Dokumente",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NC Liste Dokumente": {
-      "main": [
-        [
-          {
-            "node": "NC Split Dateien",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NC Split Dateien": {
-      "main": [
-        [
-          {
-            "node": "IF NC Datei vorhanden?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF NC Datei vorhanden?": {
-      "main": [
-        [
-          {
-            "node": "NC Loop Dateien",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "NC Aggregiere Texte",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NC Loop Dateien": {
-      "main": [
-        [
-          {
-            "node": "NC Aggregiere Texte",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "NC Lade Datei",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NC Lade Datei": {
-      "main": [
-        [
-          {
-            "node": "NC Prüfe Binary",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NC Prüfe Binary": {
-      "main": [
-        [
-          {
-            "node": "NC IF sendToTika?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NC IF sendToTika?": {
-      "main": [
-        [
-          {
-            "node": "NC Tika",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "NC Handle PDF Text",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NC Tika": {
-      "main": [
-        [
-          {
-            "node": "NC Metadaten nach Tika",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NC Metadaten nach Tika": {
-      "main": [
-        [
-          {
-            "node": "NC Handle PDF Text",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NC Handle PDF Text": {
-      "main": [
-        [
-          {
-            "node": "NC Loop Dateien",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NC Aggregiere Texte": {
-      "main": [
-        [
-          {
-            "node": "Schreibe Ergebnis zurueck",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Schreibe Ergebnis zurueck": {
-      "main": [
-        [
-          {
-            "node": "Naechster Vorgang",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Naechster Vorgang": {
-      "main": [
-        [
-          {
-            "node": "Loop Vorgaenge",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
-  "pinData": {},
+  "pinData": null,
   "settings": {
     "executionOrder": "v1"
-  }
+  },
+  "tags": [],
+  "versionId": "398dcee0-9d91-4e62-8e7c-05bcf98d1e03"
 }

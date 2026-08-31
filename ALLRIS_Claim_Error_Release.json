@@ -175,7 +175,7 @@
       "credentials": {
         "httpHeaderAuth": {
           "id": "od1pN1F5wy2irSDs",
-          "name": "Header Auth account"
+          "name": "Matrix Auth account"
         }
       },
       "onError": "continueRegularOutput"
@@ -183,8 +183,9 @@
   ],
   "pinData": null,
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all"
   },
   "tags": [],
-  "versionId": "e3841892-ffe3-4999-8e60-c6448801af8d"
+  "versionId": "18096838-24a1-4d0f-882b-c8a444283177"
 }

@@ -5,18 +5,18 @@
       "main": [
         [
           {
-            "node": "Ziel-Zeile",
+            "node": "Ziel-Zeilen",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Ziel-Zeile": {
+    "Ziel-Zeilen": {
       "main": [
         [
           {
-            "node": "Gib Claim frei",
+            "node": "Reaktivieren mit echtem Fix (3274+3309)",
             "type": "main",
             "index": 0
           }
@@ -24,6 +24,8 @@
       ]
     }
   },
+  "id": "p4T13z75DJy8fboZ",
+  "meta": null,
   "name": "ALLRIS_Einmalig_P11_Test_Claim_Release",
   "nodes": [
     {
@@ -39,10 +41,10 @@
     },
     {
       "parameters": {
-        "jsCode": "return [{ json: { id: 3141 } }];"
+        "jsCode": "return [3274, 3309].map(id => ({ json: { id } }));"
       },
       "id": "30000000-0000-4000-8000-000000000002",
-      "name": "Ziel-Zeile",
+      "name": "Ziel-Zeilen",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -71,10 +73,7 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "claim_owner": null,
-            "claim_stage": null,
-            "claim_acquired_at": null,
-            "claim_expires_at": null
+            "imageForceReset": true
           },
           "matchingColumns": [
             "id"
@@ -84,7 +83,7 @@
         "options": {}
       },
       "id": "30000000-0000-4000-8000-000000000003",
-      "name": "Gib Claim frei",
+      "name": "Reaktivieren mit echtem Fix (3274+3309)",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
@@ -93,8 +92,10 @@
       ]
     }
   ],
-  "pinData": {},
+  "pinData": null,
   "settings": {
     "executionOrder": "v1"
-  }
+  },
+  "tags": [],
+  "versionId": "3c5b3abc-3faf-4ab8-b4a3-56df7e467765"
 }

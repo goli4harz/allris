@@ -24,7 +24,8 @@
       ]
     }
   },
-  "meta": {},
+  "id": "ofIVPa3BF8AR2r9M",
+  "meta": null,
   "name": "ALLRIS_Einmalig_2026-189_190_HeadlineChoice_Reset",
   "nodes": [
     {
@@ -97,11 +98,10 @@
       ]
     }
   ],
-  "pinData": {},
+  "pinData": null,
   "settings": {
     "executionOrder": "v1"
   },
   "tags": [],
-  "versionId": "cb27c28e-2846-4479-816d-1da64b344cec",
-  "id": "ofIVPa3BF8AR2r9M"
+  "versionId": "2dfadc78-5692-4aaf-93a3-a0f38bceb23f"
 }

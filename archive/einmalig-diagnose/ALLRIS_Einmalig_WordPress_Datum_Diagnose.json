@@ -1,4 +1,53 @@
 {
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "GET Post 2363 (edit context)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Post 2363 (edit context)": {
+      "main": [
+        [
+          {
+            "node": "Zeige Felder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zeige Felder": {
+      "main": [
+        [
+          {
+            "node": "GET oeffentliche Seite (HTML)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET oeffentliche Seite (HTML)": {
+      "main": [
+        [
+          {
+            "node": "Suche Datum im HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "qicQNKkRakpQZ1Va",
+  "meta": null,
   "name": "ALLRIS_Einmalig_WordPress_Datum_Diagnose",
   "nodes": [
     {
@@ -7,7 +56,10 @@
       "name": "Manual Trigger",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [0, 0]
+      "position": [
+        0,
+        0
+      ]
     },
     {
       "parameters": {
@@ -15,7 +67,11 @@
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "wordpressApi",
         "options": {
-          "response": { "response": { "responseFormat": "json" } },
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
           "timeout": 30000
         }
       },
@@ -23,10 +79,16 @@
       "name": "GET Post 2363 (edit context)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [220, 0],
+      "position": [
+        220,
+        0
+      ],
       "retryOnFail": false,
       "credentials": {
-        "wordpressApi": { "id": "8k2HqYswPaPVS4dr", "name": "Ollies Wordpress" }
+        "wordpressApi": {
+          "id": "8k2HqYswPaPVS4dr",
+          "name": "Ollies Wordpress"
+        }
       },
       "continueOnFail": true,
       "onError": "continueRegularOutput"
@@ -40,13 +102,20 @@
       "name": "Zeige Felder",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [440, 0]
+      "position": [
+        440,
+        0
+      ]
     },
     {
       "parameters": {
         "url": "={{ $json.link }}",
         "options": {
-          "response": { "response": { "responseFormat": "text" } },
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          },
           "timeout": 30000
         }
       },
@@ -54,7 +123,10 @@
       "name": "GET oeffentliche Seite (HTML)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [660, 0],
+      "position": [
+        660,
+        0
+      ],
       "retryOnFail": false,
       "continueOnFail": true,
       "onError": "continueRegularOutput"
@@ -68,15 +140,16 @@
       "name": "Suche Datum im HTML",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [880, 0]
+      "position": [
+        880,
+        0
+      ]
     }
   ],
-  "connections": {
-    "Manual Trigger": { "main": [[{ "node": "GET Post 2363 (edit context)", "type": "main", "index": 0 }]] },
-    "GET Post 2363 (edit context)": { "main": [[{ "node": "Zeige Felder", "type": "main", "index": 0 }]] },
-    "Zeige Felder": { "main": [[{ "node": "GET oeffentliche Seite (HTML)", "type": "main", "index": 0 }]] },
-    "GET oeffentliche Seite (HTML)": { "main": [[{ "node": "Suche Datum im HTML", "type": "main", "index": 0 }]] }
+  "pinData": null,
+  "settings": {
+    "executionOrder": "v1"
   },
-  "pinData": {},
-  "settings": { "executionOrder": "v1" }
+  "tags": [],
+  "versionId": "789fecc0-737d-4f0c-bb76-0cd6bb714785"
 }

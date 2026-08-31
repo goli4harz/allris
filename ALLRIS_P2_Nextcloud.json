@@ -1454,7 +1454,7 @@
       "credentials": {
         "httpHeaderAuth": {
           "id": "od1pN1F5wy2irSDs",
-          "name": "Header Auth account"
+          "name": "Matrix Auth account"
         }
       },
       "onError": "continueRegularOutput"
@@ -1682,8 +1682,9 @@
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate",
-    "errorWorkflow": "qPheJKPv0k06tkro"
+    "errorWorkflow": "qPheJKPv0k06tkro",
+    "saveDataSuccessExecution": "all"
   },
   "tags": [],
-  "versionId": "9bca7252-f39a-4578-a154-1b8666d02308"
+  "versionId": "c6791753-abde-4e62-916a-13b6f3313685"
 }

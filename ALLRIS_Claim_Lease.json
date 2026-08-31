@@ -412,8 +412,9 @@
   ],
   "pinData": {},
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all"
   },
   "tags": [],
-  "versionId": "e92036c6-86b4-4de0-a581-3079afd9f156"
+  "versionId": "6f7b9dd8-9f7b-49ea-bb1f-3ccde644f9f8"
 }

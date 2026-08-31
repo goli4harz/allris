@@ -1,4 +1,20 @@
 {
+  "active": true,
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Baue Nav",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "5IWtZjZ7pnMAZGAO",
+  "meta": null,
   "name": "ALLRIS_Web_NavBar",
   "nodes": [
     {
@@ -29,21 +45,11 @@
       ]
     }
   ],
-  "connections": {
-    "Execute Workflow Trigger": {
-      "main": [
-        [
-          {
-            "node": "Baue Nav",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
-  "pinData": {},
+  "pinData": null,
   "settings": {
-    "executionOrder": "v1"
-  }
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all"
+  },
+  "tags": [],
+  "versionId": "f16e4841-e933-4e3c-beeb-19809d9b2cb9"
 }

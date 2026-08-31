@@ -1,4 +1,130 @@
 {
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "NC Lade echtes Sharepic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Lade echtes Sharepic": {
+      "main": [
+        [
+          {
+            "node": "Upload Original zu NextCloud",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Original zu NextCloud": {
+      "main": [
+        [
+          {
+            "node": "Share Original",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Share Original": {
+      "main": [
+        [
+          {
+            "node": "Stelle Bild wieder her + Originalgroesse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stelle Bild wieder her + Originalgroesse": {
+      "main": [
+        [
+          {
+            "node": "Lies tatsaechliche Masse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lies tatsaechliche Masse": {
+      "main": [
+        [
+          {
+            "node": "Kontext nach Masse-Lesen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kontext nach Masse-Lesen": {
+      "main": [
+        [
+          {
+            "node": "Komprimiere Bild",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Komprimiere Bild": {
+      "main": [
+        [
+          {
+            "node": "Melde komprimierte Groesse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Melde komprimierte Groesse": {
+      "main": [
+        [
+          {
+            "node": "Upload komprimiert zu NextCloud",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload komprimiert zu NextCloud": {
+      "main": [
+        [
+          {
+            "node": "Share komprimiert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Share komprimiert": {
+      "main": [
+        [
+          {
+            "node": "Zeige Links",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "6alRgjZtmfpZR9js",
+  "meta": null,
   "name": "ALLRIS_Diagnose_Bildkompression_Test",
   "nodes": [
     {
@@ -7,7 +133,10 @@
       "name": "Manual Trigger",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [0, 0]
+      "position": [
+        0,
+        0
+      ]
     },
     {
       "parameters": {
@@ -18,7 +147,10 @@
       "name": "NC Lade echtes Sharepic",
       "type": "n8n-nodes-base.nextCloud",
       "typeVersion": 1,
-      "position": [224, 0],
+      "position": [
+        224,
+        0
+      ],
       "credentials": {
         "nextCloudApi": {
           "id": "jlZlwASXZbJyNpfA",
@@ -36,7 +168,10 @@
       "name": "Upload Original zu NextCloud",
       "type": "n8n-nodes-base.nextCloud",
       "typeVersion": 1,
-      "position": [448, 0],
+      "position": [
+        448,
+        0
+      ],
       "credentials": {
         "nextCloudApi": {
           "id": "jlZlwASXZbJyNpfA",
@@ -54,7 +189,10 @@
       "name": "Share Original",
       "type": "n8n-nodes-base.nextCloud",
       "typeVersion": 1,
-      "position": [672, 0],
+      "position": [
+        672,
+        0
+      ],
       "credentials": {
         "nextCloudApi": {
           "id": "jlZlwASXZbJyNpfA",
@@ -70,7 +208,10 @@
       "name": "Stelle Bild wieder her + Originalgroesse",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [896, 0]
+      "position": [
+        896,
+        0
+      ]
     },
     {
       "parameters": {
@@ -81,7 +222,10 @@
       "name": "Lies tatsaechliche Masse",
       "type": "n8n-nodes-base.editImage",
       "typeVersion": 1,
-      "position": [1120, 0]
+      "position": [
+        1120,
+        0
+      ]
     },
     {
       "parameters": {
@@ -91,7 +235,10 @@
       "name": "Kontext nach Masse-Lesen",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1344, 0]
+      "position": [
+        1344,
+        0
+      ]
     },
     {
       "parameters": {
@@ -109,7 +256,10 @@
       "name": "Komprimiere Bild",
       "type": "n8n-nodes-base.editImage",
       "typeVersion": 1,
-      "position": [1568, 0]
+      "position": [
+        1568,
+        0
+      ]
     },
     {
       "parameters": {
@@ -119,7 +269,10 @@
       "name": "Melde komprimierte Groesse",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1792, 0]
+      "position": [
+        1792,
+        0
+      ]
     },
     {
       "parameters": {
@@ -131,7 +284,10 @@
       "name": "Upload komprimiert zu NextCloud",
       "type": "n8n-nodes-base.nextCloud",
       "typeVersion": 1,
-      "position": [2016, 0],
+      "position": [
+        2016,
+        0
+      ],
       "credentials": {
         "nextCloudApi": {
           "id": "jlZlwASXZbJyNpfA",
@@ -149,7 +305,10 @@
       "name": "Share komprimiert",
       "type": "n8n-nodes-base.nextCloud",
       "typeVersion": 1,
-      "position": [2240, 0],
+      "position": [
+        2240,
+        0
+      ],
       "credentials": {
         "nextCloudApi": {
           "id": "jlZlwASXZbJyNpfA",
@@ -165,87 +324,14 @@
       "name": "Zeige Links",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2464, 0]
+      "position": [
+        2464,
+        0
+      ]
     }
   ],
-  "connections": {
-    "Manual Trigger": {
-      "main": [
-        [
-          { "node": "NC Lade echtes Sharepic", "type": "main", "index": 0 }
-        ]
-      ]
-    },
-    "NC Lade echtes Sharepic": {
-      "main": [
-        [
-          { "node": "Upload Original zu NextCloud", "type": "main", "index": 0 }
-        ]
-      ]
-    },
-    "Upload Original zu NextCloud": {
-      "main": [
-        [
-          { "node": "Share Original", "type": "main", "index": 0 }
-        ]
-      ]
-    },
-    "Share Original": {
-      "main": [
-        [
-          { "node": "Stelle Bild wieder her + Originalgroesse", "type": "main", "index": 0 }
-        ]
-      ]
-    },
-    "Stelle Bild wieder her + Originalgroesse": {
-      "main": [
-        [
-          { "node": "Lies tatsaechliche Masse", "type": "main", "index": 0 }
-        ]
-      ]
-    },
-    "Lies tatsaechliche Masse": {
-      "main": [
-        [
-          { "node": "Kontext nach Masse-Lesen", "type": "main", "index": 0 }
-        ]
-      ]
-    },
-    "Kontext nach Masse-Lesen": {
-      "main": [
-        [
-          { "node": "Komprimiere Bild", "type": "main", "index": 0 }
-        ]
-      ]
-    },
-    "Komprimiere Bild": {
-      "main": [
-        [
-          { "node": "Melde komprimierte Groesse", "type": "main", "index": 0 }
-        ]
-      ]
-    },
-    "Melde komprimierte Groesse": {
-      "main": [
-        [
-          { "node": "Upload komprimiert zu NextCloud", "type": "main", "index": 0 }
-        ]
-      ]
-    },
-    "Upload komprimiert zu NextCloud": {
-      "main": [
-        [
-          { "node": "Share komprimiert", "type": "main", "index": 0 }
-        ]
-      ]
-    },
-    "Share komprimiert": {
-      "main": [
-        [
-          { "node": "Zeige Links", "type": "main", "index": 0 }
-        ]
-      ]
-    }
-  },
-  "settings": {}
+  "pinData": null,
+  "settings": {},
+  "tags": [],
+  "versionId": "d6f939b8-772d-44d6-9b90-5f1ec5abe00d"
 }

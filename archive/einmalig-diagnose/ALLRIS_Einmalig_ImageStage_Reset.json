@@ -1,4 +1,31 @@
 {
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Konfiguriere Ziele",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Konfiguriere Ziele": {
+      "main": [
+        [
+          {
+            "node": "Setze imageStage zurueck",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "cXNn4GdM1ipW65vU",
+  "meta": null,
   "name": "ALLRIS_Einmalig_ImageStage_Reset",
   "nodes": [
     {
@@ -75,32 +102,10 @@
       ]
     }
   ],
-  "connections": {
-    "Manual Trigger": {
-      "main": [
-        [
-          {
-            "node": "Konfiguriere Ziele",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Konfiguriere Ziele": {
-      "main": [
-        [
-          {
-            "node": "Setze imageStage zurueck",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
-  "pinData": {},
+  "pinData": null,
   "settings": {
     "executionOrder": "v1"
-  }
+  },
+  "tags": [],
+  "versionId": "39b37bff-63a2-4746-bad1-8b13a236e277"
 }

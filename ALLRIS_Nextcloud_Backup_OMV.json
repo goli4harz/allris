@@ -1,4 +1,31 @@
 {
+  "active": false,
+  "connections": {
+    "Schedule Trigger (woechentlich So 03:00)": {
+      "main": [
+        [
+          {
+            "node": "Fuehre Backup aus (SSH)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fuehre Backup aus (SSH)": {
+      "main": [
+        [
+          {
+            "node": "Pruefe Ergebnis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "6wXKbU347O5YyRCi",
+  "meta": null,
   "name": "ALLRIS_Nextcloud_Backup_OMV",
   "nodes": [
     {
@@ -8,7 +35,9 @@
             {
               "field": "weeks",
               "weeksInterval": 1,
-              "triggerAtDay": [0],
+              "triggerAtDay": [
+                0
+              ],
               "triggerAtHour": 3,
               "triggerAtMinute": 0
             }
@@ -19,7 +48,10 @@
       "name": "Schedule Trigger (woechentlich So 03:00)",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [0, 0]
+      "position": [
+        0,
+        0
+      ]
     },
     {
       "parameters": {
@@ -30,7 +62,10 @@
       "name": "Fuehre Backup aus (SSH)",
       "type": "n8n-nodes-base.ssh",
       "typeVersion": 1,
-      "position": [220, 0],
+      "position": [
+        220,
+        0
+      ],
       "notesInFlow": true,
       "notes": "TEMPLATE: SRC/DEST_BASE im Command-Text ausfuellen, SSH-Credential fuer den Nextcloud-Host im Node auswaehlen (manuell in der UI - noch keine Credential angelegt).",
       "continueOnFail": true,
@@ -44,19 +79,16 @@
       "name": "Pruefe Ergebnis",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [440, 0]
+      "position": [
+        440,
+        0
+      ]
     }
   ],
-  "connections": {
-    "Schedule Trigger (woechentlich So 03:00)": {
-      "main": [[{ "node": "Fuehre Backup aus (SSH)", "type": "main", "index": 0 }]]
-    },
-    "Fuehre Backup aus (SSH)": {
-      "main": [[{ "node": "Pruefe Ergebnis", "type": "main", "index": 0 }]]
-    }
-  },
-  "pinData": {},
+  "pinData": null,
   "settings": {
     "executionOrder": "v1"
-  }
+  },
+  "tags": [],
+  "versionId": "dd4c6501-1e00-4e83-958e-4fd391682926"
 }

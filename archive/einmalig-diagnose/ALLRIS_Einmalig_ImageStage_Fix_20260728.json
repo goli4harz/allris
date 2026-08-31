@@ -1,4 +1,31 @@
 {
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Konfiguriere Ziele",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Konfiguriere Ziele": {
+      "main": [
+        [
+          {
+            "node": "Setze imageStage auf composed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "L3NKoYXccCENFEr8",
+  "meta": null,
   "name": "ALLRIS_Einmalig_ImageStage_Fix_20260728",
   "nodes": [
     {
@@ -66,32 +93,10 @@
       ]
     }
   ],
-  "connections": {
-    "Manual Trigger": {
-      "main": [
-        [
-          {
-            "node": "Konfiguriere Ziele",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Konfiguriere Ziele": {
-      "main": [
-        [
-          {
-            "node": "Setze imageStage auf composed",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
-  "pinData": {},
+  "pinData": null,
   "settings": {
     "executionOrder": "v1"
-  }
+  },
+  "tags": [],
+  "versionId": "535f56ba-e35a-47f2-b01d-c53d24a8674c"
 }

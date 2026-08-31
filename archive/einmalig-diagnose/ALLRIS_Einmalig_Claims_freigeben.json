@@ -1,4 +1,5 @@
 {
+  "active": false,
   "connections": {
     "Manual Trigger": {
       "main": [
@@ -34,6 +35,8 @@
       ]
     }
   },
+  "id": "hIr8SR7FKIe90FTV",
+  "meta": null,
   "name": "ALLRIS_Einmalig_Claims_freigeben",
   "nodes": [
     {
@@ -133,5 +136,7 @@
   "pinData": null,
   "settings": {
     "executionOrder": "v1"
-  }
+  },
+  "tags": [],
+  "versionId": "8a1344d8-eb1c-4bae-b44d-25c29a871be9"
 }

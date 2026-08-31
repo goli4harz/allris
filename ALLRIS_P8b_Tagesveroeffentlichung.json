@@ -543,11 +543,12 @@
       ]
     }
   ],
-  "pinData": {},
+  "pinData": null,
   "settings": {
     "executionOrder": "v1",
-    "errorWorkflow": "qPheJKPv0k06tkro"
+    "errorWorkflow": "qPheJKPv0k06tkro",
+    "saveDataSuccessExecution": "all"
   },
   "tags": [],
-  "versionId": "70d7498a-3871-4d6a-9c74-f13276f9084c"
+  "versionId": "211ade66-ca48-4ed0-8ee2-099fb8820084"
 }

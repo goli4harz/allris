@@ -557,8 +557,10 @@
   ],
   "pinData": {},
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "saveDataSuccessExecution": "all"
   },
   "tags": [],
-  "versionId": "5e5944a0-3f42-45de-a426-9f8c55519542"
+  "versionId": "7ffd3913-22e1-4e96-aaaf-3606f25c73af"
 }

@@ -5,7 +5,18 @@
       "main": [
         [
           {
-            "node": "Leere headlineChoiceStage",
+            "node": "Konfiguriere Ziel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Konfiguriere Ziel": {
+      "main": [
+        [
+          {
+            "node": "Setze visualBlockNotifiedReason zurueck",
             "type": "main",
             "index": 0
           }
@@ -13,18 +24,31 @@
       ]
     }
   },
-  "id": "wkFNUuCnvdYl0Vgp",
+  "id": "Q1XPp2ttbmrfjJbY",
   "meta": null,
-  "name": "ALLRIS_Einmalig_2026-109_HeadlineChoiceStage_Cleanup",
+  "name": "ALLRIS_Einmalig_BlockNotified_Reset",
   "nodes": [
     {
       "parameters": {},
-      "id": "f1a2b3c4-0041-4aaa-9bbb-000000000041",
+      "id": "d1000001-0000-4000-8000-000000000001",
       "name": "Manual Trigger",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
         0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const TEST_VORGANG_KEY = 'vol_10644';\n\nif (!TEST_VORGANG_KEY) {\n  throw new Error('[Reset] TEST_VORGANG_KEY im Node Konfiguriere Ziel setzen.');\n}\n\nreturn [{ json: { vorgangKey: TEST_VORGANG_KEY } }];"
+      },
+      "id": "d1000001-0000-4000-8000-000000000002",
+      "name": "Konfiguriere Ziel",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        256,
         0
       ]
     },
@@ -43,14 +67,14 @@
           "conditions": [
             {
               "keyName": "vorgangKey",
-              "keyValue": "vol_10600"
+              "keyValue": "={{ $json.vorgangKey }}"
             }
           ]
         },
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "headlineChoiceStage": ""
+            "visualBlockNotifiedReason": null
           },
           "matchingColumns": [
             "vorgangKey"
@@ -59,12 +83,12 @@
         },
         "options": {}
       },
-      "id": "f1a2b3c4-0042-4aaa-9bbb-000000000042",
-      "name": "Leere headlineChoiceStage",
+      "id": "d1000001-0000-4000-8000-000000000003",
+      "name": "Setze visualBlockNotifiedReason zurueck",
       "type": "n8n-nodes-base.dataTable",
-      "typeVersion": 1,
+      "typeVersion": 1.1,
       "position": [
-        220,
+        512,
         0
       ]
     }
@@ -74,5 +98,5 @@
     "executionOrder": "v1"
   },
   "tags": [],
-  "versionId": "1fdb01cb-1b71-4245-b608-ddcf73878840"
+  "versionId": "697e1044-c447-443c-a5aa-d6f980fbabb0"
 }

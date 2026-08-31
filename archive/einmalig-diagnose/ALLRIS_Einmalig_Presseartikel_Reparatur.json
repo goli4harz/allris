@@ -1,4 +1,75 @@
 {
+  "active": false,
+  "connections": {
+    "Webhook Trigger (einmalig)": {
+      "main": [
+        [
+          {
+            "node": "Hole alle Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole alle Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Filtere Ziel-Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtere Ziel-Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Baue Presseartikel-Eingabe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue Presseartikel-Eingabe": {
+      "main": [
+        [
+          {
+            "node": "AI Presseartikel Final (Reparatur)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Presseartikel Final (Reparatur)": {
+      "main": [
+        [
+          {
+            "node": "Parse Presseartikel Final (Reparatur)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Presseartikel Final (Reparatur)": {
+      "main": [
+        [
+          {
+            "node": "Schreibe korrigiertes pressStatement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "jKNB2hQgLvZlkdeY",
+  "meta": null,
   "name": "ALLRIS_Einmalig_Presseartikel_Reparatur",
   "nodes": [
     {
@@ -166,76 +237,10 @@
       ]
     }
   ],
-  "connections": {
-    "Webhook Trigger (einmalig)": {
-      "main": [
-        [
-          {
-            "node": "Hole alle Vorgaenge",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Hole alle Vorgaenge": {
-      "main": [
-        [
-          {
-            "node": "Filtere Ziel-Vorgaenge",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Filtere Ziel-Vorgaenge": {
-      "main": [
-        [
-          {
-            "node": "Baue Presseartikel-Eingabe",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Baue Presseartikel-Eingabe": {
-      "main": [
-        [
-          {
-            "node": "AI Presseartikel Final (Reparatur)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "AI Presseartikel Final (Reparatur)": {
-      "main": [
-        [
-          {
-            "node": "Parse Presseartikel Final (Reparatur)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Parse Presseartikel Final (Reparatur)": {
-      "main": [
-        [
-          {
-            "node": "Schreibe korrigiertes pressStatement",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
-  "pinData": {},
+  "pinData": null,
   "settings": {
     "executionOrder": "v1"
-  }
+  },
+  "tags": [],
+  "versionId": "7a80c15f-fdb9-4bbd-9217-11fa9265ea8e"
 }

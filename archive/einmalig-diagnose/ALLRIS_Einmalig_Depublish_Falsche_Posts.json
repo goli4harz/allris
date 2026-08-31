@@ -1,4 +1,87 @@
 {
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Konfiguriere Ziele",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Konfiguriere Ziele": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Vorgaenge": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Setze Post auf Entwurf zurueck",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Setze Post auf Entwurf zurueck": {
+      "main": [
+        [
+          {
+            "node": "Pruefe Unpublish-Ergebnis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pruefe Unpublish-Ergebnis": {
+      "main": [
+        [
+          {
+            "node": "Setze DB-Status zurueck",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Setze DB-Status zurueck": {
+      "main": [
+        [
+          {
+            "node": "Naechster Eintrag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Naechster Eintrag": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "SWMZDDkSHM2JJnYQ",
+  "meta": null,
   "name": "ALLRIS_Einmalig_Depublish_Falsche_Posts",
   "nodes": [
     {
@@ -7,7 +90,10 @@
       "name": "Manual Trigger",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [0, 0]
+      "position": [
+        0,
+        0
+      ]
     },
     {
       "parameters": {
@@ -17,7 +103,10 @@
       "name": "Konfiguriere Ziele",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [220, 0]
+      "position": [
+        220,
+        0
+      ]
     },
     {
       "parameters": {
@@ -28,7 +117,10 @@
       "name": "Loop Vorgaenge",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
-      "position": [440, 0]
+      "position": [
+        440,
+        0
+      ]
     },
     {
       "parameters": {
@@ -40,16 +132,24 @@
         "contentType": "json",
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ status: 'draft' }) }}",
-        "options": { "timeout": 60000 }
+        "options": {
+          "timeout": 60000
+        }
       },
       "id": "depub-0004-4000-8000-000000000004",
       "name": "Setze Post auf Entwurf zurueck",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [660, -80],
+      "position": [
+        660,
+        -80
+      ],
       "retryOnFail": false,
       "credentials": {
-        "wordpressApi": { "id": "tzwuM0QBLpYYZfXQ", "name": "DiePARTEI Wordpress" }
+        "wordpressApi": {
+          "id": "tzwuM0QBLpYYZfXQ",
+          "name": "DiePARTEI Wordpress"
+        }
       },
       "continueOnFail": true,
       "onError": "continueRegularOutput"
@@ -62,7 +162,10 @@
       "name": "Pruefe Unpublish-Ergebnis",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [880, -80]
+      "position": [
+        880,
+        -80
+      ]
     },
     {
       "parameters": {
@@ -75,7 +178,12 @@
         },
         "matchType": "allConditions",
         "filters": {
-          "conditions": [{ "keyName": "vorgangKey", "keyValue": "={{ $json.vorgangKey }}" }]
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
         },
         "columns": {
           "mappingMode": "defineBelow",
@@ -91,7 +199,9 @@
             "next_retry_at": "",
             "retry_count": 0
           },
-          "matchingColumns": ["vorgangKey"],
+          "matchingColumns": [
+            "vorgangKey"
+          ],
           "schema": []
         },
         "options": {}
@@ -100,7 +210,10 @@
       "name": "Setze DB-Status zurueck",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
-      "position": [1100, -80]
+      "position": [
+        1100,
+        -80
+      ]
     },
     {
       "parameters": {
@@ -110,18 +223,16 @@
       "name": "Naechster Eintrag",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1320, -80]
+      "position": [
+        1320,
+        -80
+      ]
     }
   ],
-  "connections": {
-    "Manual Trigger": { "main": [[{ "node": "Konfiguriere Ziele", "type": "main", "index": 0 }]] },
-    "Konfiguriere Ziele": { "main": [[{ "node": "Loop Vorgaenge", "type": "main", "index": 0 }]] },
-    "Loop Vorgaenge": { "main": [[], [{ "node": "Setze Post auf Entwurf zurueck", "type": "main", "index": 0 }]] },
-    "Setze Post auf Entwurf zurueck": { "main": [[{ "node": "Pruefe Unpublish-Ergebnis", "type": "main", "index": 0 }]] },
-    "Pruefe Unpublish-Ergebnis": { "main": [[{ "node": "Setze DB-Status zurueck", "type": "main", "index": 0 }]] },
-    "Setze DB-Status zurueck": { "main": [[{ "node": "Naechster Eintrag", "type": "main", "index": 0 }]] },
-    "Naechster Eintrag": { "main": [[{ "node": "Loop Vorgaenge", "type": "main", "index": 0 }]] }
+  "pinData": null,
+  "settings": {
+    "executionOrder": "v1"
   },
-  "pinData": {},
-  "settings": { "executionOrder": "v1" }
+  "tags": [],
+  "versionId": "3b8084de-330d-46a5-b656-dfb2a4aaea8c"
 }

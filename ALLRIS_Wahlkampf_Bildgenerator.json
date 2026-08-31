@@ -1,4 +1,424 @@
 {
+  "active": true,
+  "connections": {
+    "Webhook GET (Formular)": {
+      "main": [
+        [
+          {
+            "node": "Setze Nav-Parameter (Formular)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Setze Nav-Parameter (Formular)": {
+      "main": [
+        [
+          {
+            "node": "Nav laden (Formular)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nav laden (Formular)": {
+      "main": [
+        [
+          {
+            "node": "Baue Formular-HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue Formular-HTML": {
+      "main": [
+        [
+          {
+            "node": "Antwort Formular",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook POST (Generieren)": {
+      "main": [
+        [
+          {
+            "node": "Normalisiere Eingabe",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Setze Nav-Parameter (Antwort)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Setze Nav-Parameter (Antwort)": {
+      "main": [
+        [
+          {
+            "node": "Nav laden (Antwort)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalisiere Eingabe": {
+      "main": [
+        [
+          {
+            "node": "KI: Generiere Sachverhalt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "KI: Generiere Sachverhalt": {
+      "main": [
+        [
+          {
+            "node": "Parse Sachverhalt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Sachverhalt": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow: Fakten-Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow: Fakten-Agent": {
+      "main": [
+        [
+          {
+            "node": "Stelle Kontext wieder her (Fakten)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stelle Kontext wieder her (Fakten)": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow: Satire-Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow: Satire-Agent": {
+      "main": [
+        [
+          {
+            "node": "Stelle Kontext wieder her (Satire)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stelle Kontext wieder her (Satire)": {
+      "main": [
+        [
+          {
+            "node": "Waehle Variante",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Waehle Variante": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow: Bild-Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow: Bild-Agent": {
+      "main": [
+        [
+          {
+            "node": "Stelle Kontext wieder her (Bild)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stelle Kontext wieder her (Bild)": {
+      "main": [
+        [
+          {
+            "node": "Bereite MotivPrompt vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereite MotivPrompt vor": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Generate Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Generate Image": {
+      "main": [
+        [
+          {
+            "node": "Pruefe rawImage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pruefe rawImage": {
+      "main": [
+        [
+          {
+            "node": "Resize auf 1036x1000",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resize auf 1036x1000": {
+      "main": [
+        [
+          {
+            "node": "Download overlay",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download overlay": {
+      "main": [
+        [
+          {
+            "node": "Bereite Canvas vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereite Canvas vor": {
+      "main": [
+        [
+          {
+            "node": "Setze KI-Bild in Overlay ein",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Setze KI-Bild in Overlay ein": {
+      "main": [
+        [
+          {
+            "node": "Zeichne ENTWURF-Kennzeichnung",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zeichne ENTWURF-Kennzeichnung": {
+      "main": [
+        [
+          {
+            "node": "Pruefe finalImage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pruefe finalImage": {
+      "main": [
+        [
+          {
+            "node": "Pruefe Textbanner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pruefe Textbanner": {
+      "main": [
+        [
+          {
+            "node": "Parse Textbanner-Pruefung",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Textbanner-Pruefung": {
+      "main": [
+        [
+          {
+            "node": "Textbanner sichtbar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Textbanner sichtbar?": {
+      "main": [
+        [
+          {
+            "node": "Bereite Matrix Post vor",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Weiterer Textbanner-Versuch?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weiterer Textbanner-Versuch?": {
+      "main": [
+        [
+          {
+            "node": "Bereite Textbanner-Wiederholung vor",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Bereite Matrix Post vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereite Textbanner-Wiederholung vor": {
+      "main": [
+        [
+          {
+            "node": "Bereite MotivPrompt vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereite Matrix Post vor": {
+      "main": [
+        [
+          {
+            "node": "Matrix Upload Media",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Matrix Upload Media": {
+      "main": [
+        [
+          {
+            "node": "Bereite Matrix Message vor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereite Matrix Message vor": {
+      "main": [
+        [
+          {
+            "node": "Matrix Sende Hinweistext",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Matrix Sende Hinweistext": {
+      "main": [
+        [
+          {
+            "node": "Matrix Sende Bild",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Matrix Sende Bild": {
+      "main": [
+        [
+          {
+            "node": "Baue Antwort-HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue Antwort-HTML": {
+      "main": [
+        [
+          {
+            "node": "Antwort Generieren",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "V0YodWF4qSc9FJJA",
+  "meta": null,
   "name": "ALLRIS_Wahlkampf_Bildgenerator",
   "nodes": [
     {
@@ -671,7 +1091,7 @@
       "credentials": {
         "httpHeaderAuth": {
           "id": "od1pN1F5wy2irSDs",
-          "name": "Header Auth account"
+          "name": "Matrix Auth account"
         }
       },
       "retryOnFail": true
@@ -727,7 +1147,7 @@
       "credentials": {
         "httpHeaderAuth": {
           "id": "od1pN1F5wy2irSDs",
-          "name": "Header Auth account"
+          "name": "Matrix Auth account"
         }
       },
       "retryOnFail": true
@@ -770,7 +1190,7 @@
       "credentials": {
         "httpHeaderAuth": {
           "id": "od1pN1F5wy2irSDs",
-          "name": "Header Auth account"
+          "name": "Matrix Auth account"
         }
       },
       "retryOnFail": true
@@ -814,425 +1234,11 @@
       ]
     }
   ],
-  "connections": {
-    "Webhook GET (Formular)": {
-      "main": [
-        [
-          {
-            "node": "Setze Nav-Parameter (Formular)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Setze Nav-Parameter (Formular)": {
-      "main": [
-        [
-          {
-            "node": "Nav laden (Formular)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Nav laden (Formular)": {
-      "main": [
-        [
-          {
-            "node": "Baue Formular-HTML",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Baue Formular-HTML": {
-      "main": [
-        [
-          {
-            "node": "Antwort Formular",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Webhook POST (Generieren)": {
-      "main": [
-        [
-          {
-            "node": "Normalisiere Eingabe",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Setze Nav-Parameter (Antwort)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Setze Nav-Parameter (Antwort)": {
-      "main": [
-        [
-          {
-            "node": "Nav laden (Antwort)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Normalisiere Eingabe": {
-      "main": [
-        [
-          {
-            "node": "KI: Generiere Sachverhalt",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "KI: Generiere Sachverhalt": {
-      "main": [
-        [
-          {
-            "node": "Parse Sachverhalt",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Parse Sachverhalt": {
-      "main": [
-        [
-          {
-            "node": "Execute Workflow: Fakten-Agent",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Execute Workflow: Fakten-Agent": {
-      "main": [
-        [
-          {
-            "node": "Stelle Kontext wieder her (Fakten)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Stelle Kontext wieder her (Fakten)": {
-      "main": [
-        [
-          {
-            "node": "Execute Workflow: Satire-Agent",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Execute Workflow: Satire-Agent": {
-      "main": [
-        [
-          {
-            "node": "Stelle Kontext wieder her (Satire)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Stelle Kontext wieder her (Satire)": {
-      "main": [
-        [
-          {
-            "node": "Waehle Variante",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Waehle Variante": {
-      "main": [
-        [
-          {
-            "node": "Execute Workflow: Bild-Agent",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Execute Workflow: Bild-Agent": {
-      "main": [
-        [
-          {
-            "node": "Stelle Kontext wieder her (Bild)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Stelle Kontext wieder her (Bild)": {
-      "main": [
-        [
-          {
-            "node": "Bereite MotivPrompt vor",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Bereite MotivPrompt vor": {
-      "main": [
-        [
-          {
-            "node": "OpenAI Generate Image",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "OpenAI Generate Image": {
-      "main": [
-        [
-          {
-            "node": "Pruefe rawImage",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Pruefe rawImage": {
-      "main": [
-        [
-          {
-            "node": "Resize auf 1036x1000",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Resize auf 1036x1000": {
-      "main": [
-        [
-          {
-            "node": "Download overlay",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Download overlay": {
-      "main": [
-        [
-          {
-            "node": "Bereite Canvas vor",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Bereite Canvas vor": {
-      "main": [
-        [
-          {
-            "node": "Setze KI-Bild in Overlay ein",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Setze KI-Bild in Overlay ein": {
-      "main": [
-        [
-          {
-            "node": "Zeichne ENTWURF-Kennzeichnung",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Zeichne ENTWURF-Kennzeichnung": {
-      "main": [
-        [
-          {
-            "node": "Pruefe finalImage",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Pruefe finalImage": {
-      "main": [
-        [
-          {
-            "node": "Pruefe Textbanner",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Pruefe Textbanner": {
-      "main": [
-        [
-          {
-            "node": "Parse Textbanner-Pruefung",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Parse Textbanner-Pruefung": {
-      "main": [
-        [
-          {
-            "node": "Textbanner sichtbar?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Textbanner sichtbar?": {
-      "main": [
-        [
-          {
-            "node": "Bereite Matrix Post vor",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Weiterer Textbanner-Versuch?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Weiterer Textbanner-Versuch?": {
-      "main": [
-        [
-          {
-            "node": "Bereite Textbanner-Wiederholung vor",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Bereite Matrix Post vor",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Bereite Textbanner-Wiederholung vor": {
-      "main": [
-        [
-          {
-            "node": "Bereite MotivPrompt vor",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Bereite Matrix Post vor": {
-      "main": [
-        [
-          {
-            "node": "Matrix Upload Media",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Matrix Upload Media": {
-      "main": [
-        [
-          {
-            "node": "Bereite Matrix Message vor",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Bereite Matrix Message vor": {
-      "main": [
-        [
-          {
-            "node": "Matrix Sende Hinweistext",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Matrix Sende Hinweistext": {
-      "main": [
-        [
-          {
-            "node": "Matrix Sende Bild",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Matrix Sende Bild": {
-      "main": [
-        [
-          {
-            "node": "Baue Antwort-HTML",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Baue Antwort-HTML": {
-      "main": [
-        [
-          {
-            "node": "Antwort Generieren",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
-  "pinData": {},
+  "pinData": null,
   "settings": {
-    "executionOrder": "v1"
-  }
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all"
+  },
+  "tags": [],
+  "versionId": "5daf6179-06bd-41f0-bddc-ce62603c5e63"
 }

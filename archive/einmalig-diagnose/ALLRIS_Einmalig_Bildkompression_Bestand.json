@@ -1,4 +1,222 @@
 {
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hole alle Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole alle Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Filter Migrations-Kandidaten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Migrations-Kandidaten": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Vorgaenge": {
+      "main": [
+        [],
+        [
+          {
+            "node": "NC Lade Original",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Lade Original": {
+      "main": [
+        [
+          {
+            "node": "Pruefe Download",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pruefe Download": {
+      "main": [
+        [
+          {
+            "node": "IF Download ok?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Download ok?": {
+      "main": [
+        [
+          {
+            "node": "NC Sichere Original (_orig)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Naechster Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Sichere Original (_orig)": {
+      "main": [
+        [
+          {
+            "node": "Stelle Kontext nach Original-Backup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stelle Kontext nach Original-Backup": {
+      "main": [
+        [
+          {
+            "node": "Lies Masse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lies Masse": {
+      "main": [
+        [
+          {
+            "node": "Kontext nach Masse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kontext nach Masse": {
+      "main": [
+        [
+          {
+            "node": "Komprimiere",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Komprimiere": {
+      "main": [
+        [
+          {
+            "node": "Berechne neuen Pfad",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Berechne neuen Pfad": {
+      "main": [
+        [
+          {
+            "node": "NC Upload komprimiert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NC Upload komprimiert": {
+      "main": [
+        [
+          {
+            "node": "Stelle Kontext nach Upload wieder her",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stelle Kontext nach Upload wieder her": {
+      "main": [
+        [
+          {
+            "node": "IF Upload ok?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Upload ok?": {
+      "main": [
+        [
+          {
+            "node": "DB Update imageFinalPath",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Naechster Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB Update imageFinalPath": {
+      "main": [
+        [
+          {
+            "node": "Naechster Vorgang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Naechster Vorgang": {
+      "main": [
+        [
+          {
+            "node": "Loop Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "qEnkdQdtfWzRbajJ",
+  "meta": null,
   "name": "ALLRIS_Einmalig_Bildkompression_Bestand",
   "nodes": [
     {
@@ -7,7 +225,10 @@
       "name": "Manual Trigger",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [0, 0]
+      "position": [
+        0,
+        0
+      ]
     },
     {
       "parameters": {
@@ -18,14 +239,19 @@
           "mode": "list",
           "cachedResultName": "allris_vorgaenge"
         },
-        "filters": { "conditions": [] },
+        "filters": {
+          "conditions": []
+        },
         "returnAll": true
       },
       "id": "einmalig-imgcomp-001-000000000002",
       "name": "Hole alle Vorgaenge",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
-      "position": [224, 0]
+      "position": [
+        224,
+        0
+      ]
     },
     {
       "parameters": {
@@ -35,15 +261,23 @@
       "name": "Filter Migrations-Kandidaten",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [448, 0]
+      "position": [
+        448,
+        0
+      ]
     },
     {
-      "parameters": { "options": {} },
+      "parameters": {
+        "options": {}
+      },
       "id": "einmalig-imgcomp-001-000000000004",
       "name": "Loop Vorgaenge",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
-      "position": [672, 0]
+      "position": [
+        672,
+        0
+      ]
     },
     {
       "parameters": {
@@ -54,7 +288,10 @@
       "name": "NC Lade Original",
       "type": "n8n-nodes-base.nextCloud",
       "typeVersion": 1,
-      "position": [896, -96],
+      "position": [
+        896,
+        -96
+      ],
       "credentials": {
         "nextCloudApi": {
           "id": "jlZlwASXZbJyNpfA",
@@ -72,18 +309,30 @@
       "name": "Pruefe Download",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1120, -96]
+      "position": [
+        1120,
+        -96
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
           "conditions": [
             {
               "id": "cond1",
               "leftValue": "={{ $json._downloadOk }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
             }
           ],
           "combinator": "and"
@@ -94,7 +343,10 @@
       "name": "IF Download ok?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [1344, -96]
+      "position": [
+        1344,
+        -96
+      ]
     },
     {
       "parameters": {
@@ -107,7 +359,10 @@
       "name": "NC Sichere Original (_orig)",
       "type": "n8n-nodes-base.nextCloud",
       "typeVersion": 1,
-      "position": [1568, -96],
+      "position": [
+        1568,
+        -96
+      ],
       "credentials": {
         "nextCloudApi": {
           "id": "jlZlwASXZbJyNpfA",
@@ -125,7 +380,10 @@
       "name": "Stelle Kontext nach Original-Backup",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1680, -96]
+      "position": [
+        1680,
+        -96
+      ]
     },
     {
       "parameters": {
@@ -136,7 +394,10 @@
       "name": "Lies Masse",
       "type": "n8n-nodes-base.editImage",
       "typeVersion": 1,
-      "position": [1792, -160]
+      "position": [
+        1792,
+        -160
+      ]
     },
     {
       "parameters": {
@@ -146,7 +407,10 @@
       "name": "Kontext nach Masse",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1792, -160]
+      "position": [
+        1792,
+        -160
+      ]
     },
     {
       "parameters": {
@@ -155,13 +419,19 @@
         "width": "={{ Number($json._size.width) }}",
         "height": "={{ Number($json._size.height) }}",
         "resizeOption": "ignoreAspectRatio",
-        "options": { "format": "jpeg", "quality": 82 }
+        "options": {
+          "format": "jpeg",
+          "quality": 82
+        }
       },
       "id": "einmalig-imgcomp-001-000000000010",
       "name": "Komprimiere",
       "type": "n8n-nodes-base.editImage",
       "typeVersion": 1,
-      "position": [2016, -160]
+      "position": [
+        2016,
+        -160
+      ]
     },
     {
       "parameters": {
@@ -171,7 +441,10 @@
       "name": "Berechne neuen Pfad",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2240, -160]
+      "position": [
+        2240,
+        -160
+      ]
     },
     {
       "parameters": {
@@ -184,7 +457,10 @@
       "name": "NC Upload komprimiert",
       "type": "n8n-nodes-base.nextCloud",
       "typeVersion": 1,
-      "position": [2464, -160],
+      "position": [
+        2464,
+        -160
+      ],
       "credentials": {
         "nextCloudApi": {
           "id": "jlZlwASXZbJyNpfA",
@@ -202,18 +478,30 @@
       "name": "Stelle Kontext nach Upload wieder her",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2688, -160]
+      "position": [
+        2688,
+        -160
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
           "conditions": [
             {
               "id": "cond1",
               "leftValue": "={{ $json._migrationOk }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
             }
           ],
           "combinator": "and"
@@ -224,7 +512,10 @@
       "name": "IF Upload ok?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [2912, -160]
+      "position": [
+        2912,
+        -160
+      ]
     },
     {
       "parameters": {
@@ -237,7 +528,10 @@
         },
         "filters": {
           "conditions": [
-            { "keyName": "vorgangKey", "keyValue": "={{ $json.vorgangKey }}" }
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
           ]
         },
         "columns": {
@@ -267,7 +561,10 @@
       "name": "DB Update imageFinalPath",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
-      "position": [3136, -224]
+      "position": [
+        3136,
+        -224
+      ]
     },
     {
       "parameters": {
@@ -277,70 +574,14 @@
       "name": "Naechster Vorgang",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3360, 0]
+      "position": [
+        3360,
+        0
+      ]
     }
   ],
-  "connections": {
-    "Manual Trigger": {
-      "main": [[{ "node": "Hole alle Vorgaenge", "type": "main", "index": 0 }]]
-    },
-    "Hole alle Vorgaenge": {
-      "main": [[{ "node": "Filter Migrations-Kandidaten", "type": "main", "index": 0 }]]
-    },
-    "Filter Migrations-Kandidaten": {
-      "main": [[{ "node": "Loop Vorgaenge", "type": "main", "index": 0 }]]
-    },
-    "Loop Vorgaenge": {
-      "main": [[], [{ "node": "NC Lade Original", "type": "main", "index": 0 }]]
-    },
-    "NC Lade Original": {
-      "main": [[{ "node": "Pruefe Download", "type": "main", "index": 0 }]]
-    },
-    "Pruefe Download": {
-      "main": [[{ "node": "IF Download ok?", "type": "main", "index": 0 }]]
-    },
-    "IF Download ok?": {
-      "main": [
-        [{ "node": "NC Sichere Original (_orig)", "type": "main", "index": 0 }],
-        [{ "node": "Naechster Vorgang", "type": "main", "index": 0 }]
-      ]
-    },
-    "NC Sichere Original (_orig)": {
-      "main": [[{ "node": "Stelle Kontext nach Original-Backup", "type": "main", "index": 0 }]]
-    },
-    "Stelle Kontext nach Original-Backup": {
-      "main": [[{ "node": "Lies Masse", "type": "main", "index": 0 }]]
-    },
-    "Lies Masse": {
-      "main": [[{ "node": "Kontext nach Masse", "type": "main", "index": 0 }]]
-    },
-    "Kontext nach Masse": {
-      "main": [[{ "node": "Komprimiere", "type": "main", "index": 0 }]]
-    },
-    "Komprimiere": {
-      "main": [[{ "node": "Berechne neuen Pfad", "type": "main", "index": 0 }]]
-    },
-    "Berechne neuen Pfad": {
-      "main": [[{ "node": "NC Upload komprimiert", "type": "main", "index": 0 }]]
-    },
-    "NC Upload komprimiert": {
-      "main": [[{ "node": "Stelle Kontext nach Upload wieder her", "type": "main", "index": 0 }]]
-    },
-    "Stelle Kontext nach Upload wieder her": {
-      "main": [[{ "node": "IF Upload ok?", "type": "main", "index": 0 }]]
-    },
-    "IF Upload ok?": {
-      "main": [
-        [{ "node": "DB Update imageFinalPath", "type": "main", "index": 0 }],
-        [{ "node": "Naechster Vorgang", "type": "main", "index": 0 }]
-      ]
-    },
-    "DB Update imageFinalPath": {
-      "main": [[{ "node": "Naechster Vorgang", "type": "main", "index": 0 }]]
-    },
-    "Naechster Vorgang": {
-      "main": [[{ "node": "Loop Vorgaenge", "type": "main", "index": 0 }]]
-    }
-  },
-  "settings": {}
+  "pinData": null,
+  "settings": {},
+  "tags": [],
+  "versionId": "e5664c83-e4b2-4440-95c0-4cd559a93b5f"
 }

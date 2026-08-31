@@ -1,4 +1,97 @@
 {
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hole alle Vorgaenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hole alle Vorgaenge": {
+      "main": [
+        [
+          {
+            "node": "Berechne Tags je Ziel-Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Berechne Tags je Ziel-Post": {
+      "main": [
+        [
+          {
+            "node": "HTTP Suche WP Tags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Suche WP Tags": {
+      "main": [
+        [
+          {
+            "node": "Ermittle fehlende Tags (Backfill)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ermittle fehlende Tags (Backfill)": {
+      "main": [
+        [
+          {
+            "node": "Split fehlende Tags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split fehlende Tags": {
+      "main": [
+        [
+          {
+            "node": "HTTP Erstelle WP Tag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Erstelle WP Tag": {
+      "main": [
+        [
+          {
+            "node": "Baue Updates je Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue Updates je Post": {
+      "main": [
+        [
+          {
+            "node": "HTTP Update WP Post Tags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "N0t7wc8VZBn8lgvu",
+  "meta": null,
   "name": "ALLRIS_Einmalig_P8_Tags_Nachtrag",
   "nodes": [
     {
@@ -35,7 +128,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Berechnet wpTags fuer die Ziel-Posts genau wie \"Baue Post-Body\" in\n// ALLRIS_P8_Partei_Webseite (gleiche topicTagsFromText()-Kategorien + immer\n// Goslar/MeinGoslar/UnserKlüngelKannMehr), fuer bereits veroeffentlichte Posts,\n// die vor dem Tag-Fix (2026-07-27) erstellt wurden.\n// Nutzer-Korrektur (2026-07-27): betrifft auch Entwuerfe, nicht nur bereits\n// veroeffentlichte Posts - jede Zeile mit wordpressGoslarDraftId braucht Tags,\n// unabhaengig vom Veroeffentlichungsstatus (WordPress erlaubt Tag-Updates auch\n// auf Drafts).\n\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction uniqueTags(tags) {\n  return Array.from(new Set(tags.map(t => safeStr(t)).filter(Boolean).filter(t => t.length <= 50)));\n}\nfunction topicTagsFromText(text) {\n  const t = String(text || '').toLowerCase();\n  const tags = [];\n  function hasAny(words) { return words.some(w => t.indexOf(String(w).toLowerCase()) !== -1); }\n  if (hasAny(['bus','stadtbus','linie','liniennetz','haltestelle','oepnv','öpnv','fahrplan','verkehr','umleitung','sperrung','radweg','parkplatz'])) tags.push('Verkehr','ÖPNV');\n  if (hasAny(['bauschutt','baustelle','bauzaun','abbruch','abriss','baustellensicherheit','absperrung'])) tags.push('Baustelle','Sicherheit');\n  if (hasAny(['stadtbus','haltestelle','fahrgast','fahrgäste','linienfuehrung','schuljahresbeginn'])) tags.push('Stadtbus');\n  if (hasAny(['denkmalschutz','altstadt','unesco','welterbe','denkmal','sanierung','historisch'])) tags.push('Altstadt','Denkmalschutz','UNESCO');\n  if (hasAny(['haushalt','kosten','finanz','haushaltsmittel','foerderung','investition','gebühr','zuschuss'])) tags.push('Haushalt','Finanzen','Kosten');\n  if (hasAny(['schule','schüler','schülerinnen','kita','kindergarten','bildung','jugend','schulweg'])) tags.push('Schule','Bildung');\n  if (hasAny(['mülleimer','papierkorb','abfall','bänke','bank','sitzbank','stadtbild','aufenthaltsqualität','innenstadt','standort'])) tags.push('Stadtbild','Aufenthaltsqualität');\n  if (hasAny(['digitalisierung','software','open source','verwaltung','transparenz','daten','portal','online','it'])) tags.push('Verwaltung','Digitalisierung','Transparenz');\n  if (hasAny(['energie','wärme','wärmeplanung','klima','klimaschutz','heizung','wärmenetz','fernwärme'])) tags.push('Energie','Wärmeplanung','Klimaschutz');\n  if (hasAny(['barriere','barrierefreiheit','inklusion','teilhabe','behinderung','senioren','ältere menschen'])) tags.push('Barrierefreiheit','Inklusion');\n  if (hasAny(['wahl','wahlwerbung','plakat','plakate','sondernutzung','wahlvorschlag','kandidierende','einzelbewerbung','chancengleichheit'])) tags.push('Wahl','Wahlwerbung','Chancengleichheit');\n  return tags;\n}\nconst ALWAYS_TAGS = ['Goslar', 'MeinGoslar', 'UnserKlüngelKannMehr'];\n\nconst rows = $input.all().map(i => i.json || {});\nconst targets = [];\nfor (const r of rows) {\n  const postId = safeStr(r.wordpressGoslarPostId) || safeStr(r.wordpressGoslarDraftId);\n  if (!postId) continue;\n  const title = safeStr(r.websiteHeadline) || (safeStr(r.vorgangsnummer) + ' - ' + safeStr(r.title));\n  const combinedTagText = [title, r.vorgangsnummer, r.thema, r.betroffene, r.kostenHaushalt, r.buergerwirkung, r.websiteArticle].map(safeStr).join(' ');\n  const wpTags = uniqueTags([...ALWAYS_TAGS, ...topicTagsFromText(combinedTagText)]);\n  targets.push({ vorgangsnummer: safeStr(r.vorgangsnummer), postId, wpTags });\n}\n\nconst allNeededTagNames = uniqueTags(targets.flatMap(t => t.wpTags));\n\nreturn [{ json: { targets, allNeededTagNames } }];"
+        "jsCode": "// Berechnet wpTags fuer die Ziel-Posts genau wie \"Baue Post-Body\" in\n// ALLRIS_P8_Partei_Webseite (gleiche topicTagsFromText()-Kategorien + immer\n// Goslar/MeinGoslar/MeinKlüngelKannMehr), fuer bereits veroeffentlichte Posts,\n// die vor dem Tag-Fix (2026-07-27) erstellt wurden.\n// Nutzer-Korrektur (2026-07-27): betrifft auch Entwuerfe, nicht nur bereits\n// veroeffentlichte Posts - jede Zeile mit wordpressGoslarDraftId braucht Tags,\n// unabhaengig vom Veroeffentlichungsstatus (WordPress erlaubt Tag-Updates auch\n// auf Drafts).\n\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction uniqueTags(tags) {\n  return Array.from(new Set(tags.map(t => safeStr(t)).filter(Boolean).filter(t => t.length <= 50)));\n}\nfunction topicTagsFromText(text) {\n  const t = String(text || '').toLowerCase();\n  const tags = [];\n  function hasAny(words) { return words.some(w => t.indexOf(String(w).toLowerCase()) !== -1); }\n  if (hasAny(['bus','stadtbus','linie','liniennetz','haltestelle','oepnv','öpnv','fahrplan','verkehr','umleitung','sperrung','radweg','parkplatz'])) tags.push('Verkehr','ÖPNV');\n  if (hasAny(['bauschutt','baustelle','bauzaun','abbruch','abriss','baustellensicherheit','absperrung'])) tags.push('Baustelle','Sicherheit');\n  if (hasAny(['stadtbus','haltestelle','fahrgast','fahrgäste','linienfuehrung','schuljahresbeginn'])) tags.push('Stadtbus');\n  if (hasAny(['denkmalschutz','altstadt','unesco','welterbe','denkmal','sanierung','historisch'])) tags.push('Altstadt','Denkmalschutz','UNESCO');\n  if (hasAny(['haushalt','kosten','finanz','haushaltsmittel','foerderung','investition','gebühr','zuschuss'])) tags.push('Haushalt','Finanzen','Kosten');\n  if (hasAny(['schule','schüler','schülerinnen','kita','kindergarten','bildung','jugend','schulweg'])) tags.push('Schule','Bildung');\n  if (hasAny(['mülleimer','papierkorb','abfall','bänke','bank','sitzbank','stadtbild','aufenthaltsqualität','innenstadt','standort'])) tags.push('Stadtbild','Aufenthaltsqualität');\n  if (hasAny(['digitalisierung','software','open source','verwaltung','transparenz','daten','portal','online','it'])) tags.push('Verwaltung','Digitalisierung','Transparenz');\n  if (hasAny(['energie','wärme','wärmeplanung','klima','klimaschutz','heizung','wärmenetz','fernwärme'])) tags.push('Energie','Wärmeplanung','Klimaschutz');\n  if (hasAny(['barriere','barrierefreiheit','inklusion','teilhabe','behinderung','senioren','ältere menschen'])) tags.push('Barrierefreiheit','Inklusion');\n  if (hasAny(['wahl','wahlwerbung','plakat','plakate','sondernutzung','wahlvorschlag','kandidierende','einzelbewerbung','chancengleichheit'])) tags.push('Wahl','Wahlwerbung','Chancengleichheit');\n  return tags;\n}\nconst ALWAYS_TAGS = ['Goslar', 'MeinGoslar', 'MeinKlüngelKannMehr'];\n\nconst rows = $input.all().map(i => i.json || {});\nconst targets = [];\nfor (const r of rows) {\n  const postId = safeStr(r.wordpressGoslarPostId) || safeStr(r.wordpressGoslarDraftId);\n  if (!postId) continue;\n  const title = safeStr(r.websiteHeadline) || (safeStr(r.vorgangsnummer) + ' - ' + safeStr(r.title));\n  const combinedTagText = [title, r.vorgangsnummer, r.thema, r.betroffene, r.kostenHaushalt, r.buergerwirkung, r.websiteArticle].map(safeStr).join(' ');\n  const wpTags = uniqueTags([...ALWAYS_TAGS, ...topicTagsFromText(combinedTagText)]);\n  targets.push({ vorgangsnummer: safeStr(r.vorgangsnummer), postId, wpTags });\n}\n\nconst allNeededTagNames = uniqueTags(targets.flatMap(t => t.wpTags));\n\nreturn [{ json: { targets, allNeededTagNames } }];"
       },
       "id": "6ac98c69-bfa7-47d0-9a3f-81dd25060e2b",
       "name": "Berechne Tags je Ziel-Post",
@@ -170,98 +263,10 @@
       }
     }
   ],
-  "connections": {
-    "Manual Trigger": {
-      "main": [
-        [
-          {
-            "node": "Hole alle Vorgaenge",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Hole alle Vorgaenge": {
-      "main": [
-        [
-          {
-            "node": "Berechne Tags je Ziel-Post",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Berechne Tags je Ziel-Post": {
-      "main": [
-        [
-          {
-            "node": "HTTP Suche WP Tags",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "HTTP Suche WP Tags": {
-      "main": [
-        [
-          {
-            "node": "Ermittle fehlende Tags (Backfill)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Ermittle fehlende Tags (Backfill)": {
-      "main": [
-        [
-          {
-            "node": "Split fehlende Tags",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Split fehlende Tags": {
-      "main": [
-        [
-          {
-            "node": "HTTP Erstelle WP Tag",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "HTTP Erstelle WP Tag": {
-      "main": [
-        [
-          {
-            "node": "Baue Updates je Post",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Baue Updates je Post": {
-      "main": [
-        [
-          {
-            "node": "HTTP Update WP Post Tags",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
-  "pinData": {},
+  "pinData": null,
   "settings": {
     "executionOrder": "v1"
-  }
+  },
+  "tags": [],
+  "versionId": "f7524093-73b7-43a4-8b58-0c063bb4d5a6"
 }

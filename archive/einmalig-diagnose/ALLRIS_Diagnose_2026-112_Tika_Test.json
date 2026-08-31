@@ -101,9 +101,9 @@
       ]
     }
   },
-  "id": "obvCACJBBR7BnOb3",
+  "id": "BPOhNZtwfNZQta6P",
   "meta": null,
-  "name": "ALLRIS_Diagnose_2026-011_Tika_Test",
+  "name": "ALLRIS_Diagnose_2026-112_Tika_Test",
   "nodes": [
     {
       "parameters": {},
@@ -129,7 +129,7 @@
           "conditions": [
             {
               "keyName": "vorgangKey",
-              "keyValue": "vol_10388"
+              "keyValue": "vol_10604"
             }
           ]
         },
@@ -299,7 +299,7 @@
           "conditions": [
             {
               "keyName": "vorgangKey",
-              "keyValue": "vol_10388"
+              "keyValue": "vol_10604"
             }
           ]
         },
@@ -329,5 +329,5 @@
     "executionOrder": "v1"
   },
   "tags": [],
-  "versionId": "bf7e4a06-1223-4946-bcf9-3157e122c8a5"
+  "versionId": "bb92915e-3e58-4a0c-a30e-aceaac5e56c5"
 }
