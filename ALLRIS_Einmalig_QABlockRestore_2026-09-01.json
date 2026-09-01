@@ -16,7 +16,98 @@
       "main": [
         [
           {
-            "node": "Setze sharepicNeedStage zurueck auf topic_error",
+            "node": "Loop Ziele (1 pro Durchlauf)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Ziele (1 pro Durchlauf)": {
+      "main": [
+        [
+          {
+            "node": "Baue Ergebnisliste",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Lese aktuellen Zustand",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lese aktuellen Zustand": {
+      "main": [
+        [
+          {
+            "node": "Pruefe Bugmuster",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pruefe Bugmuster": {
+      "main": [
+        [
+          {
+            "node": "IF Soll aktualisiert werden?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Soll aktualisiert werden?": {
+      "main": [
+        [
+          {
+            "node": "Setze sharepicNeedStage zurueck auf topic_error (CAS)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sammle Ergebnis (uebersprungen)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Setze sharepicNeedStage zurueck auf topic_error (CAS)": {
+      "main": [
+        [
+          {
+            "node": "Pruefe CAS-Erfolg",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pruefe CAS-Erfolg": {
+      "main": [
+        [
+          {
+            "node": "Loop Ziele (1 pro Durchlauf)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sammle Ergebnis (uebersprungen)": {
+      "main": [
+        [
+          {
+            "node": "Loop Ziele (1 pro Durchlauf)",
             "type": "main",
             "index": 0
           }
@@ -42,7 +133,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// Einmalige Reparatur 2026-09-01 (RatsPilot-Audit-Folgesession): behebt den 'Legacy-Repair\n// frisst QA-Agent-Ausfaelle'-Bug fuer 5 bereits betroffene historische Zeilen (Fix des\n// Mechanismus selbst siehe ALLRIS_P4_Content_Reaktion, Commit 158602f - dieser Tool-Lauf\n// betrifft nur bereits VOR dem Fix beschaedigte Zeilen, kuenftige Faelle sind bereits\n// automatisch geschuetzt).\n//\n// Alle 5 hatten identisches, eindeutiges Muster (live gegengeprueft): contentErrorReason=\n// 'qa_blocked', last_error_message zeigt die generische 'QA-Agent-Aufruf evtl. fehlgeschlagen'-\n// Meldung (keine echten violations/hallucinationSuspects), visualBlockNotifiedReason war LEER\n// (nie ueber den wiederkehrenden Alert benachrichtigt), contentStage bereits 'content_posted'\n// (Text-Reaktion lief normal durch, nur das Bild-Motiv betroffen).\n//\n// Bewusst NICHT dabei (siehe Memory allris_qa_block_race_2026-09-01 fuer die Begruendung je\n// Fall):\n//   - 2026/124: aktuellste last_error_message betrifft einen spaeteren, unabhaengigen\n//     Paperless-Sync-Fehler, nicht das QA-Thema - wuerde beide Themen vermischen.\n//   - 2026/055, 2026/024-01: visualDecisionReason zeigt eine bereits ERFOLGTE manuelle\n//     '-SKIP'-Antwort per Matrix fuer eine fruehere Guard-/SourceLock-Blockade - ein Reset\n//     wuerde einen frischen Alarm fuer etwas ausloesen, das ein Mensch schon bewusst\n//     abgehakt hat.\n//   - 2026/241: bereits korrekt im Zustand topic_error, bereits reell alarmiert\n//     (visualBlockNotifiedReason == aktueller Grund) - kein Bug-Fall, echte Guard-Blockade.\n//   - 2026/277: last_error_message/-at komplett leer - zu duenne Datenlage fuer einen\n//     sinnvollen Alarm-Text.\n//\n// Setzt NUR sharepicNeedStage + visualDecisionReason zurueck. contentErrorReason/last_error_*\n// bleiben unangetastet (sie sind bereits korrekt - genau der zuverlaessige Marker, der den\n// urspruenglichen Bug ueberhaupt erst sichtbar gemacht hat). Nach diesem Lauf greift der\n// (bereits gefixte) wiederkehrende Alert in P4 automatisch beim naechsten stuendlichen Lauf\n// und sendet eine echte Matrix-Meldung mit -OK/-SKIP-Antwortoption.\nconst TARGETS = [\n  { vorgangKey: 'vol_10600', vorgangsnummer: '2026/109' },\n  { vorgangKey: 'vol_10672', vorgangsnummer: '2026/152' },\n  { vorgangKey: 'vol_10705', vorgangsnummer: '2026/178' },\n  { vorgangKey: 'vol_10721', vorgangsnummer: '2026/191' },\n  { vorgangKey: 'vol_10369', vorgangsnummer: '2025/467' }\n];\n\nif (!TARGETS.length) {\n  throw new Error('[QABlockRestore] TARGETS im Node \"Konfiguriere Ziele\" befuellen.');\n}\n\nreturn TARGETS.map(t => ({\n  json: {\n    vorgangKey: t.vorgangKey,\n    vorgangsnummer: t.vorgangsnummer,\n    sharepicNeedStage: 'topic_error',\n    visualDecisionReason: 'Wiederhergestellt (Einmalig-Reparatur 2026-09-01): urspruengliche QA-Block-Meldung wurde durch einen Fehler in \"Repariere Legacy Visual-Status\" faelschlich als \"kein Sharepic noetig\" ueberschrieben. Der QA-Agent-Aufruf war fehlgeschlagen, keine echte inhaltliche Pruefung fand statt. Bitte manuell pruefen oder per Matrix -OK/-SKIP entscheiden.'\n  }\n}));\n"
+        "jsCode": "// Einmalige Reparatur 2026-09-01 (RatsPilot-Audit-Folgesession, P0.1-Absicherung vom\n// 2026-09-01 Folgeauftrag): behebt den 'Legacy-Repair frisst QA-Agent-Ausfaelle'-Bug\n// (ALLRIS_P4_Content_Reaktion, Commit 158602f) fuer 5 bereits VOR dem Fix beschaedigte\n// historische Zeilen. Kuenftige Faelle sind bereits automatisch geschuetzt.\n//\n// WICHTIG: dieser Node liefert nur die ZIEL-Liste. Der tatsaechliche Ist-Zustand jeder\n// Zeile wird gleich danach im Loop frisch aus der Data Table gelesen (\"Lese aktuellen\n// Zustand\") und gegen das erwartete Bugmuster geprueft (\"Pruefe Bugmuster\"), bevor\n// irgendetwas geschrieben wird - ein zwischenzeitlich manuell oder automatisch\n// veraenderter Datensatz wird NICHT ueberschrieben, siehe dortiger Kommentar.\n//\n// Bewusst NICHT dabei (siehe Memory allris_qa_block_race_2026-09-01 fuer die Begruendung\n// je Fall): 2026/124 (unabhaengiger, spaeterer Paperless-Fehler), 2026/055 + 2026/024-01\n// (bereits per Matrix -SKIP manuell abgehakt), 2026/241 (bereits korrekt+alarmiert),\n// 2026/277 (keine verwertbare Fehlermeldung).\nconst TARGETS = [\n  { vorgangKey: 'vol_10600', vorgangsnummer: '2026/109' },\n  { vorgangKey: 'vol_10672', vorgangsnummer: '2026/152' },\n  { vorgangKey: 'vol_10705', vorgangsnummer: '2026/178' },\n  { vorgangKey: 'vol_10721', vorgangsnummer: '2026/191' },\n  { vorgangKey: 'vol_10369', vorgangsnummer: '2025/467' }\n];\n\nif (!TARGETS.length) {\n  throw new Error('[QABlockRestore] TARGETS im Node \"Konfiguriere Ziele\" befuellen.');\n}\n\nreturn TARGETS.map(t => ({\n  json: {\n    vorgangKey: t.vorgangKey,\n    vorgangsnummer: t.vorgangsnummer,\n    restoreVisualDecisionReason: 'Wiederhergestellt (Einmalig-Reparatur 2026-09-01): urspruengliche QA-Block-Meldung wurde durch einen Fehler in \"Repariere Legacy Visual-Status\" faelschlich als \"kein Sharepic noetig\" ueberschrieben. Der QA-Agent-Aufruf war fehlgeschlagen, keine echte inhaltliche Pruefung fand statt. Bitte manuell pruefen oder per Matrix -OK/-SKIP entscheiden.'\n  }\n}));\n"
       },
       "id": "qabr-0002-0000-4000-8000-000000000002",
       "name": "Konfiguriere Ziele",
@@ -51,6 +142,95 @@
       "position": [
         220,
         0
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "qabr-0009-0000-4000-8000-000000000009",
+      "name": "Loop Ziele (1 pro Durchlauf)",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $('Loop Ziele (1 pro Durchlauf)').item.json.vorgangKey }}"
+            }
+          ]
+        },
+        "returnAll": false,
+        "limit": 2
+      },
+      "id": "qabr-0003-0000-4000-8000-000000000003",
+      "name": "Lese aktuellen Zustand",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        680,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// P0.1-Absicherung (2026-09-01 Folgeauftrag): defensiver Re-Read + Guard. Nur reparieren,\n// wenn das erwartete Bugmuster JETZT, unmittelbar vor dem Schreibvorgang, noch exakt\n// vorliegt - ein zwischenzeitlich veraenderter Zustand wird NIE ueberschrieben.\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\n\nconst target = $('Loop Ziele (1 pro Durchlauf)').item.json;\nconst rows = $input.all();\n\nlet decision, reason, row = null;\n\nif (rows.length === 0) {\n  decision = 'NOT_FOUND';\n  reason = 'Kein Datensatz mit diesem vorgangKey mehr in allris_vorgaenge gefunden.';\n} else if (rows.length > 1) {\n  decision = 'ERROR';\n  reason = 'vorgangKey ist nicht eindeutig (' + rows.length + ' Treffer) - vorgangKey sollte Primaerschluessel-artig eindeutig sein, abgebrochen zur Sicherheit.';\n} else {\n  row = rows[0].json || {};\n\n  // Bugmuster-Kriterien, alle muessen weiterhin zutreffen:\n  const contentErrorReasonOk = safeStr(row.contentErrorReason) === 'qa_blocked';\n  const sharepicStageOk = safeStr(row.sharepicNeedStage) === 'not_applicable';\n\n  // Keine zwischenzeitliche menschliche Entscheidung (z.B. \"-SKIP\"/\"-OK\" per Matrix,\n  // erkennbar am Praefix \"Manuell per Matrix\", siehe P5b \"Speichere Blockade-Antwort\").\n  const noHumanDecision = !safeStr(row.visualDecisionReason).startsWith('Manuell per Matrix');\n\n  // Kein Hinweis, dass die Zeile bereits uebliche Freigabe/Benachrichtigung durchlaufen\n  // hat, seit der Reparaturplanung entstanden (visualBlockNotifiedReason waere dann\n  // gesetzt UND wuerde nicht mehr die alte, uninformative Notlage beschreiben).\n  const notAlreadyNotified = !safeStr(row.visualBlockNotifiedReason);\n\n  // Der Datensatz darf sich nicht bereits ein zweites Mal veraendert haben (z.B. durch\n  // einen erneuten P3d-Lauf) - erkennbar daran, dass visualDecisionReason bereits unseren\n  // eigenen Wiederherstellungstext traegt (waere ein Zeichen, dass dieses Tool schon\n  // einmal fuer diese Zeile lief) oder bereits die \"(Neuberechnung Legacy-Reparatur)\"-\n  // Markierung NICHT mehr traegt, obwohl contentErrorReason noch qa_blocked ist (waere\n  // ein unbekannter, neuer Zustand, den wir nicht blind ueberschreiben wollen).\n  const currentReason = safeStr(row.visualDecisionReason);\n  const looksLikeKnownLegacyRepairText = currentReason.startsWith('Eignungs-Agent:') && currentReason.endsWith('(Neuberechnung Legacy-Reparatur)');\n  const notAlreadyRestored = !currentReason.startsWith('Wiederhergestellt (Einmalig-Reparatur');\n\n  const stillMatchesBugPattern = contentErrorReasonOk && sharepicStageOk && noHumanDecision && notAlreadyNotified && notAlreadyRestored && looksLikeKnownLegacyRepairText;\n\n  if (stillMatchesBugPattern) {\n    decision = 'UPDATE';\n    reason = 'Bugmuster unveraendert vorhanden (contentErrorReason=qa_blocked, sharepicNeedStage=not_applicable, keine menschliche Zwischenentscheidung, keine vorherige Benachrichtigung, unveraenderter Legacy-Reparatur-Text).';\n  } else {\n    decision = 'SKIPPED_STATE_CHANGED';\n    const details = [];\n    if (!contentErrorReasonOk) details.push('contentErrorReason ist jetzt \"' + safeStr(row.contentErrorReason) + '\" statt \"qa_blocked\"');\n    if (!sharepicStageOk) details.push('sharepicNeedStage ist jetzt \"' + safeStr(row.sharepicNeedStage) + '\" statt \"not_applicable\"');\n    if (!noHumanDecision) details.push('visualDecisionReason zeigt bereits eine manuelle Matrix-Entscheidung: \"' + currentReason.slice(0, 120) + '\"');\n    if (!notAlreadyNotified) details.push('visualBlockNotifiedReason ist bereits gesetzt: \"' + safeStr(row.visualBlockNotifiedReason).slice(0, 120) + '\"');\n    if (!notAlreadyRestored) details.push('Zeile traegt bereits den Wiederherstellungstext dieses Tools (evtl. schon einmal gelaufen)');\n    if (contentErrorReasonOk && sharepicStageOk && !looksLikeKnownLegacyRepairText) details.push('visualDecisionReason entspricht nicht mehr exakt dem erwarteten Legacy-Reparatur-Text: \"' + currentReason.slice(0, 120) + '\"');\n    reason = details.join(' | ') || 'Zustand entspricht nicht mehr exakt dem erwarteten Bugmuster.';\n  }\n}\n\nreturn [{\n  json: {\n    ...target,\n    _decision: decision,\n    _reason: reason,\n    _currentSharepicNeedStage: row ? safeStr(row.sharepicNeedStage) : null,\n    _currentVisualDecisionReason: row ? safeStr(row.visualDecisionReason) : null,\n    _currentVisualBlockNotifiedReason: row ? safeStr(row.visualBlockNotifiedReason) : null,\n    _lastErrorAt: row ? safeStr(row.last_error_at) : null\n  }\n}];\n"
+      },
+      "id": "qabr-0004-0000-4000-8000-000000000004",
+      "name": "Pruefe Bugmuster",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._decision }}",
+              "rightValue": "UPDATE",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "qabr-0005-0000-4000-8000-000000000005",
+      "name": "IF Soll aktualisiert werden?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        -80
       ]
     },
     {
@@ -69,14 +249,22 @@
             {
               "keyName": "vorgangKey",
               "keyValue": "={{ $json.vorgangKey }}"
+            },
+            {
+              "keyName": "contentErrorReason",
+              "keyValue": "qa_blocked"
+            },
+            {
+              "keyName": "sharepicNeedStage",
+              "keyValue": "not_applicable"
             }
           ]
         },
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "sharepicNeedStage": "={{ $json.sharepicNeedStage }}",
-            "visualDecisionReason": "={{ $json.visualDecisionReason }}"
+            "sharepicNeedStage": "topic_error",
+            "visualDecisionReason": "={{ $json.restoreVisualDecisionReason }}"
           },
           "matchingColumns": [
             "vorgangKey"
@@ -85,13 +273,53 @@
         },
         "options": {}
       },
-      "id": "qabr-0003-0000-4000-8000-000000000003",
-      "name": "Setze sharepicNeedStage zurueck auf topic_error",
+      "id": "qabr-0006-0000-4000-8000-000000000006",
+      "name": "Setze sharepicNeedStage zurueck auf topic_error (CAS)",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
+        1340,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// CAS-Schutz: der Update-Filter enthaelt vorgangKey UND contentErrorReason='qa_blocked'\n// UND sharepicNeedStage='not_applicable' als Bedingung. Hat sich der Datensatz im schmalen\n// Fenster zwischen \"Pruefe Bugmuster\" und diesem Schreibvorgang nochmal veraendert, matcht\n// der Filter keine Zeile mehr - der Data-Table-Node liefert dann 0 Items zurueck statt 1.\nconst target = $('Pruefe Bugmuster').item.json;\nconst updated = $input.all();\n\nif (updated.length === 1) {\n  return [{ json: { vorgangsnummer: target.vorgangsnummer, vorgangKey: target.vorgangKey, _decision: 'UPDATED', _reason: target._reason } }];\n}\nif (updated.length === 0) {\n  return [{ json: { vorgangsnummer: target.vorgangsnummer, vorgangKey: target.vorgangKey, _decision: 'SKIPPED_STATE_CHANGED', _reason: 'CAS-Update traf 0 Zeilen - Zustand aenderte sich zwischen Pruefung und Schreibvorgang.' } }];\n}\nreturn [{ json: { vorgangsnummer: target.vorgangsnummer, vorgangKey: target.vorgangKey, _decision: 'ERROR', _reason: 'CAS-Update traf ' + updated.length + ' Zeilen statt 0 oder 1 - unerwartet, vorgangKey sollte eindeutig sein.' } }];\n"
+      },
+      "id": "qabr-0007-0000-4000-8000-000000000007",
+      "name": "Pruefe CAS-Erfolg",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $json;\nreturn [{ json: { vorgangsnummer: j.vorgangsnummer, vorgangKey: j.vorgangKey, _decision: j._decision, _reason: j._reason } }];\n"
+      },
+      "id": "qabr-0008-0000-4000-8000-000000000008",
+      "name": "Sammle Ergebnis (uebersprungen)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Kompakte Ergebnisliste, gruppiert nach Status (UPDATED / SKIPPED_STATE_CHANGED /\n// NOT_FOUND / ERROR) - siehe P0.1-Auftrag vom 2026-09-01 Folgeauftrag.\nconst items = $input.all().map(i => i.json);\nconst byStatus = {};\nfor (const it of items) {\n  const key = it._decision || 'UNKNOWN';\n  if (!byStatus[key]) byStatus[key] = [];\n  byStatus[key].push({ vorgangsnummer: it.vorgangsnummer, vorgangKey: it.vorgangKey, grund: it._reason });\n}\n\nconst summary = Object.keys(byStatus).map(k => k + ': ' + byStatus[k].length).join(', ');\nconsole.log('[QABlockRestore] Ergebnis: ' + summary);\nfor (const [status, rows] of Object.entries(byStatus)) {\n  for (const r of rows) {\n    console.log('  ' + status + ' - ' + r.vorgangsnummer + ' (' + r.vorgangKey + '): ' + r.grund);\n  }\n}\n\nreturn [{ json: { summary, byStatus, totalProcessed: items.length } }];\n"
+      },
+      "id": "qabr-0010-0000-4000-8000-000000000010",
+      "name": "Baue Ergebnisliste",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
         440,
-        0
+        220
       ]
     }
   ],
@@ -100,5 +328,5 @@
     "executionOrder": "v1"
   },
   "tags": [],
-  "versionId": "5e6c4950-1d86-4c5d-91e9-3be565930493"
+  "versionId": "177189be-3f9d-48db-aa47-1d172b3c02b1"
 }
