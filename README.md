@@ -34,7 +34,7 @@ n8n-Automatisierungspipeline für DIE PARTEI Kreisverband Goslar. Überwacht das
 
 ## Produktions-Pipeline (P1–P11 + P3b/P3c/P3d/P3e + P8b)
 
-Das sind die Dateien, die tatsächlich live laufen (n8n Schedule Trigger, alle 5 Stunden, zeitversetzt) und reale Vorgänge von der ALLRIS-Erfassung bis zur WordPress-Veröffentlichung durchreichen:
+Das sind die Dateien, die tatsächlich live laufen (n8n Schedule Trigger, zeitversetzt) und reale Vorgänge von der ALLRIS-Erfassung bis zur WordPress-Veröffentlichung durchreichen. Die Taktung ist je Stufe unterschiedlich — P1/P2 alle 5h, P3–P8 stündlich, P8b/P9/P10/P11 mehrmals täglich zu festen Uhrzeiten (siehe die **Zeitplan-Kaskade** weiter unten für die genauen Werte, Stand 2026-09-01):
 
 | Datei | Stufe | Warum diese Stufe eigenständig ist |
 |---|---|---|
@@ -51,7 +51,7 @@ Das sind die Dateien, die tatsächlich live laufen (n8n Schedule Trigger, alle 5
 | `ALLRIS_P6_Bildgenerierung.json` | Erzeugt und komponiert das Sharepic | Größte Datei: Bild-API-Aufruf, Compositing, Qualitätsprüfung, Nextcloud-Upload, Matrix-Post — bewusst als ein Block, da diese Schritte eng an denselben Bildzustand gekoppelt sind |
 | `ALLRIS_P7_WordPress_Publish.json` | Veröffentlicht auf WordPress (golietz.de) | Letzter, unumkehrbarer Schritt — eigene Stufe, damit ein WordPress-Fehler isoliert sichtbar bleibt und nicht mit Bildgenerierungsfehlern vermischt wird |
 | `ALLRIS_P8_Partei_Webseite.json` | Legt Entwurf auf der Partei-Webseite (die-partei.net/goslar) an | Seit 2026-07-26 **nur noch Entwurfs-Erstellung** (`status='draft'`): Bild-Upload + Post anlegen laufen für jeden fertigen Vorgang sofort, das eigentliche Live-Schalten wurde in P8b ausgelagert |
-| `ALLRIS_P8b_Tagesveroeffentlichung.json` | Schaltet genau einen Entwurf/Tag live | Neu 2026-07-26 (Nutzerwunsch: gleichmäßiger Veröffentlichungsrhythmus statt Batch-Postings). Wählt den ältesten offenen Entwurf (`wordpressGoslarDraftId` gesetzt, `wordpressGoslarPosted` noch falsch), setzt per WordPress-REST-API `status=publish`. Erst danach lesen P9/P10 den echten Live-Link |
+| `ALLRIS_P8b_Tagesveroeffentlichung.json` | Schaltet je Lauf genau einen Entwurf live | Neu 2026-07-26 (Nutzerwunsch: gleichmäßiger Veröffentlichungsrhythmus statt Batch-Postings), Taktung seit 2026-09-01 auf 2 Läufe/Tag (07:30+17:00) erhöht — der Node selbst hat kein Tageslimit, wählt bei jedem Lauf erneut den ältesten offenen Entwurf (`wordpressGoslarDraftId` gesetzt, `wordpressGoslarPosted` noch falsch) und publiziert genau diesen einen. Faktisch also bis zu 2 Entwürfe/Tag, nicht mehr genau 1. Setzt per WordPress-REST-API `status=publish`. Erst danach lesen P9/P10/P11 den echten Live-Link |
 | `ALLRIS_P9_Mastodon_Publish.json` | Veröffentlicht auf Mastodon | Postet Bild + Text + KI-generierte und feste Hashtags (`#meingoslar #goslar #meinklüngelkannmehr #prioritätenproblem`); wartet zwingend auf `wordpressGoslarPosted` + `wordpressGoslarPostLink` (also auf P8b, nie auf P8 direkt), damit der verlinkte Artikel beim Posten schon wirklich live ist |
 | `ALLRIS_P10_Instagram_Publish.json` | Veröffentlicht auf Instagram | **Aktiv** (Stand 2026-09-01, live verifiziert) — 26 Nodes, gleiches Claim-/History-Muster wie P9, Graph-API Media-Container→Publish-Flow, nutzt dieselbe P8-Bild-URL |
 | `ALLRIS_P11_Facebook_Publish.json` | Veröffentlicht auf Facebook | **Aktiv** (Stand 2026-09-01, live verifiziert), claim-gated wie die übrigen Publish-Stufen |
