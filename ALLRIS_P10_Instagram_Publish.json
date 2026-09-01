@@ -596,8 +596,8 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "dR97FiFZqXJKUsAW",
-          "name": "Facebook Page Token"
+          "id": "iDvTwOmx0APuwPHv",
+          "name": "Instagram User Token"
         }
       },
       "onError": "continueRegularOutput"
@@ -677,8 +677,8 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "dR97FiFZqXJKUsAW",
-          "name": "Facebook Page Token"
+          "id": "iDvTwOmx0APuwPHv",
+          "name": "Instagram User Token"
         }
       },
       "onError": "continueRegularOutput"
@@ -757,8 +757,8 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "dR97FiFZqXJKUsAW",
-          "name": "Facebook Page Token"
+          "id": "iDvTwOmx0APuwPHv",
+          "name": "Instagram User Token"
         }
       },
       "onError": "continueRegularOutput"
@@ -1037,5 +1037,5 @@
     "errorWorkflow": "qPheJKPv0k06tkro"
   },
   "tags": [],
-  "versionId": "2ddc29c9-17c4-4d42-a7fd-9cfe88556388"
+  "versionId": "22258f5d-2d40-4091-a777-8bf268e4b37d"
 }
