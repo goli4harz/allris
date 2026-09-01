@@ -1,0 +1,104 @@
+{
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Konfiguriere Ziele",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Konfiguriere Ziele": {
+      "main": [
+        [
+          {
+            "node": "Setze sharepicNeedStage zurueck auf topic_error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "id": "3HnD8Kcd8JF8YMz5",
+  "meta": null,
+  "name": "ALLRIS_Einmalig_QABlockRestore_2026-09-01",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "qabr-0001-0000-4000-8000-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Einmalige Reparatur 2026-09-01 (RatsPilot-Audit-Folgesession): behebt den 'Legacy-Repair\n// frisst QA-Agent-Ausfaelle'-Bug fuer 5 bereits betroffene historische Zeilen (Fix des\n// Mechanismus selbst siehe ALLRIS_P4_Content_Reaktion, Commit 158602f - dieser Tool-Lauf\n// betrifft nur bereits VOR dem Fix beschaedigte Zeilen, kuenftige Faelle sind bereits\n// automatisch geschuetzt).\n//\n// Alle 5 hatten identisches, eindeutiges Muster (live gegengeprueft): contentErrorReason=\n// 'qa_blocked', last_error_message zeigt die generische 'QA-Agent-Aufruf evtl. fehlgeschlagen'-\n// Meldung (keine echten violations/hallucinationSuspects), visualBlockNotifiedReason war LEER\n// (nie ueber den wiederkehrenden Alert benachrichtigt), contentStage bereits 'content_posted'\n// (Text-Reaktion lief normal durch, nur das Bild-Motiv betroffen).\n//\n// Bewusst NICHT dabei (siehe Memory allris_qa_block_race_2026-09-01 fuer die Begruendung je\n// Fall):\n//   - 2026/124: aktuellste last_error_message betrifft einen spaeteren, unabhaengigen\n//     Paperless-Sync-Fehler, nicht das QA-Thema - wuerde beide Themen vermischen.\n//   - 2026/055, 2026/024-01: visualDecisionReason zeigt eine bereits ERFOLGTE manuelle\n//     '-SKIP'-Antwort per Matrix fuer eine fruehere Guard-/SourceLock-Blockade - ein Reset\n//     wuerde einen frischen Alarm fuer etwas ausloesen, das ein Mensch schon bewusst\n//     abgehakt hat.\n//   - 2026/241: bereits korrekt im Zustand topic_error, bereits reell alarmiert\n//     (visualBlockNotifiedReason == aktueller Grund) - kein Bug-Fall, echte Guard-Blockade.\n//   - 2026/277: last_error_message/-at komplett leer - zu duenne Datenlage fuer einen\n//     sinnvollen Alarm-Text.\n//\n// Setzt NUR sharepicNeedStage + visualDecisionReason zurueck. contentErrorReason/last_error_*\n// bleiben unangetastet (sie sind bereits korrekt - genau der zuverlaessige Marker, der den\n// urspruenglichen Bug ueberhaupt erst sichtbar gemacht hat). Nach diesem Lauf greift der\n// (bereits gefixte) wiederkehrende Alert in P4 automatisch beim naechsten stuendlichen Lauf\n// und sendet eine echte Matrix-Meldung mit -OK/-SKIP-Antwortoption.\nconst TARGETS = [\n  { vorgangKey: 'vol_10600', vorgangsnummer: '2026/109' },\n  { vorgangKey: 'vol_10672', vorgangsnummer: '2026/152' },\n  { vorgangKey: 'vol_10705', vorgangsnummer: '2026/178' },\n  { vorgangKey: 'vol_10721', vorgangsnummer: '2026/191' },\n  { vorgangKey: 'vol_10369', vorgangsnummer: '2025/467' }\n];\n\nif (!TARGETS.length) {\n  throw new Error('[QABlockRestore] TARGETS im Node \"Konfiguriere Ziele\" befuellen.');\n}\n\nreturn TARGETS.map(t => ({\n  json: {\n    vorgangKey: t.vorgangKey,\n    vorgangsnummer: t.vorgangsnummer,\n    sharepicNeedStage: 'topic_error',\n    visualDecisionReason: 'Wiederhergestellt (Einmalig-Reparatur 2026-09-01): urspruengliche QA-Block-Meldung wurde durch einen Fehler in \"Repariere Legacy Visual-Status\" faelschlich als \"kein Sharepic noetig\" ueberschrieben. Der QA-Agent-Aufruf war fehlgeschlagen, keine echte inhaltliche Pruefung fand statt. Bitte manuell pruefen oder per Matrix -OK/-SKIP entscheiden.'\n  }\n}));\n"
+      },
+      "id": "qabr-0002-0000-4000-8000-000000000002",
+      "name": "Konfiguriere Ziele",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "hBLqpqeVEojPpOJl",
+          "mode": "list",
+          "cachedResultName": "allris_vorgaenge",
+          "cachedResultUrl": "/projects/CrnegVcMvlcRU0OP/datatables/hBLqpqeVEojPpOJl"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "sharepicNeedStage": "={{ $json.sharepicNeedStage }}",
+            "visualDecisionReason": "={{ $json.visualDecisionReason }}"
+          },
+          "matchingColumns": [
+            "vorgangKey"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "qabr-0003-0000-4000-8000-000000000003",
+      "name": "Setze sharepicNeedStage zurueck auf topic_error",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        440,
+        0
+      ]
+    }
+  ],
+  "pinData": null,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "versionId": "5e6c4950-1d86-4c5d-91e9-3be565930493"
+}
