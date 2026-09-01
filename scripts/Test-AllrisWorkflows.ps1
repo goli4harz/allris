@@ -681,6 +681,58 @@ if ($null -ne $visualRepairWorkflow) {
     }
 }
 
+# Konsistenzpruefung Cluster 2 (Sensible-Inhalte-/Symbol-Drift-Guard, RatsPilot-Audit
+# 2026-09-01): 8 Node-Instanzen ueber 5 Workflows implementieren dieselbe Guard-Regel
+# eigenstaendig - genau diese Duplikation war bereits real divergiert (siehe Commit
+# f6619b1: "behinder"/"gefluecht" ohne Wildcard erkannten sensible Personengruppen nie).
+# Nach der Vereinheitlichung haelt dieser Test den kanonischen Stand fest, damit ein
+# kuenftiger Fix an nur einer Instanz sofort als Abweichung auffaellt statt erneut
+# unbemerkt zu divergieren.
+$guardCanonicalFragments = @(
+    "behinder\w*",
+    "gefluechtet\w*",
+    "wohnungslos\w*",
+    'barrierefreiheit.{0,60}'
+)
+# Der exakte Regex-Quelltext des entfernten 4. Metapher-Branches als Marker - lose Stichworte
+# wie "gefahrenszene" oder "panik" reichen NICHT: beide kommen auch in einer voellig
+# unabhaengigen, weiterhin gueltigen Fehlermeldung vor ("...als Metapher, Wortspiel oder
+# Gefahrenszene verwendet"), ein Substring-Check darauf waere ein Fehlalarm gewesen.
+$guardForbiddenFragment = [regex]::Escape('(gefahrenszene|hilflosigkeit|panik|panisch')
+# Node-Namen mit Umlaut werden bewusst per "-like" mit "?"-Wildcard statt "-eq" mit
+# Literal-Umlaut gematcht: dieses Skript wird von Windows PowerShell 5.1 ohne BOM eingelesen
+# und interpretiert im Quelltext eingebettete Umlaute dabei nicht zuverlaessig als UTF-8
+# (dasselbe bekannte Gotcha wie bei Get-Content ohne -Encoding UTF8, hier aber am eigenen
+# Skript-Quelltext, nicht an einer gelesenen Datei).
+$guardInstances = @(
+    @{ Workflow = 'ALLRIS_P3_Bewertung'; Node = 'Parse Analyse JSON' },
+    @{ Workflow = 'ALLRIS_QA_Agent'; Node = 'Deterministische Regelpr?fung' },
+    @{ Workflow = 'ALLRIS_P4_Content_Reaktion'; Node = 'Repariere Legacy Visual-Status' },
+    @{ Workflow = 'ALLRIS_P4_Content_Reaktion'; Node = 'Filtere unbenachrichtigte Blockaden' },
+    @{ Workflow = 'ALLRIS_P5b_Matrix_Headline_Reader'; Node = 'Finde Blockade-Antwort' },
+    @{ Workflow = 'ALLRIS_P3b_Repair_SourceLock_VisualGuard'; Node = 'Parse Reparatur JSON' },
+    @{ Workflow = 'ALLRIS_P3b_Repair_SourceLock_VisualGuard'; Node = 'Pr?fe Guard-Repair-Bedarf' },
+    @{ Workflow = 'ALLRIS_P3b_Repair_SourceLock_VisualGuard'; Node = 'Parse Guard-Reparatur JSON' }
+)
+foreach ($instance in $guardInstances) {
+    $guardWorkflow = $workflows[$instance.Workflow].Data
+    if ($null -eq $guardWorkflow) { continue }
+    $guardNode = @($guardWorkflow.nodes | Where-Object name -like $instance.Node)
+    if ($guardNode.Count -ne 1) {
+        Add-Failure "$($instance.Workflow): Guard-Node '$($instance.Node)' fehlt oder ist nicht eindeutig."
+        continue
+    }
+    $guardCode = [string]$guardNode[0].parameters.jsCode
+    foreach ($fragment in $guardCanonicalFragments) {
+        if (-not $guardCode.Contains($fragment)) {
+            Add-Failure "$($instance.Workflow): Guard-Node '$($instance.Node)' weicht vom kanonischen Muster ab (fehlt: '$fragment')."
+        }
+    }
+    if ($guardCode -match $guardForbiddenFragment) {
+        Add-Failure "$($instance.Workflow): Guard-Node '$($instance.Node)' enthaelt den entfernten Panik/Gefahr-Branch wieder."
+    }
+}
+
 Write-Host "Geprüfte Exporte: $($workflowFiles.Count)"
 Write-Host "Sub-Workflow-Referenzen: $($idsReferenced.Count)"
 
