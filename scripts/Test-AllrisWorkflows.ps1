@@ -622,6 +622,65 @@ if ($null -ne $p3e) {
     }
 }
 
+# Konsistenzpruefung Cluster 1 (Sharepic-Bild-Warte-Gate vor Publish, RatsPilot-Audit
+# 2026-09-01): P8/P9/P11 muessen dieselbe hasImage/imageGivenUp-Ableitung und dieselbe
+# Wartebedingung fuer sharepicNeedStage='topic_ok' verwenden - sonst kann ein Vorgang je
+# nach Kanal unterschiedlich frueh (mit oder ohne fertiges Bild) veroeffentlicht werden.
+# Stand 2026-09-01 bewusst dupliziert, aber noch nicht divergiert - dieser Test haelt das fest.
+$sharepicGateCandidates = @(
+    @{ Workflow = 'ALLRIS_P8_Partei_Webseite'; Node = 'Filter Partei-Webseite-Kandidaten' },
+    @{ Workflow = 'ALLRIS_P9_Mastodon_Publish'; Node = 'Filter Mastodon-Kandidaten' },
+    @{ Workflow = 'ALLRIS_P11_Facebook_Publish'; Node = 'Filter Facebook-Kandidaten' }
+)
+$requiredGateFragments = @(
+    "safeStr(j.sharepicNeedStage) === 'topic_ok'",
+    '!!safeStr(j.imageFinalPath)',
+    "safeStr(j.imageStage) === 'topic_error_final'",
+    '!hasImage && !imageGivenUp'
+)
+foreach ($candidate in $sharepicGateCandidates) {
+    $gateWorkflow = $workflows[$candidate.Workflow].Data
+    if ($null -eq $gateWorkflow) { continue }
+    $gateNode = @($gateWorkflow.nodes | Where-Object name -eq $candidate.Node)
+    if ($gateNode.Count -ne 1) {
+        Add-Failure "$($candidate.Workflow): Sharepic-Gate-Node '$($candidate.Node)' fehlt oder ist nicht eindeutig."
+        continue
+    }
+    $gateCode = [string]$gateNode[0].parameters.jsCode
+    foreach ($fragment in $requiredGateFragments) {
+        if (-not $gateCode.Contains($fragment)) {
+            Add-Failure "$($candidate.Workflow): Sharepic-Gate-Node '$($candidate.Node)' weicht vom gemeinsamen Muster ab (fehlt: '$fragment')."
+        }
+    }
+}
+
+# Konsistenzpruefung Cluster 3 (Visual-Status-Reset nach Repair, RatsPilot-Audit 2026-09-01):
+# beide Repair-Nodes in P4 muessen beim Freigeben auf 'topic_ok' dasselbe Bildfeld-Reset-
+# Buendel verwenden (Bildfelder leeren, headlineChoiceStage zuruecksetzen, imageStage aus
+# imageFinalPath neu ableiten). Stand 2026-09-01 noch konsistent - dieser Test haelt das fest.
+$visualRepairWorkflow = $workflows['ALLRIS_P4_Content_Reaktion'].Data
+if ($null -ne $visualRepairWorkflow) {
+    $visualRepairNodes = @('Repariere blockierte Visual-Status', 'Repariere Legacy Visual-Status')
+    $requiredResetFragments = @(
+        "'needs_kernbotschaft'",
+        "'composed' : 'not_started'",
+        'imageNegativePrompt'
+    )
+    foreach ($nodeName in $visualRepairNodes) {
+        $repairNode = @($visualRepairWorkflow.nodes | Where-Object name -eq $nodeName)
+        if ($repairNode.Count -ne 1) {
+            Add-Failure "P4: Visual-Status-Repair-Node '$nodeName' fehlt oder ist nicht eindeutig."
+            continue
+        }
+        $repairCode = [string]$repairNode[0].parameters.jsCode
+        foreach ($fragment in $requiredResetFragments) {
+            if (-not $repairCode.Contains($fragment)) {
+                Add-Failure "P4: Repair-Node '$nodeName' weicht vom gemeinsamen Bildfeld-Reset-Muster ab (fehlt: '$fragment')."
+            }
+        }
+    }
+}
+
 Write-Host "Geprüfte Exporte: $($workflowFiles.Count)"
 Write-Host "Sub-Workflow-Referenzen: $($idsReferenced.Count)"
 
