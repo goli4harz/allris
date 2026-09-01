@@ -22,6 +22,31 @@ function Add-Failure {
     Write-Host "FAIL: $Message" -ForegroundColor Red
 }
 
+function Test-NodeReachable {
+    param($Workflow, [string]$From, [string]$To, [int]$MaxHops = 8)
+    # FIX 2026-09-01 (RatsPilot-Folgeauftrag P0.2): ersetzt eine starre 1-Hop-Connection-
+    # Pruefung durch eine transitive Erreichbarkeit ueber main[0]. Anlass: P8s "Baue Post-Body"
+    # war urspruenglich (07-23) direkt mit der Slug-Suche verbunden; der Tag-Context-Fix vom
+    # 08-26 (Commit 7f33097, live verifiziert an 78/100 betroffenen Beitraegen) schob bewusst
+    # eine mehrstufige Tag-Aufloesungskette dazwischen. Der fachliche Vertrag ("Post-Body
+    # muendet vor der Veroeffentlichung in die Slug-Suche/Duplikat-Pruefung") gilt weiterhin,
+    # nur nicht mehr als direkte 1-Hop-Verbindung - ein starrer Direktvergleich haette bei
+    # jedem kuenftigen legitimen Umbau derselben Kette erneut faelschlich rot geschlagen.
+    $frontier = @($From)
+    for ($i = 0; $i -lt $MaxHops; $i++) {
+        $next = @($frontier | ForEach-Object {
+            $conn = $Workflow.connections.($_)
+            if ($conn -and $conn.main -and $conn.main.Count -gt 0) {
+                @($conn.main[0] | ForEach-Object node)
+            }
+        } | Select-Object -Unique)
+        if ($To -in $next) { return $true }
+        if ($next.Count -eq 0) { return $false }
+        $frontier = $next
+    }
+    return $false
+}
+
 function Get-ObjectHash {
     param($Value)
     $json = $Value | ConvertTo-Json -Compress -Depth 100
@@ -420,7 +445,7 @@ if ($null -ne $p8) {
     $p8ReleaseSources = @($p8.connections.psobject.Properties | Where-Object {
         @($_.Value.main | ForEach-Object { $_ | ForEach-Object node }) -contains 'Bereite P8 Claim-Freigabe vor'
     })
-    $p8BodyTargets = @($p8.connections.'Baue Post-Body'.main[0] | ForEach-Object node)
+    $p8BodyReachesSlugSearch = Test-NodeReachable -Workflow $p8 -From 'Baue Post-Body' -To 'Suche Partei-Beitrag per Slug'
     if ($p8Failure.Count -ne 1 -or
         $p8Failure[0].parameters.columns.value.last_error_code -ne 'WORDPRESS_PUBLISH_FAILED' -or
         $p8Failure[0].parameters.columns.value.last_error_stage -ne 'publication' -or
@@ -442,8 +467,7 @@ if ($null -ne $p8) {
         $p8ClaimPrepare[0].parameters.jsCode -notlike '*leaseMinutes: 30*' -or
         $p8ClaimRelease.Count -ne 1 -or
         $p8ReleaseSources.Count -ne 2 -or
-        $p8BodyTargets.Count -ne 1 -or
-        $p8BodyTargets[0] -ne 'Suche Partei-Beitrag per Slug') {
+        -not $p8BodyReachesSlugSearch) {
         Add-Failure 'P8: zentraler WordPress-Fehler-/History-Vertrag ist unvollständig.'
     }
 }
