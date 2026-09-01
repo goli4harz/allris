@@ -207,7 +207,7 @@
       "main": [
         [
           {
-            "node": "Check Matrix Status",
+            "node": "Fast-Lane-Vorschlag noetig?",
             "type": "main",
             "index": 0
           }
@@ -637,6 +637,46 @@
           }
         ]
       ]
+    },
+    "Fast-Lane-Vorschlag noetig?": {
+      "main": [
+        [
+          {
+            "node": "Baue Fast-Lane-Vorschlag",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check Matrix Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue Fast-Lane-Vorschlag": {
+      "main": [
+        [
+          {
+            "node": "Send Matrix Fast-Lane-Vorschlag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Matrix Fast-Lane-Vorschlag": {
+      "main": [
+        [
+          {
+            "node": "Check Matrix Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "id": "wGLMrDnSavNIprzu",
@@ -759,7 +799,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ============================================================\n// PREPARE VISUAL DECISION - v26 (EIGNUNGS-AGENT SPLIT)\n// Entscheidet nicht mehr selbst, ob ein Sharepic noetig ist (das hat P3s\n// Eignungs-Agent bereits entschieden, sharepicNeedStage ist die einzige\n// Quelle dafuer). Prueft nur noch, ob CONTENT und SOURCE-LOCK zum\n// Zeitpunkt der Content-Erstellung noch gueltig sind (kann sharepicNeedStage\n// nur noch auf blocked_content_error/blocked_source_lock herabstufen, nie\n// von sich aus auf topic_ok heraufstufen), und stoesst bei\n// sharepicNeedStage==='topic_ok' den Bildprompt-Bau an (visualPromptStage).\n// ============================================================\n\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction bool(v) {\n  if (v === true || v === 1) return true;\n  if (v === false || v === 0 || v === null || v === undefined) return false;\n  const s = String(v).trim().toLowerCase();\n  return s === 'true' || s === '1' || s === 'yes';\n}\nfunction parseObject(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try {\n    const parsed = JSON.parse(String(v));\n    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};\n  } catch (e) {\n    return {};\n  }\n}\nfunction asArray(v) {\n  if (Array.isArray(v)) return v.filter(Boolean).map(x => String(x).trim());\n  if (!v) return [];\n  try {\n    const p = JSON.parse(String(v));\n    return Array.isArray(p) ? p.filter(Boolean).map(x => String(x).trim()) : [];\n  } catch (e) {\n    return String(v).split(/\\s*\\|\\s*/).filter(Boolean).map(x => x.trim());\n  }\n}\n\nconst j = $input.item.json || {};\n\n// Altlastenentwertung: alte Bildfelder bei neuem Content-Zyklus zuruecksetzen.\n// Reset nur wenn P5/P5b (Headline-Poll/Bildprompt-Bau) noch nicht selbst\n// weitergearbeitet haben.\nconst visualStatusAlreadyAdvanced = !!(safeStr(j.headlineChoiceStage) || safeStr(j.visualPromptStage));\nconst _resetImageFields = !visualStatusAlreadyAdvanced;\n\nconst contentStageToWrite = bool(j.wordpressPosted) ? 'content_posted' : 'content_generated';\n\n// Kein Visual ohne belastbaren Content.\nif (j.contentReady !== true || j.contentValid !== true || j.contentParseError === true) {\n  const contentObj = parseObject(j.contentJson);\n  const reason = 'Content-Gate nicht erfuellt';\n  contentObj.workflow = {\n    ...parseObject(contentObj.workflow),\n    contentValid: false,\n    visualReleased: false,\n    visualReleaseReason: reason,\n    visualReleaseCheckedAt: new Date().toISOString(),\n    workflowVersion: 'content-v26-eignungs-agent-split'\n  };\n  return [{\n    json: {\n      ...j,\n      contentJson: JSON.stringify(contentObj),\n      visualDecisionReason: reason,\n      contentStage: 'error',\n      contentErrorReason: 'content_error',\n      sharepicNeedStage: 'blocked_content_error',\n      imageStage: safeStr(j.imageFinalPath) ? 'composed' : 'not_started'\n    }\n  }];\n}\n\nconst analysisObj = parseObject(j.analysisJson);\nconst contentObj = parseObject(j.contentJson);\nconst analysisAnchors = parseObject(analysisObj.visualAnchors);\n\n// Canonical Source-Lock erneut pruefen (kann sich seit P3 durch eine\n// Reparatur veraendert haben) - blockiert nur, hebt sharepicNeedStage\n// nie von sich aus an.\nconst canonicalSourceLock = parseObject(analysisObj.sourceLock);\nconst sourceLockValid = bool(analysisObj.sourceLockValid);\nconst sourceLockErrors = [];\n\nif (!sourceLockValid) sourceLockErrors.push('analysisJson.sourceLockValid ist nicht true');\nif (!canonicalSourceLock.sourceTopic) sourceLockErrors.push('sourceLock.sourceTopic fehlt');\nconst canonicalRequiredTerms = asArray(canonicalSourceLock.requiredTerms);\nif (canonicalRequiredTerms.length < 2) sourceLockErrors.push('sourceLock.requiredTerms enthaelt weniger als 2 konkrete Begriffe');\n\nconst priorSharepicNeedStage = safeStr(j.sharepicNeedStage);\n\nif (priorSharepicNeedStage === 'topic_ok' && sourceLockErrors.length > 0) {\n  const reason = 'Source-Lock ungueltig: ' + sourceLockErrors.join(' | ');\n  contentObj.workflow = {\n    ...parseObject(contentObj.workflow),\n    contentValid: true,\n    visualReleased: false,\n    visualReleaseReason: reason,\n    visualReleaseCheckedAt: new Date().toISOString(),\n    workflowVersion: 'content-v26-eignungs-agent-split'\n  };\n  return [{\n    json: {\n      ...j,\n      ...(_resetImageFields ? {\n        imagePrompt: '',\n        imageHeadline: '',\n        imageSubline: '',\n        imageNegativePrompt: '',\n        visualJson: '{}'\n      } : {}),\n      contentJson: JSON.stringify(contentObj),\n      contentValid: true,\n      contentReady: true,\n      visualDecisionReason: visualStatusAlreadyAdvanced ? (safeStr(j.visualDecisionReason) || reason) : reason,\n      contentStage: contentStageToWrite,\n      contentErrorReason: '',\n      sharepicNeedStage: visualStatusAlreadyAdvanced ? priorSharepicNeedStage : 'blocked_source_lock',\n      imageStage: safeStr(j.imageStage) || (safeStr(j.imageFinalPath) ? 'composed' : 'not_started')\n    }\n  }];\n}\n\nconst anchors = {\n  satireThemaKonkret: safeStr(analysisAnchors.satireThemaKonkret || j.satireThemaKonkret),\n  satireKonfliktKonkret: safeStr(analysisAnchors.satireKonfliktKonkret || j.satireKonfliktKonkret),\n  visualPflichtobjekte: asArray(analysisAnchors.visualPflichtobjekte || j.visualPflichtobjekte),\n  visualPflichthandlung: safeStr(analysisAnchors.visualPflichthandlung || j.visualPflichthandlung),\n  visualBetroffene: asArray(analysisAnchors.visualBetroffene || j.visualBetroffene),\n  visualOrt: safeStr(analysisAnchors.visualOrt || j.visualOrt),\n  visualUeberzeichnung: safeStr(analysisAnchors.visualUeberzeichnung || j.visualUeberzeichnung),\n  visualErkennungssatz: safeStr(analysisAnchors.visualErkennungssatz || j.visualErkennungssatz),\n  visualVerboteneErsatzmotive: asArray(analysisAnchors.visualVerboteneErsatzmotive || j.visualVerboteneErsatzmotive)\n};\n\n// sharepicNeedStage kommt authoritativ aus P3 (Eignungs-Agent) bzw. P3b\n// (Reparatur) - hier nur noch uebernehmen und ggf. Bildprompt-Bau anstossen.\nlet sharepicNeedStage = priorSharepicNeedStage || 'not_applicable';\nlet visualPromptStage = '';\nlet visualDecisionReason = safeStr(j.visualDecisionReason);\n\nif (visualStatusAlreadyAdvanced) {\n  // P5/P5b haben bereits weitergearbeitet - nichts hier ueberschreiben.\n  visualPromptStage = safeStr(j.visualPromptStage);\n} else if (sharepicNeedStage === 'topic_ok') {\n  visualPromptStage = 'needs_prompt';\n  if (!visualDecisionReason) visualDecisionReason = 'Sharepic freigegeben (Eignungs-Agent), Bildprompt-Bau angestossen.';\n}\n\nconst updatedContentObj = parseObject(j.contentJson);\nupdatedContentObj.workflow = {\n  ...parseObject(updatedContentObj.workflow),\n  contentValid: true,\n  sharepicNeedStage,\n  visualPromptStage,\n  visualDecisionReason,\n  sourceLockValid,\n  sourceLockCheck: sourceLockErrors.length === 0 ? 'passed' : 'failed',\n  visualReleaseCheckedAt: new Date().toISOString(),\n  workflowVersion: 'content-v26-eignungs-agent-split'\n};\n\nreturn [{\n  json: {\n    ...j,\n    contentJson: JSON.stringify(updatedContentObj),\n    contentValid: true,\n    contentReady: true,\n    sharepicNeedStage,\n    visualPromptStage,\n    visualDecisionReason,\n    instagramSharepicNoetig: sharepicNeedStage === 'topic_ok',\n    instagramCarouselNoetig: sharepicNeedStage === 'topic_ok',\n    visualNeeded: sharepicNeedStage === 'topic_ok',\n    ...(_resetImageFields ? {\n      imagePrompt: '',\n      imageHeadline: '',\n      imageSubline: '',\n      imageNegativePrompt: '',\n      visualJson: '{}'\n    } : {}),\n    ...anchors,\n    visualPflichtobjekte: JSON.stringify(anchors.visualPflichtobjekte),\n    visualBetroffene: JSON.stringify(anchors.visualBetroffene),\n    visualVerboteneErsatzmotive: JSON.stringify(anchors.visualVerboteneErsatzmotive),\n    contentStage: contentStageToWrite,\n    contentErrorReason: '',\n    imageStage: safeStr(j.imageStage) || (safeStr(j.imageFinalPath) ? 'composed' : 'not_started')\n  }\n}];"
+        "jsCode": "// ============================================================\n// PREPARE VISUAL DECISION - v26 (EIGNUNGS-AGENT SPLIT)\n// Entscheidet nicht mehr selbst, ob ein Sharepic noetig ist (das hat P3s\n// Eignungs-Agent bereits entschieden, sharepicNeedStage ist die einzige\n// Quelle dafuer). Prueft nur noch, ob CONTENT und SOURCE-LOCK zum\n// Zeitpunkt der Content-Erstellung noch gueltig sind (kann sharepicNeedStage\n// nur noch auf blocked_content_error/blocked_source_lock herabstufen, nie\n// von sich aus auf topic_ok heraufstufen), und stoesst bei\n// sharepicNeedStage==='topic_ok' den Bildprompt-Bau an (visualPromptStage).\n// ============================================================\n\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction bool(v) {\n  if (v === true || v === 1) return true;\n  if (v === false || v === 0 || v === null || v === undefined) return false;\n  const s = String(v).trim().toLowerCase();\n  return s === 'true' || s === '1' || s === 'yes';\n}\nfunction parseObject(v) {\n  if (!v) return {};\n  if (typeof v === 'object' && !Array.isArray(v)) return v;\n  try {\n    const parsed = JSON.parse(String(v));\n    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};\n  } catch (e) {\n    return {};\n  }\n}\nfunction asArray(v) {\n  if (Array.isArray(v)) return v.filter(Boolean).map(x => String(x).trim());\n  if (!v) return [];\n  try {\n    const p = JSON.parse(String(v));\n    return Array.isArray(p) ? p.filter(Boolean).map(x => String(x).trim()) : [];\n  } catch (e) {\n    return String(v).split(/\\s*\\|\\s*/).filter(Boolean).map(x => x.trim());\n  }\n}\nfunction num(v) {\n  const n = parseFloat(String(v === null || v === undefined ? '' : v).trim().replace(',', '.'));\n  return Number.isFinite(n) ? n : 0;\n}\nfunction parseVorlageDatum(v) {\n  const s = safeStr(v);\n  if (!s) return null;\n  let d = null;\n  const iso = s.match(/^(\\d{4})-(\\d{2})-(\\d{2})/);\n  if (iso) d = new Date(Date.UTC(+iso[1], +iso[2] - 1, +iso[3]));\n  else {\n    const de = s.match(/^(\\d{1,2})\\.(\\d{1,2})\\.(\\d{4})/);\n    if (de) d = new Date(Date.UTC(+de[3], +de[2] - 1, +de[1]));\n  }\n  return (d && !isNaN(d.getTime())) ? d : null;\n}\n// FAST-LANE-EMPFEHLUNG (2026-09-01, RatsPilot-Folgeauftrag P2, \"streng\"):\n// Rein deterministisch, KEIN zusaetzlicher KI-Call. Empfiehlt nur - setzt NIE\n// selbst publicationMode='fast' (das bleibt ausschliesslich einer menschlichen\n// Matrix-Bestaetigung per \"<Code>-FAST\" vorbehalten, siehe ALLRIS_P5b_Matrix_\n// Headline_Reader \"Finde Fast-Lane-Antwort\"). Schreibt nur einmal (nicht erneut,\n// wenn bereits empfohlen oder bereits menschlich entschieden), damit der\n// Empfehlungs-Zeitstempel stabil bleibt und der Matrix-Vorschlag nicht mehrfach\n// gesendet wird (siehe \"Fast-Lane-Vorschlag noetig?\" weiter unten im Workflow).\nfunction computeFastLaneRecommendation(row) {\n  if (safeStr(row.publicationMode)) return null;\n  if (safeStr(row.fastLaneRecommendedReason)) return null;\n\n  const sprengstoffOk = safeStr(row.sprengstoff).toUpperCase() === 'HOCH';\n  const kommPotenzial = num(row.kommunikationspotenzial);\n  const kommPotenzialOk = kommPotenzial >= 8;\n  const empfehlungOk = safeStr(row.empfehlung).toUpperCase() === 'REAGIEREN';\n\n  const vorlageDate = parseVorlageDatum(row.vorlageDatum) || parseVorlageDatum(row.vorlageDatumWeb) || parseVorlageDatum(row.vorlageDatumPdf);\n  let ageDays = null;\n  let vorlageFrischOk = false;\n  if (vorlageDate) {\n    ageDays = Math.floor((Date.now() - vorlageDate.getTime()) / 86400000);\n    vorlageFrischOk = ageDays >= 0 && ageDays <= 2;\n  }\n\n  const notAlreadyPublished = !bool(row.wordpressPosted) && !bool(row.wordpressGoslarPosted) &&\n    !bool(row.facebookPosted) && !bool(row.instagramPosted) && !bool(row.mastodonPosted);\n\n  if (sprengstoffOk && kommPotenzialOk && empfehlungOk && vorlageFrischOk && notAlreadyPublished) {\n    return 'Fast-Lane empfohlen: sprengstoff=HOCH, kommunikationspotenzial=' + kommPotenzial +\n      ', empfehlung=REAGIEREN, Vorlage ' + ageDays + ' Tag(e) alt. Bestaetigung per Matrix (-FAST) erforderlich.';\n  }\n  return null;\n}\n\nconst j = $input.item.json || {};\n\n// Altlastenentwertung: alte Bildfelder bei neuem Content-Zyklus zuruecksetzen.\n// Reset nur wenn P5/P5b (Headline-Poll/Bildprompt-Bau) noch nicht selbst\n// weitergearbeitet haben.\nconst visualStatusAlreadyAdvanced = !!(safeStr(j.headlineChoiceStage) || safeStr(j.visualPromptStage));\nconst _resetImageFields = !visualStatusAlreadyAdvanced;\n\nconst contentStageToWrite = bool(j.wordpressPosted) ? 'content_posted' : 'content_generated';\n\n// Kein Visual ohne belastbaren Content.\nif (j.contentReady !== true || j.contentValid !== true || j.contentParseError === true) {\n  const contentObj = parseObject(j.contentJson);\n  const reason = 'Content-Gate nicht erfuellt';\n  contentObj.workflow = {\n    ...parseObject(contentObj.workflow),\n    contentValid: false,\n    visualReleased: false,\n    visualReleaseReason: reason,\n    visualReleaseCheckedAt: new Date().toISOString(),\n    workflowVersion: 'content-v26-eignungs-agent-split'\n  };\n  return [{\n    json: {\n      ...j,\n      contentJson: JSON.stringify(contentObj),\n      visualDecisionReason: reason,\n      contentStage: 'error',\n      contentErrorReason: 'content_error',\n      sharepicNeedStage: 'blocked_content_error',\n      imageStage: safeStr(j.imageFinalPath) ? 'composed' : 'not_started'\n    }\n  }];\n}\n\nconst analysisObj = parseObject(j.analysisJson);\nconst contentObj = parseObject(j.contentJson);\nconst analysisAnchors = parseObject(analysisObj.visualAnchors);\n\n// Canonical Source-Lock erneut pruefen (kann sich seit P3 durch eine\n// Reparatur veraendert haben) - blockiert nur, hebt sharepicNeedStage\n// nie von sich aus an.\nconst canonicalSourceLock = parseObject(analysisObj.sourceLock);\nconst sourceLockValid = bool(analysisObj.sourceLockValid);\nconst sourceLockErrors = [];\n\nif (!sourceLockValid) sourceLockErrors.push('analysisJson.sourceLockValid ist nicht true');\nif (!canonicalSourceLock.sourceTopic) sourceLockErrors.push('sourceLock.sourceTopic fehlt');\nconst canonicalRequiredTerms = asArray(canonicalSourceLock.requiredTerms);\nif (canonicalRequiredTerms.length < 2) sourceLockErrors.push('sourceLock.requiredTerms enthaelt weniger als 2 konkrete Begriffe');\n\nconst priorSharepicNeedStage = safeStr(j.sharepicNeedStage);\n\nif (priorSharepicNeedStage === 'topic_ok' && sourceLockErrors.length > 0) {\n  const reason = 'Source-Lock ungueltig: ' + sourceLockErrors.join(' | ');\n  contentObj.workflow = {\n    ...parseObject(contentObj.workflow),\n    contentValid: true,\n    visualReleased: false,\n    visualReleaseReason: reason,\n    visualReleaseCheckedAt: new Date().toISOString(),\n    workflowVersion: 'content-v26-eignungs-agent-split'\n  };\n  return [{\n    json: {\n      ...j,\n      ...(_resetImageFields ? {\n        imagePrompt: '',\n        imageHeadline: '',\n        imageSubline: '',\n        imageNegativePrompt: '',\n        visualJson: '{}'\n      } : {}),\n      contentJson: JSON.stringify(contentObj),\n      contentValid: true,\n      contentReady: true,\n      visualDecisionReason: visualStatusAlreadyAdvanced ? (safeStr(j.visualDecisionReason) || reason) : reason,\n      contentStage: contentStageToWrite,\n      contentErrorReason: '',\n      sharepicNeedStage: visualStatusAlreadyAdvanced ? priorSharepicNeedStage : 'blocked_source_lock',\n      imageStage: safeStr(j.imageStage) || (safeStr(j.imageFinalPath) ? 'composed' : 'not_started')\n    }\n  }];\n}\n\nconst anchors = {\n  satireThemaKonkret: safeStr(analysisAnchors.satireThemaKonkret || j.satireThemaKonkret),\n  satireKonfliktKonkret: safeStr(analysisAnchors.satireKonfliktKonkret || j.satireKonfliktKonkret),\n  visualPflichtobjekte: asArray(analysisAnchors.visualPflichtobjekte || j.visualPflichtobjekte),\n  visualPflichthandlung: safeStr(analysisAnchors.visualPflichthandlung || j.visualPflichthandlung),\n  visualBetroffene: asArray(analysisAnchors.visualBetroffene || j.visualBetroffene),\n  visualOrt: safeStr(analysisAnchors.visualOrt || j.visualOrt),\n  visualUeberzeichnung: safeStr(analysisAnchors.visualUeberzeichnung || j.visualUeberzeichnung),\n  visualErkennungssatz: safeStr(analysisAnchors.visualErkennungssatz || j.visualErkennungssatz),\n  visualVerboteneErsatzmotive: asArray(analysisAnchors.visualVerboteneErsatzmotive || j.visualVerboteneErsatzmotive)\n};\n\n// sharepicNeedStage kommt authoritativ aus P3 (Eignungs-Agent) bzw. P3b\n// (Reparatur) - hier nur noch uebernehmen und ggf. Bildprompt-Bau anstossen.\nlet sharepicNeedStage = priorSharepicNeedStage || 'not_applicable';\nlet visualPromptStage = '';\nlet visualDecisionReason = safeStr(j.visualDecisionReason);\n\nif (visualStatusAlreadyAdvanced) {\n  // P5/P5b haben bereits weitergearbeitet - nichts hier ueberschreiben.\n  visualPromptStage = safeStr(j.visualPromptStage);\n} else if (sharepicNeedStage === 'topic_ok') {\n  visualPromptStage = 'needs_prompt';\n  if (!visualDecisionReason) visualDecisionReason = 'Sharepic freigegeben (Eignungs-Agent), Bildprompt-Bau angestossen.';\n}\n\nconst updatedContentObj = parseObject(j.contentJson);\nupdatedContentObj.workflow = {\n  ...parseObject(updatedContentObj.workflow),\n  contentValid: true,\n  sharepicNeedStage,\n  visualPromptStage,\n  visualDecisionReason,\n  sourceLockValid,\n  sourceLockCheck: sourceLockErrors.length === 0 ? 'passed' : 'failed',\n  visualReleaseCheckedAt: new Date().toISOString(),\n  workflowVersion: 'content-v26-eignungs-agent-split'\n};\n\nconst fastLaneReason = computeFastLaneRecommendation(j);\n\nreturn [{\n  json: {\n    ...j,\n    contentJson: JSON.stringify(updatedContentObj),\n    contentValid: true,\n    contentReady: true,\n    sharepicNeedStage,\n    visualPromptStage,\n    visualDecisionReason,\n    instagramSharepicNoetig: sharepicNeedStage === 'topic_ok',\n    instagramCarouselNoetig: sharepicNeedStage === 'topic_ok',\n    visualNeeded: sharepicNeedStage === 'topic_ok',\n    ...(_resetImageFields ? {\n      imagePrompt: '',\n      imageHeadline: '',\n      imageSubline: '',\n      imageNegativePrompt: '',\n      visualJson: '{}'\n    } : {}),\n    ...anchors,\n    visualPflichtobjekte: JSON.stringify(anchors.visualPflichtobjekte),\n    visualBetroffene: JSON.stringify(anchors.visualBetroffene),\n    visualVerboteneErsatzmotive: JSON.stringify(anchors.visualVerboteneErsatzmotive),\n    contentStage: contentStageToWrite,\n    contentErrorReason: '',\n    imageStage: safeStr(j.imageStage) || (safeStr(j.imageFinalPath) ? 'composed' : 'not_started'),\n    ...(fastLaneReason ? { fastLaneRecommendedReason: fastLaneReason, fastLaneRecommendedAt: new Date().toISOString() } : {})\n  }\n}];"
       },
       "id": "8a68bb4d-a389-4485-8768-da70d494a187",
       "name": "Prepare Visual Decision",
@@ -862,7 +902,9 @@
             "visualPromptStage": "={{ $json.visualPromptStage || '' }}",
             "absurdeForderung": "={{ $json.absurdeForderung }}",
             "verfasser": "={{ typeof $json.verfasser !== 'undefined' ? ($json.verfasser || '') : undefined }}",
-            "fachdienst": "={{ typeof $json.fachdienst !== 'undefined' ? ($json.fachdienst || '') : undefined }}"
+            "fachdienst": "={{ typeof $json.fachdienst !== 'undefined' ? ($json.fachdienst || '') : undefined }}",
+            "fastLaneRecommendedReason": "={{ $json.fastLaneRecommendedReason || '' }}",
+            "fastLaneRecommendedAt": "={{ $json.fastLaneRecommendedAt || '' }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -1699,6 +1741,26 @@
             {
               "id": "fachdienst",
               "displayName": "fachdienst",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "fastLaneRecommendedReason",
+              "displayName": "fastLaneRecommendedReason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "fastLaneRecommendedAt",
+              "displayName": "fastLaneRecommendedAt",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -3965,6 +4027,90 @@
         10704,
         2208
       ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "fl000001-0001-4001-8001-000000000001",
+              "leftValue": "={{ $('Build Reaction Message').item.json.fastLaneRecommendedReason }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "fl000001-0001-4001-8001-000000000010",
+      "name": "Fast-Lane-Vorschlag noetig?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        10112,
+        2150
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Baut je frisch fast-lane-empfohlenem Vorgang eine EIGENE Matrix-Meldung mit\n// Antwortcodes (2026-09-01, RatsPilot-Folgeauftrag P2). Feuert genau einmal pro\n// Vorgang, weil \"Prepare Visual Decision\" (computeFastLaneRecommendation) den\n// Grund nur beim UEBERGANG von leer auf gesetzt liefert - bei jedem weiteren P4-\n// Lauf bleibt fastLaneRecommendedReason unveraendert und dieser Zweig feuert\n// dann nicht mehr (IF \"Fast-Lane-Vorschlag noetig?\" davor). Antwortcodes werden\n// von \"Finde Fast-Lane-Antwort\" in ALLRIS_P5b_Matrix_Headline_Reader ausgewertet.\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction vnCode(v) { return safeStr(v).replace(/[^0-9A-Za-z]+/g, '-').replace(/^-+|-+$/g, ''); }\n\nconst j = $('Build Reaction Message').item.json || {};\nconst code = vnCode(j.vorgangsnummer) || vnCode(j.vorgangKey);\n\nconst msg = '🚀 Fast-Lane-Vorschlag (zeitkritisch)\\n\\n' +\n  (safeStr(j.vorgangsnummer) || '?') + ' – ' + (safeStr(j.title) || '(kein Titel)') + '\\n' +\n  safeStr(j.allrisUrl) + '\\n\\n' +\n  'Grund: ' + safeStr(j.fastLaneRecommendedReason) + '\\n\\n' +\n  'Antworte mit \"' + code + '-FAST\" um bevorzugte Veroeffentlichung zu bestaetigen, ' +\n  'oder mit \"' + code + '-HOLD\" um diesen Vorgang bewusst zurueckzuhalten. ' +\n  'Ohne Antwort laeuft der Vorgang normal (Prioritaet \"normal\") in der Warteschlange weiter.';\n\nconst txnId = 'fastlane_' + vnCode(j.vorgangKey) + '_' + Date.now();\n\nreturn [{ json: { ...j, fastLaneAlertMessage: msg, fastLaneTxnId: txnId } }];"
+      },
+      "id": "fl000001-0001-4001-8001-000000000011",
+      "name": "Baue Fast-Lane-Vorschlag",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        10112,
+        2300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://matrix.org/_matrix/client/v3/rooms/!JDEhirqKydgJuFeWDH:matrix.golietz.de/send/m.room.message/{{ $json.fastLaneTxnId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ msgtype: 'm.text', body: $json.fastLaneAlertMessage }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "fl000001-0001-4001-8001-000000000012",
+      "name": "Send Matrix Fast-Lane-Vorschlag",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        10288,
+        2300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "od1pN1F5wy2irSDs",
+          "name": "Matrix Auth account"
+        }
+      }
     }
   ],
   "pinData": {},
@@ -3975,5 +4121,5 @@
     "saveDataSuccessExecution": "all"
   },
   "tags": [],
-  "versionId": "c51eca66-f56e-4815-a28d-0d9377c27aee"
+  "versionId": "b0244b2a-fd6b-4840-a83a-20bd3dc62dbc"
 }
