@@ -400,7 +400,12 @@
           "cachedResultName": "allris_vorgaenge"
         },
         "filters": {
-          "conditions": []
+          "conditions": [
+            {
+              "keyName": "sharepicNeedStage",
+              "keyValue": "topic_ok"
+            }
+          ]
         },
         "returnAll": true
       },
@@ -1032,5 +1037,5 @@
     "errorWorkflow": "qPheJKPv0k06tkro"
   },
   "tags": [],
-  "versionId": "669d0ccf-d588-4bd1-a393-9ee4b9c257ed"
+  "versionId": "2ddc29c9-17c4-4d42-a7fd-9cfe88556388"
 }

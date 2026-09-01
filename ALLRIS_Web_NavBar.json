@@ -48,7 +48,8 @@
   "pinData": null,
   "settings": {
     "executionOrder": "v1",
-    "saveDataSuccessExecution": "all"
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "all"
   },
   "tags": [],
   "versionId": "f16e4841-e933-4e3c-beeb-19809d9b2cb9"

@@ -32,7 +32,7 @@ Für alles Weitere – wie das im Detail technisch aufgebaut ist – richtet sic
 
 n8n-Automatisierungspipeline für DIE PARTEI Kreisverband Goslar. Überwacht das Goslarer Ratsinformationssystem ALLRIS, bewertet neue Vorgänge, und generiert daraus automatisiert satirische Social-Media-Inhalte und Sharepics.
 
-## Produktions-Pipeline (P1–P9 + P3b/P3c/P3d/P3e + P8b)
+## Produktions-Pipeline (P1–P11 + P3b/P3c/P3d/P3e + P8b)
 
 Das sind die Dateien, die tatsächlich live laufen (n8n Schedule Trigger, alle 5 Stunden, zeitversetzt) und reale Vorgänge von der ALLRIS-Erfassung bis zur WordPress-Veröffentlichung durchreichen:
 
@@ -53,24 +53,35 @@ Das sind die Dateien, die tatsächlich live laufen (n8n Schedule Trigger, alle 5
 | `ALLRIS_P8_Partei_Webseite.json` | Legt Entwurf auf der Partei-Webseite (die-partei.net/goslar) an | Seit 2026-07-26 **nur noch Entwurfs-Erstellung** (`status='draft'`): Bild-Upload + Post anlegen laufen für jeden fertigen Vorgang sofort, das eigentliche Live-Schalten wurde in P8b ausgelagert |
 | `ALLRIS_P8b_Tagesveroeffentlichung.json` | Schaltet genau einen Entwurf/Tag live | Neu 2026-07-26 (Nutzerwunsch: gleichmäßiger Veröffentlichungsrhythmus statt Batch-Postings). Wählt den ältesten offenen Entwurf (`wordpressGoslarDraftId` gesetzt, `wordpressGoslarPosted` noch falsch), setzt per WordPress-REST-API `status=publish`. Erst danach lesen P9/P10 den echten Live-Link |
 | `ALLRIS_P9_Mastodon_Publish.json` | Veröffentlicht auf Mastodon | Postet Bild + Text + KI-generierte und feste Hashtags (`#meingoslar #goslar #meinklüngelkannmehr #prioritätenproblem`); wartet zwingend auf `wordpressGoslarPosted` + `wordpressGoslarPostLink` (also auf P8b, nie auf P8 direkt), damit der verlinkte Artikel beim Posten schon wirklich live ist |
+| `ALLRIS_P10_Instagram_Publish.json` | Veröffentlicht auf Instagram | **Aktiv** (Stand 2026-09-01, live verifiziert) — 26 Nodes, gleiches Claim-/History-Muster wie P9, Graph-API Media-Container→Publish-Flow, nutzt dieselbe P8-Bild-URL |
+| `ALLRIS_P11_Facebook_Publish.json` | Veröffentlicht auf Facebook | **Aktiv** (Stand 2026-09-01, live verifiziert), claim-gated wie die übrigen Publish-Stufen |
 
-`ALLRIS_P10_Instagram_Publish.json` existiert bereits (26 Nodes, gleiches Claim-/History-Muster wie P9, Graph-API Media-Container→Publish-Flow, nutzt dieselbe P8-Bild-URL), ist aber **inaktiv** — wartet auf Instagram Business Account ID + Access Token vom Nutzer (siehe Platzhalter direkt in den beiden `graph.facebook.com`-URLs im Workflow).
-
-**Zeitplan-Kaskade** (P1/P2 alle 5h, P3–P9 stündlich, P8b täglich): `P1=:05(5h) → P2=:15(5h) → P3=:05 → P3d=:13 → P4=:21 → P3c=:28 → P5=:29 → P3e=:33 → P6=:37 → P7=:45 → P8=:52 → P9=:58` und separat `Paperless-Backfill=:00(1h)`, `P8b=täglich 06:00`, `P9=täglich 17:30`. Atomare Claim-/Lease-Sperren verhindern in P2, P3, P3c, P3d, P3e, P4–P9 sowie im Paperless-Backfill, dass parallele Läufe denselben Vorgang gleichzeitig bearbeiten. Ein Claim ersetzt keine fachliche Eingangsvoraussetzung und garantiert nicht den Abschluss der vorherigen Stufe.
+**Zeitplan-Kaskade** (P1/P2 alle 5h, P3–P8 stündlich, P9–P11 mehrfach täglich zu festen Uhrzeiten, P8b täglich): `P1=:05(5h) → P2=:15(5h) → P3=:05 → P3d=:13 → P4=:21 → P3c=:40 → P5=:29 → P3e=:33 → P6=:37 → P7=:45 → P8=:52` und separat `Paperless-Backfill=:00(1h)`, `P8b=täglich 07:30+17:00`, `P9=stündlich 8–17 Uhr`, `P10=2-stündlich 7–19 Uhr`, `P11=stündlich 7–21 Uhr` (Stand 2026-09-01, live verifiziert — die Publish-Frequenzen wurden mit Blick auf die Kommunalwahl am 13.09. erhöht, siehe Wahlkampf-Taktung). P3c wurde am 2026-09-01 von `:28` auf `:40` verschoben, weil P4 real bis zu ~6 Min. laufen kann und beide denselben `contentStage=needs_content`-Filter lesen — der ursprüngliche Abstand von 7 Min. ließ im Worst Case nur ~12s Puffer. Atomare Claim-/Lease-Sperren verhindern in P2, P3, P3c, P3d, P3e, P4–P8, **P8b, P9, P10, P11** sowie im Paperless-Backfill, dass parallele Läufe denselben Vorgang gleichzeitig bearbeiten. Ein Claim ersetzt keine fachliche Eingangsvoraussetzung und garantiert nicht den Abschluss der vorherigen Stufe.
 
 ## Hilfs- und Betriebsworkflows
 
 - `ALLRIS_Paperless_Backfill.json` läuft stündlich zur Minute `:00` (live
   verifiziert 2026-07-26) und überträgt archivierte Originaldokumente nach Paperless.
+- `ALLRIS_P4b_Metadaten_Nachzieher.json` läuft alle 3 Stunden zur Minute `:50`
+  und trägt Metadaten (u.a. `vorlageDatum`) nach, die beim ersten P4-Lauf noch fehlten.
 - `ALLRIS_Status_Uebersicht.json` stellt die im LAN verwendete
-  Statusübersicht bereit.
-- `ALLRIS_Dispatcher_Watchdog.json` ist inaktiv in der Live-Instanz vorhanden.
-  Sein Schedule steuert die Pipeline noch nicht; ein getrennter Manual-Zweig
-  dient dem kontrollierten Claim-/Lease- und Doppelclaim-Test.
+  Statusübersicht bereit (Webhook-getriggert, kein eigener Schedule).
+- `ALLRIS_Web_NavBar.json` liefert die gemeinsame Navigationsleiste für die
+  internen Web-Seiten (Status_Uebersicht u.a.), ebenfalls ohne eigenen Schedule.
+- `ALLRIS_Claim_Error_Release.json` ist der zentrale n8n-`errorWorkflow` für
+  P4, P8b, P9, P10 und P11 (in `settings.errorWorkflow` eingetragen, kein
+  expliziter Execute-Workflow-Aufruf nötig) — gibt bei einem Absturz
+  automatisch den Claim des betroffenen Vorgangs wieder frei.
+- `ALLRIS_Wahlkampf_Bildgenerator.json` ist ein separates, aktives Werkzeug
+  für Wahlkampf-Sharepics außerhalb der regulären Vorgangs-Pipeline.
+- `ALLRIS_Dispatcher_Watchdog.json` und `ALLRIS_Watchdog_P10_P11_Trigger.json`
+  sind inaktiv (`ALLRIS_Dispatcher_Watchdog.json` zusätzlich archiviert) und
+  steuern die Pipeline nicht; sie dienten kontrollierten Claim-/Lease- bzw.
+  Publish-Trigger-Tests.
 - `ALLRIS_Claim_Lease.json` ist der veröffentlichte, triggerlose Sub-Workflow
   für atomaren Claim-Erwerb, Re-Read und owner-gebundene Freigabe. Die
-  Stufen P2, P3, P3c, P3d, P3e und P4–P8 sowie der Paperless-Backfill
-  verwenden ihn; er kann nicht selbstständig starten.
+  Stufen P2, P3, P3c, P3d, P3e, P4–P8, **P8b, P9, P10 und P11** sowie der
+  Paperless-Backfill verwenden ihn; er kann nicht selbstständig starten.
 Erledigte, einmalig genutzte Reparatur- und Diagnose-Workflows (Manual Trigger, inaktiv) liegen
 gesammelt in [`archive/einmalig-diagnose/`](archive/einmalig-diagnose/) — dazu zählen u.a. der
 alte Vergleichsworkflow `ALLRIS_Orchestrator_Shadow.json`, `ALLRIS_Reset_Paperless_Backfill_Marker.json`
@@ -104,7 +115,7 @@ Sechs einzeln zuständige KI-Agenten plus ein Vergleichs-Werkzeug, die frühere,
 - `ALLRIS_Bild_Agent.json` — baut Bild-Motiv, Visual-Anker und Bild-Prompt aus der gewählten Satire-Variante, aufgerufen von P5 (ersetzt P5s alte "AI Visual JSON").
 - `ALLRIS_Eignungs_Agent.json` — trifft die alleinige "braucht dieser Vorgang ein Sharepic?"-Entscheidung (siehe State-Management-Modell oben), aufgerufen von P3d.
 - `ALLRIS_Lern_Agent.json` — speichert akzeptierte/abgelehnte QA-Beispiele und liefert sie als Few-Shot-Kontext zurück, damit neue Regeln nicht nur als zusätzliche Zeile in einem immer länger werdenden Prompt landen. Aufgerufen von P3d, rein additiv (fire-and-forget).
-- `ALLRIS_Orchestrator_Shadow.json` — **einziger noch inaktiver Rest des alten Schattenbetriebs**, liest jede Zeile und berechnet unabhängig das Stage-Modell zur Gegenprobe; war das Werkzeug, mit dem die ursprüngliche Migration validiert wurde. Trotz des Namens keine echte Steuerungsinstanz: inaktiv, nur per Manual Trigger startbar, ruft keinen anderen Workflow auf. Die tatsächliche Pipeline-Steuerung passiert weiterhin implizit über die Zeitplan-Kaskade oben.
+- `ALLRIS_Orchestrator_Shadow.json` — war das Werkzeug, mit dem die ursprüngliche Migration validiert wurde. **Existiert nicht mehr in der Live-Instanz** (vermutlich im Rahmen einer Instanz-Bereinigung entfernt); die lokale Datei liegt archiviert in [`archive/einmalig-diagnose/`](archive/einmalig-diagnose/). War ohnehin nie eine echte Steuerungsinstanz: nur per Manual Trigger startbar, rief keinen anderen Workflow auf. Die tatsächliche Pipeline-Steuerung passiert weiterhin implizit über die Zeitplan-Kaskade oben.
 - `ALLRIS_*_AI_PROMPT_TO_PASTE.txt` — Prompt-Texte für die jeweiligen KI-Nodes der Agenten (müssen aktuell manuell über die n8n-Node-Palette ergänzt werden, siehe Hinweis unten).
 
 ## Hinweis zum Import

@@ -254,7 +254,7 @@
             {
               "field": "hours",
               "hoursInterval": 1,
-              "triggerAtMinute": 28
+              "triggerAtMinute": 40
             }
           ]
         }
@@ -693,5 +693,5 @@
     "saveDataSuccessExecution": "all"
   },
   "tags": [],
-  "versionId": "62391293-655c-41eb-b9a9-33554407741a"
+  "versionId": "5d2e385d-6312-4847-8e2d-2185ccbf5c5f"
 }
