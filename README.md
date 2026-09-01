@@ -78,6 +78,10 @@ Das sind die Dateien, die tatsächlich live laufen (n8n Schedule Trigger, alle 5
   sind inaktiv (`ALLRIS_Dispatcher_Watchdog.json` zusätzlich archiviert) und
   steuern die Pipeline nicht; sie dienten kontrollierten Claim-/Lease- bzw.
   Publish-Trigger-Tests.
+- `ALLRIS_Nextcloud_Backup_OMV.json` ist inaktiv und **nicht produktionsbereit**
+  — fertiges Zeitplan-/Backup-Gerüst, aber ohne SSH-Credential und mit
+  Platzhalter-Pfaden. Offene Werte in
+  [`docs/NEXTCLOUD_BACKUP_TODO.md`](docs/NEXTCLOUD_BACKUP_TODO.md).
 - `ALLRIS_Claim_Lease.json` ist der veröffentlichte, triggerlose Sub-Workflow
   für atomaren Claim-Erwerb, Re-Read und owner-gebundene Freigabe. Die
   Stufen P2, P3, P3c, P3d, P3e, P4–P8, **P8b, P9, P10 und P11** sowie der
