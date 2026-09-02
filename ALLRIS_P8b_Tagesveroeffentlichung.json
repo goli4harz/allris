@@ -180,6 +180,12 @@
               "daysInterval": 1,
               "triggerAtHour": 17,
               "triggerAtMinute": 0
+            },
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 12,
+              "triggerAtMinute": 30
             }
           ]
         }
@@ -218,7 +224,7 @@
     },
     {
       "parameters": {
-        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction safeBool(v) {\n  if (v === true) return true;\n  if (typeof v === 'string') return v.trim().toLowerCase() === 'true';\n  return false;\n}\nfunction parseDate(v) { const t = Date.parse(safeStr(v)); return Number.isFinite(t) ? t : 0; }\n\nconst items = $input.all();\nconst candidates = items.filter(item => {\n  const j = item.json || {};\n  if (!safeStr(j.wordpressGoslarDraftId)) return false;\n  if (safeBool(j.wordpressGoslarPosted)) return false;\n  // Fast-Lane P2 (RatsPilot-Folgeauftrag 2026-09-01): \"hold\" ist eine bewusste\n  // menschliche Zurueckhaltung per Matrix (-HOLD) - nie automatisch auswaehlen.\n  if (safeStr(j.publicationMode) === 'hold') return false;\n  return true;\n});\nfunction sortKey(j) { return parseDate(j.vorlageDatum) || parseDate(j.wordpressGoslarDraftCreatedAt); }\n\n// Menschlich per Matrix (-FAST) bestaetigte Drafts haben Vorrang vor der\n// normalen chronologischen Reihenfolge; innerhalb jeder Gruppe bleibt die\n// bisherige vorlageDatum-Sortierung (aeltestes zuerst) erhalten. P4 selbst\n// darf publicationMode='fast' nie setzen, nur empfehlen - hier wird also nie\n// eine unbestaetigte KI-Empfehlung bevorzugt behandelt.\nconst fastCandidates = candidates.filter(item => safeStr((item.json||{}).publicationMode) === 'fast');\nconst normalCandidates = candidates.filter(item => safeStr((item.json||{}).publicationMode) !== 'fast');\nfastCandidates.sort((a, b) => sortKey(a.json||{}) - sortKey(b.json||{}));\nnormalCandidates.sort((a, b) => sortKey(a.json||{}) - sortKey(b.json||{}));\n\nconst ordered = [...fastCandidates, ...normalCandidates];\nreturn ordered.slice(0, 1);"
+        "jsCode": "function safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction safeBool(v) {\n  if (v === true) return true;\n  if (typeof v === 'string') return v.trim().toLowerCase() === 'true';\n  return false;\n}\nfunction parseDate(v) { const t = Date.parse(safeStr(v)); return Number.isFinite(t) ? t : 0; }\n\nconst items = $input.all();\nconst candidates = items.filter(item => {\n  const j = item.json || {};\n  if (!safeStr(j.wordpressGoslarDraftId)) return false;\n  if (safeBool(j.wordpressGoslarPosted)) return false;\n  // Fast-Lane P2 (RatsPilot-Folgeauftrag 2026-09-01): \"hold\" ist eine bewusste\n  // menschliche Zurueckhaltung per Matrix (-HOLD) - nie automatisch auswaehlen.\n  if (safeStr(j.publicationMode) === 'hold') return false;\n  return true;\n});\nfunction sortKey(j) { return parseDate(j.vorlageDatum) || parseDate(j.wordpressGoslarDraftCreatedAt); }\n\n// Menschlich per Matrix (-FAST) bestaetigte Drafts haben Vorrang vor der\n// normalen chronologischen Reihenfolge; innerhalb jeder Gruppe bleibt die\n// bisherige vorlageDatum-Sortierung (aeltestes zuerst) erhalten. P4 selbst\n// darf publicationMode='fast' nie setzen, nur empfehlen - hier wird also nie\n// eine unbestaetigte KI-Empfehlung bevorzugt behandelt.\nconst fastCandidates = candidates.filter(item => safeStr((item.json||{}).publicationMode) === 'fast');\nconst normalCandidates = candidates.filter(item => safeStr((item.json||{}).publicationMode) !== 'fast');\nfastCandidates.sort((a, b) => sortKey(a.json||{}) - sortKey(b.json||{}));\nnormalCandidates.sort((a, b) => sortKey(a.json||{}) - sortKey(b.json||{}));\n\nconst ordered = [...fastCandidates, ...normalCandidates];\nreturn ordered.slice(0, 2);"
       },
       "id": "p8b-0001-0000-4000-9000-000000000003",
       "name": "Waehle naechsten Draft",
@@ -550,5 +556,5 @@
     "saveDataSuccessExecution": "all"
   },
   "tags": [],
-  "versionId": "adafbc67-2c6e-49d2-842d-e6156ce31904"
+  "versionId": "3b56f565-787a-49ea-9ca4-5c90cb329591"
 }
