@@ -314,7 +314,8 @@
     },
     {
       "parameters": {
-        "jsCode": "const idx = $itemIndex;\nconst original = $('Nur bestaetigte Claims').itemMatching(idx).json;\nconst resp = $json || {};\nfunction extractErrorText(v) {\n  if (!v) return '';\n  if (typeof v === 'string') return v;\n  if (typeof v === 'object') return String(v.message || v.description || v.error || JSON.stringify(v));\n  return String(v);\n}\nconst postId = resp.id || null;\nconst postLink = resp.link || '';\nconst publishOk = !!postId && resp.status === 'publish';\nconst publishError = publishOk ? '' : (\n  extractErrorText(resp.error) ||\n  extractErrorText(resp.message) ||\n  'Veroeffentlichung fehlgeschlagen (kein publish-Status in Antwort).'\n);\nreturn { json: { ...original, publishedPostId: postId, publishedPostLink: postLink, publishOk, publishError } };"
+        "jsCode": "const idx = $itemIndex;\nconst original = $('Nur bestaetigte Claims').itemMatching(idx).json;\nconst resp = $json || {};\nfunction extractErrorText(v) {\n  if (!v) return '';\n  if (typeof v === 'string') return v;\n  if (typeof v === 'object') return String(v.message || v.description || v.error || JSON.stringify(v));\n  return String(v);\n}\nconst postId = resp.id || null;\nconst postLink = resp.link || '';\nconst publishOk = !!postId && resp.status === 'publish';\nconst publishError = publishOk ? '' : (\n  extractErrorText(resp.error) ||\n  extractErrorText(resp.message) ||\n  'Veroeffentlichung fehlgeschlagen (kein publish-Status in Antwort).'\n);\nreturn { json: { ...original, publishedPostId: postId, publishedPostLink: postLink, publishOk, publishError } };",
+        "mode": "runOnceForEachItem"
       },
       "id": "p8b-0001-0000-4000-9000-000000000008",
       "name": "Stelle Kontext nach Veroeffentlichung wieder her",
@@ -556,5 +557,5 @@
     "saveDataSuccessExecution": "all"
   },
   "tags": [],
-  "versionId": "3b56f565-787a-49ea-9ca4-5c90cb329591"
+  "versionId": "e8aa7d91-1694-4bfd-b4c3-cc5e8bf23842"
 }
