@@ -226,7 +226,7 @@
         160
       ],
       "parameters": {
-        "jsCode": "// Bildet die Umlaute+Laenge+verschachtelte-mkdir-Charakteristik des echten,\n// bei vol_10582/vol_10721 fehlgeschlagenen Pfades nach, aber als reiner Wegwerf-\n// Diagnoseordner (kein Zugriff auf echte Produktionsdaten).\n// KORREKTUR: erster Testlauf hat den 'base'-Ordner nie angelegt, bevor er direkt\n// 'base/02_reaktion' erstellen wollte - der Fehler war dadurch vermutlich nur\n// 'Elternordner fehlt', nicht das eigentlich zu testende Umlaut/Laenge-Problem.\nconst base = '/DiePARTEI/Allris/_diag_20260909_vol_10582_2026_099_-_Mitteilung_-_' +\n  'Übertragung_konsumtiver_Haushaltsreste_für_das_Haushalts_' + Date.now();\nreturn [{ json: {\n  baseFolder: base,\n  reaktionFolder: base + '/02_reaktion',\n  instagramFolder: base + '/02_reaktion/Instagram'\n} }];"
+        "jsCode": "// KORREKTUR 2: 'Method not allowed' beim Kind-Ordner trotz erfolgreichem Basis-\n// Ordner deutet auf WebDAV-Standardverhalten hin - MKCOL auf einen Pfad, der\n// schon existiert, gibt laut RFC4918 405 zurueck. vol_10582/vol_10721 haben\n// beide eine lange Historie (retry_count 526/2 vor dem 08-23-Fix) - ihre\n// 02_reaktion/Instagram-Ordner existieren mit hoher Wahrscheinlichkeit schon\n// aus frueheren Versuchen. Testet das jetzt gezielt: FESTER Pfad (kein\n// Date.now()), zweimal hintereinander denselben Ordner anlegen - der zweite\n// Versuch MUSS laut WebDAV-Spec 'schon vorhanden' melden.\nconst base = '/DiePARTEI/Allris/_diag_20260909_fixedpath_reuse_test';\nreturn [{ json: {\n  baseFolder: base,\n  reaktionFolder: base + '/02_reaktion',\n  instagramFolder: base + '/02_reaktion/Instagram'\n} }];"
       }
     },
     {
