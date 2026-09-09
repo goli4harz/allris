@@ -153,13 +153,6 @@
             "type": "main",
             "index": 0
           }
-        ],
-        [
-          {
-            "node": "Stelle finalImage wieder her",
-            "type": "main",
-            "index": 0
-          }
         ]
       ]
     },
@@ -302,13 +295,6 @@
     },
     "Upload nach Nextcloud": {
       "main": [
-        [
-          {
-            "node": "Stelle Kontext nach Nextcloud Upload wieder her",
-            "type": "main",
-            "index": 0
-          }
-        ],
         [
           {
             "node": "Stelle Kontext nach Nextcloud Upload wieder her",
@@ -926,13 +912,6 @@
             "type": "main",
             "index": 0
           }
-        ],
-        [
-          {
-            "node": "Create a folder",
-            "type": "main",
-            "index": 0
-          }
         ]
       ]
     }
@@ -1204,7 +1183,7 @@
           "name": "NextCloud account"
         }
       },
-      "onError": "continueErrorOutput"
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -1240,7 +1219,7 @@
           "name": "NextCloud account"
         }
       },
-      "onError": "continueErrorOutput"
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -6594,7 +6573,7 @@
           "name": "NextCloud account"
         }
       },
-      "onError": "continueErrorOutput"
+      "onError": "continueRegularOutput"
     }
   ],
   "pinData": {},
@@ -6618,5 +6597,5 @@
       "name": "instagram"
     }
   ],
-  "versionId": "b0907055-ec56-4dda-8db0-663f3ab7106c"
+  "versionId": "e069a9d8-a40a-43cc-bb86-fa4bcd20f8b3"
 }
