@@ -1,0 +1,194 @@
+{
+  "active": false,
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Liste 2026-Ordner (Lesetest)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Liste 2026-Ordner (Lesetest)": {
+      "main": [
+        [
+          {
+            "node": "Baue Testordner-Namen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue Testordner-Namen": {
+      "main": [
+        [
+          {
+            "node": "Erstelle Testordner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Erstelle Testordner": {
+      "main": [
+        [
+          {
+            "node": "Baue Testdatei",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baue Testdatei": {
+      "main": [
+        [
+          {
+            "node": "Lade Testdatei hoch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lade Testdatei hoch": {
+      "main": [
+        [
+          {
+            "node": "Fasse Ergebnis zusammen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "name": "ALLRIS_Diagnose_Nextcloud_Upload_20260909",
+  "nodes": [
+    {
+      "id": "d1",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -660,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "d2",
+      "name": "Liste 2026-Ordner (Lesetest)",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [
+        -440,
+        0
+      ],
+      "parameters": {
+        "resource": "file",
+        "operation": "list",
+        "path": "/DiePARTEI/Allris/2026"
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      }
+    },
+    {
+      "id": "d3",
+      "name": "Baue Testordner-Namen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "return [{ json: { testFolder: '/DiePARTEI/Allris/_diag_20260909_' + Date.now() } }];"
+      }
+    },
+    {
+      "id": "d4",
+      "name": "Erstelle Testordner",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "resource": "folder",
+        "path": "={{ $json.testFolder }}"
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      }
+    },
+    {
+      "id": "d5",
+      "name": "Baue Testdatei",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const testFolder = $('Baue Testordner-Namen').item.json.testFolder;\nconst buf = Buffer.from('diagnose ' + new Date().toISOString(), 'utf8');\nreturn [{\n  json: { testFolder, testFile: testFolder + '/diag.txt' },\n  binary: { diagFile: { data: buf.toString('base64'), mimeType: 'text/plain', fileName: 'diag.txt' } }\n}];"
+      }
+    },
+    {
+      "id": "d6",
+      "name": "Lade Testdatei hoch",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "path": "={{ $json.testFile }}",
+        "binaryDataUpload": true,
+        "binaryPropertyName": "diagFile"
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
+      }
+    },
+    {
+      "id": "d7",
+      "name": "Fasse Ergebnis zusammen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const list = $('Liste 2026-Ordner (Lesetest)').first();\nconst mkdir = $('Erstelle Testordner').first();\nconst upload = $('Lade Testdatei hoch').first();\nfunction summarize(label, item) {\n  if (!item) return label + ': kein Item (Knoten evtl. gar nicht erreicht)';\n  const j = item.json || {};\n  if (j.error) return label + ': FEHLER -> ' + JSON.stringify(j.error).slice(0, 400);\n  return label + ': OK -> ' + JSON.stringify(j).slice(0, 200);\n}\nreturn [{ json: {\n  listeErgebnis: summarize('Liste', list),\n  ordnerErgebnis: summarize('Ordner erstellen', mkdir),\n  uploadErgebnis: summarize('Datei hochladen', upload)\n} }];"
+      }
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
