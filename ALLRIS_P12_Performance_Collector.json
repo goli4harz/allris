@@ -16,17 +16,6 @@
       "main": [
         [
           {
-            "node": "Hole vorhandene Performance-Zeilen",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Hole vorhandene Performance-Zeilen": {
-      "main": [
-        [
-          {
             "node": "Hole WP Statify Stats",
             "type": "main",
             "index": 0
@@ -61,7 +50,7 @@
         [],
         [
           {
-            "node": "Plattform?",
+            "node": "Pruefe ob schon gemessen",
             "type": "main",
             "index": 0
           }
@@ -234,6 +223,35 @@
           }
         ]
       ]
+    },
+    "Pruefe ob schon gemessen": {
+      "main": [
+        [
+          {
+            "node": "Bereits gemessen?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bereits gemessen?": {
+      "main": [
+        [
+          {
+            "node": "Naechster Kandidat",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Plattform?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "id": "2bzJVHxdhnVnILdf",
@@ -283,27 +301,6 @@
     },
     {
       "parameters": {
-        "operation": "get",
-        "dataTableId": {
-          "__rl": true,
-          "value": "wYpZQzzA3EWb98Go",
-          "mode": "list",
-          "cachedResultName": "allris_content_performance"
-        },
-        "returnAll": true
-      },
-      "id": "p12000001-0001-4001-8001-000000000003",
-      "name": "Hole vorhandene Performance-Zeilen",
-      "type": "n8n-nodes-base.dataTable",
-      "typeVersion": 1.1,
-      "position": [
-        400,
-        0
-      ],
-      "alwaysOutputData": true
-    },
-    {
-      "parameters": {
         "method": "GET",
         "url": "https://www.golietz.de/wp-json/statify/v1/stats/posts",
         "authentication": "predefinedCredentialType",
@@ -329,7 +326,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// RatsPilot Folgeauftrag P1 (Performance-Collector, 2026-09-01): ermittelt, welche\n// (Vorgang, Plattform, Messfenster)-Kombinationen jetzt faellig sind. Faellig = Post\n// existiert (xPosted=true, xPostedAt gesetzt, PostId vorhanden), das Fenster (2h/24h/72h)\n// ist seit dem Post verstrichen, es liegt noch KEINE Zeile in allris_content_performance\n// fuer genau diese Kombination vor, UND wir sind nicht mehr als GRACE_MS ueber dem\n// Fenster hinaus (verhindert falsch beschriftete \"T+2h\"-Werte fuer laengst alte Posts,\n// z.B. beim allerersten Lauf nach Aktivierung dieses Features - Bestandsposts vor\n// Feature-Einfuehrung werden dadurch bewusst NICHT rueckwirkend nachgemessen).\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction bool(v) {\n  if (v === true || v === 1) return true;\n  if (typeof v === 'string') return v.trim().toLowerCase() === 'true';\n  return false;\n}\nfunction parseIso(v) {\n  const t = Date.parse(safeStr(v));\n  return Number.isFinite(t) ? t : null;\n}\n\nconst WINDOWS = [\n  { name: 't2h', ms: 2 * 3600 * 1000 },\n  { name: 't24h', ms: 24 * 3600 * 1000 },\n  { name: 't72h', ms: 72 * 3600 * 1000 }\n];\nconst GRACE_MS = 6 * 3600 * 1000;\n\nconst PLATFORMS = [\n  { key: 'facebook', postedFlag: 'facebookPosted', postedAt: 'facebookPostedAt', postId: 'facebookPostId' },\n  { key: 'instagram', postedFlag: 'instagramPosted', postedAt: 'instagramPostedAt', postId: 'instagramPostId' },\n  { key: 'mastodon', postedFlag: 'mastodonPosted', postedAt: 'mastodonPostedAt', postId: 'mastodonPostUrl' },\n  { key: 'wordpress_golietz', postedFlag: 'wordpressPosted', postedAt: 'wordpressPostedAt', postId: 'wordpressPostId' }\n];\n\nconst vorgaenge = $('Hole Vorgaenge fuer Performance').all().map(i => i.json || {});\nconst existing = $('Hole vorhandene Performance-Zeilen').all().map(i => i.json || {});\nconst doneSet = new Set(existing.map(r => safeStr(r.vorgangKey) + '|' + safeStr(r.platform) + '|' + safeStr(r.measurementWindow)));\n\nconst now = Date.now();\nconst candidates = [];\nfor (const row of vorgaenge) {\n  for (const p of PLATFORMS) {\n    if (!bool(row[p.postedFlag])) continue;\n    const postedMs = parseIso(row[p.postedAt]);\n    if (postedMs === null) continue;\n    const postIdVal = safeStr(row[p.postId]);\n    if (!postIdVal) continue;\n    for (const w of WINDOWS) {\n      const key = safeStr(row.vorgangKey) + '|' + p.key + '|' + w.name;\n      if (doneSet.has(key)) continue;\n      const elapsed = now - postedMs;\n      if (elapsed < w.ms) continue;\n      if (elapsed > w.ms + GRACE_MS) continue;\n      candidates.push({\n        vorgangKey: row.vorgangKey,\n        vorgangsnummer: row.vorgangsnummer,\n        platform: p.key,\n        postId: postIdVal,\n        postedAt: row[p.postedAt],\n        measurementWindow: w.name,\n        wordpressSlug: safeStr(row.wordpressSlug)\n      });\n    }\n  }\n}\n\nif (candidates.length === 0) {\n  return [{ json: { _noCandidates: true, platform: '' } }];\n}\nreturn candidates.map(c => ({ json: c }));"
+        "jsCode": "// RatsPilot Folgeauftrag P1 (Performance-Collector, 2026-09-01): ermittelt, welche\n// (Vorgang, Plattform, Messfenster)-Kombinationen jetzt faellig sind. Faellig = Post\n// existiert (xPosted=true, xPostedAt gesetzt, PostId vorhanden), das Fenster (2h/24h/72h)\n// ist seit dem Post verstrichen, UND wir sind nicht mehr als GRACE_MS ueber dem Fenster\n// hinaus (verhindert falsch beschriftete \"T+2h\"-Werte fuer laengst alte Posts, z.B. beim\n// allerersten Lauf nach Aktivierung dieses Features - Bestandsposts vor Feature-Einfuehrung\n// werden dadurch bewusst NICHT rueckwirkend nachgemessen).\n// 2026-09-09-Fix: der \"schon gemessen?\"-Check laeuft NICHT mehr hier ueber eine vorab\n// komplett geladene Kopie von allris_content_performance (das hat die Tabelle bei jedem\n// stuendlichen Lauf per returnAll:true ganz eingelesen - bei wachsender Tabelle die Ursache\n// des RAM-Vollisch-Absturzes am 09.09., siehe allris_instance_wide_scheduler_outage_2026-09-09\n// und allris_p12_performance_collector_ram_fix_2026-09-09), sondern pro Kandidat gezielt per\n// Filter im Node \"Pruefe ob schon gemessen\" weiter unten im Flow.\nfunction safeStr(v) { return v === null || v === undefined ? '' : String(v).trim(); }\nfunction bool(v) {\n  if (v === true || v === 1) return true;\n  if (typeof v === 'string') return v.trim().toLowerCase() === 'true';\n  return false;\n}\nfunction parseIso(v) {\n  const t = Date.parse(safeStr(v));\n  return Number.isFinite(t) ? t : null;\n}\n\nconst WINDOWS = [\n  { name: 't2h', ms: 2 * 3600 * 1000 },\n  { name: 't24h', ms: 24 * 3600 * 1000 },\n  { name: 't72h', ms: 72 * 3600 * 1000 }\n];\nconst GRACE_MS = 6 * 3600 * 1000;\n\nconst PLATFORMS = [\n  { key: 'facebook', postedFlag: 'facebookPosted', postedAt: 'facebookPostedAt', postId: 'facebookPostId' },\n  { key: 'instagram', postedFlag: 'instagramPosted', postedAt: 'instagramPostedAt', postId: 'instagramPostId' },\n  { key: 'mastodon', postedFlag: 'mastodonPosted', postedAt: 'mastodonPostedAt', postId: 'mastodonPostUrl' },\n  { key: 'wordpress_golietz', postedFlag: 'wordpressPosted', postedAt: 'wordpressPostedAt', postId: 'wordpressPostId' }\n];\n\nconst vorgaenge = $('Hole Vorgaenge fuer Performance').all().map(i => i.json || {});\n\nconst now = Date.now();\nconst candidates = [];\nfor (const row of vorgaenge) {\n  for (const p of PLATFORMS) {\n    if (!bool(row[p.postedFlag])) continue;\n    const postedMs = parseIso(row[p.postedAt]);\n    if (postedMs === null) continue;\n    const postIdVal = safeStr(row[p.postId]);\n    if (!postIdVal) continue;\n    for (const w of WINDOWS) {\n      const elapsed = now - postedMs;\n      if (elapsed < w.ms) continue;\n      if (elapsed > w.ms + GRACE_MS) continue;\n      candidates.push({\n        vorgangKey: row.vorgangKey,\n        vorgangsnummer: row.vorgangsnummer,\n        platform: p.key,\n        postId: postIdVal,\n        postedAt: row[p.postedAt],\n        measurementWindow: w.name,\n        wordpressSlug: safeStr(row.wordpressSlug)\n      });\n    }\n  }\n}\n\nif (candidates.length === 0) {\n  return [{ json: { _noCandidates: true, platform: '' } }];\n}\nreturn candidates.map(c => ({ json: c }));"
       },
       "id": "p12000001-0001-4001-8001-000000000005",
       "name": "Baue Kandidatenliste",
@@ -695,10 +692,83 @@
         2000,
         0
       ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "wYpZQzzA3EWb98Go",
+          "mode": "list",
+          "cachedResultName": "allris_content_performance"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "vorgangKey",
+              "keyValue": "={{ $json.vorgangKey }}"
+            },
+            {
+              "keyName": "platform",
+              "keyValue": "={{ $json.platform }}"
+            },
+            {
+              "keyName": "measurementWindow",
+              "keyValue": "={{ $json.measurementWindow }}"
+            }
+          ]
+        },
+        "returnAll": false,
+        "limit": 1
+      },
+      "id": "p12000001-0001-4001-8001-000000000019",
+      "name": "Pruefe ob schon gemessen",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1000,
+        200
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "p12if0002",
+              "leftValue": "={{ $json.measuredAt ? 'ja' : 'nein' }}",
+              "rightValue": "ja",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "p12000001-0001-4001-8001-000000000020",
+      "name": "Bereits gemessen?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1000,
+        320
+      ]
     }
   ],
   "pinData": null,
   "settings": {},
   "tags": [],
-  "versionId": "6b9660d5-c8a4-420b-9857-8d121dda68c7"
+  "versionId": "bfe040a7-eee1-416e-b8c3-edf2bbe50774"
 }
