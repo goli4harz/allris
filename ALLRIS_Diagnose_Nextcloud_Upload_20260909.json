@@ -71,6 +71,17 @@
       "main": [
         [
           {
+            "node": "Erstelle Basis-Ordner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Erstelle Basis-Ordner": {
+      "main": [
+        [
+          {
             "node": "Erstelle Unterordner 02_reaktion",
             "type": "main",
             "index": 0
@@ -215,7 +226,28 @@
         160
       ],
       "parameters": {
-        "jsCode": "// Bildet die Umlaute+Laenge+verschachtelte-mkdir-Charakteristik des echten,\n// bei vol_10582/vol_10721 fehlgeschlagenen Pfades nach, aber als reiner Wegwerf-\n// Diagnoseordner (kein Zugriff auf echte Produktionsdaten).\nconst base = '/DiePARTEI/Allris/_diag_20260909_vol_10582_2026_099_-_Mitteilung_-_' +\n  'Übertragung_konsumtiver_Haushaltsreste_für_das_Haushalts_' + Date.now();\nreturn [{ json: {\n  reaktionFolder: base + '/02_reaktion',\n  instagramFolder: base + '/02_reaktion/Instagram'\n} }];"
+        "jsCode": "// Bildet die Umlaute+Laenge+verschachtelte-mkdir-Charakteristik des echten,\n// bei vol_10582/vol_10721 fehlgeschlagenen Pfades nach, aber als reiner Wegwerf-\n// Diagnoseordner (kein Zugriff auf echte Produktionsdaten).\n// KORREKTUR: erster Testlauf hat den 'base'-Ordner nie angelegt, bevor er direkt\n// 'base/02_reaktion' erstellen wollte - der Fehler war dadurch vermutlich nur\n// 'Elternordner fehlt', nicht das eigentlich zu testende Umlaut/Laenge-Problem.\nconst base = '/DiePARTEI/Allris/_diag_20260909_vol_10582_2026_099_-_Mitteilung_-_' +\n  'Übertragung_konsumtiver_Haushaltsreste_für_das_Haushalts_' + Date.now();\nreturn [{ json: {\n  baseFolder: base,\n  reaktionFolder: base + '/02_reaktion',\n  instagramFolder: base + '/02_reaktion/Instagram'\n} }];"
+      }
+    },
+    {
+      "id": "d11",
+      "name": "Erstelle Basis-Ordner",
+      "type": "n8n-nodes-base.nextCloud",
+      "typeVersion": 1,
+      "position": [
+        440,
+        280
+      ],
+      "parameters": {
+        "resource": "folder",
+        "path": "={{ $json.baseFolder }}"
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "nextCloudApi": {
+          "id": "jlZlwASXZbJyNpfA",
+          "name": "NextCloud account"
+        }
       }
     },
     {
@@ -271,7 +303,7 @@
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const list = $('Liste 2026-Ordner (Lesetest)').first();\nconst mkdir = $('Erstelle Testordner').first();\nconst upload = $('Lade Testdatei hoch').first();\nconst mkdirReaktion = $('Erstelle Unterordner 02_reaktion').first();\nconst mkdirInstagram = $('Erstelle Unterordner Instagram').first();\nfunction summarize(label, item) {\n  if (!item) return label + ': kein Item (Knoten evtl. gar nicht erreicht)';\n  const j = item.json || {};\n  if (j.error) return label + ': FEHLER -> ' + JSON.stringify(j.error).slice(0, 400);\n  return label + ': OK -> ' + JSON.stringify(j).slice(0, 200);\n}\nreturn [{ json: {\n  listeErgebnis: summarize('Liste', list),\n  ordnerErgebnis: summarize('Ordner erstellen (einfacher Pfad)', mkdir),\n  uploadErgebnis: summarize('Datei hochladen (einfacher Pfad)', upload),\n  reaktionOrdnerErgebnis: summarize('Ordner 02_reaktion (Umlaut+lang, wie Produktion)', mkdirReaktion),\n  instagramOrdnerErgebnis: summarize('Unterordner Instagram (verschachtelt, wie Produktion)', mkdirInstagram)\n} }];"
+        "jsCode": "const list = $('Liste 2026-Ordner (Lesetest)').first();\nconst mkdir = $('Erstelle Testordner').first();\nconst upload = $('Lade Testdatei hoch').first();\nconst mkdirBase = $('Erstelle Basis-Ordner').first();\nconst mkdirReaktion = $('Erstelle Unterordner 02_reaktion').first();\nconst mkdirInstagram = $('Erstelle Unterordner Instagram').first();\nfunction summarize(label, item) {\n  if (!item) return label + ': kein Item (Knoten evtl. gar nicht erreicht)';\n  const j = item.json || {};\n  if (j.error) return label + ': FEHLER -> ' + JSON.stringify(j.error).slice(0, 400);\n  return label + ': OK -> ' + JSON.stringify(j).slice(0, 200);\n}\nreturn [{ json: {\n  listeErgebnis: summarize('Liste', list),\n  ordnerErgebnis: summarize('Ordner erstellen (einfacher Pfad)', mkdir),\n  uploadErgebnis: summarize('Datei hochladen (einfacher Pfad)', upload),\n  baseOrdnerErgebnis: summarize('Basis-Ordner (Umlaut+lang, wie Produktion)', mkdirBase),\n  reaktionOrdnerErgebnis: summarize('Ordner 02_reaktion (Kind von Basis-Ordner)', mkdirReaktion),\n  instagramOrdnerErgebnis: summarize('Unterordner Instagram (verschachtelt)', mkdirInstagram)\n} }];"
       }
     }
   ],
